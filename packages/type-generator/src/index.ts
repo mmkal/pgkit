@@ -34,6 +34,8 @@ export interface SlonikTsConfig<KnownTypes> {
    * if this is a string, types will be written to the path with that value
    */
   writeTypes?: false | string
+  /** if true, generated code directory will be reset on startup. */
+  reset?: boolean
   /**
    * map from postgres data type id (oid) to io-ts-codegen type.
    */
@@ -76,7 +78,24 @@ export interface Functionalsql<KnownTypes> {
     GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
 }
 
+export const createCodegenDirectory = (directory: string) => {
+  fs.mkdirSync(directory, {recursive: true})
+  fs.writeFileSync(join(directory, 'index.ts'), 'export const knownTypes = {}\n', 'utf8')
+}
+
+export const resetCodegenDirectory = (directory: string) => {
+  if (fs.existsSync(directory)) {
+    fs.readdirSync(directory)
+      .forEach(filename => fs.unlinkSync(join(directory, filename)))
+    fs.rmdirSync(directory)
+  }
+  createCodegenDirectory(directory)
+}
+
 export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): Functionalsql<KnownTypes> => {
+  if (config.reset && typeof config.writeTypes === 'string') {
+    resetCodegenDirectory(config.writeTypes)
+  }
   if (!config.writeTypes) {
     // not writing types, no need to track queries or intercept results
     return {
@@ -88,12 +107,11 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
     }
   }
   const writeTypes = (typeof config.writeTypes === 'string')
-    ? fsTypeWriter(config.writeTypes)
+    ? getFsTypeWriter(config.writeTypes)
     : config.writeTypes
     
   if (typeof config.writeTypes === 'string' && !fs.existsSync(config.writeTypes)) {
-    fs.mkdirSync(config.writeTypes, {recursive: true})
-    fs.writeFileSync(join(config.writeTypes, 'index.ts'), 'export const knownTypes = {}\n', 'utf8')
+    createCodegenDirectory(config.writeTypes)
   }
 
   const typeMapper = (dataTypeId: number, types: typeof typeNameToOid) =>
@@ -151,7 +169,7 @@ const codegen = {
     `}`,
   ].filter(Boolean).join('\n')
 }
-const fsTypeWriter = (generatedPath: string) =>
+const getFsTypeWriter = (generatedPath: string) =>
   (typeName: string, properties: Property[], description: string) => {
     const header = [
       '/* eslint-disable */',
@@ -178,7 +196,7 @@ const fsTypeWriter = (generatedPath: string) =>
       ``,
       `export interface ${typeName}_QueryTypeMap {`,
       '  ' + _entries
-        .map(e => ` [${JSON.stringify(description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
+        .map(e => `[${JSON.stringify(e.description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
         .join('\n')
         .replace(/\n/g, '\n  '),
       `}`,

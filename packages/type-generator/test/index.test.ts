@@ -4,10 +4,12 @@ import {createPool} from 'slonik'
 import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os';
+import { expectType, TypeOf, TypeEqual } from 'ts-expect'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'db')
   const {sql, interceptor} = setupSlonikTs({
+    reset: true,
     knownTypes,
     writeTypes,
   })
@@ -36,6 +38,7 @@ describe('type generator', () => {
 
   it('queries', async () => {
     await slonik.query(sql.Foo`select * from foo`)
+    await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.
     await slonik.query(sql.CountInfo`
       select count(*) as a_count, a as a_value
       from foo
@@ -47,18 +50,26 @@ describe('type generator', () => {
     })
     expect(generatedFiles).toMatchInlineSnapshot(`
       Array [
-        "CountInfo.ts",
-        "Foo.ts",
-        "index.ts",
+        'CountInfo.ts',
+        'Foo.ts',
+        'index.ts',
       ]
     `)
+  })
+
+  it('creates a pessimistic union type when there are multiple queries', async () => {
+    const foo1 = await slonik.any(sql.FooSubset`select a, b, c from foo`)
+    const foo2 = await slonik.any(sql.FooSubset`select a, b from foo`)
+    expectType<TypeEqual<{a: string, b: boolean}, typeof foo1[0]>>(true)
+    expectType<TypeEqual<{a: string, b: boolean}, typeof foo2[0]>>(true)
+    expect(foo1).toHaveLength(foo2.length)
   })
 
   it('can create a prod version', () => {
     expect(Object.keys(setupSlonikTs({knownTypes}))).toMatchInlineSnapshot(`
       Array [
-        "interceptor",
-        "sql",
+        'interceptor',
+        'sql',
       ]
     `)
   })
