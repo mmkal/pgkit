@@ -58,12 +58,12 @@ describe('type generator', () => {
       expect(statSync(join(writeTypes, f)).mtimeMs).toBeGreaterThan(Date.now() - 2000)
     })
     expect(generatedFiles).toMatchInlineSnapshot(`
-            Array [
-              "CountInfo.ts",
-              "Foo.ts",
-              "index.ts",
-            ]
-        `)
+                  Array [
+                    "CountInfo.ts",
+                    "Foo.ts",
+                    "index.ts",
+                  ]
+            `)
   })
 
   it('creates a pessimistic union type when there are multiple queries', async () => {
@@ -84,24 +84,25 @@ describe('type generator', () => {
     const foo = await slonik.one(sql.FooBar`select * from foo`)
     expectType<{abc: string}>(foo)
     expect(foo).toMatchInlineSnapshot(`
-      Object {
-        "a": "xyz",
-        "b": null,
-        "c": null,
-        "d": null,
-        "e": null,
-        "id": 1,
-      }
-    `)
+            Object {
+              "a": "xyz",
+              "b": null,
+              "c": null,
+              "d": null,
+              "e": null,
+              "id": 1,
+            }
+        `)
   })
 
   it('can create a prod version', () => {
     expect(Object.keys(setupSlonikTs({knownTypes}))).toMatchInlineSnapshot(`
-            Array [
-              "interceptor",
-              "sql",
-            ]
-        `)
+      Array [
+        "interceptor",
+        "typeParsers",
+        "sql",
+      ]
+    `)
   })
 
   it('can create generated types directory', async () => {
@@ -120,20 +121,19 @@ describe('type generator', () => {
   })
 
   it('allows custom type mappings', async () => {
-    const {sql, interceptor} = setupSlonikTs({
+    const {sql, interceptor, typeParsers} = setupSlonikTs({
       reset: true,
       knownTypes: await import('./generated/with-date').then(x => x.knownTypes),
       writeTypes: join(__dirname, 'generated', 'with-date'),
-      typeMapper: (id, types) => (id === types.timestamptz ? 'Date' : undefined),
+      typeMapper: {
+        timestamptz: ['Date', value => new Date(value)],
+      }
     })
 
     const slonik = createPool(connectionString, {
       idleTimeout: 1,
       interceptors: [interceptor],
-      typeParsers: [{
-        name: 'timestamptz',
-        parse: value => new Date(value),
-      }],
+      typeParsers,
     })
 
     await slonik.query(sql`insert into foo(d) values(now())`)

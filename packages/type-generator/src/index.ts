@@ -1,4 +1,4 @@
-import { InterceptorType, QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType } from 'slonik'
+import { InterceptorType, QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType, TypeParserType } from 'slonik'
 
 import * as fs from 'fs'
 import { basename, join } from 'path'
@@ -39,7 +39,9 @@ export interface SlonikTsConfig<KnownTypes> {
   /**
    * map from postgres data type id (oid) to io-ts-codegen type.
    */
-  typeMapper?: (dataTypeId: number, types: typeof typeNameToOid) => string | undefined
+  typeMapper?: {
+    [K in keyof typeof typeNameToOid]?: [string, (value: string) => unknown]
+  }
 }
 
 export type DefaultType<KnownTypes> = {
@@ -48,6 +50,7 @@ export type DefaultType<KnownTypes> = {
 
 export interface SlonikTs<KnownTypes> {
   interceptor: InterceptorType
+  typeParsers: TypeParserType[]
   sql: typeof slonikSql & {
     [K in keyof KnownTypes]: GenericSqlTaggedTemplateType<KnownTypes[K]>
   } & {
@@ -61,6 +64,7 @@ export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): S
   Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter.sql(name))
   return {
     interceptor: sqlGetter.interceptor,
+    typeParsers: sqlGetter.typeParsers,
     sql: new Proxy(_sql, {
       get(_, key) {
         if (typeof key === 'string' && !(key in _sql)) {
@@ -74,6 +78,7 @@ export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): S
 
 export interface Functionalsql<KnownTypes> {
   interceptor: InterceptorType
+  typeParsers: TypeParserType[]
   sql: <Identifier extends string>(identifier: Identifier) =>
     GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
 }
@@ -96,6 +101,12 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
   if (config.reset && typeof config.writeTypes === 'string') {
     resetCodegenDirectory(config.writeTypes)
   }
+  const typeParsers = config.typeMapper
+    ? keys(config.typeMapper).map(name => ({
+      name,
+      parse: config.typeMapper![name]![1],
+    }))
+    : []
   if (!config.writeTypes) {
     // not writing types, no need to track queries or intercept results
     return {
@@ -104,14 +115,19 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
         fromPairs(keys(config.knownTypes).map(k => [k, slonikSql])),
       ),
       interceptor: {},
+      typeParsers,
     }
   }
   const writeTypes = (typeof config.writeTypes === 'string')
     ? getFsTypeWriter(config.writeTypes)
     : config.writeTypes
     
-  const typeMapper = (dataTypeId: number, types: typeof typeNameToOid) =>
-    (config.typeMapper && config.typeMapper(dataTypeId, types)) || tsTypeFromPgType(dataTypeId)
+  const typeMapper = (dataTypeId: number) => {
+    if (config.typeMapper && oidToTypeName[dataTypeId] && config.typeMapper[oidToTypeName[dataTypeId]]) {
+      return config.typeMapper[oidToTypeName[dataTypeId]]![0]
+    }
+    return tsTypeFromPgType(dataTypeId)
+  }
 
   const _map: Record<string, string[] | undefined> = {}
   const mapKey = (sqlValue: { sql: string, values?: any }) =>
@@ -137,7 +153,7 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
           identifier,
           result.fields.map(f => ({
             name: f.name,
-            value: typeMapper(f.dataTypeID, typeNameToOid),
+            value: typeMapper(f.dataTypeID),
             description: `${oidToTypeName[f.dataTypeID]} (oid: ${f.dataTypeID})`,
           })),
           trimmedSql.trim(),
@@ -145,7 +161,8 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
 
         return result
       }
-    }
+    },
+    typeParsers,
   }
 }
 
