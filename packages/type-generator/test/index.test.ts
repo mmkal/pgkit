@@ -4,7 +4,7 @@ import {createPool} from 'slonik'
 import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os';
-import { expectType, TypeOf, TypeEqual } from 'ts-expect'
+import {expectType, TypeEqual} from 'ts-expect'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'db')
