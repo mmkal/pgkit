@@ -17,11 +17,11 @@ const orderBy = <T>(list: T[], cb: (value: T) => string | number) => [...list].s
 })
 
 const nameOidPairs = toPairs(typeNameToOid)
-const oidToTypeName = fromPairs(nameOidPairs.map(([name, oid]) => [oid, name] as any))
+const oidToTypeName = fromPairs(nameOidPairs.map(([name, oid]) => [oid, name]))
 
 export { typeNameToOid }
 export const typeNames: { [K in keyof typeof typeNameToOid]: K } =
-  fromPairs(nameOidPairs.map(([name]) => [name, name] as any)) as any
+  fromPairs(nameOidPairs.map(([name]) => [name, name])) as any
 
 export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(template: TemplateStringsArray, ...vals: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>
@@ -55,7 +55,7 @@ export interface SlonikTs<KnownTypes> {
 
 export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): SlonikTs<KnownTypes> => {
   const sqlGetter = setupSqlGetter(config)
-  const _sql: any = slonikSql
+  const _sql: any = (...args: Parameters<typeof slonikSql>) => slonikSql(...args)
   Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter.sql(name))
   return {
     interceptor: sqlGetter.interceptor,
@@ -79,7 +79,13 @@ export interface Functionalsql<KnownTypes> {
 export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): Functionalsql<KnownTypes> => {
   if (!config.writeTypes) {
     // not writing types, no need to track queries or intercept results
-    return { sql: () => slonikSql, interceptor: {} }
+    return {
+      sql: Object.assign(
+        () => slonikSql,
+        fromPairs(keys(config.knownTypes).map(k => [k, slonikSql])),
+      ),
+      interceptor: {},
+    }
   }
   const writeTypes = (typeof config.writeTypes === 'string')
     ? fsTypeWriter(config.writeTypes)
@@ -136,7 +142,7 @@ const codegen = {
     ...properties.map(p => [
       blockComment(p.description),
       `${p.name}: ${p.value}`
-    ].filter(Boolean).map(s => ' ' + s).join('\n')),
+    ].filter(Boolean).map(s => '  ' + s).join('\n')),
     `}`,
   ].filter(Boolean).join('\n')
 }
@@ -154,41 +160,32 @@ const fsTypeWriter = (generatedPath: string) =>
     const existingContent = fs.existsSync(tsPath)
       ? fs.readFileSync(tsPath, 'utf8')
       : ''
-    const metaDeclaration = 'export const meta_v0 = '
-    let _entries: Array<typeof newEntry> = existingContent
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.startsWith(metaDeclaration))
-      .map(line => JSON.parse(line.replace(metaDeclaration, '')))
-    [0]
-      || []
-
-    _entries.sort()
+    const metaDeclaration = `export const ${typeName}_meta_v0 = `
+    const lines = existingContent.split('\n').map(line => line.trim())
+    const metaLine = lines.find(line => line.startsWith(metaDeclaration)) || '[]'
+    let _entries: Array<typeof newEntry> = JSON.parse(metaLine.replace(metaDeclaration, ''))
 
     const newEntry = { properties, description }
-    const isThereAlready = !!_entries.find(entry => entry.description.trim() === newEntry.description.trim())
-    if (!isThereAlready) {
-      _entries.push(newEntry)
-      _entries = orderBy(_entries, e => e.description)
-    }
+    _entries.push(newEntry)
+    _entries = orderBy(_entries, e => e.description)
+    _entries = _entries
+      .filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
 
     const contnt = [
       header,
       ``,
       `export interface ${typeName}_QueryTypeMap {`,
-      ' ' + _entries
-        .map(e => `[${JSON.stringify(description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
+      '  ' + _entries
+        .map(e => ` [${JSON.stringify(description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
         .join('\n')
-        .replace(/\n/g, '\n '),
+        .replace(/\n/g, '\n  '),
       `}`,
       ``,
       `export type ${typeName}_UnionType = ${typeName}_QueryTypeMap[keyof ${typeName}_QueryTypeMap]`,
       ``,
-      `type ${typeName}_Type = {`,
-      ` [K in keyof ${typeName}_UnionType]: ${typeName}_UnionType[K]`,
+      `export type ${typeName} = {`,
+      `  [K in keyof ${typeName}_UnionType]: ${typeName}_UnionType[K]`,
       `}`,
-      ``,
-      `export interface ${typeName} extends ${typeName}_Type {}`,
       ``,
       `${metaDeclaration}${JSON.stringify(_entries)}`,
       ``,
@@ -212,7 +209,7 @@ const fsTypeWriter = (generatedPath: string) =>
         '',
         '/** runtime-accessible object with phantom type information of query results. */',
         `export const knownTypes: KnownTypes = {`,
-        ...knownTypes.map(name => ` ${name}: {} as ${name},`),
+        ...knownTypes.map(name => `  ${name}: {} as ${name},`),
         `}`,
         '',
       ].join('\n')

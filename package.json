@@ -2,11 +2,19 @@
   "name": "slonik-tools",
   "version": "0.0.1",
   "description": "slonik tools monorepo",
-  "main": "index.js",
   "private": true,
   "scripts": {
     "build": "tsc -b .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dependencies": "docker-compose up",
+    "test": "jest"
+  },
+  "prettier": {
+    "bracketSpacing": false,
+    "tabWidth": 2,
+    "printWidth": 120,
+    "singleQuote": true,
+    "trailingComma": "all",
+    "semi": false
   },
   "repository": {
     "type": "git",
@@ -20,12 +28,21 @@
   "bugs": {
     "url": "https://github.com/mmkal/slonik-tools/issues"
   },
+  "jest": {
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    }
+  },
   "homepage": "https://github.com/mmkal/slonik-tools#readme",
   "devDependencies": {
+    "@types/jest": "^24.0.13",
     "@types/node": "^12.0.7",
     "@types/slonik": "^16.16.2",
+    "jest": "^24.8.0",
     "lerna": "^3.15.0",
+    "prettier": "^1.18.2",
     "slonik": "^16.19.5",
+    "ts-jest": "^24.0.2",
     "typescript": "^3.5.1"
   }
 }

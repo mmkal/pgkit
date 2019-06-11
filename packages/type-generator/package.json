@@ -2,6 +2,7 @@
   "name": "@slonik-tools/type-generator",
   "version": "0.0.1",
   "description": "Automatically generates typescript types from slonik queries",
+  "files": ["dist"],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": "mmkal",
