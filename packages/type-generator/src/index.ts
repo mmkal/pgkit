@@ -49,7 +49,7 @@ export type DefaultType<KnownTypes> = {
 }['defaultType']
 
 export interface SlonikTs<KnownTypes> {
-  interceptor: InterceptorType
+  interceptors: InterceptorType[]
   typeParsers: TypeParserType[]
   sql: typeof slonikSql & {
     [K in keyof KnownTypes]: GenericSqlTaggedTemplateType<KnownTypes[K]>
@@ -59,16 +59,15 @@ export interface SlonikTs<KnownTypes> {
 }
 
 export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): SlonikTs<KnownTypes> => {
-  const sqlGetter = setupSqlGetter(config)
+  const {sql: sqlGetter, ...slonikConfig} = setupSqlGetter(config)
   const _sql: any = (...args: Parameters<typeof slonikSql>) => slonikSql(...args)
-  Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter.sql(name))
+  Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter(name))
   return {
-    interceptor: sqlGetter.interceptor,
-    typeParsers: sqlGetter.typeParsers,
+    ...slonikConfig,
     sql: new Proxy(_sql, {
       get(_, key) {
         if (typeof key === 'string' && !(key in _sql)) {
-          return _sql[key] = sqlGetter.sql(key)
+          return _sql[key] = sqlGetter(key)
         }
         return _sql[key]
       },
@@ -77,7 +76,7 @@ export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): S
 }
 
 export interface Functionalsql<KnownTypes> {
-  interceptor: InterceptorType
+  interceptors: InterceptorType[]
   typeParsers: TypeParserType[]
   sql: <Identifier extends string>(identifier: Identifier) =>
     GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
@@ -114,7 +113,7 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
         () => slonikSql,
         fromPairs(keys(config.knownTypes).map(k => [k, slonikSql])),
       ),
-      interceptor: {},
+      interceptors: [],
       typeParsers,
     }
   }
@@ -145,7 +144,7 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
   }
   return {
     sql,
-    interceptor: {
+    interceptors: [{
       afterQueryExecution: ({ originalQuery }, _query, result) => {
         const trimmedSql = originalQuery.sql.replace(/^\n+/, '').trimRight()
         const _identifiers = _map[mapKey(originalQuery)]
@@ -161,7 +160,7 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
 
         return result
       }
-    },
+    }],
     typeParsers,
   }
 }
