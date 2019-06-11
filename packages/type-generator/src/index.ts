@@ -90,6 +90,11 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
   const writeTypes = (typeof config.writeTypes === 'string')
     ? fsTypeWriter(config.writeTypes)
     : config.writeTypes
+    
+  if (typeof config.writeTypes === 'string' && !fs.existsSync(config.writeTypes)) {
+    fs.mkdirSync(config.writeTypes, {recursive: true})
+    fs.writeFileSync(join(config.writeTypes, 'index.ts'), 'export const knownTypes = {}\n', 'utf8')
+  }
 
   const typeMapper = (dataTypeId: number, types: typeof typeNameToOid) =>
     (config.typeMapper && config.typeMapper(dataTypeId, types)) || tsTypeFromPgType(dataTypeId)
@@ -148,9 +153,6 @@ const codegen = {
 }
 const fsTypeWriter = (generatedPath: string) =>
   (typeName: string, properties: Property[], description: string) => {
-    if (!fs.existsSync(generatedPath)) {
-      void fs.mkdirSync(generatedPath)
-    }
     const header = [
       '/* eslint-disable */',
       '// tslint:disable',

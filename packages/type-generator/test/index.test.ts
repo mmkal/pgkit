@@ -1,8 +1,9 @@
 import {setupSlonikTs} from '../src'
 import {knownTypes} from './db'
 import {createPool} from 'slonik'
-import {statSync, readdirSync} from 'fs'
+import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
+import {tmpdir} from 'os';
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'db')
@@ -60,5 +61,21 @@ describe('type generator', () => {
         "sql",
       ]
     `)
+  })
+
+  it('can create generated types directory', async () => {
+    const tempTypesDirectory = join(tmpdir(), 'subdir' + Math.random())
+    expect(existsSync(tempTypesDirectory)).toBe(false)
+    const {sql, interceptor} = setupSlonikTs({knownTypes: {}, writeTypes: tempTypesDirectory})
+    expect(existsSync(tempTypesDirectory)).toBe(true)
+    expect(readdirSync(tempTypesDirectory)).toEqual(['index.ts'])
+
+    const slonik = createPool(connectionString, {
+      interceptors: [interceptor],
+      idleTimeout: 1,
+    })
+    await slonik.query(sql.Id`select id from foo`)
+
+    expect(readdirSync(tempTypesDirectory).sort()).toEqual(['index.ts', 'Id.ts'].sort())
   })
 })
