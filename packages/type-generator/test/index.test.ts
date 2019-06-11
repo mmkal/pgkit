@@ -3,7 +3,7 @@ import {knownTypes} from './db'
 import {createPool} from 'slonik'
 import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
-import {tmpdir} from 'os';
+import {tmpdir} from 'os'
 import {expectType, TypeEqual} from 'ts-expect'
 
 describe('type generator', () => {
@@ -50,9 +50,9 @@ describe('type generator', () => {
     })
     expect(generatedFiles).toMatchInlineSnapshot(`
       Array [
-        'CountInfo.ts',
-        'Foo.ts',
-        'index.ts',
+        "CountInfo.ts",
+        "Foo.ts",
+        "index.ts",
       ]
     `)
   })
@@ -60,24 +60,23 @@ describe('type generator', () => {
   it('creates a pessimistic union type when there are multiple queries', async () => {
     const foo1 = await slonik.any(sql.FooSubset`select a, b, c from foo`)
     const foo2 = await slonik.any(sql.FooSubset`select a, b from foo`)
-    expectType<TypeEqual<{a: string, b: boolean}, typeof foo1[0]>>(true)
-    expectType<TypeEqual<{a: string, b: boolean}, typeof foo2[0]>>(true)
+    expectType<TypeEqual<{a: string; b: boolean}, typeof foo1[0]>>(true)
+    expectType<TypeEqual<{a: string; b: boolean}, typeof foo2[0]>>(true)
     expect(foo1).toHaveLength(foo2.length)
   })
 
   it('can create a prod version', () => {
     expect(Object.keys(setupSlonikTs({knownTypes}))).toMatchInlineSnapshot(`
       Array [
-        'interceptor',
-        'sql',
+        "interceptor",
+        "sql",
       ]
     `)
   })
 
   it('can create generated types directory', async () => {
-    const tempDir = join(tmpdir(), 'subdir' + Math.random())
-    expect(existsSync(tempDir)).toBe(false)
-    const {sql, interceptor} = setupSlonikTs({knownTypes: {}, writeTypes: tempDir})
+    const tempDir = join(tmpdir(), 'test')
+    const {sql, interceptor} = setupSlonikTs({reset: true, knownTypes: {}, writeTypes: tempDir})
     expect(existsSync(tempDir)).toBe(true)
     expect(readdirSync(tempDir)).toEqual(['index.ts'])
 

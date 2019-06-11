@@ -110,10 +110,6 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
     ? getFsTypeWriter(config.writeTypes)
     : config.writeTypes
     
-  if (typeof config.writeTypes === 'string' && !fs.existsSync(config.writeTypes)) {
-    createCodegenDirectory(config.writeTypes)
-  }
-
   const typeMapper = (dataTypeId: number, types: typeof typeNameToOid) =>
     (config.typeMapper && config.typeMapper(dataTypeId, types)) || tsTypeFromPgType(dataTypeId)
 
