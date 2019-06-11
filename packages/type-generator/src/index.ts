@@ -196,12 +196,6 @@ const fsTypeWriter = (generatedPath: string) =>
 
     void fs.writeFileSync(tsPath, contnt, 'utf8')
 
-    // void fs.writeFileSync(
-    //  tsPath,
-    //  header + '\n\n' + codegen.writeInterface(typeName, true, properties, description) + '\n',
-    //  'utf8'
-    // )
-
     const knownTypes = fs.readdirSync(generatedPath)
       .filter(filename => filename !== 'index.ts')
       .map(filename => basename(filename, '.ts'))
