@@ -60,9 +60,21 @@ describe('type generator', () => {
   it('creates a pessimistic union type when there are multiple queries', async () => {
     const foo1 = await slonik.any(sql.FooSubset`select a, b, c from foo`)
     const foo2 = await slonik.any(sql.FooSubset`select a, b from foo`)
-    expectType<TypeEqual<{a: string; b: boolean}, typeof foo1[0]>>(true)
-    expectType<TypeEqual<{a: string; b: boolean}, typeof foo2[0]>>(true)
+    expectType<{a: string; b: boolean}>(foo1[0])
+    expectType<{a: string; b: boolean}>(foo2[0])
     expect(foo1).toHaveLength(foo2.length)
+  })
+
+  it('can customise the default type', async () => {
+    type DefaultType = {abc: string}
+    const {sql, interceptor} = setupSlonikTs({knownTypes: {defaultType: {} as DefaultType}})
+    const slonik = createPool(connectionString, {
+      idleTimeout: 1,
+      interceptors: [interceptor]
+    })
+    const foo = await slonik.any(sql.FooBar`select * from foo`)
+    expectType<{abc: string}>(foo[0])
+    expect(foo).toEqual([])
   })
 
   it('can create a prod version', () => {
