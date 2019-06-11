@@ -8,16 +8,13 @@ import {expectType} from 'ts-expect'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'generated/main')
-  const {sql, interceptors} = setupSlonikTs({
+  const {sql, ...config} = setupSlonikTs({
     reset: true,
     knownTypes,
     writeTypes,
   })
   const connectionString = `postgresql://postgres:postgres@localhost:5432/postgres`
-  const slonik = createPool(connectionString, {
-    idleTimeout: 1,
-    interceptors,
-  })
+  const slonik = createPool(connectionString, {idleTimeout: 1, ...config})
 
   beforeAll(async () => {
     await slonik.query(sql`drop table if exists foo`)
@@ -76,11 +73,8 @@ describe('type generator', () => {
 
   it('can customise the default type', async () => {
     type DefaultType = {abc: string}
-    const {sql, interceptors} = setupSlonikTs({knownTypes: {defaultType: {} as DefaultType}})
-    const slonik = createPool(connectionString, {
-      idleTimeout: 1,
-      interceptors,
-    })
+    const {sql, ...config} = setupSlonikTs({knownTypes: {defaultType: {} as DefaultType}})
+    const slonik = createPool(connectionString, {idleTimeout: 1, ...config})
     const foo = await slonik.one(sql.FooBar`select * from foo`)
     expectType<{abc: string}>(foo)
     expect(foo).toMatchInlineSnapshot(`
@@ -107,12 +101,12 @@ describe('type generator', () => {
 
   it('can create generated types directory', async () => {
     const tempDir = join(tmpdir(), 'test')
-    const {sql, interceptors} = setupSlonikTs({reset: true, knownTypes: {}, writeTypes: tempDir})
+    const {sql, ...config} = setupSlonikTs({reset: true, knownTypes: {}, writeTypes: tempDir})
     expect(existsSync(tempDir)).toBe(true)
     expect(readdirSync(tempDir)).toEqual(['index.ts'])
 
     const slonik = createPool(connectionString, {
-      interceptors,
+      ...config,
       idleTimeout: 1,
     })
     await slonik.query(sql.Id`select id from foo`)
@@ -121,7 +115,7 @@ describe('type generator', () => {
   })
 
   it('allows custom type mappings', async () => {
-    const {sql, interceptors, typeParsers} = setupSlonikTs({
+    const {sql, ...config} = setupSlonikTs({
       reset: true,
       knownTypes: await import('./generated/with-date').then(x => x.knownTypes),
       writeTypes: join(__dirname, 'generated', 'with-date'),
@@ -130,11 +124,7 @@ describe('type generator', () => {
       },
     })
 
-    const slonik = createPool(connectionString, {
-      idleTimeout: 1,
-      interceptors,
-      typeParsers,
-    })
+    const slonik = createPool(connectionString, {idleTimeout: 1, ...config})
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null`)
