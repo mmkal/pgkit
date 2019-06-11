@@ -1,4 +1,4 @@
-import { InterceptorType, QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType, TypeParserType } from 'slonik'
+import {QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType, ClientConfigurationType} from 'slonik'
 
 import * as fs from 'fs'
 import { basename, join } from 'path'
@@ -27,7 +27,7 @@ export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(template: TemplateStringsArray, ...vals: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>
 }
 
-export interface SlonikTsConfig<KnownTypes> {
+export interface TypeGenConfig<KnownTypes> {
   knownTypes: KnownTypes
   /**
    * where to write types.
@@ -48,9 +48,8 @@ export type DefaultType<KnownTypes> = {
   [K in 'defaultType']: K extends keyof KnownTypes ? KnownTypes[K] : QueryResultRowType
 }['defaultType']
 
-export interface SlonikTs<KnownTypes> {
-  interceptors: InterceptorType[]
-  typeParsers: TypeParserType[]
+export type TypeGenClientConfig = Pick<ClientConfigurationType, 'interceptors' | 'typeParsers'>
+export interface TypeGen<KnownTypes> extends TypeGenClientConfig {
   sql: typeof slonikSql & {
     [K in keyof KnownTypes]: GenericSqlTaggedTemplateType<KnownTypes[K]>
   } & {
@@ -58,7 +57,7 @@ export interface SlonikTs<KnownTypes> {
   }
 }
 
-export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): SlonikTs<KnownTypes> => {
+export const setupSlonikTs = <KnownTypes>(config: TypeGenConfig<KnownTypes>): TypeGen<KnownTypes> => {
   const {sql: sqlGetter, ...slonikConfig} = setupSqlGetter(config)
   const _sql: any = (...args: Parameters<typeof slonikSql>) => slonikSql(...args)
   Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter(name))
@@ -75,9 +74,7 @@ export const setupSlonikTs = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): S
   }
 }
 
-export interface Functionalsql<KnownTypes> {
-  interceptors: InterceptorType[]
-  typeParsers: TypeParserType[]
+export interface TypeGenWithSqlGetter<KnownTypes> extends TypeGenClientConfig {
   sql: <Identifier extends string>(identifier: Identifier) =>
     GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
 }
@@ -96,7 +93,7 @@ export const resetCodegenDirectory = (directory: string) => {
   createCodegenDirectory(directory)
 }
 
-export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): Functionalsql<KnownTypes> => {
+export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): TypeGenWithSqlGetter<KnownTypes> => {
   if (config.reset && typeof config.writeTypes === 'string') {
     resetCodegenDirectory(config.writeTypes)
   }
@@ -132,7 +129,7 @@ export const setupSqlGetter = <KnownTypes>(config: SlonikTsConfig<KnownTypes>): 
   const mapKey = (sqlValue: { sql: string, values?: any }) =>
     JSON.stringify([sqlValue.sql, sqlValue.values])
 
-  const sql: Functionalsql<KnownTypes>['sql'] = identifier => {
+  const sql: TypeGenWithSqlGetter<KnownTypes>['sql'] = identifier => {
     const _wrappedSqlFunction = (...args: Parameters<typeof slonikSql>) => {
       const result = slonikSql(...args)
       const key = mapKey(result)
