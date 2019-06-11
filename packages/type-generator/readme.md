@@ -1,14 +1,14 @@
-install @slonik-tools/type-generator:
+install @slonik/typegen:
 
 ```cli
-npm install @slonik-tools/type-generator
+npm install @slonik/typegen
 echo 'export const knownTypes = {}' > src/generated/db/index.ts
 ```
 
 Then use in typescript (e.g. in a `src/db.ts` file):
 
 ```typescript
-import {setupSlonikTs} from '@slonik-tools/type-generator'
+import {setupSlonikTs} from '@slonik/typegen'
 import {createPool} from 'slonik'
 import {knownTypes} from './generated/db'
 
@@ -22,7 +22,7 @@ export const getPeople = () => slonik.query(sql.Person`select * from person limi
 ```
 
 When you first write this code, `getPeople` will have return type `Promise<QueryResult<any>>`.
-But once you run `getPeople()` (say, by normal usage of your application), `@slonik-tools/type-generator` will inspect the field types of the query result, and generate a typescript interface for it.
+But once you run `getPeople()` (say, by normal usage of your application), `@slonik/typegen` will inspect the field types of the query result, and generate a typescript interface for it.
 
 Afterwards, without having to modify any code, `getPeople` will have return type `Promise<QueryResult<Person>>`, where `Person` is defined based on the query, which in this case is the schema of the `person` table. This allows you to get started fast - just write a query, and you will be able to use the results, which will be typed as `any`.
 
@@ -41,7 +41,7 @@ The code generation is opt-in. You have to provide a path for the tool to write 
 
 ### How it works
 
-The function `setupSlonikTs` returns a special `sql` proxy object, which allows accessing any string key. When you access a key, it's considered as a query identifier. You'll get a wrapped version of slonik's `sql` tagged template variable. When you use it with a tagged template, @slonik-tools/type-generator will remember your query and store the identifier against it. `setupSlonikTs` also returns a slonik interceptor, defining a hook to be run after every query is executed. The hook looks up the query identifier from the query taht was run, and generates a typescript interface from the field metadata provided by postgres. The interface is written to disk, and added to the `KnownTypes` definition. The typescript compiler will then automatically gain type information corresponding to that query.
+The function `setupSlonikTs` returns a special `sql` proxy object, which allows accessing any string key. When you access a key, it's considered as a query identifier. You'll get a wrapped version of slonik's `sql` tagged template variable. When you use it with a tagged template, @slonik/typegen will remember your query and store the identifier against it. `setupSlonikTs` also returns a slonik interceptor, defining a hook to be run after every query is executed. The hook looks up the query identifier from the query taht was run, and generates a typescript interface from the field metadata provided by postgres. The interface is written to disk, and added to the `KnownTypes` definition. The typescript compiler will then automatically gain type information corresponding to that query.
 
 ### Recommendations
 
