@@ -1,13 +1,13 @@
 import {setupSlonikTs} from '../src'
-import {knownTypes} from './db'
-import {createPool, QueryResultType} from 'slonik'
+import {knownTypes} from './generated/main'
+import {createPool} from 'slonik'
 import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os'
 import {expectType} from 'ts-expect'
 
 describe('type generator', () => {
-  const writeTypes = join(__dirname, 'db')
+  const writeTypes = join(__dirname, 'generated/main')
   const {sql, interceptor} = setupSlonikTs({
     reset: true,
     knownTypes,
