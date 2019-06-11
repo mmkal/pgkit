@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.settings.json",
+  "compilerOptions": {
+    "composite": true
+  },
+  "exclude": [
+    "*"
+  ],
+  "references": [
+    {"path": "packages/type-generator"}
+  ]
+}
