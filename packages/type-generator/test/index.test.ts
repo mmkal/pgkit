@@ -14,7 +14,7 @@ describe('type generator', () => {
     writeTypes,
   })
   const connectionString = `postgresql://postgres:postgres@localhost:5432/postgres`
-  const slonik = createPool(connectionString, { idleTimeout: 1, ...config })
+  const slonik = createPool(connectionString, {...config, idleTimeout: 1})
 
   beforeAll(async () => {
     await slonik.query(sql`drop table if exists foo`)
@@ -75,7 +75,7 @@ describe('type generator', () => {
   it('can customise the default type', async () => {
     type DefaultType = { abc: string }
     const { sql, ...config } = setupSlonikTs({ knownTypes: { defaultType: {} as DefaultType } })
-    const slonik = createPool(connectionString, { idleTimeout: 1, ...config })
+    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
     const foo = await slonik.one(sql.FooBar`select * from foo`)
     expectType<{ abc: string }>(foo)
     expect(foo).toMatchInlineSnapshot(`
@@ -130,10 +130,7 @@ describe('type generator', () => {
     expect(existsSync(tempDir)).toBe(true)
     expect(readdirSync(tempDir)).toEqual(['index.ts'])
 
-    const slonik = createPool(connectionString, {
-      ...config,
-      idleTimeout: 1,
-    })
+    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
     await slonik.query(sql.Id`select id from foo`)
 
     expect(readdirSync(tempDir).sort()).toEqual(['index.ts', '_pg_types.ts', 'Id.ts'].sort())
@@ -149,7 +146,7 @@ describe('type generator', () => {
       },
     })
 
-    const slonik = createPool(connectionString, { idleTimeout: 1, ...config })
+    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
@@ -167,7 +164,7 @@ describe('type generator', () => {
       },
     })
 
-    const slonik = createPool(connectionString, { idleTimeout: 1, ...config })
+    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
