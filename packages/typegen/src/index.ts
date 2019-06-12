@@ -124,7 +124,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   const pgTypes = (config.knownTypes as any)._pg_types || {}
   const oidToTypeName = fromPairs(Object.keys(pgTypes).map(k => [pgTypes[k], k]))
   const mapping: Record<string, [string] | undefined> = config.typeMapper || {} as any
-  const typescriptTypeName = (dataTypeId: number) => {
+  const typescriptTypeName = (dataTypeId: number): string => {
     const typeName = oidToTypeName[dataTypeId]
     const [customType] = mapping[typeName] || [undefined]
     return customType || builtInTypeMappings[typeName] || 'unknown'
