@@ -79,15 +79,15 @@ describe('type generator', () => {
     const foo = await slonik.one(sql.FooBar`select * from foo`)
     expectType<{ abc: string }>(foo)
     expect(foo).toMatchInlineSnapshot(`
-                                                                                                            Object {
-                                                                                                              "a": "xyz",
-                                                                                                              "b": null,
-                                                                                                              "c": null,
-                                                                                                              "d": null,
-                                                                                                              "e": null,
-                                                                                                              "id": 1,
-                                                                                                            }
-                                                                        `)
+      Object {
+        "a": "xyz",
+        "b": null,
+        "c": null,
+        "d": null,
+        "e": null,
+        "id": 1,
+      }
+    `)
   })
 
   it('does not add interceptors when write types is falsy', () => {
@@ -95,10 +95,10 @@ describe('type generator', () => {
     expect(typeof sql).toEqual('function')
     expect(typeof sql.FooBarBaz).toEqual('function')
     expect(config).toMatchInlineSnapshot(`
-                                                                                                                  Object {
-                                                                                                                    "interceptors": Array [],
-                                                                                                                    "typeParsers": Array [],
-                                                                                                                  }
+              Object {
+                "interceptors": Array [],
+                "typeParsers": Array [],
+              }
                                                                             `)
   })
 
@@ -112,16 +112,16 @@ describe('type generator', () => {
     expect(typeof sql).toEqual('function')
     expect(typeof sql.FooBarBaz).toEqual('function')
     expect(config).toMatchInlineSnapshot(`
-                                                                                                            Object {
-                                                                                                              "interceptors": Array [],
-                                                                                                              "typeParsers": Array [
-                                                                                                                Object {
-                                                                                                                  "name": "timestamptz",
-                                                                                                                  "parse": [Function],
-                                                                                                                },
-                                                                                                              ],
-                                                                                                            }
-                                                                        `)
+      Object {
+        "interceptors": Array [],
+        "typeParsers": Array [
+          Object {
+            "name": "timestamptz",
+            "parse": [Function],
+          },
+        ],
+      }
+    `)
   })
 
   it('can create generated types directory', async () => {
