@@ -37,7 +37,8 @@ The code generation is opt-in. You have to provide a path for the tool to write 
 | `writeTypes` | location to write generated typescript. if this is undefined (or falsy) no types will be written. | `false` |
 | `knownTypes` | object produced by this library's codegen. By referencing the export produced in the location set by `writeTypes`, types will gradually improve without adding any code per query. | `undefined` |
 | `knownTypes.defaultType` | by setting this, you can force any unknown/new queries to be given a particular type. For example, in development, you may want a new query to be typed as `any` while you're writing code. | `undefined` |
-| `typeMapper`  | custom mapper from postgres oid to typescript type, as a string | `undefined` |
+| `typeMapper`  | custom mapper from postgres oid to typescript type, as a string. | `undefined` |
+| `reset` | if true, generated code directory will be wiped and reinitialised on startup. | `false` |
 
 ### How it works
 
@@ -47,17 +48,9 @@ The function `setupSlonikTs` returns a special `sql` proxy object, which allows 
 
 1. You can re-use the same type name for many queries. But you should only do this if the types represented by any single name are the same or similar, since the resultant type will be a union of all of the outputs (meaning `A | B` - i.e. only fields common to both will be accessible).
 1. Check in the types to source control. They're generated code, but it makes it much easier to track what was happened when a query was update, and see those changes over history.
-1. Start over in CI. Every time a new query is encountered, it's written to the file system. This means the number of types grows over time. This is fine in development, but to ensure unmaintained/unused code doesn't remain in your codebase, in CI it's a good idea to delete the whole generated folder, and rely on tests to regenerate them. A bash implementation:
+1. After running CI, it's worth making sure that there are no working copy changes. For git, you can use [check-clean](https://npmjs.com/package/check-clean).
 
 ```sh
-rm -rf src/generated/db
-echo 'export const knownTypes = {}' > src/generated/db/index.ts
 npm run test:integration
-STATUS=$(git status --porcelain)
-if test -z $STATUS then
-  exit 0
-else
-  echo "codegen produced changes, check them in locally before running CI. changes: $STATUS"
-  exit 1
-fi
+npx check-clean
 ```

@@ -60,7 +60,7 @@ export interface TypeGen<KnownTypes> extends TypeGenClientConfig {
   }
 }
 
-export const setupSlonikTs = <KnownTypes>(config: TypeGenConfig<KnownTypes>): TypeGen<KnownTypes> => {
+export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): TypeGen<KnownTypes> => {
   const {sql: sqlGetter, ...slonikConfig} = setupSqlGetter(config)
   const _sql: any = (...args: Parameters<typeof slonikSql>) => slonikSql(...args)
   Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter(name))
