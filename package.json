@@ -31,7 +31,8 @@
   "jest": {
     "transform": {
       "^.+\\.tsx?$": "ts-jest"
-    }
+    },
+    "globals": {"ts-jest": {"diagnostics": false}}
   },
   "homepage": "https://github.com/mmkal/slonik-tools#readme",
   "devDependencies": {

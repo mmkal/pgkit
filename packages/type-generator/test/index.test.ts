@@ -196,7 +196,7 @@ describe('type generator', () => {
     `)
 
     const result = await slonik.one(sql.Bar`select * from bar`)
-    expectType<{dir: 'up' | 'dwn'}>(result)
+    expectType<'up' | 'down'>(result.dir)
     expect(result).toMatchInlineSnapshot(`
       Object {
         "dir": "up",
