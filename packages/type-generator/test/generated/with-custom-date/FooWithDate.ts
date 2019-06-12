@@ -5,7 +5,7 @@
 export interface FooWithDate_QueryTypeMap {
   ["select d from foo where d is not null limit 1"]: {
     /** timestamptz (oid: 1184) */
-    d: Date
+    d: import('../../index.test').MyCustomDateType
   }
 }
 
@@ -15,4 +15,4 @@ export type FooWithDate = {
   [K in keyof FooWithDate_UnionType]: FooWithDate_UnionType[K]
 }
 
-export const FooWithDate_meta_v0 = [{"properties":[{"name":"d","value":"Date","description":"timestamptz (oid: 1184)"}],"description":"select d from foo where d is not null limit 1"}]
+export const FooWithDate_meta_v0 = [{"properties":[{"name":"d","value":"import('../../index.test').MyCustomDateType","description":"timestamptz (oid: 1184)"}],"description":"select d from foo where d is not null limit 1"}]

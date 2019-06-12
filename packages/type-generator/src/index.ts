@@ -19,10 +19,6 @@ const orderBy = <T>(list: T[], cb: (value: T) => string | number) => [...list].s
 const nameOidPairs = toPairs(typeNameToOid)
 const oidToTypeName = fromPairs(nameOidPairs.map(([name, oid]) => [oid, name]))
 
-export { typeNameToOid }
-export const typeNames: { [K in keyof typeof typeNameToOid]: K } =
-  fromPairs(nameOidPairs.map(([name]) => [name, name])) as any
-
 export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(template: TemplateStringsArray, ...vals: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>
 }
@@ -34,7 +30,9 @@ export interface TypeGenConfig<KnownTypes> {
    * if this is a string, types will be written to the path with that value
    */
   writeTypes?: false | string
-  /** if true, generated code directory will be reset on startup. */
+  /**
+   * if true, generated code directory will be wiped and reinitialised on startup.
+   */
   reset?: boolean
   /**
    * map from postgres data type id (oid) to io-ts-codegen type.

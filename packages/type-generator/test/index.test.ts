@@ -55,12 +55,12 @@ describe('type generator', () => {
       expect(statSync(join(writeTypes, f)).mtimeMs).toBeGreaterThan(Date.now() - 2000)
     })
     expect(generatedFiles).toMatchInlineSnapshot(`
-      Array [
-        "CountInfo.ts",
-        "Foo.ts",
-        "index.ts",
-      ]
-    `)
+                              Array [
+                                "CountInfo.ts",
+                                "Foo.ts",
+                                "index.ts",
+                              ]
+                    `)
   })
 
   it('creates a pessimistic union type when there are multiple queries', async () => {
@@ -78,15 +78,15 @@ describe('type generator', () => {
     const foo = await slonik.one(sql.FooBar`select * from foo`)
     expectType<{abc: string}>(foo)
     expect(foo).toMatchInlineSnapshot(`
-            Object {
-              "a": "xyz",
-              "b": null,
-              "c": null,
-              "d": null,
-              "e": null,
-              "id": 1,
-            }
-        `)
+                                    Object {
+                                      "a": "xyz",
+                                      "b": null,
+                                      "c": null,
+                                      "d": null,
+                                      "e": null,
+                                      "id": 1,
+                                    }
+                        `)
   })
 
   it('does not add interceptors when write types is falsy', () => {
@@ -94,11 +94,11 @@ describe('type generator', () => {
     expect(typeof sql).toEqual('function')
     expect(typeof sql.FooBarBaz).toEqual('function')
     expect(config).toMatchInlineSnapshot(`
-                  Object {
-                    "interceptors": Array [],
-                    "typeParsers": Array [],
-                  }
-            `)
+                                          Object {
+                                            "interceptors": Array [],
+                                            "typeParsers": Array [],
+                                          }
+                            `)
   })
 
   it('adds type parsers when write types is falsy', () => {
@@ -111,16 +111,16 @@ describe('type generator', () => {
     expect(typeof sql).toEqual('function')
     expect(typeof sql.FooBarBaz).toEqual('function')
     expect(config).toMatchInlineSnapshot(`
-            Object {
-              "interceptors": Array [],
-              "typeParsers": Array [
-                Object {
-                  "name": "timestamptz",
-                  "parse": [Function],
-                },
-              ],
-            }
-        `)
+                                    Object {
+                                      "interceptors": Array [],
+                                      "typeParsers": Array [
+                                        Object {
+                                          "name": "timestamptz",
+                                          "parse": [Function],
+                                        },
+                                      ],
+                                    }
+                        `)
   })
 
   it('can create generated types directory', async () => {
@@ -151,8 +151,30 @@ describe('type generator', () => {
     const slonik = createPool(connectionString, {idleTimeout: 1, ...config})
 
     await slonik.query(sql`insert into foo(d) values(now())`)
-    const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null`)
+    const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
     expectType<{d: Date}>(result)
     expect(result).toMatchObject({d: expect.any(Date)})
   })
+
+  it('allows custom type mappings with user-defined interfaces', async () => {
+    const {sql, ...config} = setupSlonikTs({
+      reset: true,
+      knownTypes: await import('./generated/with-custom-date').then(x => x.knownTypes),
+      writeTypes: join(__dirname, 'generated', 'with-custom-date'),
+      typeMapper: {
+        timestamptz: [`import('../../index.test').MyCustomDateType`, value => ({isoString: value})],
+      },
+    })
+
+    const slonik = createPool(connectionString, {idleTimeout: 1, ...config})
+
+    await slonik.query(sql`insert into foo(d) values(now())`)
+    const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
+    expectType<{d: {isoString: string}}>(result)
+    expect(result).toMatchObject({d: {isoString: expect.any(String)}})
+  })
 })
+
+export interface MyCustomDateType {
+  isoString: string
+}
