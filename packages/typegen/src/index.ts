@@ -117,9 +117,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
       }
     }
   }
-  const writeTypes = (typeof config.writeTypes === 'string')
-    ? getFsTypeWriter(config.writeTypes)
-    : config.writeTypes
+  const writeTypes = getFsTypeWriter(config.writeTypes)
     
   const pgTypes = (config.knownTypes as any)._pg_types || {}
   const oidToTypeName = fromPairs(Object.keys(pgTypes).map(k => [pgTypes[k], k]))
@@ -192,8 +190,8 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
 export interface Property { name: string, value: string, description?: string }
 const blockComment = (str?: string) => str && '/** ' + str.replace(/\*\//g, '') + ' */'
 const codegen = {
-  writeInterface: (name: string, exported: boolean, properties: Property[], description?: string) =>
-    `${exported ? 'export' : ''} interface ${name} ` + codegen.writeInterfaceBody(properties, description),
+  writeInterface: (name: string, properties: Property[], description?: string) =>
+    `export interface ${name} ` + codegen.writeInterfaceBody(properties, description),
 
   writeInterfaceBody: (properties: Property[], description?: string) => [
     blockComment(description),
@@ -264,7 +262,7 @@ const getFsTypeWriter = (generatedPath: string) =>
         '',
         ...knownTypes.map(name => `export {${name}}`),
         '',
-        codegen.writeInterface('KnownTypes', true, knownTypes.map(name => ({ name, value: name }))),
+        codegen.writeInterface('KnownTypes', knownTypes.map(name => ({ name, value: name }))),
         '',
         '/** runtime-accessible object with phantom type information of query results. */',
         `export const knownTypes: KnownTypes = {`,

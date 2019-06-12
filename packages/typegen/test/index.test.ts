@@ -4,7 +4,7 @@ import {createPool} from 'slonik'
 import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os'
-import {expectType} from 'ts-expect'
+import {expectType, TypeEqual} from 'ts-expect'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'generated/main')
@@ -65,10 +65,11 @@ describe('type generator', () => {
   })
 
   it('creates a pessimistic union type when there are multiple queries', async () => {
+    const foo0 = await slonik.one(sql.FooSubset`select a from foo`)
     const foo1 = await slonik.one(sql.FooSubset`select a, b, c from foo`)
     const foo2 = await slonik.one(sql.FooSubset`select a, b from foo`)
-    expectType<{a: string; b: boolean}>(foo1)
-    expectType<{a: string; b: boolean}>(foo2)
+    const merged = {...foo0, ...foo1, ...foo2}
+    expectType<TypeEqual<'a', keyof typeof merged>>(true)
     expect(foo1).toMatchObject(foo2)
   })
 
