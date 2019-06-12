@@ -1,4 +1,4 @@
-import {QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType, ClientConfigurationType} from 'slonik'
+import {QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType, ClientConfigurationType, DatabasePoolType, createPool} from 'slonik'
 
 import * as fs from 'fs'
 import { basename, join } from 'path'
@@ -124,6 +124,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   }
 
   const _map: Record<string, string[] | undefined> = {}
+  let _types: Record<string, number> | undefined = undefined
   const mapKey = (sqlValue: { sql: string, values?: any }) =>
     JSON.stringify([sqlValue.sql, sqlValue.values])
 
@@ -140,6 +141,13 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   return {
     sql,
     interceptors: [{
+      beforePoolConnectionRelease: async (_context, connection) => {
+        if (!_types) {
+          const types = await connection.any(slonikSql`select typname, oid from pg_type`)
+          _types = fromPairs(types.map(t => [t.typname, t.oid as number]))
+          writeTypes('_pg_types', types.map(t => ({name: t.typname as string, value: t.oid as string})), 'pg types')
+        }
+      },
       afterQueryExecution: ({ originalQuery }, _query, result) => {
         const trimmedSql = originalQuery.sql.replace(/^\n+/, '').trimRight()
         const _identifiers = _map[mapKey(originalQuery)]
