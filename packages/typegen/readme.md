@@ -38,7 +38,7 @@ Afterwards, without having to modify any code, `getPeople` will have return type
 
 This allows you to get the type-safety of an ORM but avoid the [inner-platform effect](https://en.wikipedia.org/wiki/Inner-platform_effect). You just write regular SQL queries - you can rename columns, do any kinds of join you want, and the types generated will be based on the _query_, not the _table_, so you won't be limited by ORM feature-sets.
 
-The code generation is opt-in. You have to provide a path for the tool to write the generated code. It is strongly recommended you don't generate code in production (the example above relies on a simple check of the `NODE_ENV` environment variable). When a falsy value is supplied to `writeTypes`, the `sql` function returned ignores the `identifier` parameter and returns slonik's `sql` template function.
+The code generation is opt-in. You have to provide a path for the tool to write the generated code. It is strongly recommended you don't generate code in production (the example above relies on a simple check of the `NODE_ENV` environment variable). When a falsy value is supplied to `writeTypes`, `sql.Person` becomes slonik's `sql` template function.
 
 ### Configuration
 
