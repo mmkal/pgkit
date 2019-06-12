@@ -2,7 +2,6 @@ import {QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationTyp
 
 import * as fs from 'fs'
 import { basename, join } from 'path'
-import { typeNameToOid } from './types'
 import { inspect } from 'util';
 
 const keys = <T>(obj: T) => Object.keys(obj) as Array<keyof T>
@@ -16,9 +15,6 @@ const orderBy = <T>(list: T[], cb: (value: T) => string | number) => [...list].s
   const right = cb(b)
   return left < right ? -1 : left > right ? 1 : 0
 })
-
-const nameOidPairs = toPairs(typeNameToOid)
-const oidToTypeName = fromPairs(nameOidPairs.map(([name, oid]) => [oid, name]))
 
 export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(template: TemplateStringsArray, ...vals: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>
@@ -127,12 +123,11 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
     
   const pgTypes = (config.knownTypes as any)._pg_types || {}
   const oidToTypeName = fromPairs(Object.keys(pgTypes).map(k => [pgTypes[k], k]))
-  const mapping: Record<string, [string]> = config.typeMapper as any
-  const typeMapper = (dataTypeId: number) => {
-    if (config.typeMapper && oidToTypeName[dataTypeId] && mapping[oidToTypeName[dataTypeId]]) {
-      return mapping[oidToTypeName[dataTypeId]][0]
-    }
-    return tsTypeFromPgType(dataTypeId)
+  const mapping: Record<string, [string] | undefined> = config.typeMapper || {} as any
+  const typescriptTypeName = (dataTypeId: number) => {
+    const typeName = oidToTypeName[dataTypeId]
+    const [customType] = mapping[typeName] || [undefined]
+    return customType || builtInTypeMappings[typeName] || 'unknown'
   }
 
   const _map: Record<string, string[] | undefined> = {}
@@ -180,7 +175,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
             identifier,
             result.fields.map(f => ({
               name: f.name,
-              value: typeMapper(f.dataTypeID),
+              value: typescriptTypeName(f.dataTypeID),
               description: `${oidToTypeName[f.dataTypeID]} (oid: ${f.dataTypeID})`,
             })),
             trimmedSql.trim(),
@@ -280,41 +275,24 @@ const getFsTypeWriter = (generatedPath: string) =>
     )
   }
 
-const tsTypeFromPgType = (dataTypeID: number) => {
-  switch (dataTypeID) {
-    case typeNameToOid.timestamptz:
-      return 'number'
-
-    case typeNameToOid.text:
-    case typeNameToOid.varchar:
-      return 'string'
-
-    case typeNameToOid.int2:
-    case typeNameToOid.int4:
-    case typeNameToOid.int8:
-      return 'number'
-
-    case typeNameToOid.bool:
-      return 'boolean'
-
-    case typeNameToOid._text:
-      return 'string[]'
-
-    default:
-      return 'unknown'
-  }
+const builtInTypeMappings: Record<string, string | undefined> = {
+  timestamptz: 'number',
+  text: 'string',
+  varchar: 'string',
+  int2: 'number',
+  int4: 'number',
+  int8: 'number',
+  bool: 'boolean',
+  _text: 'string[]'
 }
 
-if (require.main === module) {
-  const setupDir = process.argv.slice(-1)[0]
-  let resolvedSetupDir: string | undefined
-  try {
-    resolvedSetupDir = require.resolve(`./${setupDir}`)
-  } catch (e) {
-    if (resolvedSetupDir === module.filename) {
-      throw Error(`pass in a path to set up types in.`)
-    }
-  }
+export const main = (argv: string[]) => {
+  const setupDir = argv.slice(-1)[0]
   console.log(`setting up generated types in ${setupDir}`)
   resetCodegenDirectory(setupDir)
+}
+
+/* istanbul ignore if  */
+if (require.main === module) {
+  main(process.argv)
 }
