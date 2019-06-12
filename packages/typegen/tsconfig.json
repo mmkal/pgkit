@@ -8,6 +8,7 @@
         "node_modules",
         "dist",
         "dtslint",
-        "scripts"
+        "scripts",
+        "test"
     ]
 }

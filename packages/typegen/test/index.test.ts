@@ -8,13 +8,13 @@ import {expectType} from 'ts-expect'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'generated/main')
-  const {sql, ...config} = setupTypeGen({
+  const {sql, poolConfig} = setupTypeGen({
     reset: true,
     knownTypes,
     writeTypes,
   })
   const connectionString = `postgresql://postgres:postgres@localhost:5432/postgres`
-  const slonik = createPool(connectionString, {...config, idleTimeout: 1})
+  const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
 
   beforeAll(async () => {
     await slonik.query(sql`drop table if exists foo`)
@@ -74,8 +74,8 @@ describe('type generator', () => {
 
   it('can customise the default type', async () => {
     type DefaultType = {abc: string}
-    const {sql, ...config} = setupTypeGen({knownTypes: {defaultType: {} as DefaultType}})
-    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
+    const {sql, poolConfig} = setupTypeGen({knownTypes: {defaultType: {} as DefaultType}})
+    const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
     const foo = await slonik.one(sql.FooBar`select * from foo`)
     expectType<{abc: string}>(foo)
     expect(foo).toMatchInlineSnapshot(`
@@ -91,10 +91,10 @@ describe('type generator', () => {
   })
 
   it('does not add interceptors when write types is falsy', () => {
-    const {sql, ...config} = setupTypeGen({knownTypes})
+    const {sql, poolConfig} = setupTypeGen({knownTypes})
     expect(typeof sql).toEqual('function')
     expect(typeof sql.FooBarBaz).toEqual('function')
-    expect(config).toMatchInlineSnapshot(`
+    expect(poolConfig).toMatchInlineSnapshot(`
       Object {
         "interceptors": Array [],
         "typeParsers": Array [],
@@ -103,7 +103,7 @@ describe('type generator', () => {
   })
 
   it('adds type parsers when write types is falsy', () => {
-    const {sql, ...config} = setupTypeGen({
+    const {sql, poolConfig} = setupTypeGen({
       knownTypes,
       typeMapper: {
         timestamptz: ['Date', v => new Date(v)],
@@ -111,7 +111,7 @@ describe('type generator', () => {
     })
     expect(typeof sql).toEqual('function')
     expect(typeof sql.FooBarBaz).toEqual('function')
-    expect(config).toMatchInlineSnapshot(`
+    expect(poolConfig).toMatchInlineSnapshot(`
       Object {
         "interceptors": Array [],
         "typeParsers": Array [
@@ -126,18 +126,26 @@ describe('type generator', () => {
 
   it('can create generated types directory', async () => {
     const tempDir = join(tmpdir(), 'test')
-    const {sql, ...config} = setupTypeGen({reset: true, knownTypes: {}, writeTypes: tempDir})
+    type CustomisedDefaultType = {id?: 'abc'}
+    const {sql, poolConfig} = setupTypeGen({
+      reset: true,
+      knownTypes: {
+        defaultType: {} as CustomisedDefaultType
+      },
+      writeTypes: tempDir
+    })
     expect(existsSync(tempDir)).toBe(true)
     expect(readdirSync(tempDir)).toEqual(['index.ts'])
 
-    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
-    await slonik.query(sql.Id`select id from foo`)
+    const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
+    const result = await slonik.query(sql.Id`select id from foo`)
+    expectType<CustomisedDefaultType>(result.rows[0])
 
     expect(readdirSync(tempDir).sort()).toEqual(['index.ts', '_pg_types.ts', 'Id.ts'].sort())
   })
 
   it('allows custom type mappings', async () => {
-    const {sql, ...config} = setupTypeGen({
+    const {sql, poolConfig} = setupTypeGen({
       reset: true,
       knownTypes: await import('./generated/with-date').then(x => x.knownTypes),
       writeTypes: join(__dirname, 'generated', 'with-date'),
@@ -146,7 +154,7 @@ describe('type generator', () => {
       },
     })
 
-    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
+    const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
@@ -155,7 +163,7 @@ describe('type generator', () => {
   })
 
   it('allows custom type mappings with user-defined interfaces', async () => {
-    const {sql, ...config} = setupTypeGen({
+    const {sql, poolConfig} = setupTypeGen({
       reset: true,
       knownTypes: await import('./generated/with-custom-date').then(x => x.knownTypes),
       writeTypes: join(__dirname, 'generated', 'with-custom-date'),
@@ -164,7 +172,7 @@ describe('type generator', () => {
       },
     })
 
-    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
+    const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
@@ -173,14 +181,14 @@ describe('type generator', () => {
   })
 
   it('maps enums', async () => {
-    const {sql, ...config} = setupTypeGen({
+    const {sql, poolConfig} = setupTypeGen({
       knownTypes,
       writeTypes,
       typeMapper: {
         direction: [`'up' | 'down'`, value => value],
       },
     })
-    const slonik = createPool(connectionString, {...config, idleTimeout: 1})
+    const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
     await slonik.query(sql`
       drop table if exists bar;
       do $$ begin

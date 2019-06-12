@@ -10,7 +10,7 @@
     "noImplicitReturns": true,
     "noImplicitThis": true,
     "noFallthroughCasesInSwitch": true,
-    "keyofStringsOnly": true,
+    "keyofStringsOnly": false,
     "strict": true,
     "declaration": true,
     "declarationMap": true,

@@ -52,7 +52,8 @@ export type DefaultType<KnownTypes> = {
 }['defaultType']
 
 export type TypeGenClientConfig = Pick<ClientConfigurationType, 'interceptors' | 'typeParsers'>
-export interface TypeGen<KnownTypes> extends TypeGenClientConfig {
+export interface TypeGen<KnownTypes> {
+  poolConfig: TypeGenClientConfig
   sql: typeof slonikSql & {
     [K in keyof KnownTypes]: GenericSqlTaggedTemplateType<KnownTypes[K]>
   } & {
@@ -61,11 +62,11 @@ export interface TypeGen<KnownTypes> extends TypeGenClientConfig {
 }
 
 export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): TypeGen<KnownTypes> => {
-  const {sql: sqlGetter, ...slonikConfig} = setupSqlGetter(config)
+  const {sql: sqlGetter, poolConfig} = setupSqlGetter(config)
   const _sql: any = (...args: Parameters<typeof slonikSql>) => slonikSql(...args)
   Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter(name))
   return {
-    ...slonikConfig,
+    poolConfig,
     sql: new Proxy(_sql, {
       get(_, key) {
         if (typeof key === 'string' && !(key in _sql)) {
@@ -77,7 +78,8 @@ export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): Typ
   }
 }
 
-export interface TypeGenWithSqlGetter<KnownTypes> extends TypeGenClientConfig {
+export interface TypeGenWithSqlGetter<KnownTypes> {
+  poolConfig: TypeGenClientConfig
   sql: <Identifier extends string>(identifier: Identifier) =>
     GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
 }
@@ -101,8 +103,8 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
     resetCodegenDirectory(config.writeTypes)
   }
   const typeParsers = config.typeMapper
-    ? Object.keys(config.typeMapper).map(name => ({
-      name,
+    ? keys(config.typeMapper).map(name => ({
+      name: name as string,
       parse: config.typeMapper![name]![1],
     }))
     : []
@@ -113,8 +115,10 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
         () => slonikSql,
         fromPairs(keys(config.knownTypes).map(k => [k, slonikSql])),
       ),
-      interceptors: [],
-      typeParsers,
+      poolConfig: {
+        interceptors: [],
+        typeParsers,
+      }
     }
   }
   const writeTypes = (typeof config.writeTypes === 'string')
@@ -149,43 +153,45 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   }
   return {
     sql,
-    interceptors: [{
-      beforePoolConnectionRelease: async (_context, connection) => {
-        if (!_types && typeof config.writeTypes === 'string') {
-          const types = await connection.any(slonikSql`
-            select typname, oid
-            from pg_type
-            where (typnamespace = 11 and typname not like 'pg_%')
-            or (typrelid = 0 and typelem = 0)
-          `)
-          _types = fromPairs(types.map(t => [t.typname, t.oid as number]))
-          fs.writeFileSync(
-            join(config.writeTypes, '_pg_types.ts'),
-            [
-              `${header}`,
-              `export const _pg_types = ${inspect(_types)} as const`,
-              `export type _pg_types = typeof _pg_types`,
-            ].join('\n\n'),
-          )
-        }
-      },
-      afterQueryExecution: ({ originalQuery }, _query, result) => {
-        const trimmedSql = originalQuery.sql.replace(/^\n+/, '').trimRight()
-        const _identifiers = _map[mapKey(originalQuery)]
-        _identifiers && _identifiers.forEach(identifier => writeTypes(
-          identifier,
-          result.fields.map(f => ({
-            name: f.name,
-            value: typeMapper(f.dataTypeID),
-            description: `${oidToTypeName[f.dataTypeID]} (oid: ${f.dataTypeID})`,
-          })),
-          trimmedSql.trim(),
-        ))
+    poolConfig: {
+      interceptors: [{
+        beforePoolConnectionRelease: async (_context, connection) => {
+          if (!_types && typeof config.writeTypes === 'string') {
+            const types = await connection.any(slonikSql`
+              select typname, oid
+              from pg_type
+              where (typnamespace = 11 and typname not like 'pg_%')
+              or (typrelid = 0 and typelem = 0)
+            `)
+            _types = fromPairs(types.map(t => [t.typname, t.oid as number]))
+            fs.writeFileSync(
+              join(config.writeTypes, '_pg_types.ts'),
+              [
+                `${header}`,
+                `export const _pg_types = ${inspect(_types)} as const`,
+                `export type _pg_types = typeof _pg_types`,
+              ].join('\n\n'),
+            )
+          }
+        },
+        afterQueryExecution: ({ originalQuery }, _query, result) => {
+          const trimmedSql = originalQuery.sql.replace(/^\n+/, '').trimRight()
+          const _identifiers = _map[mapKey(originalQuery)]
+          _identifiers && _identifiers.forEach(identifier => writeTypes(
+            identifier,
+            result.fields.map(f => ({
+              name: f.name,
+              value: typeMapper(f.dataTypeID),
+              description: `${oidToTypeName[f.dataTypeID]} (oid: ${f.dataTypeID})`,
+            })),
+            trimmedSql.trim(),
+          ))
 
-        return result
-      }
-    }],
-    typeParsers,
+          return result
+        }
+      }],
+      typeParsers,
+    }
   }
 }
 
@@ -298,4 +304,18 @@ const tsTypeFromPgType = (dataTypeID: number) => {
     default:
       return 'unknown'
   }
+}
+
+if (require.main === module) {
+  const setupDir = process.argv.slice(-1)[0]
+  let resolvedSetupDir: string | undefined
+  try {
+    resolvedSetupDir = require.resolve(`./${setupDir}`)
+  } catch (e) {
+    if (resolvedSetupDir === module.filename) {
+      throw Error(`pass in a path to set up types in.`)
+    }
+  }
+  console.log(`setting up generated types in ${setupDir}`)
+  resetCodegenDirectory(setupDir)
 }
