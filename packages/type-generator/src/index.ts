@@ -101,7 +101,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
     resetCodegenDirectory(config.writeTypes)
   }
   const typeParsers = config.typeMapper
-    ? keys(config.typeMapper).map(name => ({
+    ? Object.keys(config.typeMapper).map(name => ({
       name,
       parse: config.typeMapper![name]![1],
     }))
@@ -122,7 +122,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
     : config.writeTypes
     
   const pgTypes = (config.knownTypes as any)._pg_types || {}
-  const oidToTypeName = fromPairs(keys(pgTypes).map(k => [pgTypes[k], k]))
+  const oidToTypeName = fromPairs(Object.keys(pgTypes).map(k => [pgTypes[k], k]))
   const mapping: Record<string, [string]> = config.typeMapper as any
   const typeMapper = (dataTypeId: number) => {
     // console.log(require('util').inspect({pgTypes, oidToTypeName, dataTypeId, mapping}))
@@ -155,8 +155,8 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
           const types = await connection.any(slonikSql`
             select typname, oid
             from pg_type
-            where typrelid = 0
-            and typelem = 0
+            where (typnamespace = 11 and typname not like 'pg_%')
+            or (typrelid = 0 and typelem = 0)
           `)
           _types = fromPairs(types.map(t => [t.typname, t.oid as number]))
           fs.writeFileSync(
