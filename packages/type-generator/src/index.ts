@@ -156,6 +156,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
             select typname, oid
             from pg_type
             where typrelid = 0
+            and typelem = 0
           `)
           _types = fromPairs(types.map(t => [t.typname, t.oid as number]))
           fs.writeFileSync(
