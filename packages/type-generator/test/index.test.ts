@@ -67,8 +67,8 @@ describe('type generator', () => {
   it('creates a pessimistic union type when there are multiple queries', async () => {
     const foo1 = await slonik.one(sql.FooSubset`select a, b, c from foo`)
     const foo2 = await slonik.one(sql.FooSubset`select a, b from foo`)
-    // expectType<{a: string; b: boolean}>(foo1)
-    // expectType<{a: string; b: boolean}>(foo2)
+    expectType<{a: string; b: boolean}>(foo1)
+    expectType<{a: string; b: boolean}>(foo2)
     expect(foo1).toMatchObject(foo2)
   })
 
