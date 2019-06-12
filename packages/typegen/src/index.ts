@@ -129,7 +129,6 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   const oidToTypeName = fromPairs(Object.keys(pgTypes).map(k => [pgTypes[k], k]))
   const mapping: Record<string, [string]> = config.typeMapper as any
   const typeMapper = (dataTypeId: number) => {
-    // console.log(require('util').inspect({pgTypes, oidToTypeName, dataTypeId, mapping}))
     if (config.typeMapper && oidToTypeName[dataTypeId] && mapping[oidToTypeName[dataTypeId]]) {
       return mapping[oidToTypeName[dataTypeId]][0]
     }
