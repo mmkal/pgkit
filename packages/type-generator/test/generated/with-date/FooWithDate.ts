@@ -14,5 +14,6 @@ export type FooWithDate_UnionType = FooWithDate_QueryTypeMap[keyof FooWithDate_Q
 export type FooWithDate = {
   [K in keyof FooWithDate_UnionType]: FooWithDate_UnionType[K]
 }
+export const FooWithDate = {} as FooWithDate
 
 export const FooWithDate_meta_v0 = [{"properties":[{"name":"d","value":"Date","description":"timestamptz (oid: 1184)"}],"description":"select d from foo where d is not null limit 1"}]

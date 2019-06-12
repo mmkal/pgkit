@@ -24,5 +24,6 @@ export type FooSubset_UnionType = FooSubset_QueryTypeMap[keyof FooSubset_QueryTy
 export type FooSubset = {
   [K in keyof FooSubset_UnionType]: FooSubset_UnionType[K]
 }
+export const FooSubset = {} as FooSubset
 
 export const FooSubset_meta_v0 = [{"properties":[{"name":"a","value":"string","description":"text (oid: 25)"},{"name":"b","value":"boolean","description":"bool (oid: 16)"}],"description":"select a, b from foo"},{"properties":[{"name":"a","value":"string","description":"text (oid: 25)"},{"name":"b","value":"boolean","description":"bool (oid: 16)"},{"name":"c","value":"string[]","description":"_text (oid: 1009)"}],"description":"select a, b, c from foo"}]

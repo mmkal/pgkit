@@ -4,8 +4,8 @@
 
 export interface Bar_QueryTypeMap {
   ["select * from bar"]: {
-    /** undefined (oid: 18020) */
-    dir: unknown
+    /** direction (oid: 18304) */
+    dir: 'up' | 'down'
   }
 }
 
@@ -14,5 +14,6 @@ export type Bar_UnionType = Bar_QueryTypeMap[keyof Bar_QueryTypeMap]
 export type Bar = {
   [K in keyof Bar_UnionType]: Bar_UnionType[K]
 }
+export const Bar = {} as Bar
 
-export const Bar_meta_v0 = [{"properties":[{"name":"dir","value":"unknown","description":"undefined (oid: 18020)"}],"description":"select * from bar"}]
+export const Bar_meta_v0 = [{"properties":[{"name":"dir","value":"'up' | 'down'","description":"direction (oid: 18304)"}],"description":"select * from bar"}]

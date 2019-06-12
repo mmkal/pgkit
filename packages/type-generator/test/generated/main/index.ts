@@ -23,9 +23,9 @@ export interface KnownTypes {
 
 /** runtime-accessible object with phantom type information of query results. */
 export const knownTypes: KnownTypes = {
-  Bar: {} as Bar,
-  CountInfo: {} as CountInfo,
-  Foo: {} as Foo,
-  FooSubset: {} as FooSubset,
-  _pg_types: {} as _pg_types,
+  Bar,
+  CountInfo,
+  Foo,
+  FooSubset,
+  _pg_types,
 }
