@@ -12,7 +12,7 @@ install @slonik/typegen:
 
 ```bash
 npm install @slonik/typegen
-npx @slonik/typegen src/generated/db # initialises a placeholder directory for generated types
+npx slonik-typegen src/generated/db # initialises a placeholder directory for generated types
 ```
 
 Then use in typescript (e.g. in a `src/db.ts` file):
