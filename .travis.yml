@@ -1,0 +1,19 @@
+language: node_js
+services: docker
+cache:
+  directories:
+    - $HOME/.npm
+node_js: 12
+before_script:
+  - npm prune
+  - npm run dependencies && sleep 10
+script:
+  - npm run ci
+after_success:
+  - if [ $TRAVIS_NODE_VERSION == '10' ]; then
+  -  npm run release
+  -  npm run coveralls
+  - fi
+branches:
+  except:
+    - /^v\d+\.\d+\.\d+$/

@@ -4,9 +4,11 @@
   "description": "slonik tools monorepo",
   "private": true,
   "scripts": {
+    "check-clean": "check-clean",
     "build": "tsc -b .",
     "dependencies": "docker-compose up",
-    "test": "jest"
+    "test": "jest",
+    "ci": "run-s build test check-clean"
   },
   "prettier": {
     "bracketSpacing": false,
@@ -46,6 +48,7 @@
     "check-clean": "0.0.1",
     "jest": "^24.8.0",
     "lerna": "^3.15.0",
+    "npm-run-all": "^4.1.5",
     "prettier": "^1.18.2",
     "slonik": "^16.19.5",
     "ts-expect": "^1.1.0",
