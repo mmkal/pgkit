@@ -6,7 +6,7 @@ cache:
 node_js: 12
 before_script:
   - npm prune
-  - npm run dependencies && sleep 10
+  - npm run dependencies -- -d && sleep 10
 script:
   - npm run ci
 after_success:
