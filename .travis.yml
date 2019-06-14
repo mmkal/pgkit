@@ -1,0 +1,16 @@
+language: node_js
+services: docker
+cache:
+  directories:
+    - $HOME/.npm
+node_js: 12
+before_script:
+  - npm prune
+  - npm run dependencies -- -d && sleep 10
+script:
+  - npm run ci
+after_success:
+  - npm run coveralls
+branches:
+  except:
+    - /^v\d+\.\d+\.\d+$/
