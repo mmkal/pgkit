@@ -36,14 +36,14 @@ describe('type generator', () => {
 
   it('queries', async () => {
     const fooResult = await slonik.one(sql.Foo`select * from foo`)
-    // expectType<{
-    //   id: number
-    //   a: string
-    //   b: boolean
-    //   c: string[]
-    //   d: number
-    //   e: unknown
-    // }>(fooResult)
+    expectType<{
+      id: number
+      a: string
+      b: boolean
+      c: string[]
+      d: number
+      e: unknown
+    }>(fooResult)
     await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.
     await slonik.query(sql.CountInfo`
       select count(*) as a_count, a as a_value
