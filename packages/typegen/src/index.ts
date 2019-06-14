@@ -289,8 +289,3 @@ export const main = (argv: string[]) => {
   console.log(`setting up generated types in ${setupDir}`)
   resetCodegenDirectory(setupDir)
 }
-
-/* istanbul ignore if  */
-if (require.main === module) {
-  main(process.argv)
-}
