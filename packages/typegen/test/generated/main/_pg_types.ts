@@ -170,6 +170,6 @@ export const _pg_types = { bool: 16,
   sql_identifier: 12790,
   time_stamp: 12795,
   yes_or_no: 12797,
-  direction: 18304 } as const
+  direction: 19075 } as const
 
 export type _pg_types = typeof _pg_types

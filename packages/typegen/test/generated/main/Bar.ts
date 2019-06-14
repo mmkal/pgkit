@@ -4,7 +4,7 @@
 
 export interface Bar_QueryTypeMap {
   ["select * from bar"]: {
-    /** direction (oid: 18304) */
+    /** direction (oid: 19075) */
     dir: 'up' | 'down'
   }
 }
@@ -16,4 +16,4 @@ export type Bar = {
 }
 export const Bar = {} as Bar
 
-export const Bar_meta_v0 = [{"properties":[{"name":"dir","value":"'up' | 'down'","description":"direction (oid: 18304)"}],"description":"select * from bar"}]
+export const Bar_meta_v0 = [{"properties":[{"name":"dir","value":"'up' | 'down'","description":"direction (oid: 19075)"}],"description":"select * from bar"}]
