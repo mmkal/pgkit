@@ -1,6 +1,6 @@
 import {setupTypeGen} from '../src'
 import {knownTypes} from './generated/main'
-import {createPool} from 'slonik'
+import {createPool, sql as slonikSql} from 'slonik'
 import {statSync, readdirSync, existsSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os'
@@ -36,20 +36,23 @@ describe('type generator', () => {
 
   it('queries', async () => {
     const fooResult = await slonik.one(sql.Foo`select * from foo`)
-    // expectType<{
-    //   id: number
-    //   a: string
-    //   b: boolean
-    //   c: string[]
-    //   d: number
-    //   e: unknown
-    // }>(fooResult)
+    expectType<{
+      id: number
+      a: string
+      b: boolean
+      c: string[]
+      d: number
+      e: unknown
+    }>(fooResult)
     await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.
-    await slonik.query(sql.CountInfo`
+    
+    const countInfo = await slonik.one(sql.CountInfo`
       select count(*) as a_count, a as a_value
       from foo
       group by a
     `)
+    expectType<{a_count: number, a_value: string}>(countInfo)
+    
     const generatedFiles = readdirSync(writeTypes)
     generatedFiles.forEach(f => {
       expect(statSync(join(writeTypes, f)).mtimeMs).toBeGreaterThan(Date.now() - 2000)
@@ -182,15 +185,7 @@ describe('type generator', () => {
   })
 
   it('maps enums', async () => {
-    const {sql, poolConfig} = setupTypeGen({
-      knownTypes,
-      writeTypes,
-      typeMapper: {
-        direction: [`'up' | 'down'`, value => value],
-      },
-    })
-    const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
-    await slonik.query(sql`
+    await slonik.query(slonikSql`
       drop table if exists bar;
       do $$ begin
         create type direction as enum('up', 'down');
@@ -201,7 +196,16 @@ describe('type generator', () => {
       insert into bar(dir) values ('up');
     `)
 
-    const result = await slonik.one(sql.Bar`select * from bar`)
+    const {sql, poolConfig} = setupTypeGen({
+      knownTypes,
+      writeTypes,
+      typeMapper: {
+        direction: [`'up' | 'down'`, value => value],
+      },
+    })
+    const slonikWithDirectionMapper = createPool(connectionString, {...poolConfig, idleTimeout: 1})
+
+    const result = await slonikWithDirectionMapper.one(sql.Bar`select * from bar`)
     expectType<'up' | 'down'>(result.dir)
     expect(result).toMatchInlineSnapshot(`
       Object {
