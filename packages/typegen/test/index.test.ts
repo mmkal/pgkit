@@ -45,11 +45,14 @@ describe('type generator', () => {
       e: unknown
     }>(fooResult)
     await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.
-    await slonik.query(sql.CountInfo`
+    
+    const countInfo = await slonik.one(sql.CountInfo`
       select count(*) as a_count, a as a_value
       from foo
       group by a
     `)
+    expectType<{a_count: number, a_value: string}>(countInfo)
+    
     const generatedFiles = readdirSync(writeTypes)
     generatedFiles.forEach(f => {
       expect(statSync(join(writeTypes, f)).mtimeMs).toBeGreaterThan(Date.now() - 2000)
