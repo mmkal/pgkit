@@ -10,10 +10,7 @@ before_script:
 script:
   - npm run ci
 after_success:
-  - if [ $TRAVIS_NODE_VERSION == '10' ]; then
-  -  npm run release
-  -  npm run coveralls
-  - fi
+  - npm run coveralls
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/
