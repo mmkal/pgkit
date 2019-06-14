@@ -8,7 +8,7 @@
     "build": "tsc -b .",
     "dependencies": "docker-compose up",
     "test": "jest",
-    "ci": "run-s build test check-clean"
+    "ci": "run-s build test && git diff && check-clean"
   },
   "prettier": {
     "bracketSpacing": false,
