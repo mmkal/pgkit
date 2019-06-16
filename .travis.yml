@@ -6,7 +6,8 @@ cache:
 node_js: 12
 before_script:
   - npm prune
-  - npm run dependencies -- -d && sleep 10
+  - docker-compose pull
+  - docker-compuse up -d && sleep 10
 script:
   - npm run ci
 after_success:
