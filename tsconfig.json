@@ -8,6 +8,7 @@
   ],
   "references": [
     {"path": "packages/migrator"},
-    {"path": "packages/typegen"}
+    {"path": "packages/typegen"},
+    {"path": "packages/demo"}
   ]
 }
