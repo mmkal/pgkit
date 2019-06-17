@@ -222,7 +222,7 @@ const getFsTypeWriter = (generatedPath: string) =>
     let _entries: Array<typeof newEntry> = JSON.parse(metaLine.replace(metaDeclaration, ''))
 
     const newEntry = { properties, description }
-    _entries.push(newEntry)
+    _entries.unshift(newEntry)
     _entries = orderBy(_entries, e => e.description)
     _entries = _entries
       .filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
