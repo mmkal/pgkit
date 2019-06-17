@@ -1,6 +1,6 @@
 import {createHash} from 'crypto'
 import {readFileSync, writeFileSync, mkdirSync, readdirSync} from 'fs'
-import {once} from 'lodash'
+import {once, memoize} from 'lodash'
 import {basename, dirname, join} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
@@ -32,13 +32,13 @@ export const setupSlonikMigrator = ({
   log: _log = console.log,
   mainModule,
 }: SlonikMigratorOptions) => {
-  const log: typeof _log = (...args: any[]) => {
+  const log: typeof _log = memoize((...args: any[]) => {
     if (args[0] === 'File: down does not match pattern: /\\.sql$/') {
       // workaround until release of https://github.com/sequelize/umzug/pull/190
       return
     }
     return _log(...args)
-  }
+  }, JSON.stringify)
   const createMigrationTable = once(async () => {
     void await slonik.query(sql`
       create table if not exists ${sql.identifier([migrationTableName])}(
