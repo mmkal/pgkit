@@ -7,7 +7,7 @@
     const Demo = {
       view: () => [
         m('h1', 'slonik-tools demo app'),
-        m('input[type=text]', {oninput: e => outgoingMessage = e.target.value}, outgoingMessage),
+        m('input[type=text]', {value: outgoingMessage, oninput: e => outgoingMessage = e.target.value}),
         m('button', {onclick: sendMessage}, 'send message'),
         m('br'),
         m('button', {onclick: getRecentMessages}, 'get recent messages'),
@@ -19,11 +19,12 @@
       .then(data => messages = data)
 
     const sendMessage = () => m
-      .request({method: 'POST', url: `/api/messages?content=${encodeURIComponent(outgoingMessage)}`})
-      .then(() => {
-        outgoingMessage = ''
-        return getRecentMessages()
+      .request({
+        method: 'POST',
+        url: `/api/messages?content=${encodeURIComponent(outgoingMessage)}`
       })
+      .then(() => outgoingMessage = '')
+      .then(getRecentMessages)
 
     m.mount(root, Demo)
   </script>
