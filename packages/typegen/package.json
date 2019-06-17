@@ -4,10 +4,10 @@
   "description": "Automatically generates typescript types from slonik queries",
   "files": ["dist", "cli.js"],
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "slonik-typegen": "cli.js"
   },
-  "types": "dist/index.d.ts",
   "author": "mmkal",
   "repository": {
     "type": "git",
