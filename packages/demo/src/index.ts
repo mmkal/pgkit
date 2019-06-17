@@ -6,7 +6,7 @@ export const start = () => {
   const port = process.env.PORT
   const app = express()
 
-  app.post('/messages', (req, res) => slonik
+  app.post('/api/messages', (req, res) => slonik
     .connect(async conn => {
       const content = req.query.content
       const id = await conn.oneFirst(sql.MessageId`
@@ -16,10 +16,10 @@ export const start = () => {
       `)
       res.status(201).send({id})
     })
-    .catch(err => res.status(500).send(err))
+    .catch(err => res.status(500).send(`${err}`))
   )
 
-  app.get('/messages', (req, res) => slonik
+  app.get('/api/messages', (req, res) => slonik
     .connect(async conn => {
       const messages = await conn.any(sql.Message`
         select * from messages
@@ -28,7 +28,7 @@ export const start = () => {
       `)
       res.status(200).send(messages)
     })
-    .catch(err => res.status(500).send(err))
+    .catch(err => res.status(500).send(`${err}`))
   )
 
   app.get('/', (_req, res) => res.sendFile(resolve(__dirname + '/../index.html')))

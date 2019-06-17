@@ -1,5 +1,5 @@
 <body>
-  <script src="https://unpkg.com/mithril@next/mithril.js"></script>
+  <script src="https://unpkg.com/mithril@1.1.6/mithril.js"></script>
   <script>
     const root = document.body
     let messages = []
@@ -15,11 +15,11 @@
       ]
     }
     const getRecentMessages = () => m
-      .request({url: '/messages'})
+      .request({url: 'api/messages'})
       .then(data => messages = data)
 
     const sendMessage = () => m
-      .request({method: 'POST', url: `/messages?content=${encodeURIComponent(outgoingMessage)}`})
+      .request({method: 'POST', url: `/api/messages?content=${encodeURIComponent(outgoingMessage)}`})
       .then(() => {
         outgoingMessage = ''
         return getRecentMessages()
