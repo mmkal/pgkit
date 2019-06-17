@@ -1,0 +1,1 @@
+drop table migration_one

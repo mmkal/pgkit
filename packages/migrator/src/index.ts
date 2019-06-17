@@ -1,13 +1,13 @@
 import {createHash} from 'crypto'
-import {existsSync, readFileSync, writeFileSync, mkdirSync} from 'fs'
-import {memoize, once} from 'lodash'
+import {readFileSync, writeFileSync, mkdirSync, readdirSync} from 'fs'
+import {once} from 'lodash'
 import {basename, dirname, join} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
 
 export interface SlonikMigratorOptions {
   slonik: DatabasePoolType
-  migrationsPath?: string
+  migrationsPath: string
   migrationTableName?: string
   log?: typeof console.log
   args?: string[]
@@ -25,15 +25,22 @@ export interface SlonikMigrator {
   create(migration: string): void
 }
 
+const defaultArgs = process.argv.slice(2)
 export const setupSlonikMigrator = ({
   slonik,
-  migrationsPath = join(__dirname, 'migrations'),
+  migrationsPath,
   migrationTableName = 'migration',
-  log = console.log,
-  args = process.argv.slice(2),
+  log: _log = console.log,
+  args = defaultArgs,
   mainModule,
 }: SlonikMigratorOptions) => {
-  log = memoize(log, JSON.stringify)
+  const log: typeof _log = (...args: any[]) => {
+    if (args[0] === 'File: down does not match pattern: /\\.sql$/') {
+      // workaround until release of https://github.com/sequelize/umzug/pull/190
+      return
+    }
+    return _log(...args)
+  }
   const createMigrationTable = once(async () => {
     void await slonik.query(sql`
       create table if not exists ${sql.identifier([migrationTableName])}(
@@ -56,9 +63,7 @@ export const setupSlonikMigrator = ({
         up: () => slonik.query(sql`${sql.raw(readFileSync(path, 'utf8'))}`),
         down: async () => {
           const downPath = join(dirname(path), 'down', basename(path))
-          if (existsSync(downPath)) {
-            await slonik.query(sql`${sql.raw(readFileSync(downPath, 'utf8'))}`)
-          }
+          await slonik.query(sql`${sql.raw(readFileSync(downPath, 'utf8'))}`)
         },
       }),
     },
@@ -73,10 +78,12 @@ export const setupSlonikMigrator = ({
           })
           .then(migrations => migrations.map(r => {
             const name = r.name as string
+            /* istanbul ignore if */
             if (r.hash !== hash(name)) {
-              console.error(
+              log(
+                `warning:`,
                 `hash in migration table didn't match content on disk.`,
-                `did you try to change a migration after it had been run?`,
+                `did you try to change a migration file after it had been run?`,
                 {migration: r.name, dbHash: r.hash, diskHash: hash(name)}
               )
             }
@@ -103,16 +110,15 @@ export const setupSlonikMigrator = ({
       const timestamp = new Date().toISOString().replace(/\W/g, '-').replace(/-\d\d-\d\d\dZ/, '')
       const sqlFileName = `${timestamp}.${name}.sql`
       const downDir = join(migrationsPath, 'down')
-      if (!existsSync(downDir)) {
-        mkdirSync(downDir, {recursive: true})
-      }
+      mkdirSync(downDir, {recursive: true})
       writeFileSync(join(migrationsPath, sqlFileName), `--${name} (up)\n`, 'utf8')
       writeFileSync(join(downDir, sqlFileName), `--${name} (down)\n`, 'utf8')
-    }
+    },
   }
   const [command, name] = args
-  if (require.main === mainModule && command in migrator) {
-    migrator[command as keyof typeof migrator](name)
+  /* istanbul ignore if */
+  if (require.main === mainModule) {
+    command in migrator && (migrator as any)[command](name)
   }
 
   return migrator
