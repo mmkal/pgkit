@@ -1,11 +1,8 @@
-import {execSync} from 'child_process'
 import {statSync, readdirSync, unlinkSync, writeFileSync, existsSync} from 'fs'
 import {join} from 'path'
 import {range} from 'lodash'
 import {createPool, sql} from 'slonik'
 import {setupSlonikMigrator} from '../src'
-
-const execOutput = (command: string) => execSync(command).toString()
 
 const millisPerDay = 1000 * 60 * 60 * 24
 const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())
@@ -15,8 +12,11 @@ const walk = (path: string): string[] =>
 
 const relativeDir = __dirname.replace(process.cwd() + '/', '')
 
+// https://github.com/gajus/slonik/issues/63#issuecomment-500889445
+afterAll(() => new Promise(r => setTimeout(r, 1)))
+
 it('migrates', async () => {
-  const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres')
+  const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {idleTimeout: 1})
   existsSync(join(relativeDir, 'migrations')) && walk(join(relativeDir, 'migrations')).map(unlinkSync)
   jest.spyOn(Date.prototype, 'toISOString').mockImplementation(() => fakeDates.shift())
   await slonik.query(sql`
