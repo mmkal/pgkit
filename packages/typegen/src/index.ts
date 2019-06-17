@@ -274,14 +274,14 @@ const getFsTypeWriter = (generatedPath: string) =>
   }
 
 const builtInTypeMappings: Record<string, string | undefined> = {
-  timestamptz: 'number',
   text: 'string',
   varchar: 'string',
   int2: 'number',
   int4: 'number',
   int8: 'number',
   bool: 'boolean',
-  _text: 'string[]'
+  _text: 'string[]',
+  timestamptz: 'string',
 }
 
 export const main = (argv: string[]) => {
