@@ -7,7 +7,7 @@ load()
 
 export const {sql, poolConfig} = setupTypeGen({
   knownTypes: knownTypes,
-  writeTypes: __dirname + '/generated/db',
+  writeTypes: __dirname + '/../src/generated/db',
 })
 
 export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, poolConfig)
