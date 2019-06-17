@@ -25,13 +25,11 @@ export interface SlonikMigrator {
   create(migration: string): void
 }
 
-const defaultArgs = process.argv.slice(2)
 export const setupSlonikMigrator = ({
   slonik,
   migrationsPath,
   migrationTableName = 'migration',
   log: _log = console.log,
-  args = defaultArgs,
   mainModule,
 }: SlonikMigratorOptions) => {
   const log: typeof _log = (...args: any[]) => {
@@ -115,9 +113,9 @@ export const setupSlonikMigrator = ({
       writeFileSync(join(downDir, sqlFileName), `--${name} (down)\n`, 'utf8')
     },
   }
-  const [command, name] = args
   /* istanbul ignore if */
   if (require.main === mainModule) {
+    const [command, name] = process.argv.slice(2)
     command in migrator && (migrator as any)[command](name)
   }
 
