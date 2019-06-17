@@ -2,6 +2,29 @@
   <script src="https://unpkg.com/mithril@next/mithril.js"></script>
   <script>
     const root = document.body
-    m.render(root, "hi world")
+    let messages = []
+    let outgoingMessage = ''
+    const Demo = {
+      view: () => [
+        m('h1', 'slonik-tools demo app'),
+        m('input[type=text]', {oninput: e => outgoingMessage = e.target.value}, outgoingMessage),
+        m('button', {onclick: sendMessage}, 'send message'),
+        m('br'),
+        m('button', {onclick: getRecentMessages}, 'get recent messages'),
+        ...messages.map(msg => m('div', JSON.stringify(msg))),
+      ]
+    }
+    const getRecentMessages = () => m
+      .request({url: '/messages'})
+      .then(data => messages = data)
+
+    const sendMessage = () => m
+      .request({method: 'POST', url: `/messages?content=${encodeURIComponent(outgoingMessage)}`})
+      .then(() => {
+        outgoingMessage = ''
+        return getRecentMessages()
+      })
+
+    m.mount(root, Demo)
   </script>
 </body>

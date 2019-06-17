@@ -28,6 +28,7 @@ export const start = () => {
       `)
       res.status(200).send(messages)
     })
+    .catch(err => res.status(500).send(err))
   )
 
   app.get('/', (_req, res) => res.sendFile(resolve(__dirname + '/../index.html')))
