@@ -41,7 +41,7 @@ describe('type generator', () => {
       a: string
       b: boolean
       c: string[]
-      d: number
+      d: string
       e: unknown
     }>(fooResult)
     await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.

@@ -1,5 +1,8 @@
 # @slonik/migrator
 
+[![Build Status](https://travis-ci.org/mmkal/slonik-tools.svg?branch=master)](https://travis-ci.org/mmkal/slonik-tools)
+[![Coverage Status](https://coveralls.io/repos/github/mmkal/slonik-tools/badge.svg?branch=master)](https://coveralls.io/github/mmkal/slonik-tools?branch=master)
+
 A cli migration helper tool using [slonik](https://npmjs.com/package/slonik).
 
 ## Motivation

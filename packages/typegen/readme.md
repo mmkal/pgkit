@@ -1,5 +1,8 @@
 # @slonik/typegen
 
+[![Build Status](https://travis-ci.org/mmkal/slonik-tools.svg?branch=master)](https://travis-ci.org/mmkal/slonik-tools)
+[![Coverage Status](https://coveralls.io/repos/github/mmkal/slonik-tools/badge.svg?branch=master)](https://coveralls.io/github/mmkal/slonik-tools?branch=master)
+
 A library that uses [slonik](https://npmjs.com/package/slonik) to generate typescript interfaces based on your sql queries.
 
 ## The idea
