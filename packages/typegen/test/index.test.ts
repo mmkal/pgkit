@@ -13,7 +13,7 @@ describe('type generator', () => {
     knownTypes,
     writeTypes,
   })
-  const connectionString = `postgresql://postgres:postgres@localhost:5432/postgres`
+  const connectionString = `postgresql://postgres:postgres@localhost:5433/postgres`
   const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
 
   beforeAll(async () => {

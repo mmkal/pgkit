@@ -13,7 +13,7 @@ export interface Foo_QueryTypeMap {
     /** _text (oid: 1009) */
     c: string[]
     /** timestamptz (oid: 1184) */
-    d: number
+    d: string
     /** circle (oid: 718) */
     e: unknown
   }
@@ -26,4 +26,4 @@ export type Foo = {
 }
 export const Foo = {} as Foo
 
-export const Foo_meta_v0 = [{"properties":[{"name":"id","value":"number","description":"int4 (oid: 23)"},{"name":"a","value":"string","description":"text (oid: 25)"},{"name":"b","value":"boolean","description":"bool (oid: 16)"},{"name":"c","value":"string[]","description":"_text (oid: 1009)"},{"name":"d","value":"number","description":"timestamptz (oid: 1184)"},{"name":"e","value":"unknown","description":"circle (oid: 718)"}],"description":"select * from foo"}]
+export const Foo_meta_v0 = [{"properties":[{"name":"id","value":"number","description":"int4 (oid: 23)"},{"name":"a","value":"string","description":"text (oid: 25)"},{"name":"b","value":"boolean","description":"bool (oid: 16)"},{"name":"c","value":"string[]","description":"_text (oid: 1009)"},{"name":"d","value":"string","description":"timestamptz (oid: 1184)"},{"name":"e","value":"unknown","description":"circle (oid: 718)"}],"description":"select * from foo"}]

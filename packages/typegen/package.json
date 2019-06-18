@@ -1,13 +1,16 @@
 {
   "name": "@slonik/typegen",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Automatically generates typescript types from slonik queries",
-  "files": ["dist", "cli.js"],
+  "files": [
+    "dist",
+    "cli.js"
+  ],
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "slonik-typegen": "cli.js"
   },
-  "types": "dist/index.d.ts",
   "author": "mmkal",
   "repository": {
     "type": "git",
