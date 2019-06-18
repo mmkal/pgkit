@@ -33,28 +33,28 @@ it('migrates', async () => {
 
   expect(walk(relativeDir)).toHaveLength(1)
   expect(walk(relativeDir)).toMatchInlineSnapshot(`
-    Array [
-      "packages/migrator/test/cli.test.ts",
-    ]
-  `)
+        Array [
+          "packages/migrator/test/cli.test.ts",
+        ]
+    `)
   migrator.create('one')
   expect(walk(relativeDir)).toMatchInlineSnapshot(`
-    Array [
-      "packages/migrator/test/cli.test.ts",
-      "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
-      "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
-    ]
-  `)
+        Array [
+          "packages/migrator/test/cli.test.ts",
+          "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
+          "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
+        ]
+    `)
   migrator.create('two')
   expect(walk(relativeDir).sort()).toMatchInlineSnapshot(`
-    Array [
-      "packages/migrator/test/cli.test.ts",
-      "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
-      "packages/migrator/test/migrations/2000-01-02T00-00.two.sql",
-      "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
-      "packages/migrator/test/migrations/down/2000-01-02T00-00.two.sql",
-    ]
-  `)
+        Array [
+          "packages/migrator/test/cli.test.ts",
+          "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
+          "packages/migrator/test/migrations/2000-01-02T00-00.two.sql",
+          "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
+          "packages/migrator/test/migrations/down/2000-01-02T00-00.two.sql",
+        ]
+    `)
 
   const migrationTables = () =>
     slonik.anyFirst(sql`select tablename from pg_catalog.pg_tables where tablename like 'migration%'`)
@@ -92,24 +92,11 @@ it('migrates', async () => {
         Array [],
       ],
       Array [
-        "migrations executed:",
-        Array [],
-      ],
-      Array [
         "== 2000-01-01T00-00.one: migrating =======",
       ],
       Array [
         "== 2000-01-01T00-00.one: migrated (0.001s)
     ",
-      ],
-      Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-        ],
       ],
       Array [
         "== 2000-01-02T00-00.two: migrating =======",
@@ -119,45 +106,6 @@ it('migrates', async () => {
     ",
       ],
       Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-          Object {
-            "hash": "dd0847c9c7",
-            "name": "2000-01-02T00-00.two.sql",
-          },
-        ],
-      ],
-      Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-          Object {
-            "hash": "dd0847c9c7",
-            "name": "2000-01-02T00-00.two.sql",
-          },
-        ],
-      ],
-      Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-          Object {
-            "hash": "dd0847c9c7",
-            "name": "2000-01-02T00-00.two.sql",
-          },
-        ],
-      ],
-      Array [
         "== 2000-01-02T00-00.two: reverting =======",
       ],
       Array [
@@ -165,42 +113,11 @@ it('migrates', async () => {
     ",
       ],
       Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-        ],
-      ],
-      Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-        ],
-      ],
-      Array [
-        "migrations executed:",
-        Array [
-          Object {
-            "hash": "10dfbc3441",
-            "name": "2000-01-01T00-00.one.sql",
-          },
-        ],
-      ],
-      Array [
         "== 2000-01-01T00-00.one: reverting =======",
       ],
       Array [
         "== 2000-01-01T00-00.one: reverted (0.001s)
     ",
-      ],
-      Array [
-        "migrations executed:",
-        Array [],
       ],
     ]
   `)

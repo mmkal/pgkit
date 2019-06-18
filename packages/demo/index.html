@@ -12,11 +12,15 @@
         m('br'),
         m('button', {onclick: getRecentMessages}, 'get recent messages'),
         ...messages.map(msg => m('div', JSON.stringify(msg))),
+        m('button', {onclick: getMoreMessages}, 'get more messages'),
       ]
     }
     const getRecentMessages = () => m
       .request({url: 'api/messages'})
       .then(data => messages = data)
+    const getMoreMessages = () => m
+      .request({url: `api/messages?before=${messages.slice(-1).map(m => m.id)[0] || ''}`})
+      .then(data => messages = messages.concat(data))
 
     const sendMessage = () => m
       .request({

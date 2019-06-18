@@ -69,7 +69,7 @@ export const setupSlonikMigrator = ({
       async executed() {
         await createMigrationTable()
         return slonik
-          .any(sql`select name, hash from migration`)
+          .any(sql`select name, hash from ${sql.identifier([migrationTableName])}`)
           .then(migrations => {
             log('migrations executed:', migrations)
             return migrations
@@ -80,7 +80,7 @@ export const setupSlonikMigrator = ({
             if (r.hash !== hash(name)) {
               log(
                 `warning:`,
-                `hash in migration table didn't match content on disk.`,
+                `hash in '${migrationTableName}' table didn't match content on disk.`,
                 `did you try to change a migration file after it had been run?`,
                 {migration: r.name, dbHash: r.hash, diskHash: hash(name)}
               )
@@ -91,12 +91,12 @@ export const setupSlonikMigrator = ({
       async logMigration(name: string) {
         await createMigrationTable()
         await slonik
-          .query(sql`insert into migration(name, hash) values (${name}, ${hash(name)})`)
+          .query(sql`insert into ${sql.identifier([migrationTableName])}(name, hash) values (${name}, ${hash(name)})`)
       },
       async unlogMigration(name: string) {
         await createMigrationTable()
         await slonik
-          .query(sql`delete from migration where name = ${name}`)
+          .query(sql`delete from ${sql.identifier([migrationTableName])} where name = ${name}`)
       }
     },
   })
