@@ -1,5 +1,5 @@
 create table messages(
   id serial primary key,
-  content text,
+  content varchar(20),
   created_at timestamptz not null default now()
 );

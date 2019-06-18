@@ -2,8 +2,7 @@ import * as express from 'express'
 import {slonik, sql} from './db'
 import {resolve} from 'path'
 
-export const start = () => {
-  const port = process.env.PORT
+export const getApp = () => {
   const app = express()
 
   const handleError = (res: express.Response) => (err: any) => {
@@ -43,10 +42,12 @@ export const start = () => {
   )
 
   app.get('/', (_req, res) => res.sendFile(resolve(__dirname + '/../index.html')))
-
-  app.listen(port, () => console.log(`server listening on http://localhost:${port}`))
+  
+  return app
 }
 
+/* istanbul ignore if */
 if (require.main === module) {
-  start()
+  const port = process.env.PORT
+  getApp().listen(port, () => console.log(`server listening on http://localhost:${port}`))
 }

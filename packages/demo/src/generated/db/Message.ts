@@ -6,7 +6,7 @@ export interface Message_QueryTypeMap {
   ["select * from messages\n        where id < $1\n        order by created_at desc\n        limit 10"]: {
     /** int4 (oid: 23) */
     id: number
-    /** text (oid: 25) */
+    /** varchar (oid: 1043) */
     content: string
     /** timestamptz (oid: 1184) */
     created_at: Date
@@ -20,4 +20,4 @@ export type Message = {
 }
 export const Message = {} as Message
 
-export const Message_meta_v0 = [{"properties":[{"name":"id","value":"number","description":"int4 (oid: 23)"},{"name":"content","value":"string","description":"text (oid: 25)"},{"name":"created_at","value":"Date","description":"timestamptz (oid: 1184)"}],"description":"select * from messages\n        where id < $1\n        order by created_at desc\n        limit 10"}]
+export const Message_meta_v0 = [{"properties":[{"name":"id","value":"number","description":"int4 (oid: 23)"},{"name":"content","value":"string","description":"varchar (oid: 1043)"},{"name":"created_at","value":"Date","description":"timestamptz (oid: 1184)"}],"description":"select * from messages\n        where id < $1\n        order by created_at desc\n        limit 10"}]
