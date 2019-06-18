@@ -6,7 +6,6 @@ cache:
 node_js: 12
 before_script:
   - npm prune
-  - npx lerna exec -- npm install
   - docker-compose pull
   - docker-compose up -d && sleep 10
 script:
