@@ -6,7 +6,6 @@ import {load} from 'dotenv-extended'
 load()
 
 export const {sql, poolConfig} = setupTypeGen({
-  reset: true,
   knownTypes: knownTypes,
   writeTypes: __dirname + '/../src/generated/db',
   typeMapper: {

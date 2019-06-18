@@ -2,7 +2,10 @@
   "name": "@slonik/typegen",
   "version": "0.0.2",
   "description": "Automatically generates typescript types from slonik queries",
-  "files": ["dist", "cli.js"],
+  "files": [
+    "dist",
+    "cli.js"
+  ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
