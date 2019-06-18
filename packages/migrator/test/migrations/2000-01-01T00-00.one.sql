@@ -1,0 +1,1 @@
+create table migration_one(x text)

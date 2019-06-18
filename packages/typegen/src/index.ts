@@ -222,7 +222,7 @@ const getFsTypeWriter = (generatedPath: string) =>
     let _entries: Array<typeof newEntry> = JSON.parse(metaLine.replace(metaDeclaration, ''))
 
     const newEntry = { properties, description }
-    _entries.push(newEntry)
+    _entries.unshift(newEntry)
     _entries = orderBy(_entries, e => e.description)
     _entries = _entries
       .filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
@@ -274,14 +274,14 @@ const getFsTypeWriter = (generatedPath: string) =>
   }
 
 const builtInTypeMappings: Record<string, string | undefined> = {
-  timestamptz: 'number',
   text: 'string',
   varchar: 'string',
   int2: 'number',
   int4: 'number',
   int8: 'number',
   bool: 'boolean',
-  _text: 'string[]'
+  _text: 'string[]',
+  timestamptz: 'string',
 }
 
 export const main = (argv: string[]) => {

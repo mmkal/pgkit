@@ -8,7 +8,9 @@
     "build": "tsc -b .",
     "dependencies": "docker-compose up",
     "test": "jest",
-    "ci": "run-s build test build",
+    "setup": "lerna exec -- npm install || echo meh && lerna bootstrap",
+    "migrate": "lerna run migrate",
+    "ci": "run-s setup build migrate test build",
     "coverage": "npm test -- --coverage",
     "coveralls": "npm run coverage -- --coverageReporters=text-lcov | coveralls"
   },
