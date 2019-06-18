@@ -6,25 +6,29 @@ A cli migration helper tool using [slonik](https://npmjs.com/package/slonik).
 
 There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be by far the simplest to configure. Even if you don't, the setup will is minimal.
 
+This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript _function_ which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
+
 ## Usage
 
 ```bash
 npm install --save-dev @slonik/migrator
 ```
 
-Then in a `migrate.js` or `migrate.ts` script:
+Then in a `migrate.js`:
 ```javascript
-import {setupSlonikMigrator} from '@slonik/migrator'
-import {createPool} from 'slonik'
+const {setupSlonikMigrator} = require('@slonik/migrator')
+const {createPool} = require('slonik')
 
 // in an existing slonik project, this would usually be setup in another module
-export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING)
+const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING)
 
-export const migrator = setupSlonikMigrator({
+const migrator = setupSlonikMigrator({
   migrationsPath: __dirname + '/migrations',
   slonik,
   mainModule: module,
 })
+
+module.exports = {slonik, migrator}
 ```
 
 By setting `mainModule: module`, `migrate.js` has now become a runnable cli script via `node migrate.js` or just `node migrate`:
@@ -55,7 +59,7 @@ import {sql} from 'slonik'
 
 export const foo = async () => {
   await migrator.up()
-  await slonik.query(sql`insert into users`)
+  await slonik.query(sql`insert into users(name) values('foo')`)
 }
 ```
 
