@@ -5,10 +5,7 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prebuild": "echo 'building in project root...'",
     "build": "cd ../.. && npm run build",
-    "setup": "npm run migrate",
-    "create-messages-migration": "node migrate create messages",
     "typegen": "slonik-typegen src/generated/db",
     "migrate": "node migrate up",
     "migrate:down": "node migrate down",

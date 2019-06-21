@@ -17,7 +17,7 @@ This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries 
 npm install --save-dev @slonik/migrator
 ```
 
-Then in a `migrate.js`:
+Then in a file called `migrate.js`:
 ```javascript
 const {setupSlonikMigrator} = require('@slonik/migrator')
 const {createPool} = require('slonik')
