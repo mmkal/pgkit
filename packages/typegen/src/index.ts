@@ -5,7 +5,6 @@ import { basename, join } from 'path'
 import { inspect } from 'util';
 
 const keys = <T>(obj: T) => Object.keys(obj) as Array<keyof T>
-const toPairs = <T>(obj: T) => keys(obj).map(k => [k, obj[k]] as [keyof T, T[keyof T]])
 const fromPairs = <K, V>(pairs: Array<[K, V]>) => pairs.reduce(
   (obj, [k, v]) => ({ ...obj, [k as any]: v }),
   {} as Record<string, V>
