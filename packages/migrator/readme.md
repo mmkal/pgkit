@@ -9,7 +9,7 @@ A cli migration helper tool using [slonik](https://npmjs.com/package/slonik).
 
 There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be by far the simplest to configure. Even if you don't, the setup will is minimal.
 
-This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript _function_ which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
+This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
 
 ## Usage
 
@@ -37,10 +37,11 @@ module.exports = {slonik, migrator}
 By setting `mainModule: module`, `migrate.js` has now become a runnable cli script via `node migrate.js` or just `node migrate`:
 
 ```bash
-node migrate create users # creates placeholder up and down sql migration scripts
+node migrate create users
 ```
+This generates placeholder migration sql scripts in the directory specified by `migrationsPath` called something like `2019-06-17T03-27.users.sql` and `down/2019-06-17T03-27.users.sql`.
 
-Then edit the generated sql files to `create table users(name text)` for the 'up' migration and `drop table users` for the 'down' migration.
+You can now edit the generated sql files to `create table users(name text)` for the 'up' migration and `drop table users` for the 'down' migration.
 
 ```bash
 node migrate up
