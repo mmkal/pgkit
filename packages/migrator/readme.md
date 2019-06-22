@@ -7,7 +7,7 @@ A cli migration helper tool using [slonik](https://npmjs.com/package/slonik).
 
 ## Motivation
 
-There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be by far the simplest to configure. Even if you don't, the setup will is minimal.
+There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be by far the simplest to configure. Even if you don't, the setup required is minimal.
 
 This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
 
