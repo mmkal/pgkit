@@ -16,10 +16,10 @@
       ]
     }
     const getRecentMessages = () => m
-      .request({url: 'api/messages'})
+      .request({url: '/api/messages'})
       .then(data => messages = data)
     const getMoreMessages = () => m
-      .request({url: `api/messages?before=${messages[messages.length - 1].id}`})
+      .request({url: `/api/messages?before=${messages[messages.length - 1].id}`})
       .then(data => messages = messages.concat(data))
 
     const sendMessage = () => m
