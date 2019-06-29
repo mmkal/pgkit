@@ -4,6 +4,7 @@ import {once, memoize} from 'lodash'
 import {basename, dirname, join} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
+import { inspect } from 'util';
 
 export interface SlonikMigratorOptions {
   slonik: DatabasePoolType
@@ -118,7 +119,7 @@ export const setupSlonikMigrator = ({
     const [command, name] = process.argv.slice(2)
     command in migrator
       ? (migrator as any)[command](name)
-      : console.warn('command not found', {commands: Object.keys(migrator), cliCommand: `${command}`})
+      : console.warn('command not found. ' + inspect({'commands available': Object.keys(migrator), 'command from cli args': command}, {breakLength: Infinity}))
   }
 
   return migrator
