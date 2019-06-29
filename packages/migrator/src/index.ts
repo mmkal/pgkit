@@ -116,7 +116,9 @@ export const setupSlonikMigrator = ({
   /* istanbul ignore if */
   if (require.main === mainModule) {
     const [command, name] = process.argv.slice(2)
-    command in migrator && (migrator as any)[command](name)
+    command in migrator
+      ? (migrator as any)[command](name)
+      : console.warn('command not found', {commands: Object.keys(migrator), cliCommand: `${command}`})
   }
 
   return migrator
