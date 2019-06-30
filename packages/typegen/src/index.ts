@@ -64,6 +64,9 @@ export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): Typ
     poolConfig,
     sql: new Proxy(_sql, {
       get(_, key) {
+        if (key in slonikSql) {
+          return (slonikSql as any)[key]
+        }
         if (typeof key === 'string' && !(key in _sql)) {
           return _sql[key] = sqlGetter(key)
         }

@@ -213,6 +213,10 @@ describe('type generator', () => {
       }
     `)
   })
+
+  it(`doesn't break in-built helper functions`, () => {
+    expect(sql.raw('default')).toMatchObject({sql: 'default'})
+  })
 })
 
 export interface MyCustomDateType {
