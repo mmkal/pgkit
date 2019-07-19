@@ -13,6 +13,7 @@ script:
 after_success:
   - npm run coveralls
   - npx lerna version --yes
+  - npx publish from-package --yes
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/
