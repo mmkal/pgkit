@@ -12,7 +12,7 @@ script:
   - npm run ci
 after_success:
   - npm run coveralls
-  - npx lerna version
+  - npx lerna version --yes
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/
