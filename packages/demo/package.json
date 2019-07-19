@@ -4,6 +4,7 @@
   "description": "demo project using packages in slonik-tools repo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "private": true,
   "scripts": {
     "build": "cd ../.. && npm run build",
     "typegen": "slonik-typegen src/generated/db",

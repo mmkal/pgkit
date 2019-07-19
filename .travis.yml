@@ -3,7 +3,7 @@ services: docker
 cache:
   directories:
     - $HOME/.npm
-node_js: 12
+node_js: ['12']
 before_script:
   - npm prune
   - docker-compose pull
