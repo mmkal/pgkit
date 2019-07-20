@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.6](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.5...@slonik/migrator@0.1.6) (2019-07-20)
+
+
+### Bug Fixes
+
+* **migrations:** only return `file` and `path` properties ([#8](https://github.com/mmkal/slonik-tools/issues/8)) ([d254f21](https://github.com/mmkal/slonik-tools/commit/d254f21))
+
+
+
+
+
 ## [0.1.5](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.4...@slonik/migrator@0.1.5) (2019-07-20)
 
 **Note:** Version bump only for package @slonik/migrator
