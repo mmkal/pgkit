@@ -121,17 +121,19 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   }
   const writeTypes = getFsTypeWriter(config.writeTypes)
     
-  const pgTypes = (config.knownTypes as any)._pg_types || {}
-  const oidToTypeName = fromPairs(Object.keys(pgTypes).map(k => [pgTypes[k], k]))
+  let _oidToTypeName: undefined | Record<number, string | undefined> = undefined
   const mapping: Record<string, [string] | undefined> = config.typeMapper || {} as any
   const typescriptTypeName = (dataTypeId: number): string => {
-    const typeName = oidToTypeName[dataTypeId]
-    const [customType] = mapping[typeName] || [undefined]
-    return customType || builtInTypeMappings[typeName] || 'unknown'
+    const typeName = _oidToTypeName && _oidToTypeName[dataTypeId]
+    const typescriptTypeName = typeName && (() => {
+      const [customType] = mapping[typeName] || [undefined]
+      return customType || builtInTypeMappings[typeName]
+    })()
+    return typescriptTypeName || 'unknown'
   }
 
   const _map: Record<string, string[] | undefined> = {}
-  let _types: Record<string, number> | undefined = undefined
+  // let _types: Record<string, number> | undefined = undefined
   const mapKey = (sqlValue: { sql: string, values?: any }) =>
     JSON.stringify([sqlValue.sql, sqlValue.values])
 
@@ -149,21 +151,22 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
     sql,
     poolConfig: {
       interceptors: [{
-        beforePoolConnectionRelease: async (_context, connection) => {
-          if (!_types && typeof config.writeTypes === 'string') {
+        afterPoolConnection: async (_context, connection) => {
+          if (!_oidToTypeName && typeof config.writeTypes === 'string') {
             const types = await connection.any(slonikSql`
               select typname, oid
               from pg_type
               where (typnamespace = 11 and typname not like 'pg_%')
               or (typrelid = 0 and typelem = 0)
             `)
-            _types = fromPairs(types.map(t => [t.typname, t.oid as number]))
+            types.sort()
+            _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
             fs.writeFileSync(
               join(config.writeTypes, '_pg_types.ts'),
               [
                 `${header}`,
-                `export const _pg_types = ${inspect(_types)} as const`,
-                `export type _pg_types = typeof _pg_types`,
+                `export const _pg_types = ${inspect(fromPairs(types.map(t => [t.typname, t.typname])))} as const`,
+                `export type _pg_types = typeof _pg_types\n`,
               ].join('\n\n'),
             )
           }
@@ -176,7 +179,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
             result.fields.map(f => ({
               name: f.name,
               value: typescriptTypeName(f.dataTypeID),
-              description: `${oidToTypeName[f.dataTypeID]} (oid: ${f.dataTypeID})`,
+              description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeID]}`,
             })),
             trimmedSql.trim(),
           ))
