@@ -68,9 +68,18 @@ it('migrates', async () => {
   writeFileSync(file(/two\.sql/), 'create table migration_two(x text)')
   writeFileSync(file(/down.*two\.sql/), 'drop table migration_two')
 
-  await migrator.up()
+  const up1 = await migrator.up()
 
+  expect(up1).toMatchObject([
+    {file: expect.stringContaining('one.sql'), path: expect.stringContaining('one.sql')},
+    {file: expect.stringContaining('two.sql'), path: expect.stringContaining('two.sql')},
+  ])
+  
   expect(await migrationTables()).toEqual(['migration', 'migration_one', 'migration_two'])
+  
+  const up2 = await migrator.up()
+
+  expect(up2).toEqual([])
 
   await migrator.down()
 
