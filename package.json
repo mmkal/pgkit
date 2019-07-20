@@ -42,7 +42,11 @@
       "ts-jest": {
         "diagnostics": false
       }
-    }
+    },
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/*.d.ts"
+    ]
   },
   "homepage": "https://github.com/mmkal/slonik-tools#readme",
   "devDependencies": {
