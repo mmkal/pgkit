@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.0.3](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.0.2...slonik-tools-demo@0.0.3) (2019-07-20)
+
+
+### Bug Fixes
+
+* **deps:** bump sibling versions in demo ([ef25f0e](https://github.com/mmkal/slonik-tools/commit/ef25f0e))
+* **deps:** reinstall dotenv-extended ([ddd28f6](https://github.com/mmkal/slonik-tools/commit/ddd28f6))
+
+
+
+
+
 ## 0.0.2 (2019-07-19)
 
 
