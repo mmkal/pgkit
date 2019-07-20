@@ -1,6 +1,7 @@
 import {createHash} from 'crypto'
 import {readFileSync, writeFileSync, mkdirSync, readdirSync} from 'fs'
 import {once, memoize} from 'lodash'
+import {map, pick} from 'lodash/fp'
 import {basename, dirname, join} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
@@ -102,9 +103,9 @@ export const setupSlonikMigrator = ({
     },
   })
 
-  const migrator = {
-    up: (name?: string) => umzug.up(name),
-    down: (name?: string) => umzug.down(name),
+  const migrator: SlonikMigrator = {
+    up: (name?: string) => umzug.up(name).then(map(pick(['file', 'path']))),
+    down: (name?: string) => umzug.down(name).then(map(pick(['file', 'path']))),
     create: (name: string) => {
       const timestamp = new Date().toISOString().replace(/\W/g, '-').replace(/-\d\d-\d\d\dZ/, '')
       const sqlFileName = `${timestamp}.${name}.sql`

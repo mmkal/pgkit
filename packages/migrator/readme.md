@@ -3,11 +3,13 @@
 [![Build Status](https://travis-ci.org/mmkal/slonik-tools.svg?branch=master)](https://travis-ci.org/mmkal/slonik-tools)
 [![Coverage Status](https://coveralls.io/repos/github/mmkal/slonik-tools/badge.svg?branch=master)](https://coveralls.io/github/mmkal/slonik-tools?branch=master)
 
-A cli migration helper tool using [slonik](https://npmjs.com/package/slonik).
+A cli migration tool for postgres sql scripts, using [slonik](https://npmjs.com/package/slonik).
 
 ## Motivation
 
-There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be by far the simplest to configure. Even if you don't, the setup required is minimal.
+There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be the simplest to configure. Even if you don't, the setup required is minimal.
+
+The migration scripts it runs are just `.sql` files. No learning the quirks of an ORM, any niche library's DSL.
 
 This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
 
@@ -61,9 +63,11 @@ To run migrations programmatically, you can import the `migrator` object, say in
 import {migrator, slonik} from './migrate'
 import {sql} from 'slonik'
 
-export const foo = async () => {
-  await migrator.up()
-  await slonik.query(sql`insert into users(name) values('foo')`)
+export const seed = async () => {
+  const migrations = await migrator.up()
+  if (migrations.some(m => m.file.endsWith('.users.sql'))) {
+    await slonik.query(sql`insert into users(name) values('foo')`)
+  }
 }
 ```
 
