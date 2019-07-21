@@ -38,8 +38,5 @@ While developing, it can be useful to run `npm run build -- -w` in the backgroun
 On master, and with write permissions to both master and npm (this isn't automated yet):
 
 ```bash
-lerna version
-lerna publish from-package
+scripts/publish.sh
 ```
-
-After versioning/tagging/publishing, [lerna does not update `package-lock.json` files](https://github.com/lerna/lerna/issues/1998). So the next CI job may fail running `"preci": "lerna exec -- npm ci"`. This can be fixed with `npm run reinstall`.

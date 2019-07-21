@@ -7,7 +7,8 @@
     "version": {
       "allowBranch": ["master"],
       "conventionalCommits": true,
-      "createRelease": "github"
+      "createRelease": "github",
+      "noPush": true
     }
   },
   "ignoreChanges": ["**/package-lock.json"]
