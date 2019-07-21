@@ -6,7 +6,9 @@
   "command": {
     "version": {
       "allowBranch": ["master"],
-      "conventionalCommits": true
+      "conventionalCommits": true,
+      "createRelease": "github"
     }
-  }
+  },
+  "ignoreChanges": ["**/package-lock.json"]
 }
