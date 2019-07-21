@@ -8,5 +8,5 @@ npx lerna version
 TAGS=$(git tag -l --points-at HEAD)
 npx lerna publish from-package
 npm run reinstall
-git commit packages/*/package-lock.json -m "chore: update lockfiles for tags:\n$TAGS"
+git commit packages/*/package-lock.json -m "chore: update lockfiles for tags:" -m "$TAGS"
 git push --follow-tags
