@@ -133,7 +133,6 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   }
 
   const _map: Record<string, string[] | undefined> = {}
-  // let _types: Record<string, number> | undefined = undefined
   const mapKey = (sqlValue: { sql: string, values?: any }) =>
     JSON.stringify([sqlValue.sql, sqlValue.values])
 
