@@ -7,5 +7,5 @@ set -e
 npx lerna version
 npx lerna publish from-package
 npm run reinstall
-git commit --amend
+git commit -a --amend
 git push --follow-tags
