@@ -1,7 +1,7 @@
 import {setupTypeGen} from '../src'
 import {knownTypes} from './generated/main'
 import {createPool, sql as slonikSql} from 'slonik'
-import {statSync, readdirSync, existsSync} from 'fs'
+import {statSync, readdirSync, existsSync, readFileSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os'
 import {expectType, TypeEqual} from 'ts-expect'
@@ -45,14 +45,14 @@ describe('type generator', () => {
       e: unknown
     }>(fooResult)
     await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.
-    
+
     const countInfo = await slonik.one(sql.CountInfo`
       select count(*) as a_count, a as a_value
       from foo
       group by a
     `)
-    expectType<{a_count: number, a_value: string}>(countInfo)
-    
+    expectType<{a_count: number; a_value: string}>(countInfo)
+
     const generatedFiles = readdirSync(writeTypes)
     generatedFiles.forEach(f => {
       expect(statSync(join(writeTypes, f)).mtimeMs).toBeGreaterThan(Date.now() - 2000)
@@ -134,9 +134,9 @@ describe('type generator', () => {
     const {sql, poolConfig} = setupTypeGen({
       reset: true,
       knownTypes: {
-        defaultType: {} as CustomisedDefaultType
+        defaultType: {} as CustomisedDefaultType,
       },
-      writeTypes: tempDir
+      writeTypes: tempDir,
     })
     expect(existsSync(tempDir)).toBe(true)
     expect(readdirSync(tempDir)).toEqual(['index.ts'])
@@ -146,6 +146,10 @@ describe('type generator', () => {
     expectType<CustomisedDefaultType>(result.rows[0])
 
     expect(readdirSync(tempDir).sort()).toEqual(['index.ts', '_pg_types.ts', 'Id.ts'].sort())
+
+    const idSrc = readFileSync(tempDir + '/Id.ts', 'utf8')
+    expect(idSrc).toContain(`id: number`)
+    expect(idSrc).not.toContain(`id: unknown`)
   })
 
   it('allows custom type mappings', async () => {

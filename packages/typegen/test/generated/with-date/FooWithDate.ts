@@ -4,7 +4,7 @@
 
 export interface FooWithDate_QueryTypeMap {
   ["select d from foo where d is not null limit 1"]: {
-    /** timestamptz (oid: 1184) */
+    /** pg_type.typname: timestamptz */
     d: Date
   }
 }
@@ -16,4 +16,4 @@ export type FooWithDate = {
 }
 export const FooWithDate = {} as FooWithDate
 
-export const FooWithDate_meta_v0 = [{"properties":[{"name":"d","value":"Date","description":"timestamptz (oid: 1184)"}],"description":"select d from foo where d is not null limit 1"}]
+export const FooWithDate_meta_v0 = [{"properties":[{"name":"d","value":"Date","description":"pg_type.typname: timestamptz"}],"description":"select d from foo where d is not null limit 1"}]

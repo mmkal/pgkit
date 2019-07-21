@@ -4,9 +4,9 @@
 
 export interface CountInfo_QueryTypeMap {
   ["select count(*) as a_count, a as a_value\n      from foo\n      group by a"]: {
-    /** int8 (oid: 20) */
+    /** pg_type.typname: int8 */
     a_count: number
-    /** text (oid: 25) */
+    /** pg_type.typname: text */
     a_value: string
   }
 }
@@ -18,4 +18,4 @@ export type CountInfo = {
 }
 export const CountInfo = {} as CountInfo
 
-export const CountInfo_meta_v0 = [{"properties":[{"name":"a_count","value":"number","description":"int8 (oid: 20)"},{"name":"a_value","value":"string","description":"text (oid: 25)"}],"description":"select count(*) as a_count, a as a_value\n      from foo\n      group by a"}]
+export const CountInfo_meta_v0 = [{"properties":[{"name":"a_count","value":"number","description":"pg_type.typname: int8"},{"name":"a_value","value":"string","description":"pg_type.typname: text"}],"description":"select count(*) as a_count, a as a_value\n      from foo\n      group by a"}]

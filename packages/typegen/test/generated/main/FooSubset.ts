@@ -4,21 +4,21 @@
 
 export interface FooSubset_QueryTypeMap {
   ["select a from foo"]: {
-    /** text (oid: 25) */
+    /** pg_type.typname: text */
     a: string
   }
   ["select a, b from foo"]: {
-    /** text (oid: 25) */
+    /** pg_type.typname: text */
     a: string
-    /** bool (oid: 16) */
+    /** pg_type.typname: bool */
     b: boolean
   }
   ["select a, b, c from foo"]: {
-    /** text (oid: 25) */
+    /** pg_type.typname: text */
     a: string
-    /** bool (oid: 16) */
+    /** pg_type.typname: bool */
     b: boolean
-    /** _text (oid: 1009) */
+    /** pg_type.typname: _text */
     c: string[]
   }
 }
@@ -30,4 +30,4 @@ export type FooSubset = {
 }
 export const FooSubset = {} as FooSubset
 
-export const FooSubset_meta_v0 = [{"properties":[{"name":"a","value":"string","description":"text (oid: 25)"}],"description":"select a from foo"},{"properties":[{"name":"a","value":"string","description":"text (oid: 25)"},{"name":"b","value":"boolean","description":"bool (oid: 16)"}],"description":"select a, b from foo"},{"properties":[{"name":"a","value":"string","description":"text (oid: 25)"},{"name":"b","value":"boolean","description":"bool (oid: 16)"},{"name":"c","value":"string[]","description":"_text (oid: 1009)"}],"description":"select a, b, c from foo"}]
+export const FooSubset_meta_v0 = [{"properties":[{"name":"a","value":"string","description":"pg_type.typname: text"}],"description":"select a from foo"},{"properties":[{"name":"a","value":"string","description":"pg_type.typname: text"},{"name":"b","value":"boolean","description":"pg_type.typname: bool"}],"description":"select a, b from foo"},{"properties":[{"name":"a","value":"string","description":"pg_type.typname: text"},{"name":"b","value":"boolean","description":"pg_type.typname: bool"},{"name":"c","value":"string[]","description":"pg_type.typname: _text"}],"description":"select a, b, c from foo"}]
