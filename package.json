@@ -13,7 +13,7 @@
     "reinstall": "lerna exec -- npm install",
     "migrate": "lerna run migrate",
     "preci": "lerna exec -- npm ci",
-    "ci": "run-s update-readme bootstrap build migrate test build check-clean",
+    "ci": "run-s update-readme bootstrap build migrate test build check-clean || git diff && check-clean",
     "coverage": "npm test -- --coverage",
     "coveralls": "npm run coverage -- --coverageReporters=text-lcov | coveralls"
   },
