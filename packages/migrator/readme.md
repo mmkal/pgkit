@@ -11,7 +11,7 @@ There are already plenty of migration tools out there - but if you have an exist
 
 The migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls.
 
-This isn't a cli tool - it's a cli tool _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
+This isn't technically a cli - it's a cli _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration script.
 
 ## Usage
 
