@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.7](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.6...@slonik/migrator@0.1.7) (2019-07-21)
+
+
+### Bug Fixes
+
+* **package:** add homepage ([7f4dc6e](https://github.com/mmkal/slonik-tools/commit/7f4dc6e))
+
+
+
+
+
 ## [0.1.6](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.5...@slonik/migrator@0.1.6) (2019-07-20)
 
 
