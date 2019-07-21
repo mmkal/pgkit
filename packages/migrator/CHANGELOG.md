@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.8](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.7...@slonik/migrator@0.1.8) (2019-07-21)
+
+
+### Bug Fixes
+
+* use clearer language for executed migrations ([#11](https://github.com/mmkal/slonik-tools/issues/11)) ([40f164e](https://github.com/mmkal/slonik-tools/commit/40f164e))
+
+
+
+
+
 ## [0.1.7](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.6...@slonik/migrator@0.1.7) (2019-07-21)
 
 
