@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.2.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.1.7...@slonik/typegen@0.2.0) (2019-07-21)
+
+
+### Features
+
+* consistent pg types ([#9](https://github.com/mmkal/slonik-tools/issues/9)) ([ad3214f](https://github.com/mmkal/slonik-tools/commit/ad3214f))
+
+
+
+
+
 ## [0.1.7](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.1.6...@slonik/typegen@0.1.7) (2019-07-20)
 
 **Note:** Version bump only for package @slonik/typegen
