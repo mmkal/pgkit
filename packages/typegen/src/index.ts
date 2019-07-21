@@ -153,13 +153,15 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
       interceptors: [{
         afterPoolConnection: async (_context, connection) => {
           if (!_oidToTypeName && typeof config.writeTypes === 'string') {
-            const types = await connection.any(slonikSql`
-              select typname, oid
-              from pg_type
-              where (typnamespace = 11 and typname not like 'pg_%')
-              or (typrelid = 0 and typelem = 0)
-            `)
-            types.sort()
+            const types = orderBy(
+              await connection.any(slonikSql`
+                select typname, oid
+                from pg_type
+                where (typnamespace = 11 and typname not like 'pg_%')
+                or (typrelid = 0 and typelem = 0)
+              `),
+              t => `${t.typname}`.replace(/^_/, 'zzz')
+            )
             _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
             fs.writeFileSync(
               join(config.writeTypes, '_pg_types.ts'),
