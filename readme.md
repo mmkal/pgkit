@@ -7,8 +7,6 @@ Various utilities for [slonik](https://npmjs.com/package/slonik)
 
 ## Packages
 
-1. [@slonik/typegen](https://github.com/mmkal/slonik-tools/tree/master/packages/typegen) - generate typescript interfaces on the fly reflecting your sql queries, and have them automatically be applied to your code, without requiring any explicit type annotations.
-2. [@slonik/migrator](https://github.com/mmkal/slonik-tools/tree/master/packages/migrator) - migrations cli helper using slonik.
-2. [slonik-tools-demo](https://github.com/mmkal/slonik-tools/tree/master/packages/demo) - demo web application using the other tools in the repo.
-
-...that's it for now.
+1. [@slonik/migrator](https://github.com/mmkal/slonik-tools/tree/master/packages/migrator#readme) - A cli migration tool for postgres sql scripts, using [slonik](https://npmjs.com/package/slonik).
+2. [@slonik/typegen](https://github.com/mmkal/slonik-tools/tree/master/packages/typegen#readme) - A library that uses [slonik](https://npmjs.com/package/slonik) to generate typescript interfaces based on your sql queries.
+3. [slonik-tools-demo](https://github.com/mmkal/slonik-tools/tree/master/packages/demo#readme) - A demo project which uses [@slonik/typegen](https://npmjs.com/package/@slonik/typegen) and [@slonik/migrator](https://npmjs.com/package/@slonik/migrator), intended to show a working example for each package.

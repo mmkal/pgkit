@@ -24,7 +24,7 @@
   "bugs": {
     "url": "https://github.com/mmkal/slonik-tools/issues"
   },
-  "homepage": "https://github.com/mmkal/slonik-tools#readme",
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/demo#readme",
   "dependencies": {
     "dotenv-extended": "^2.4.0",
     "express": "^4.17.1"
