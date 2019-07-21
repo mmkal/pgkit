@@ -73,7 +73,7 @@ export const setupSlonikMigrator = ({
         return slonik
           .any(sql`select name, hash from ${sql.identifier([migrationTableName])}`)
           .then(migrations => {
-            log('migrations executed:', migrations)
+            log('migrations in database:', migrations)
             return migrations
           })
           .then(migrations => migrations.map(r => {
@@ -93,12 +93,18 @@ export const setupSlonikMigrator = ({
       async logMigration(name: string) {
         await createMigrationTable()
         await slonik
-          .query(sql`insert into ${sql.identifier([migrationTableName])}(name, hash) values (${name}, ${hash(name)})`)
+          .query(sql`
+            insert into ${sql.identifier([migrationTableName])}(name, hash)
+            values (${name}, ${hash(name)})
+          `)
       },
       async unlogMigration(name: string) {
         await createMigrationTable()
         await slonik
-          .query(sql`delete from ${sql.identifier([migrationTableName])} where name = ${name}`)
+          .query(sql`
+            delete from ${sql.identifier([migrationTableName])}
+            where name = ${name}
+          `)
       }
     },
   })

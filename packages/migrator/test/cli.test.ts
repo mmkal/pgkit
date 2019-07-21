@@ -33,28 +33,28 @@ it('migrates', async () => {
 
   expect(walk(relativeDir)).toHaveLength(1)
   expect(walk(relativeDir)).toMatchInlineSnapshot(`
-        Array [
-          "packages/migrator/test/cli.test.ts",
-        ]
-    `)
+    Array [
+      "packages/migrator/test/cli.test.ts",
+    ]
+  `)
   migrator.create('one')
   expect(walk(relativeDir)).toMatchInlineSnapshot(`
-        Array [
-          "packages/migrator/test/cli.test.ts",
-          "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
-          "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
-        ]
-    `)
+    Array [
+      "packages/migrator/test/cli.test.ts",
+      "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
+      "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
+    ]
+  `)
   migrator.create('two')
   expect(walk(relativeDir).sort()).toMatchInlineSnapshot(`
-        Array [
-          "packages/migrator/test/cli.test.ts",
-          "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
-          "packages/migrator/test/migrations/2000-01-02T00-00.two.sql",
-          "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
-          "packages/migrator/test/migrations/down/2000-01-02T00-00.two.sql",
-        ]
-    `)
+    Array [
+      "packages/migrator/test/cli.test.ts",
+      "packages/migrator/test/migrations/2000-01-01T00-00.one.sql",
+      "packages/migrator/test/migrations/2000-01-02T00-00.two.sql",
+      "packages/migrator/test/migrations/down/2000-01-01T00-00.one.sql",
+      "packages/migrator/test/migrations/down/2000-01-02T00-00.two.sql",
+    ]
+  `)
 
   const migrationTables = () =>
     slonik.anyFirst(sql`select tablename from pg_catalog.pg_tables where tablename like 'migration%'`)
@@ -74,9 +74,9 @@ it('migrates', async () => {
     {file: expect.stringContaining('one.sql'), path: expect.stringContaining('one.sql')},
     {file: expect.stringContaining('two.sql'), path: expect.stringContaining('two.sql')},
   ])
-  
+
   expect(await migrationTables()).toEqual(['migration', 'migration_one', 'migration_two'])
-  
+
   const up2 = await migrator.up()
 
   expect(up2).toEqual([])
@@ -97,7 +97,7 @@ it('migrates', async () => {
   expect(calls).toMatchInlineSnapshot(`
     Array [
       Array [
-        "migrations executed:",
+        "migrations in database:",
         Array [],
       ],
       Array [
