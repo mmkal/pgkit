@@ -12,6 +12,7 @@
     "slonik-typegen": "cli.js"
   },
   "author": "mmkal",
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/typegen#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mmkal/slonik-tools.git"
