@@ -19,7 +19,7 @@
   "bugs": {
     "url": "https://github.com/mmkal/slonik-tools/issues"
   },
-  "homepage": "https://github.com/mmkal/slonik-tools#readme",
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/migrator#readme",
   "dependencies": {
     "lodash": "^4.17.15",
     "umzug": "^2.2.0"
