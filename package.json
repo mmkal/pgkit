@@ -4,7 +4,6 @@
   "description": "slonik tools monorepo",
   "private": true,
   "scripts": {
-    "check-clean": "check-clean",
     "build": "tsc -b .",
     "dependencies": "docker-compose up",
     "test": "jest",
@@ -13,7 +12,7 @@
     "reinstall": "lerna exec -- npm install",
     "migrate": "lerna run migrate",
     "preci": "lerna exec -- npm ci",
-    "ci": "run-s update-readme bootstrap build migrate test build check-clean || git diff && check-clean",
+    "ci": "run-s update-readme bootstrap build migrate test build",
     "coverage": "npm test -- --coverage",
     "coveralls": "npm run coverage -- --coverageReporters=text-lcov | coveralls"
   },
@@ -56,7 +55,6 @@
     "@types/jest": "^24.0.15",
     "@types/node": "^12.6.8",
     "@types/slonik": "^18.2.0",
-    "check-clean": "^0.1.0",
     "coveralls": "^3.0.5",
     "jest": "^24.8.0",
     "lerna": "^3.16.1",
