@@ -5,7 +5,8 @@ set -e
 # pushes them manually after running `npm run reinstall`
 
 npx lerna version
+TAGS=$(git tag -l --points-at HEAD)
 npx lerna publish from-package
 npm run reinstall
-git commit -a --amend
+git commit packages/*/package-lock.json -m "chore: update lockfiles for tags:\n$TAGS"
 git push --follow-tags
