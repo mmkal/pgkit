@@ -27,16 +27,20 @@ npm install
 npm run dependencies
 ```
 
-This starts a local postgres database that the tests will connect to (depends on `docker-compose`). After running that in its own window.
+This starts a local postgres database that the tests will connect to (depends on `docker-compose`). After running that in its own window: 
 
-Then `npm run ci` will bootstrap, build, migrate and test all packages.
+```bash
+npm run ci
+```
 
-While developing, it can be useful to run `npm run build -- -w` in the background and `npm test` to just run tests. The tests use jest, so all the usual jest features can be used. For example, `npm test packages/migrator` will run the tests only for the migrator package. `npm test $(npx lerna changed --parseable)` runs tests for all changed packages.
+will bootstrap, build, migrate and test all packages.
+
+While developing, it can be useful to run `npm run build -- -w` to compile continuously in the background and `npm test` to just run tests. The tests use jest, so all the usual jest features can be used. For example, `npm test packages/migrator` will run the tests only for the migrator package. `npm test $(npx lerna changed --parseable)` runs tests for all changed packages.
 
 ### Publishing
 
 On master, and with write permissions to both master and npm (this isn't automated yet):
 
 ```bash
-scripts/publish.sh
+npm run lerna-publish
 ```
