@@ -81,7 +81,7 @@ parameters for the `setupSlonikMigrator` function
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
 | `migrationsTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. | `migration` |
 | `log` | how information about the migrations will be logged. You can set to `() => {}` to prevent logs appearing at all. | `console.log` |
-| `mainModule` | if set to `module`, the javascript file calling `setupSlonikMigrator` can be used as a CLI script. If left undefined, the migrator can be used programatically. | `undefined` |
+| `mainModule` | if set to `module`, the javascript file calling `setupSlonikMigrator` can be used as a CLI script. If left undefined, the migrator can only be used programatically. | `undefined` |
 
 ## Implementation
 
