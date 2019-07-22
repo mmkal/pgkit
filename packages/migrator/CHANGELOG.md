@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.12](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.11...@slonik/migrator@0.1.12) (2019-07-22)
+
+
+### Bug Fixes
+
+* clarify docs for mainModule property ([5b646a5](https://github.com/mmkal/slonik-tools/commit/5b646a5))
+
+
+
+
+
 ## [0.1.11](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.10...@slonik/migrator@0.1.11) (2019-07-22)
 
 
