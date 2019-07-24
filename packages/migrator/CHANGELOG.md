@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.1.13](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.12...@slonik/migrator@0.1.13) (2019-07-24)
+
+
+### Bug Fixes
+
+* document lambda handler usage ([0980b10](https://github.com/mmkal/slonik-tools/commit/0980b10))
+
+
+
+
+
 ## [0.1.12](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.1.11...@slonik/migrator@0.1.12) (2019-07-22)
 
 
