@@ -57,7 +57,13 @@ node migrate down
 
 The `users` table will now have been dropped again.
 
-To run migrations programmatically, you can import the `migrator` object, say in a `seed.js`.
+To run migrations programmatically, you can import the `migrator` object from another file. For example, in a lambda handler:
+
+```javascript
+module.exports.handler = () => require('./migrate').up()
+```
+
+Or, you could write a script which seeds data in test environments:
 
 ```javascript
 import {migrator, slonik} from './migrate'
