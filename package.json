@@ -10,7 +10,6 @@
     "update-readme": "node scripts/update-readme",
     "bootstrap": "lerna bootstrap",
     "migrate": "lerna run migrate",
-    "lerna-publish": "scripts/publish.sh",
     "ci": "run-s update-readme bootstrap build migrate test build",
     "coverage": "npm test -- --coverage",
     "coveralls": "npm run coverage -- --coverageReporters=text-lcov | coveralls"
