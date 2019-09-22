@@ -52,7 +52,7 @@
   },
   "homepage": "https://github.com/mmkal/slonik-tools#readme",
   "devDependencies": {
-    "@types/jest": "^24.0.15",
+    "@types/jest": "^24.0.18",
     "@types/node": "^12.6.8",
     "@types/slonik": "^18.2.0",
     "check-clean": "^0.1.0",
