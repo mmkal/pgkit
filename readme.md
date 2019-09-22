@@ -42,5 +42,6 @@ While developing, it can be useful to run `npm run build -- -w` to compile conti
 On master, and with write permissions to both master and npm (this isn't automated yet):
 
 ```bash
-npm run lerna-publish
+npx lerna version
+npx lerna publish from-package
 ```
