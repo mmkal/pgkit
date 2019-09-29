@@ -29,6 +29,6 @@
     "@types/umzug": "^2.2.2"
   },
   "peerDependencies": {
-    "slonik": ">= 16.0.0 < 19"
+    "slonik": ">= 16.0.0 < 20"
   }
 }

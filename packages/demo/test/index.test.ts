@@ -10,26 +10,22 @@ describe('demo app', () => {
   beforeAll(() => slonik.query(sql`delete from messages`))
 
   it('gets and posts messages', async () => {
-    const {body: empty} = await testApp
-      .get('/api/messages')
+    const {body: empty} = await testApp.get('/api/messages')
     
     expect(empty).toEqual([])
 
-    const {body: {id: newMessageId}} = await testApp
-      .post('/api/messages?content=abc')
+    const {body: {id: newMessageId}} = await testApp.post('/api/messages?content=abc')
     
     expect(newMessageId).toBeGreaterThanOrEqual(0)
 
-    const {body: nonEmpty} = await testApp
-      .get('/api/messages')
+    const {body: nonEmpty} = await testApp.get('/api/messages')
 
     expect(nonEmpty).toMatchObject([{text: 'abc'}])
   })
 
   it('fails sensibly for illegal input', async () => {
     const mockError = jest.spyOn(console, 'error').mockImplementation(() => {})
-    const response = await testApp
-      .post('/api/messages?content=anillegallylongmessage1231231231231231')
+    const response = await testApp.post('/api/messages?content=anillegallylongmessage1231231231231231')
 
     expect(response).toMatchObject({
       status: 500,
