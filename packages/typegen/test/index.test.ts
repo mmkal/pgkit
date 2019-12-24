@@ -5,7 +5,6 @@ import {statSync, readdirSync, existsSync, readFileSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os'
 import {expectType, TypeEqual} from 'ts-expect'
-import { raw } from 'slonik-sql-tag-raw'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'generated/main')
