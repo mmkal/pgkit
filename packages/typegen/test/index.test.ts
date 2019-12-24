@@ -57,7 +57,7 @@ describe('type generator', () => {
     generatedFiles.forEach(f => {
       expect(statSync(join(writeTypes, f)).mtimeMs).toBeGreaterThan(Date.now() - 2000)
     })
-    expect(generatedFiles).toMatchInlineSnapshot(`
+    expect(generatedFiles.sort()).toMatchInlineSnapshot(`
       Array [
         "CountInfo.ts",
         "Foo.ts",
@@ -219,7 +219,7 @@ describe('type generator', () => {
   })
 
   it(`doesn't break in-built helper functions`, () => {
-    expect(sql.raw('default')).toMatchObject({sql: 'default'})
+    expect(sql.json('123')).toMatchObject({value: '123'})
   })
 })
 
