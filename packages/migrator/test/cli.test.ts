@@ -7,10 +7,12 @@ import {setupSlonikMigrator} from '../src'
 const millisPerDay = 1000 * 60 * 60 * 24
 const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())
 
-const walk = (path: string): string[] =>
-  statSync(path).isDirectory() ? [].concat(...readdirSync(path).map(child => walk(join(path, child)))) : [path]
+const walk_ = (path: string): string[] =>
+  statSync(path).isDirectory() ? [].concat(...readdirSync(path).map(child => walk_(join(path, child)))) : [path]
+const walk: typeof walk_ = path => walk_(path).map(replaceBackslashes)
 
-const relativeDir = __dirname.replace(process.cwd() + '/', '')
+const replaceBackslashes = (path: string) => path.split('\\').join('/')
+const relativeDir = replaceBackslashes(__dirname).replace(replaceBackslashes(process.cwd()) + '/', '')
 
 // https://github.com/gajus/slonik/issues/63#issuecomment-500889445
 afterAll(() => new Promise(r => setTimeout(r, 1)))
