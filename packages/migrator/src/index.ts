@@ -5,6 +5,7 @@ import {map, pick} from 'lodash/fp'
 import {basename, dirname, join} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
+import { raw } from 'slonik-sql-tag-raw'
 import { inspect } from 'util';
 
 export interface SlonikMigratorOptions {
@@ -60,10 +61,10 @@ export const setupSlonikMigrator = ({
       path: migrationsPath,
       pattern: /\.sql$/,
       customResolver: path => ({
-        up: () => slonik.query(sql`${sql.raw(readFileSync(path, 'utf8'))}`),
+        up: () => slonik.query(sql`${raw(readFileSync(path, 'utf8'))}`),
         down: async () => {
           const downPath = join(dirname(path), 'down', basename(path))
-          await slonik.query(sql`${sql.raw(readFileSync(downPath, 'utf8'))}`)
+          await slonik.query(sql`${raw(readFileSync(downPath, 'utf8'))}`)
         },
       }),
     },

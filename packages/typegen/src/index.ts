@@ -171,21 +171,23 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
               ].join('\n\n'),
             )
           }
+          return null
         },
-        afterQueryExecution: ({ originalQuery }, _query, result) => {
+        afterQueryExecution: async ({ originalQuery }, _query, result) => {
           const trimmedSql = originalQuery.sql.replace(/^\n+/, '').trimRight()
           const _identifiers = _map[mapKey(originalQuery)]
           _identifiers && _identifiers.forEach(identifier => writeTypes(
             identifier,
             result.fields.map(f => ({
               name: f.name,
-              value: typescriptTypeName(f.dataTypeID),
-              description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeID]}`,
+              value: typescriptTypeName(f.dataTypeId),
+              description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeId]}`,
             })),
             trimmedSql.trim(),
           ))
 
-          return result
+          // todo: fix types and remove this stupid cast? @types/slonik seems to expect null here
+          return result as any as null
         }
       }],
       typeParsers,

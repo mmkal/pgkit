@@ -22,6 +22,7 @@
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/migrator#readme",
   "dependencies": {
     "lodash": "^4.17.15",
+    "slonik-sql-tag-raw": "^1.0.1",
     "umzug": "^2.2.0"
   },
   "devDependencies": {
