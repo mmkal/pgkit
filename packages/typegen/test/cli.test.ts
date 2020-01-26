@@ -10,7 +10,7 @@ jest.mock('fs', () => {
   mockableFunctions.forEach(name => {
     mockFunctions[name] = jest.fn()
     mockedFsModule[name] = (...args: any[]) => {
-      const writer = args[0].includes('test/generated') ? mockFunctions[name] : realFs[name]
+      const writer = args[0].replace(/\\/g, '/').includes('test/generated') ? mockFunctions[name] : realFs[name]
       return writer(...args)
     }
   })
@@ -23,7 +23,10 @@ expect.addSnapshotSerializer({
   test: jest.isMockFunction,
   print: v =>
     JSON.stringify(v.mock.calls, null, 2)
-      .split(process.cwd())
+      .replace(/\\r\\n/g, '__EOL__')
+      .replace(/\\+/g, '/') // fix Windows backslashes :'(
+      .replace(/__EOL__/g, '\\n')
+      .split(process.cwd().replace(/\\+/g, '/'))
       .join('[cwd]'),
 })
 
