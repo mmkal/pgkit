@@ -23,7 +23,7 @@ expect.addSnapshotSerializer({
   test: jest.isMockFunction,
   print: v =>
     JSON.stringify(v.mock.calls, null, 2)
-      .replace(/\\r\\n/g, '__EOL__')
+      .replace(/(\\r)?\\n/g, '__EOL__')
       .replace(/\\+/g, '/') // fix Windows backslashes :'(
       .replace(/__EOL__/g, '\\n')
       .split(process.cwd().replace(/\\+/g, '/'))
