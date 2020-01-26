@@ -3,16 +3,18 @@
   "version": "0.0.2",
   "description": "slonik tools monorepo",
   "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "build": "tsc -b .",
     "dependencies": "docker-compose up",
     "test": "jest",
     "update-readme": "node scripts/update-readme",
-    "bootstrap": "lerna bootstrap",
     "migrate": "lerna run migrate",
-    "ci": "run-s update-readme bootstrap build migrate test build",
-    "coverage": "npm test -- --coverage",
-    "coveralls": "npm run coverage -- --coverageReporters=text-lcov | coveralls"
+    "ci": "run-s update-readme build migrate test build",
+    "coverage": "yarn test --coverage",
+    "coveralls": "yarn coverage --coverageReporters=text-lcov | coveralls"
   },
   "prettier": {
     "bracketSpacing": false,
