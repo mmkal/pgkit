@@ -1,20 +1,27 @@
-import {QueryResultRowType, sql as slonikSql, TaggedTemplateLiteralInvocationType, ValueExpressionType, ClientConfigurationType, DatabasePoolType, createPool} from 'slonik'
+import {
+  QueryResultRowType,
+  sql as slonikSql,
+  TaggedTemplateLiteralInvocationType,
+  ValueExpressionType,
+  ClientConfigurationType,
+  DatabasePoolType,
+  createPool,
+} from 'slonik'
 
 import * as fs from 'fs'
-import { basename, join } from 'path'
-import { inspect } from 'util';
-import {EOL} from 'os';
+import {basename, join} from 'path'
+import {inspect} from 'util'
+import {EOL} from 'os'
 
 const keys = <T>(obj: T) => Object.keys(obj) as Array<keyof T>
-const fromPairs = <K, V>(pairs: Array<[K, V]>) => pairs.reduce(
-  (obj, [k, v]) => ({ ...obj, [k as any]: v }),
-  {} as Record<string, V>
-) as Record<string, V>
-const orderBy = <T>(list: T[], cb: (value: T) => string | number) => [...list].sort((a, b) => {
-  const left = cb(a)
-  const right = cb(b)
-  return left < right ? -1 : left > right ? 1 : 0
-})
+const fromPairs = <K, V>(pairs: Array<[K, V]>) =>
+  pairs.reduce((obj, [k, v]) => ({...obj, [k as any]: v}), {} as Record<string, V>) as Record<string, V>
+const orderBy = <T>(list: T[], cb: (value: T) => string | number) =>
+  [...list].sort((a, b) => {
+    const left = cb(a)
+    const right = cb(b)
+    return left < right ? -1 : left > right ? 1 : 0
+  })
 
 export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(template: TemplateStringsArray, ...vals: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>
@@ -50,17 +57,19 @@ export type DefaultType<KnownTypes> = {
 export type TypeGenClientConfig = Pick<ClientConfigurationType, 'interceptors' | 'typeParsers'>
 export interface TypeGen<KnownTypes> {
   poolConfig: TypeGenClientConfig
-  sql: typeof slonikSql & {
-    [K in keyof KnownTypes]: GenericSqlTaggedTemplateType<KnownTypes[K]>
-  } & {
-    [K in string]: GenericSqlTaggedTemplateType<DefaultType<KnownTypes>>
-  }
+  sql: typeof slonikSql &
+    {
+      [K in keyof KnownTypes]: GenericSqlTaggedTemplateType<KnownTypes[K]>
+    } &
+    {
+      [K in string]: GenericSqlTaggedTemplateType<DefaultType<KnownTypes>>
+    }
 }
 
 export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): TypeGen<KnownTypes> => {
   const {sql: sqlGetter, poolConfig} = setupSqlGetter(config)
   const _sql: any = (...args: Parameters<typeof slonikSql>) => slonikSql(...args)
-  Object.keys(config.knownTypes).forEach(name => _sql[name] = sqlGetter(name))
+  Object.keys(config.knownTypes).forEach(name => (_sql[name] = sqlGetter(name)))
   return {
     poolConfig,
     sql: new Proxy(_sql, {
@@ -69,7 +78,7 @@ export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): Typ
           return (slonikSql as any)[key]
         }
         if (typeof key === 'string' && !(key in _sql)) {
-          return _sql[key] = sqlGetter(key)
+          return (_sql[key] = sqlGetter(key))
         }
         return _sql[key]
       },
@@ -79,8 +88,9 @@ export const setupTypeGen = <KnownTypes>(config: TypeGenConfig<KnownTypes>): Typ
 
 export interface TypeGenWithSqlGetter<KnownTypes> {
   poolConfig: TypeGenClientConfig
-  sql: <Identifier extends string>(identifier: Identifier) =>
-    GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
+  sql: <Identifier extends string>(
+    identifier: Identifier,
+  ) => GenericSqlTaggedTemplateType<Identifier extends keyof KnownTypes ? KnownTypes[Identifier] : any>
 }
 
 export const createCodegenDirectory = (directory: string) => {
@@ -90,8 +100,7 @@ export const createCodegenDirectory = (directory: string) => {
 
 export const resetCodegenDirectory = (directory: string) => {
   if (fs.existsSync(directory)) {
-    fs.readdirSync(directory)
-      .forEach(filename => fs.unlinkSync(join(directory, filename)))
+    fs.readdirSync(directory).forEach(filename => fs.unlinkSync(join(directory, filename)))
     fs.rmdirSync(directory)
   }
   createCodegenDirectory(directory)
@@ -103,45 +112,43 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   }
   const typeParsers = config.typeMapper
     ? keys(config.typeMapper).map(name => ({
-      name: name as string,
-      parse: config.typeMapper![name]![1],
-    }))
+        name: name as string,
+        parse: config.typeMapper![name]![1],
+      }))
     : []
   if (!config.writeTypes) {
     // not writing types, no need to track queries or intercept results
     return {
-      sql: Object.assign(
-        () => slonikSql,
-        fromPairs(keys(config.knownTypes).map(k => [k, slonikSql])),
-      ),
+      sql: Object.assign(() => slonikSql, fromPairs(keys(config.knownTypes).map(k => [k, slonikSql]))),
       poolConfig: {
         interceptors: [],
         typeParsers,
-      }
+      },
     }
   }
   const writeTypes = getFsTypeWriter(config.writeTypes)
-    
+
   let _oidToTypeName: undefined | Record<number, string | undefined> = undefined
-  const mapping: Record<string, [string] | undefined> = config.typeMapper || {} as any
+  const mapping: Record<string, [string] | undefined> = config.typeMapper || ({} as any)
   const typescriptTypeName = (dataTypeId: number): string => {
     const typeName = _oidToTypeName && _oidToTypeName[dataTypeId]
-    const typescriptTypeName = typeName && (() => {
-      const [customType] = mapping[typeName] || [undefined]
-      return customType || builtInTypeMappings[typeName]
-    })()
+    const typescriptTypeName =
+      typeName &&
+      (() => {
+        const [customType] = mapping[typeName] || [undefined]
+        return customType || builtInTypeMappings[typeName]
+      })()
     return typescriptTypeName || 'unknown'
   }
 
   const _map: Record<string, string[] | undefined> = {}
-  const mapKey = (sqlValue: { sql: string, values?: any }) =>
-    JSON.stringify([sqlValue.sql, sqlValue.values])
+  const mapKey = (sqlValue: {sql: string; values?: any}) => JSON.stringify([sqlValue.sql, sqlValue.values])
 
   const sql: TypeGenWithSqlGetter<KnownTypes>['sql'] = identifier => {
     const _wrappedSqlFunction = (...args: Parameters<typeof slonikSql>) => {
       const result = slonikSql(...args)
       const key = mapKey(result)
-      const _identifiers = _map[key] = _map[key] || []
+      const _identifiers = (_map[key] = _map[key] || [])
       _identifiers.push(identifier)
       return result
     }
@@ -150,67 +157,81 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   return {
     sql,
     poolConfig: {
-      interceptors: [{
-        afterPoolConnection: async (_context, connection) => {
-          if (!_oidToTypeName && typeof config.writeTypes === 'string') {
-            const types = orderBy(
-              await connection.any(slonikSql`
+      interceptors: [
+        {
+          afterPoolConnection: async (_context, connection) => {
+            if (!_oidToTypeName && typeof config.writeTypes === 'string') {
+              const types = orderBy(
+                await connection.any(slonikSql`
                 select typname, oid
                 from pg_type
                 where (typnamespace = 11 and typname not like 'pg_%')
                 or (typrelid = 0 and typelem = 0)
               `),
-              t => `${t.typname}`.replace(/^_/, 'zzz')
-            )
-            _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
-            fs.writeFileSync(
-              join(config.writeTypes, '_pg_types.ts'),
-              [
-                `${header}`,
-                `export const _pg_types = ${inspect(fromPairs(types.map(t => [t.typname, t.typname])))} as const`,
-                `export type _pg_types = typeof _pg_types${EOL}`,
-              ].join(EOL + EOL),
-            )
-          }
-          return null
-        },
-        afterQueryExecution: async ({ originalQuery }, _query, result) => {
-          const trimmedSql = originalQuery.sql.replace(/^\r?\n+/, '').trimRight()
-          const _identifiers = _map[mapKey(originalQuery)]
-          _identifiers && _identifiers.forEach(identifier => writeTypes(
-            identifier,
-            result.fields.map(f => ({
-              name: f.name,
-              value: typescriptTypeName(f.dataTypeId),
-              description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeId]}`,
-            })),
-            trimmedSql.trim(),
-          ))
+                t => `${t.typname}`.replace(/^_/, 'zzz'),
+              )
+              _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
+              fs.writeFileSync(
+                join(config.writeTypes, '_pg_types.ts'),
+                [
+                  `${header}`,
+                  `export const _pg_types = ${inspect(fromPairs(types.map(t => [t.typname, t.typname])))} as const`,
+                  `export type _pg_types = typeof _pg_types${EOL}`,
+                ].join(EOL + EOL),
+              )
+            }
+            return null
+          },
+          afterQueryExecution: async ({originalQuery}, _query, result) => {
+            const trimmedSql = originalQuery.sql.replace(/^\r?\n+/, '').trimRight()
+            const _identifiers = _map[mapKey(originalQuery)]
+            _identifiers &&
+              _identifiers.forEach(identifier =>
+                writeTypes(
+                  identifier,
+                  result.fields.map(f => ({
+                    name: f.name,
+                    value: typescriptTypeName(f.dataTypeId),
+                    description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeId]}`,
+                  })),
+                  trimmedSql.trim(),
+                ),
+              )
 
-          // todo: fix types and remove this stupid cast? @types/slonik seems to expect null here
-          return result as any as null
-        }
-      }],
+            // todo: fix types and remove this stupid cast? @types/slonik seems to expect null here
+            return (result as any) as null
+          },
+        },
+      ],
       typeParsers,
-    }
+    },
   }
 }
 
-export interface Property { name: string, value: string, description?: string }
+export interface Property {
+  name: string
+  value: string
+  description?: string
+}
 const blockComment = (str?: string) => str && '/** ' + str.replace(/\*\//g, '') + ' */'
 const codegen = {
   writeInterface: (name: string, properties: Property[], description?: string) =>
     `export interface ${name} ` + codegen.writeInterfaceBody(properties, description),
 
-  writeInterfaceBody: (properties: Property[], description?: string) => [
-    blockComment(description),
-    `{`,
-    ...properties.map(p => [
-      blockComment(p.description),
-      `${p.name}: ${p.value}`
-    ].filter(Boolean).map(s => '  ' + s).join(EOL)),
-    `}`,
-  ].filter(Boolean).join(EOL)
+  writeInterfaceBody: (properties: Property[], description?: string) =>
+    [
+      blockComment(description),
+      `{`,
+      ...properties.map(p =>
+        [blockComment(p.description), `${p.name}: ${p.value}`]
+          .filter(Boolean)
+          .map(s => '  ' + s)
+          .join(EOL),
+      ),
+      `}`,
+    ]
+      .filter(Boolean)
+      .join(EOL),
 }
 
 const header = [
@@ -219,68 +240,69 @@ const header = [
   `// this file is generated by a tool; don't change it manually.`,
 ].join(EOL)
 
-const getFsTypeWriter = (generatedPath: string) =>
-  (typeName: string, properties: Property[], description: string) => {
-    const tsPath = join(generatedPath, `${typeName}.ts`)
-    const existingContent = fs.existsSync(tsPath)
-      ? fs.readFileSync(tsPath, 'utf8')
-      : ''
-    const metaDeclaration = `export const ${typeName}_meta_v0 = `
-    const lines = existingContent.split(EOL).map(line => line.trim())
-    const metaLine = lines.find(line => line.startsWith(metaDeclaration)) || '[]'
-    let _entries: Array<typeof newEntry> = JSON.parse(metaLine.replace(metaDeclaration, ''))
+const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties: Property[], description: string) => {
+  const tsPath = join(generatedPath, `${typeName}.ts`)
+  const existingContent = fs.existsSync(tsPath) ? fs.readFileSync(tsPath, 'utf8') : ''
+  const metaDeclaration = `export const ${typeName}_meta_v0 = `
+  const lines = existingContent.split(EOL).map(line => line.trim())
+  const metaLine = lines.find(line => line.startsWith(metaDeclaration)) || '[]'
+  let _entries: Array<typeof newEntry> = JSON.parse(metaLine.replace(metaDeclaration, ''))
 
-    const newEntry = { properties, description }
-    _entries.unshift(newEntry)
-    _entries = orderBy(_entries, e => e.description)
-    _entries = _entries
-      .filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
+  const newEntry = {properties, description}
+  _entries.unshift(newEntry)
+  _entries = orderBy(_entries, e => e.description)
+  _entries = _entries.filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
 
-    const contnt = [
-      header,
-      ``,
-      `export interface ${typeName}_QueryTypeMap {`,
-      '  ' + _entries
+  const contnt = [
+    header,
+    ``,
+    `export interface ${typeName}_QueryTypeMap {`,
+    '  ' +
+      _entries
         .map(e => `[${JSON.stringify(e.description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
         .join(EOL)
         .replace(/\r?\n/g, EOL + '  '),
+    `}`,
+    ``,
+    `export type ${typeName}_UnionType = ${typeName}_QueryTypeMap[keyof ${typeName}_QueryTypeMap]`,
+    ``,
+    `export type ${typeName} = {`,
+    `  [K in keyof ${typeName}_UnionType]: ${typeName}_UnionType[K]`,
+    `}`,
+    `export const ${typeName} = {} as ${typeName}`,
+    ``,
+    `${metaDeclaration}${JSON.stringify(_entries)}`,
+    ``,
+  ].join(EOL)
+
+  void fs.writeFileSync(tsPath, contnt, 'utf8')
+
+  const knownTypes = fs
+    .readdirSync(generatedPath)
+    .filter(filename => filename !== 'index.ts')
+    .map(filename => basename(filename, '.ts'))
+
+  void fs.writeFileSync(
+    join(generatedPath, `index.ts`),
+    [
+      header,
+      ...knownTypes.map(name => `import {${name}} from './${name}'`),
+      '',
+      ...knownTypes.map(name => `export {${name}}`),
+      '',
+      codegen.writeInterface(
+        'KnownTypes',
+        knownTypes.map(name => ({name, value: name})),
+      ),
+      '',
+      '/** runtime-accessible object with phantom type information of query results. */',
+      `export const knownTypes: KnownTypes = {`,
+      ...knownTypes.map(name => `  ${name},`),
       `}`,
-      ``,
-      `export type ${typeName}_UnionType = ${typeName}_QueryTypeMap[keyof ${typeName}_QueryTypeMap]`,
-      ``,
-      `export type ${typeName} = {`,
-      `  [K in keyof ${typeName}_UnionType]: ${typeName}_UnionType[K]`,
-      `}`,
-      `export const ${typeName} = {} as ${typeName}`,
-      ``,
-      `${metaDeclaration}${JSON.stringify(_entries)}`,
-      ``,
-    ].join(EOL)
-
-    void fs.writeFileSync(tsPath, contnt, 'utf8')
-
-    const knownTypes = fs.readdirSync(generatedPath)
-      .filter(filename => filename !== 'index.ts')
-      .map(filename => basename(filename, '.ts'))
-
-    void fs.writeFileSync(
-      join(generatedPath, `index.ts`),
-      [
-        header,
-        ...knownTypes.map(name => `import {${name}} from './${name}'`),
-        '',
-        ...knownTypes.map(name => `export {${name}}`),
-        '',
-        codegen.writeInterface('KnownTypes', knownTypes.map(name => ({ name, value: name }))),
-        '',
-        '/** runtime-accessible object with phantom type information of query results. */',
-        `export const knownTypes: KnownTypes = {`,
-        ...knownTypes.map(name => `  ${name},`),
-        `}`,
-        '',
-      ].join(EOL)
-    )
-  }
+      '',
+    ].join(EOL),
+  )
+}
 
 const builtInTypeMappings: Record<string, string | undefined> = {
   text: 'string',
