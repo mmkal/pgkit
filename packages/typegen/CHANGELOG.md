@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.1](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.3.0...@slonik/typegen@0.3.1) (2020-01-26)
+
+
+### Bug Fixes
+
+* windows support ([#127](https://github.com/mmkal/slonik-tools/issues/127)) ([c35b337](https://github.com/mmkal/slonik-tools/commit/c35b3371abd2be88c31e3cee4b02c8cddfe625f1))
+
+
+
+
+
+
 # [0.3.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.2.1...@slonik/typegen@0.3.0) (2019-12-24)
 
 
