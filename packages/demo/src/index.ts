@@ -38,7 +38,7 @@ export const getApp = () => {
           messages.map(m => ({
             id: m.id,
             text: m.content,
-            secondsAgo: Math.floor((Date.now() - m.created_at.getTime()) / 1000),
+            secondsAgo: Math.floor((Date.now() - m.createdAt.getTime()) / 1000),
           })),
         )
       })

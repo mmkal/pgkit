@@ -44,6 +44,14 @@ export interface TypeGenConfig<KnownTypes> {
   typeMapper?: {
     [K in keyof PgTypes<KnownTypes>]?: [string, (value: string) => unknown]
   }
+  /**
+   * @experimental
+   *
+   * transform the input data for each property passed to the code-generator.
+   * For example, can be used to camel-case keys if you're using an interceptor
+   * like `slonik-interceptor-field-name-transformation`
+   */
+  transformProperty?: (input: Property) => Property
 }
 
 export type PgTypes<KnownTypes> = {
@@ -189,11 +197,13 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
               _identifiers.forEach(identifier =>
                 writeTypes(
                   identifier,
-                  result.fields.map(f => ({
-                    name: f.name,
-                    value: typescriptTypeName(f.dataTypeId),
-                    description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeId]}`,
-                  })),
+                  result.fields
+                    .map(f => ({
+                      name: f.name,
+                      value: typescriptTypeName(f.dataTypeId),
+                      description: _oidToTypeName && `pg_type.typname: ${_oidToTypeName[f.dataTypeId]}`,
+                    }))
+                    .map(config.transformProperty || (p => p)),
                   trimmedSql.trim(),
                 ),
               )

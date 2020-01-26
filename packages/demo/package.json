@@ -27,7 +27,8 @@
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/demo#readme",
   "dependencies": {
     "dotenv-extended": "^2.4.0",
-    "express": "^4.17.1"
+    "express": "^4.17.1",
+    "slonik-interceptor-field-name-transformation": "^1.5.2"
   },
   "devDependencies": {
     "@slonik/migrator": "^0.2.0",
