@@ -5,13 +5,13 @@ cache:
     - $HOME/.npm
 node_js: ['12']
 before_script:
-  - npm prune
+  - yarn
   - docker-compose pull
   - docker-compose up -d && sleep 10
 script:
-  - npm run ci
+  - yarn ci
 after_success:
-  - npm run coveralls
+  - yarn coveralls
 branches:
   except:
     - /^v\d+\.\d+\.\d+$/

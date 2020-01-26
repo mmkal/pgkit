@@ -15,7 +15,7 @@ Various utilities for [slonik](https://npmjs.com/package/slonik)
 
 Requirements:
 
-* node + npm
+* node + yarn
 * docker + docker-compose
 
 [lerna](https://npmjs.com/packages/lerna) is used to manage the packages.
@@ -23,19 +23,19 @@ Requirements:
 To get started:
 
 ```bash
-npm install
-npm run dependencies
+yarn
+yarn dependencies
 ```
 
 This starts a local postgres database that the tests will connect to (depends on `docker-compose`). After running that in its own window: 
 
 ```bash
-npm run ci
+yarn ci
 ```
 
-will bootstrap, build, migrate and test all packages.
+will build, migrate and test all packages.
 
-While developing, it can be useful to run `npm run build -- -w` to compile continuously in the background and `npm test` to just run tests. The tests use jest, so all the usual jest features can be used. For example, `npm test packages/migrator` will run the tests only for the migrator package. `npm test $(npx lerna changed --parseable)` runs tests for all changed packages.
+While developing, it can be useful to run `yarn build -w` to compile continuously in the background and `yarn test` to just run tests. The tests use jest, so all the usual jest features can be used. For example, `yarn test packages/migrator` will run the tests only for the migrator package. `yarn test $(npx lerna changed --parseable)` runs tests for all changed packages.
 
 ### Publishing
 

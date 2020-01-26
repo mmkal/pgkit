@@ -74,6 +74,6 @@ The function `setupTypeGen` returns a special `sql` proxy object, which allows a
 1. After running CI, it's worth making sure that there are no working copy changes. For git, you can use [check-clean](https://npmjs.com/package/check-clean):
 
 ```sh
-npm run test:integration
+yarn test:integration
 npx check-clean
 ```
