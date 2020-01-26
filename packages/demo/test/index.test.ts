@@ -2,7 +2,7 @@ process.env.POSTGRES_CONNECTION_STRING = 'postgresql://postgres:postgres@localho
 
 import {getApp} from '../src'
 import * as supertest from 'supertest'
-import { slonik, sql } from '../src/db';
+import {slonik, sql} from '../src/db'
 
 describe('demo app', () => {
   const testApp = supertest(getApp())
@@ -11,11 +11,13 @@ describe('demo app', () => {
 
   it('gets and posts messages', async () => {
     const {body: empty} = await testApp.get('/api/messages')
-    
+
     expect(empty).toEqual([])
 
-    const {body: {id: newMessageId}} = await testApp.post('/api/messages?content=abc')
-    
+    const {
+      body: {id: newMessageId},
+    } = await testApp.post('/api/messages?content=abc')
+
     expect(newMessageId).toBeGreaterThanOrEqual(0)
 
     const {body: nonEmpty} = await testApp.get('/api/messages')

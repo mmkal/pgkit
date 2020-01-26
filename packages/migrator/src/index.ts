@@ -5,8 +5,8 @@ import {map, pick} from 'lodash/fp'
 import {basename, dirname, join} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
-import { raw } from 'slonik-sql-tag-raw'
-import { inspect } from 'util';
+import {raw} from 'slonik-sql-tag-raw'
+import {inspect} from 'util'
 
 export interface SlonikMigratorOptions {
   slonik: DatabasePoolType
@@ -43,18 +43,23 @@ export const setupSlonikMigrator = ({
     return _log(...args)
   }, JSON.stringify)
   const createMigrationTable = once(async () => {
-    void await slonik.query(sql`
+    void (await slonik.query(sql`
       create table if not exists ${sql.identifier([migrationTableName])}(
         name text primary key,
         hash text not null,
         date timestamptz not null default now()
       )
-    `)
+    `))
   })
-  const hash = (migrationName: string) => createHash('md5')
-    .update(readFileSync(join(migrationsPath, migrationName), 'utf8').trim().replace(/\s+/g, ' '))
-    .digest('hex')
-    .slice(0, 10)
+  const hash = (migrationName: string) =>
+    createHash('md5')
+      .update(
+        readFileSync(join(migrationsPath, migrationName), 'utf8')
+          .trim()
+          .replace(/\s+/g, ' '),
+      )
+      .digest('hex')
+      .slice(0, 10)
   const umzug = new Umzug({
     logging: log,
     migrations: {
@@ -77,36 +82,36 @@ export const setupSlonikMigrator = ({
             log('migrations in database:', migrations)
             return migrations
           })
-          .then(migrations => migrations.map(r => {
-            const name = r.name as string
-            /* istanbul ignore if */
-            if (r.hash !== hash(name)) {
-              log(
-                `warning:`,
-                `hash in '${migrationTableName}' table didn't match content on disk.`,
-                `did you try to change a migration file after it had been run?`,
-                {migration: r.name, dbHash: r.hash, diskHash: hash(name)}
-              )
-            }
-            return name
-          }))
+          .then(migrations =>
+            migrations.map(r => {
+              const name = r.name as string
+              /* istanbul ignore if */
+              if (r.hash !== hash(name)) {
+                log(
+                  `warning:`,
+                  `hash in '${migrationTableName}' table didn't match content on disk.`,
+                  `did you try to change a migration file after it had been run?`,
+                  {migration: r.name, dbHash: r.hash, diskHash: hash(name)},
+                )
+              }
+              return name
+            }),
+          )
       },
       async logMigration(name: string) {
         await createMigrationTable()
-        await slonik
-          .query(sql`
+        await slonik.query(sql`
             insert into ${sql.identifier([migrationTableName])}(name, hash)
             values (${name}, ${hash(name)})
           `)
       },
       async unlogMigration(name: string) {
         await createMigrationTable()
-        await slonik
-          .query(sql`
+        await slonik.query(sql`
             delete from ${sql.identifier([migrationTableName])}
             where name = ${name}
           `)
-      }
+      },
     },
   })
 
@@ -114,7 +119,10 @@ export const setupSlonikMigrator = ({
     up: (name?: string) => umzug.up(name).then(map(pick(['file', 'path']))),
     down: (name?: string) => umzug.down(name).then(map(pick(['file', 'path']))),
     create: (name: string) => {
-      const timestamp = new Date().toISOString().replace(/\W/g, '-').replace(/-\d\d-\d\d\dZ/, '')
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/\W/g, '-')
+        .replace(/-\d\d-\d\d\dZ/, '')
       const sqlFileName = `${timestamp}.${name}.sql`
       const downDir = join(migrationsPath, 'down')
       mkdirSync(downDir, {recursive: true})
@@ -127,7 +135,13 @@ export const setupSlonikMigrator = ({
     const [command, name] = process.argv.slice(2)
     command in migrator
       ? (migrator as any)[command](name)
-      : console.warn('command not found. ' + inspect({'commands available': Object.keys(migrator), 'command from cli args': command}, {breakLength: Infinity}))
+      : console.warn(
+          'command not found. ' +
+            inspect(
+              {'commands available': Object.keys(migrator), 'command from cli args': command},
+              {breakLength: Infinity},
+            ),
+        )
   }
 
   return migrator
