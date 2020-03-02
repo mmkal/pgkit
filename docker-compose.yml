@@ -1,10 +1,14 @@
 version: '3'
 services:
   postgres:
-    image: postgres
+    image: postgres:12
     restart: always
     ports:
     - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     volumes:
       - postgres:/var/lib/postgresql/data
 volumes:
