@@ -19,6 +19,6 @@
   },
   "license": "ISC",
   "peerDependencies": {
-    "slonik": ">= 21.0.0 < 22"
+    "slonik": ">= 21.0.0 < 23"
   }
 }
