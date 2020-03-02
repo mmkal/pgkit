@@ -7,7 +7,8 @@ node_js: ['12']
 before_script:
   - yarn
   - docker-compose pull
-  - docker-compose up -d && sleep 30
+  - docker-compose up
+  - docker-compose up -d && sleep 10
 script:
   - yarn ci
 after_success:
