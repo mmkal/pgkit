@@ -24,6 +24,7 @@ export const _pg_types = {
   cstring: 'cstring',
   date: 'date',
   daterange: 'daterange',
+  direction: 'direction',
   event_trigger: 'event_trigger',
   fdw_handler: 'fdw_handler',
   float4: 'float4',
