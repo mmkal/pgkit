@@ -34,12 +34,12 @@ describe('cli reset', () => {
   beforeEach(jest.clearAllMocks)
 
   it(`recursively creates directory when one doesn't exist`, () => {
-    main(['test/generated/foo/bar/baz/this/path/does/not/exist'])
+    main(['test/generated/foo/bar/baz/fake/path'])
     expect(fs.mocks).toMatchInlineSnapshot(`
             Object {
               "mkdirSync": [
               [
-                "test/generated/foo/bar/baz/this/path/does/not/exist",
+                "test/generated/foo/bar/baz/fake/path",
                 {
                   "recursive": true
                 }
@@ -49,7 +49,7 @@ describe('cli reset', () => {
               "unlinkSync": [],
               "writeFileSync": [
               [
-                "test/generated/foo/bar/baz/this/path/does/not/exist/index.ts",
+                "test/generated/foo/bar/baz/fake/path/index.ts",
                 "export const knownTypes = {}\\n",
                 "utf8"
               ]
