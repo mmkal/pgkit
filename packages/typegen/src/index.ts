@@ -98,6 +98,15 @@ export const createCodegenDirectory = (directory: string) => {
   fs.writeFileSync(join(directory, 'index.ts'), 'export const knownTypes = {}' + EOL, 'utf8')
 }
 
+const writeIfChanged = (path: string, content: string) => {
+  const trimmed = content.trim()
+  const existingContent = fs.existsSync(path) ? fs.readFileSync(path).toString().trim() : null
+  if (trimmed === existingContent) {
+    return
+  }
+  fs.writeFileSync(path, trimmed + EOL, 'utf8')
+}
+
 export const resetCodegenDirectory = (directory: string) => {
   if (fs.existsSync(directory)) {
     fs.readdirSync(directory).forEach(filename => fs.unlinkSync(join(directory, filename)))
@@ -171,7 +180,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
                 t => `${t.typname}`.replace(/^_/, 'zzz'),
               )
               _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
-              fs.writeFileSync(
+              writeIfChanged(
                 join(config.writeTypes, '_pg_types.ts'),
                 [
                   `${header}`,
@@ -265,7 +274,7 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
   const backtick = '`'
   const queryLiteral = (q: string) => q.includes(backtick) ? JSON.stringify(q) : backtick + q + backtick
 
-  const contnt = [
+  const tsContent = [
     header,
     ``,
     `export type ${typeName}_AllTypes = [`,
@@ -293,14 +302,14 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
     ``,
   ].join(EOL)
 
-  void fs.writeFileSync(tsPath, contnt, 'utf8')
+  void writeIfChanged(tsPath, tsContent)
 
   const knownTypes = fs
     .readdirSync(generatedPath)
     .filter(filename => filename !== 'index.ts')
     .map(filename => basename(filename, '.ts'))
 
-  void fs.writeFileSync(
+  void writeIfChanged(
     join(generatedPath, `index.ts`),
     [
       header,
