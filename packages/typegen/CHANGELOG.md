@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.4.0...@slonik/typegen@0.5.0) (2020-03-23)
+
+
+### Features
+
+* de-duplicate types ([#157](https://github.com/mmkal/slonik-tools/issues/157)) ([d2ef0fd](https://github.com/mmkal/slonik-tools/commit/d2ef0fd9da3f23a9e906b0c4ead3bd7af78d92e8))
+
+
+
+
+
 # [0.4.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.3.1...@slonik/typegen@0.4.0) (2020-03-23)
 
 
