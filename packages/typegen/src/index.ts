@@ -253,13 +253,31 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
   _entries = orderBy(_entries, e => e.description)
   _entries = _entries.filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
 
+  const entriesWithTypes = _entries.map(e => ({
+    ...e,
+    type: codegen.writeInterfaceBody(e.properties),
+  }))
+
+  const uniqueTypes = entriesWithTypes
+    .map(e => e.type)
+    .filter((type, i, arr) => i === arr.indexOf(type))
+
+  const backtick = '`'
+  const queryLiteral = (q: string) => q.includes(backtick) ? JSON.stringify(q) : backtick + q + backtick
+
   const contnt = [
     header,
     ``,
+    `export type ${typeName}_AllTypes = [`,
+    uniqueTypes
+      .map(t => '  ' + t)
+      .join(',' + EOL)
+      .replace(/\r?\n/g, EOL + '  '),
+    `]`,
     `export interface ${typeName}_QueryTypeMap {`,
     '  ' +
-      _entries
-        .map(e => `[${JSON.stringify(e.description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
+      entriesWithTypes
+        .map(e => `[${queryLiteral(e.description)}]: ${typeName}_AllTypes[${uniqueTypes.indexOf(e.type)}]`)
         .join(EOL)
         .replace(/\r?\n/g, EOL + '  '),
     `}`,
