@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.3.1...@slonik/typegen@0.4.0) (2020-03-23)
+
+
+### Features
+
+* **slonik:** bump slonik to v22 ([#143](https://github.com/mmkal/slonik-tools/issues/143)) ([6d97b00](https://github.com/mmkal/slonik-tools/commit/6d97b00fd15b98d66d400d50b12979bab0e63d87))
+
+
+
+
+
+
 ## [0.3.1](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.3.0...@slonik/typegen@0.3.1) (2020-01-26)
 
 
