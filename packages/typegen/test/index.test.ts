@@ -67,6 +67,17 @@ describe('type generator', () => {
     `)
   })
 
+  it('escapes quotes', async () => {
+    const withQuotes = await slonik.maybeOne(sql.WithQuotes`
+      select a
+      from foo
+      where a = 'foo'
+      or a = '"'
+      or a = '\`'
+    `)
+    expect(withQuotes).toEqual(null)
+  })
+
   it('creates a pessimistic union type when there are multiple queries', async () => {
     const foo0 = await slonik.one(sql.FooSubset`select a from foo`)
     const foo1 = await slonik.one(sql.FooSubset`select a, b, c from foo`)

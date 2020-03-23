@@ -5,12 +5,14 @@ import {Bar} from './Bar'
 import {CountInfo} from './CountInfo'
 import {Foo} from './Foo'
 import {FooSubset} from './FooSubset'
+import {WithQuotes} from './WithQuotes'
 import {_pg_types} from './_pg_types'
 
 export {Bar}
 export {CountInfo}
 export {Foo}
 export {FooSubset}
+export {WithQuotes}
 export {_pg_types}
 
 export interface KnownTypes {
@@ -18,6 +20,7 @@ export interface KnownTypes {
   CountInfo: CountInfo
   Foo: Foo
   FooSubset: FooSubset
+  WithQuotes: WithQuotes
   _pg_types: _pg_types
 }
 
@@ -27,5 +30,6 @@ export const knownTypes: KnownTypes = {
   CountInfo,
   Foo,
   FooSubset,
+  WithQuotes,
   _pg_types,
 }
