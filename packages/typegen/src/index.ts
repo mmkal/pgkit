@@ -106,6 +106,15 @@ export const createCodegenDirectory = (directory: string) => {
   fs.writeFileSync(join(directory, 'index.ts'), 'export const knownTypes = {}' + EOL, 'utf8')
 }
 
+const writeIfChanged = (path: string, content: string) => {
+  const trimmed = content.trim()
+  const existingContent = fs.existsSync(path) ? fs.readFileSync(path).toString().trim() : null
+  if (trimmed === existingContent) {
+    return
+  }
+  fs.writeFileSync(path, trimmed + EOL, 'utf8')
+}
+
 export const resetCodegenDirectory = (directory: string) => {
   if (fs.existsSync(directory)) {
     fs.readdirSync(directory).forEach(filename => fs.unlinkSync(join(directory, filename)))
@@ -179,7 +188,7 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
                 t => `${t.typname}`.replace(/^_/, 'zzz'),
               )
               _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
-              fs.writeFileSync(
+              writeIfChanged(
                 join(config.writeTypes, '_pg_types.ts'),
                 [
                   `${header}`,
@@ -263,13 +272,31 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
   _entries = orderBy(_entries, e => e.description)
   _entries = _entries.filter((e, i, arr) => i === arr.findIndex(x => x.description === e.description))
 
-  const contnt = [
+  const entriesWithTypes = _entries.map(e => ({
+    ...e,
+    type: codegen.writeInterfaceBody(e.properties),
+  }))
+
+  const uniqueTypes = entriesWithTypes
+    .map(e => e.type)
+    .filter((type, i, arr) => i === arr.indexOf(type))
+
+  const backtick = '`'
+  const queryLiteral = (q: string) => q.includes(backtick) ? JSON.stringify(q) : backtick + q + backtick
+
+  const tsContent = [
     header,
     ``,
+    `export type ${typeName}_AllTypes = [`,
+    uniqueTypes
+      .map(t => '  ' + t)
+      .join(',' + EOL)
+      .replace(/\r?\n/g, EOL + '  '),
+    `]`,
     `export interface ${typeName}_QueryTypeMap {`,
     '  ' +
-      _entries
-        .map(e => `[${JSON.stringify(e.description)}]: ${codegen.writeInterfaceBody(e.properties)}`)
+      entriesWithTypes
+        .map(e => `[${queryLiteral(e.description)}]: ${typeName}_AllTypes[${uniqueTypes.indexOf(e.type)}]`)
         .join(EOL)
         .replace(/\r?\n/g, EOL + '  '),
     `}`,
@@ -285,14 +312,14 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
     ``,
   ].join(EOL)
 
-  void fs.writeFileSync(tsPath, contnt, 'utf8')
+  void writeIfChanged(tsPath, tsContent)
 
   const knownTypes = fs
     .readdirSync(generatedPath)
     .filter(filename => filename !== 'index.ts')
     .map(filename => basename(filename, '.ts'))
 
-  void fs.writeFileSync(
+  void writeIfChanged(
     join(generatedPath, `index.ts`),
     [
       header,

@@ -67,11 +67,25 @@ describe('type generator', () => {
     `)
   })
 
+  it('escapes quotes', async () => {
+    const withQuotes = await slonik.maybeOne(sql.WithQuotes`
+      select a
+      from foo
+      where a = 'foo'
+      or a = '"'
+      or a = '\`'
+    `)
+    expect(withQuotes).toEqual(null)
+  })
+
   it('creates a pessimistic union type when there are multiple queries', async () => {
     const foo0 = await slonik.one(sql.FooSubset`select a from foo`)
     const foo1 = await slonik.one(sql.FooSubset`select a, b, c from foo`)
     const foo2 = await slonik.one(sql.FooSubset`select a, b from foo`)
-    const merged = {...foo0, ...foo1, ...foo2}
+
+    const sameAsFoo1 = await slonik.maybeOne(sql.FooSubset`select a, b, c from foo where 1 = 1`)
+
+    const merged = {...foo0, ...foo1, ...foo2, ...sameAsFoo1}
     expectType<TypeEqual<'a', keyof typeof merged>>(true)
     expect(foo1).toMatchObject(foo2)
   })
