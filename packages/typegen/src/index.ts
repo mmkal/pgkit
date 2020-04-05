@@ -267,12 +267,10 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
     type: codegen.writeInterfaceBody(e.properties),
   }))
 
-  const uniqueTypes = entriesWithTypes
-    .map(e => e.type)
-    .filter((type, i, arr) => i === arr.indexOf(type))
+  const uniqueTypes = entriesWithTypes.map(e => e.type).filter((type, i, arr) => i === arr.indexOf(type))
 
   const backtick = '`'
-  const queryLiteral = (q: string) => q.includes(backtick) ? JSON.stringify(q) : backtick + q + backtick
+  const queryLiteral = (q: string) => (q.includes(backtick) ? JSON.stringify(q) : backtick + q + backtick)
 
   const tsContent = [
     header,

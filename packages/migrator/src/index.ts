@@ -53,11 +53,7 @@ export const setupSlonikMigrator = ({
   })
   const hash = (migrationName: string) =>
     createHash('md5')
-      .update(
-        readFileSync(join(migrationsPath, migrationName), 'utf8')
-          .trim()
-          .replace(/\s+/g, ' '),
-      )
+      .update(readFileSync(join(migrationsPath, migrationName), 'utf8').trim().replace(/\s+/g, ' '))
       .digest('hex')
       .slice(0, 10)
   const umzug = new Umzug({
