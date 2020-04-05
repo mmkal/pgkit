@@ -17,6 +17,19 @@ This method gives you strong typing, like in an ORM, but avoids the [inner-platf
 
 Simple select statements, joins, and updates/inserts using `returning` are all supported - any sql query that returns a tabular value will have an interface generated for the row type. The interface will be automatically applied to the appropriate query result.
 
+## Contents
+
+<!-- codegen:start {preset: markdownTOC, sort: package.name, minDepth: 2} -->
+- [The idea](#the-idea)
+- [Contents](#contents)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Examples](#examples)
+- [How it works](#how-it-works)
+- [Recommendations](#recommendations)
+<!-- codegen:end -->
+
 ## Installation
 
 ```bash
