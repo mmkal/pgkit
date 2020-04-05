@@ -3034,6 +3034,11 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
+expect-type@^0.5.2:
+  version "0.5.2"
+  resolved "https://registry.yarnpkg.com/expect-type/-/expect-type-0.5.2.tgz#ed558f68bd9f1918c6b302f1a26a1827784a1643"
+  integrity sha512-JM50FoSh2iFjgw93yPONggJwLkcjOjJ3ar4PQMAOYHnYwV0fsBDC2L6HNn07XYTwthxBALFEssQ02hI6LOpJug==
+
 expect@^25.1.0:
   version "25.1.0"
   resolved "https://registry.yarnpkg.com/expect/-/expect-25.1.0.tgz#7e8d7b06a53f7d66ec927278db3304254ee683ee"
@@ -7435,11 +7440,6 @@ trim-off-newlines@^1.0.0:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/trim-off-newlines/-/trim-off-newlines-1.0.1.tgz#9f9ba9d9efa8764c387698bcbfeb2c848f11adb3"
   integrity sha1-n5up2e+odkw4dpi8v+sshI8RrbM=
-
-ts-expect@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/ts-expect/-/ts-expect-1.1.0.tgz#52a280a149e1943ff7473d3dcb2fe17f85f63853"
-  integrity sha512-cKoBZ47X85x/Qh7taf30m3BhOJOhtNbb7KFHz9CCuWeRSAh0wzprnmiN9TSOQ0FWp3+qDWS5f2FDnxkY93Kdfw==
 
 ts-jest@^25.2.1:
   version "25.2.1"

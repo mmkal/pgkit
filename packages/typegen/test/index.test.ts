@@ -4,7 +4,7 @@ import {createPool, sql as slonikSql} from 'slonik'
 import {statSync, readdirSync, existsSync, readFileSync} from 'fs'
 import {join} from 'path'
 import {tmpdir} from 'os'
-import {expectType, TypeEqual} from 'ts-expect'
+import {expectTypeOf} from 'expect-type'
 
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'generated/main')
@@ -36,14 +36,14 @@ describe('type generator', () => {
 
   it('queries', async () => {
     const fooResult = await slonik.one(sql.Foo`select * from foo`)
-    expectType<{
+    expectTypeOf(fooResult).toEqualTypeOf<{
       id: number
       a: string
       b: boolean
       c: string[]
       d: string
       e: unknown
-    }>(fooResult)
+    }>()
     await slonik.query(sql.Foo`select * from foo`) // make sure duplicate doesn't create two types.
 
     const countInfo = await slonik.one(sql.CountInfo`
@@ -51,7 +51,7 @@ describe('type generator', () => {
       from foo
       group by a
     `)
-    expectType<{a_count: number; a_value: string}>(countInfo)
+    expectTypeOf(countInfo).toEqualTypeOf<{a_count: number; a_value: string}>()
 
     const generatedFiles = readdirSync(writeTypes)
     generatedFiles.forEach(f => {
@@ -86,7 +86,9 @@ describe('type generator', () => {
     const sameAsFoo1 = await slonik.maybeOne(sql.FooSubset`select a, b, c from foo where 1 = 1`)
 
     const merged = {...foo0, ...foo1, ...foo2, ...sameAsFoo1}
-    expectType<TypeEqual<'a', keyof typeof merged>>(true)
+
+    expectTypeOf(merged).toEqualTypeOf<{a: string}>()
+
     expect(foo1).toMatchObject(foo2)
   })
 
@@ -95,7 +97,7 @@ describe('type generator', () => {
     const {sql, poolConfig} = setupTypeGen({knownTypes: {defaultType: {} as DefaultType}})
     const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
     const foo = await slonik.one(sql.FooBar`select * from foo`)
-    expectType<{abc: string}>(foo)
+    expectTypeOf(foo).toEqualTypeOf<{abc: string}>()
     expect(foo).toMatchInlineSnapshot(`
       Object {
         "a": "xyz",
@@ -157,7 +159,7 @@ describe('type generator', () => {
 
     const slonik = createPool(connectionString, {...poolConfig, idleTimeout: 1})
     const result = await slonik.query(sql.Id`select id from foo`)
-    expectType<CustomisedDefaultType>(result.rows[0])
+    expectTypeOf(result).toHaveProperty('rows').items.toEqualTypeOf<CustomisedDefaultType>()
 
     expect(readdirSync(tempDir).sort()).toEqual(['index.ts', '_pg_types.ts', 'Id.ts'].sort())
 
@@ -180,7 +182,7 @@ describe('type generator', () => {
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
-    expectType<{d: Date}>(result)
+    expectTypeOf(result).toEqualTypeOf<{d: Date}>()
     expect(result).toMatchObject({d: expect.any(Date)})
   })
 
@@ -198,7 +200,7 @@ describe('type generator', () => {
 
     await slonik.query(sql`insert into foo(d) values(now())`)
     const result = await slonik.one(sql.FooWithDate`select d from foo where d is not null limit 1`)
-    expectType<{d: {isoString: string}}>(result)
+    expectTypeOf(result).toEqualTypeOf<{d: {isoString: string}}>()
     expect(result).toMatchObject({d: {isoString: expect.any(String)}})
   })
 
@@ -224,7 +226,7 @@ describe('type generator', () => {
     const slonikWithDirectionMapper = createPool(connectionString, {...poolConfig, idleTimeout: 1})
 
     const result = await slonikWithDirectionMapper.one(sql.Bar`select * from bar`)
-    expectType<'up' | 'down'>(result.dir)
+    expectTypeOf(result).toMatchTypeOf<{dir: 'up' | 'down'}>()
     expect(result).toMatchInlineSnapshot(`
       Object {
         "dir": "up",
