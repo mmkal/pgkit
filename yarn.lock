@@ -1562,15 +1562,10 @@
     "@types/bson" "*"
     "@types/node" "*"
 
-"@types/node@*":
+"@types/node@*", "@types/node@>= 8":
   version "13.7.7"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-13.7.7.tgz#1628e6461ba8cc9b53196dfeaeec7b07fa6eea99"
   integrity sha512-Uo4chgKbnPNlxQwoFmYIwctkQVkMMmsAoGGU4JKwLuvBefF0pCq4FybNSnfkfRCpC7ZW7kttcC/TrRtAJsvGtg==
-
-"@types/node@>= 8":
-  version "13.5.0"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-13.5.0.tgz#4e498dbf355795a611a87ae5ef811a8660d42662"
-  integrity sha512-Onhn+z72D2O2Pb2ql2xukJ55rglumsVo1H6Fmyi8mlU9SvKdBk/pUSUAiBY/d9bAOF7VVWajX3sths/+g6ZiAQ==
 
 "@types/node@^12.6.8":
   version "12.12.25"
@@ -1606,9 +1601,9 @@
     "@types/mime" "*"
 
 "@types/slonik@^22.1.0":
-  version "22.1.0"
-  resolved "https://registry.yarnpkg.com/@types/slonik/-/slonik-22.1.0.tgz#ac63eaf719e426507e1135c4eca91ff8c8135b5c"
-  integrity sha512-4t1pAToCKvjIqx+5uGfFSnLind5x1QS5AmWefjjuv+QLosqFF4ejcgJQtoCHA+8z752eYc4Pcgn4UeQ5CDHB8A==
+  version "22.1.2"
+  resolved "https://registry.yarnpkg.com/@types/slonik/-/slonik-22.1.2.tgz#75ba986d262777a84d3874db63fb42ef24966eaf"
+  integrity sha512-88eUrhsVmBrHo2D7+m392AhWjpcfs50EKujyHqBcjzYOigpJTeFopk9jp9p9pV0UI9gqw0gWvOh+MAkwFayHZw==
   dependencies:
     "@types/node" "*"
 
