@@ -1,0 +1,1 @@
+grant all privileges on database mydb to myuser
