@@ -24,8 +24,8 @@ const groupBy = <T>(list: T[], getKey: (value: T) => string | number) => {
   const record: Record<string, T[] | undefined> = {}
   list.forEach(value => {
     const key = getKey(value)
-    const group = (record[key] = record[key] || [])
-    group.push(value)
+    record[key] = record[key] || []
+    record[key]!.push(value)
   })
   return record
 }
