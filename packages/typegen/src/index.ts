@@ -4,8 +4,6 @@ import {
   TaggedTemplateLiteralInvocationType,
   ValueExpressionType,
   ClientConfigurationType,
-  DatabasePoolType,
-  createPool,
 } from 'slonik'
 
 import * as fs from 'fs'
@@ -22,6 +20,15 @@ const orderBy = <T>(list: T[], cb: (value: T) => string | number) =>
     const right = cb(b)
     return left < right ? -1 : left > right ? 1 : 0
   })
+const groupBy = <T>(list: T[], getKey: (value: T) => string | number) => {
+  const record: Record<string, T[] | undefined> = {}
+  list.forEach(value => {
+    const key = getKey(value)
+    record[key] = record[key] || []
+    record[key]?.push(value)
+  })
+  return record
+}
 
 export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(template: TemplateStringsArray, ...vals: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>
@@ -137,17 +144,24 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   }
   const writeTypes = getFsTypeWriter(config.writeTypes)
 
-  let _oidToTypeName: undefined | Record<number, string | undefined> = undefined
+  let _oidToTypeName: Record<number, string | undefined> | undefined
+  let _pg_types: Record<string, string | undefined> | undefined
+  let _pg_enums: Record<string, string[] | undefined> | undefined
   const mapping: Record<string, [string] | undefined> = config.typeMapper || ({} as any)
   const typescriptTypeName = (dataTypeId: number): string => {
     const typeName = _oidToTypeName && _oidToTypeName[dataTypeId]
-    const typescriptTypeName =
-      typeName &&
-      (() => {
-        const [customType] = mapping[typeName] || [undefined]
-        return customType || builtInTypeMappings[typeName]
-      })()
-    return typescriptTypeName || 'unknown'
+    const unknownType = 'unknown'
+    if (!typeName) {
+      return unknownType
+    }
+    if (_pg_enums && _pg_enums[typeName]?.length! > 0) {
+      return _pg_enums[typeName]!.map(value => `'${value}'`).join(' | ')
+    }
+    const typescriptTypeName = (() => {
+      const [customType] = mapping[typeName] || [undefined]
+      return customType || builtInTypeMappings[typeName]
+    })()
+    return typescriptTypeName || unknownType
   }
 
   const _map: Record<string, string[] | undefined> = {}
@@ -172,19 +186,34 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
             if (!_oidToTypeName && typeof config.writeTypes === 'string') {
               const types = orderBy(
                 await connection.any(slonikSql`
-                select typname, oid
-                from pg_type
-                where (typnamespace = 11 and typname not like 'pg_%')
-                or (typrelid = 0 and typelem = 0)
-              `),
+                  select typname, oid
+                  from pg_type
+                  where (typnamespace = 11 and typname not like 'pg_%')
+                  or (typrelid = 0 and typelem = 0)
+                `),
                 t => `${t.typname}`.replace(/^_/, 'zzz'),
               )
+              const _oidToEnumValues = groupBy(
+                await connection.any(slonikSql`
+                  select * from pg_enum
+                `),
+                row => row.enumtypid,
+              )
+
+              _pg_types = fromPairs(types.map(t => [t.typname, t.typname as string]))
+
+              _pg_enums = fromPairs(
+                types // breakme
+                  .filter(t => t.oid in _oidToEnumValues)
+                  .map(t => [t.typname, _oidToEnumValues[t.oid]!.map(e => e.enumlabel as string)]),
+              )
+
               _oidToTypeName = fromPairs(types.map(t => [t.oid as number, t.typname as string]))
               writeIfChanged(
                 join(config.writeTypes, '_pg_types.ts'),
                 [
                   `${header}`,
-                  `export const _pg_types = ${inspect(fromPairs(types.map(t => [t.typname, t.typname])))} as const`,
+                  `export const _pg_types = ${inspect(_pg_types)} as const`,
                   `export type _pg_types = typeof _pg_types${EOL}`,
                 ].join(EOL + EOL),
               )
