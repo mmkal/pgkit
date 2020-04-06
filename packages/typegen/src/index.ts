@@ -150,18 +150,16 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
   const mapping: Record<string, [string] | undefined> = config.typeMapper || ({} as any)
   const typescriptTypeName = (dataTypeId: number): string => {
     const typeName = _oidToTypeName && _oidToTypeName[dataTypeId]
-    const unknownType = 'unknown'
-    if (!typeName) {
-      return unknownType
-    }
-    if (_pg_enums && _pg_enums[typeName]?.length! > 0) {
+    if (typeName && _pg_enums && _pg_enums[typeName]?.length! > 0) {
       return _pg_enums[typeName]!.map(value => `'${value}'`).join(' | ')
     }
-    const typescriptTypeName = (() => {
-      const [customType] = mapping[typeName] || [undefined]
-      return customType || builtInTypeMappings[typeName]
-    })()
-    return typescriptTypeName || unknownType
+    const typescriptTypeName =
+      typeName &&
+      (() => {
+        const [customType] = mapping[typeName] || [undefined]
+        return customType || builtInTypeMappings[typeName]
+      })()
+    return typescriptTypeName || 'unknown'
   }
 
   const _map: Record<string, string[] | undefined> = {}
