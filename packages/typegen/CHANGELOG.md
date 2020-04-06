@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.5.0...@slonik/typegen@0.6.0) (2020-04-06)
+
+
+### Features
+
+* **enums:** auto generate enum types ([#170](https://github.com/mmkal/slonik-tools/issues/170)) ([68040fe](https://github.com/mmkal/slonik-tools/commit/68040fe72f94acd1cb7c8e4672f0c8167cfa77fe))
+
+
+
+
+
+
 # [0.5.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.4.0...@slonik/typegen@0.5.0) (2020-03-23)
 
 
