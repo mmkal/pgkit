@@ -48,6 +48,7 @@ export const _pg_types = {
   lseg: 'lseg',
   macaddr: 'macaddr',
   macaddr8: 'macaddr8',
+  message_priority: 'message_priority',
   money: 'money',
   name: 'name',
   numeric: 'numeric',

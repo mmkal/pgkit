@@ -5,7 +5,7 @@
 export type Bar_AllTypes = [
   {
     /** pg_type.typname: direction */
-    dir: 'up' | 'down'
+    dir: 'up' | 'down' | 'left' | 'right'
   }
 ]
 export interface Bar_QueryTypeMap {
@@ -19,4 +19,4 @@ export type Bar = {
 }
 export const Bar = {} as Bar
 
-export const Bar_meta_v0 = [{"properties":[{"name":"dir","value":"'up' | 'down'","description":"pg_type.typname: direction"}],"description":"select * from bar"}]
+export const Bar_meta_v0 = [{"properties":[{"name":"dir","value":"'up' | 'down' | 'left' | 'right'","description":"pg_type.typname: direction"}],"description":"select * from bar"}]

@@ -10,6 +10,8 @@ export type Message_AllTypes = [
     content: string
     /** pg_type.typname: timestamptz */
     created_at: Date
+    /** pg_type.typname: message_priority */
+    priority: 'low' | 'medium' | 'high'
   }
 ]
 export interface Message_QueryTypeMap {
@@ -26,4 +28,4 @@ export type Message = {
 }
 export const Message = {} as Message
 
-export const Message_meta_v0 = [{"properties":[{"name":"id","value":"number","description":"pg_type.typname: int4"},{"name":"content","value":"string","description":"pg_type.typname: varchar"},{"name":"created_at","value":"Date","description":"pg_type.typname: timestamptz"}],"description":"select * from messages\n        where id < $1\n        order by created_at desc\n        limit 10"}]
+export const Message_meta_v0 = [{"properties":[{"name":"id","value":"number","description":"pg_type.typname: int4"},{"name":"content","value":"string","description":"pg_type.typname: varchar"},{"name":"created_at","value":"Date","description":"pg_type.typname: timestamptz"},{"name":"priority","value":"'low' | 'medium' | 'high'","description":"pg_type.typname: message_priority"}],"description":"select * from messages\n        where id < $1\n        order by created_at desc\n        limit 10"}]

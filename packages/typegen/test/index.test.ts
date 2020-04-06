@@ -207,11 +207,8 @@ describe('type generator', () => {
   it('maps enums', async () => {
     await slonik.query(slonikSql`
       drop table if exists bar;
-      do $$ begin
-        create type direction as enum('up', 'down');
-      exception
-        when duplicate_object then null;
-      end $$;
+      drop type if exists direction;
+      create type direction as enum('up', 'down', 'left', 'right');
       create table bar(dir direction);
       insert into bar(dir) values ('up');
     `)
@@ -219,14 +216,11 @@ describe('type generator', () => {
     const {sql, poolConfig} = setupTypeGen({
       knownTypes,
       writeTypes,
-      typeMapper: {
-        direction: [`'up' | 'down'`, value => value],
-      },
     })
     const slonikWithDirectionMapper = createPool(connectionString, {...poolConfig, idleTimeout: 1})
 
     const result = await slonikWithDirectionMapper.one(sql.Bar`select * from bar`)
-    expectTypeOf(result).toMatchTypeOf<{dir: 'up' | 'down'}>()
+    expectTypeOf(result).toMatchTypeOf<{dir: 'up' | 'down' | 'left' | 'right'}>()
     expect(result).toMatchInlineSnapshot(`
       Object {
         "dir": "up",
