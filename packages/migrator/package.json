@@ -23,7 +23,7 @@
   "dependencies": {
     "lodash": "^4.17.15",
     "slonik-sql-tag-raw": "^1.0.1",
-    "umzug": "^2.2.0"
+    "umzug": "^2.3.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.14.134",
