@@ -12,9 +12,19 @@ export interface SlonikMigratorOptions {
   slonik: DatabasePoolType
   migrationsPath: string
   migrationTableName?: string
+  migrationResolver?: MigrationResolver
   log?: typeof console.log
   args?: string[]
   mainModule?: NodeModule
+}
+
+export type MigrationResolver = (params: {
+  path: string
+  slonik: DatabasePoolType
+  sql: typeof sql
+}) => {
+  up: () => PromiseLike<unknown>
+  down?: () => PromiseLike<unknown>
 }
 
 export interface Migration {
@@ -28,11 +38,20 @@ export interface SlonikMigrator {
   create(migration: string): void
 }
 
+export const defaultResolver: MigrationResolver = ({path, slonik, sql}) => ({
+  up: () => slonik.query(sql`${raw(readFileSync(path, 'utf8'))}`),
+  down: async () => {
+    const downPath = join(dirname(path), 'down', basename(path))
+    await slonik.query(sql`${raw(readFileSync(downPath, 'utf8'))}`)
+  },
+})
+
 export const setupSlonikMigrator = ({
   slonik,
   migrationsPath,
   migrationTableName = 'migration',
   log: _log = console.log,
+  resolveMigration = defaultResolver,
   mainModule,
 }: SlonikMigratorOptions) => {
   const log: typeof _log = memoize((...args: any[]) => {
@@ -61,13 +80,7 @@ export const setupSlonikMigrator = ({
     migrations: {
       path: migrationsPath,
       pattern: /\.sql$/,
-      customResolver: path => ({
-        up: () => slonik.query(sql`${raw(readFileSync(path, 'utf8'))}`),
-        down: async () => {
-          const downPath = join(dirname(path), 'down', basename(path))
-          await slonik.query(sql`${raw(readFileSync(downPath, 'utf8'))}`)
-        },
-      }),
+      customResolver: path => resolveMigration({path, slonik, sql}),
     },
     storage: {
       async executed() {
