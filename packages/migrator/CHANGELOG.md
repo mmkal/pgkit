@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.3.2](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.3.1...@slonik/migrator@0.3.2) (2020-04-07)
+
+
+### Bug Fixes
+
+* **logs:** use umzug 2.3.0 ([#174](https://github.com/mmkal/slonik-tools/issues/174)) ([5523d68](https://github.com/mmkal/slonik-tools/commit/5523d68e7fbf65dff31cc2292f6b75429b282867))
+
+
+
+
+
+
 ## [0.3.1](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.3.0...@slonik/migrator@0.3.1) (2020-04-06)
 
 **Note:** Version bump only for package @slonik/migrator

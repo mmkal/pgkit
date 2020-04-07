@@ -50,17 +50,10 @@ export const setupSlonikMigrator = ({
   slonik,
   migrationsPath,
   migrationTableName = 'migration',
-  log: _log = console.log,
   migrationResolver = defaultMigrationResolver,
+  log = memoize(console.log, JSON.stringify),
   mainModule,
 }: SlonikMigratorOptions) => {
-  const log: typeof _log = memoize((...args: any[]) => {
-    if (args[0] === 'File: down does not match pattern: /\\.sql$/') {
-      // workaround until release of https://github.com/sequelize/umzug/pull/190
-      return
-    }
-    return _log(...args)
-  }, JSON.stringify)
   const createMigrationTable = once(async () => {
     void (await slonik.query(sql`
       create table if not exists ${sql.identifier([migrationTableName])}(
