@@ -36,7 +36,7 @@ export const setupSlonikMigrator = ({
   mainModule,
 }: SlonikMigratorOptions) => {
   const log: typeof _log = memoize((...args: any[]) => {
-    if (args[0] === 'File: down does not match pattern: /\\.sql$/') {
+    if (/File: .*? does not match pattern: /.test(args[0])) {
       // workaround until release of https://github.com/sequelize/umzug/pull/190
       return
     }
