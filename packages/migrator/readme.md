@@ -86,7 +86,7 @@ parameters for the `setupSlonikMigrator` function
 | `slonik` | slonik database pool instance, created by `createPool`. | N/A |
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
 | `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. | `migration` |
-| `migrationResolver` | a function which takes a path, slonik instance and sql tag function, and returns a migration object with `up` and `down` properties. This could be used to run javascript/typescript migrations by using `require(...)`. | `defaultResolver` - which reads and executes the filepath as a sql file |
+| `migrationResolver` | a function which takes a path, slonik instance and sql tag function, and returns a migration object with `up` and `down` properties. This could be used to run javascript/typescript migrations by using `require(...)`. | `defaultMigrationResolver` - which reads and executes the filepath as a sql file |
 | `log` | how information about the migrations will be logged. You can set to `() => {}` to prevent logs appearing at all. | `console.log` |
 | `mainModule` | if set to `module`, the javascript file calling `setupSlonikMigrator` can be used as a CLI script. If left undefined, the migrator can only be used programatically. | `undefined` |
 

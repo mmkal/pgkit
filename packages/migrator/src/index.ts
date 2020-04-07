@@ -38,7 +38,7 @@ export interface SlonikMigrator {
   create(migration: string): void
 }
 
-export const defaultResolver: MigrationResolver = ({path, slonik, sql}) => ({
+export const defaultMigrationResolver: MigrationResolver = ({path, slonik, sql}) => ({
   up: () => slonik.query(sql`${raw(readFileSync(path, 'utf8'))}`),
   down: async () => {
     const downPath = join(dirname(path), 'down', basename(path))
@@ -51,7 +51,7 @@ export const setupSlonikMigrator = ({
   migrationsPath,
   migrationTableName = 'migration',
   log: _log = console.log,
-  resolveMigration = defaultResolver,
+  migrationResolver = defaultMigrationResolver,
   mainModule,
 }: SlonikMigratorOptions) => {
   const log: typeof _log = memoize((...args: any[]) => {
@@ -80,7 +80,7 @@ export const setupSlonikMigrator = ({
     migrations: {
       path: migrationsPath,
       pattern: /\.sql$/,
-      customResolver: path => resolveMigration({path, slonik, sql}),
+      customResolver: path => migrationResolver({path, slonik, sql}),
     },
     storage: {
       async executed() {
