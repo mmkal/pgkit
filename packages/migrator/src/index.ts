@@ -182,6 +182,7 @@ export const setupSlonikMigrator = ({
       const extension =
         explicitExtension ||
         readdirSync(migrationsPath)
+          .reverse()
           .map(filename => supportedExtensions.find(ex => extname(filename) === `.${ex}`))
           .find(Boolean) ||
         'sql'

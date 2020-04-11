@@ -47,7 +47,7 @@ This generates placeholder migration sql scripts in the directory specified by `
 
 You can now edit the generated sql files to `create table users(name text)` for the 'up' migration and `drop table users` for the 'down' migration.
 
-Note: `node migrate create xyz` will try to detect the type of pre-existing migrations. The extension of the file generated will be `.sql`, `.js` or `.ts` to match the first migration found in the target directory.
+Note: `node migrate create xyz` will try to detect the type of pre-existing migrations. The extension of the file generated will be `.sql`, `.js` or `.ts` to match the last migration found in the target directory.
 
 ```bash
 node migrate up
