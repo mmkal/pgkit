@@ -9,7 +9,9 @@ A cli migration tool for postgres sql scripts, using [slonik](https://npmjs.com/
 
 There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be the simplest to configure. Even if you don't, the setup required is minimal.
 
-The migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls.
+By default, the migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls.
+
+It can also run `.js` or `.ts` files - these are expected to be modules with a require `up` export, and an optional `down` export. Each of these functions will have an object passed to them with a `slonik` instance, and a `sql` tag function. However, where possible, it's often preferable to keep it simple and stick to SQL.
 
 This isn't technically a cli - it's a cli _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration CLI. The migrations can be invoked programmatically from the same config.
 
@@ -44,6 +46,8 @@ node migrate create users
 This generates placeholder migration sql scripts in the directory specified by `migrationsPath` called something like `2019-06-17T03-27.users.sql` and `down/2019-06-17T03-27.users.sql`.
 
 You can now edit the generated sql files to `create table users(name text)` for the 'up' migration and `drop table users` for the 'down' migration.
+
+Note: `node migrate create xyz` will try to detect the type of pre-existing migrations. The extension of the file generated will be `.sql`, `.js` or `.ts` to match the first migration found in the target directory.
 
 ```bash
 node migrate up
@@ -86,7 +90,6 @@ parameters for the `setupSlonikMigrator` function
 | `slonik` | slonik database pool instance, created by `createPool`. | N/A |
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
 | `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. | `migration` |
-| `migrationResolver` | a function which takes a path, slonik instance and sql tag function, and returns a migration object with `up` and `down` properties. This could be used to run javascript/typescript migrations by using `require(...)`. | `defaultMigrationResolver` - which reads and executes the filepath as a sql file |
 | `log` | how information about the migrations will be logged. You can set to `() => {}` to prevent logs appearing at all. | `console.log` |
 | `mainModule` | if set to `module`, the javascript file calling `setupSlonikMigrator` can be used as a CLI script. If left undefined, the migrator can only be used programatically. | `undefined` |
 
