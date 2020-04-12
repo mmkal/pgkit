@@ -9,18 +9,7 @@ A cli migration tool for postgres sql scripts, using [slonik](https://npmjs.com/
 
 There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be the simplest to configure. Even if you don't, the setup required is minimal.
 
-By default, the migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls.
-
-It can also run `.js` or `.ts` files - these are expected to be modules with a require `up` export, and an optional `down` export. Each of these functions will have an object passed to them with a `slonik` instance, and a `sql` tag function. However, where possible, it's often preferable to keep it simple and stick to SQL.
-
-<details>
-  <summary>running typescript migrations</summary>
-  
-  Note: if writing migrations in typescript, you will likely want to use a tool like [ts-node](https://npmjs.com/package/ts-node) to enable loading typescript modules. You can either add `require('ts-node/register/transpile-only')` at the top of your `migrate.js` file, or run `node -r ts-node/register/transpile-only migrate ...` instead of `node migrate ...`.
-
-  (In general, using `ts-node/register/transpile-only` is preferable over `ts-node/register` - type-checking is best left to a separate process)
-
-</details>
+By default, the migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls. It can also run `.js` or `.ts` files - but where possible, it's often preferable to keep it simple and stick to SQL.
 
 This isn't technically a cli - it's a cli _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration CLI. The migrations can be invoked programmatically from the same config.
 
@@ -57,6 +46,18 @@ This generates placeholder migration sql scripts in the directory specified by `
 You can now edit the generated sql files to `create table users(name text)` for the 'up' migration and `drop table users` for the 'down' migration.
 
 Note: `node migrate create xyz` will try to detect the type of pre-existing migrations. The extension of the file generated will be `.sql`, `.js` or `.ts` to match the last migration found in the target directory, default to `.sql` if none is found. You can override this behaviour by explicitly providing an extension, e.g. `node migrate create xyz.js`.
+
+<details>
+  <summary>JavaScript and TypeScript migrations</summary>
+  
+  These are expected to be modules with a required `up` export and an optional `down` export. Each of these functions will have an object passed to them with a `slonik` instance, and a `sql` tag function. You can see a [javascript](./test/migrations/2000-01-03T00-00.three.js) and a [typescript]([javascript](./test/migrations/2000-01-04T00-00.four.ts)) example in the tests.
+ 
+  Note: if writing migrations in typescript, you will likely want to use a tool like [ts-node](https://npmjs.com/package/ts-node) to enable loading typescript modules. You can either add `require('ts-node/register/transpile-only')` at the top of your `migrate.js` file, or run `node -r ts-node/register/transpile-only migrate ...` instead of `node migrate ...`.
+
+  (In general, using `ts-node/register/transpile-only` is preferable over `ts-node/register` - type-checking is best left to a separate process)
+
+</details>
+
 
 ```bash
 node migrate up
@@ -104,4 +105,4 @@ parameters for the `setupSlonikMigrator` function
 
 ## Implementation
 
-Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom custom slonik-based storage implementation. This isn't exposed in the API of `@slonik/migrator`, so no knowledge of umzug is required (and the dependency might even be removed in a future version).
+Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom slonik-based storage implementation. This isn't exposed in the API of `@slonik/migrator`, so no knowledge of umzug is required (and the dependency might even be removed in a future version).
