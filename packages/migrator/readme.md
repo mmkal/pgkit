@@ -1,9 +1,9 @@
 # @slonik/migrator
 
+A cli migration tool for postgres, using [slonik](https://npmjs.com/package/slonik).
+
 [![Build Status](https://travis-ci.org/mmkal/slonik-tools.svg?branch=master)](https://travis-ci.org/mmkal/slonik-tools)
 [![Coverage Status](https://coveralls.io/repos/github/mmkal/slonik-tools/badge.svg?branch=master)](https://coveralls.io/github/mmkal/slonik-tools?branch=master)
-
-A cli migration tool for postgres sql scripts, using [slonik](https://npmjs.com/package/slonik).
 
 ## Motivation
 
