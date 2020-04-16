@@ -1638,9 +1638,9 @@
     "@types/superagent" "*"
 
 "@types/umzug@^2.2.2":
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/@types/umzug/-/umzug-2.2.2.tgz#0a17d4bd5c8b2416024c8d7cb25a55a79a53b075"
-  integrity sha512-1QN9IdwPsSftLniv2hguPSJQMnSQE8Eu+RzOOy5KlrLS75NLtAP7dGI11JkS0o2XoY1QdF0KTEGoGJ7zAawQuQ==
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@types/umzug/-/umzug-2.2.3.tgz#f2d9c2b485538bde729a9d1502a8c98dcc93d9e3"
+  integrity sha512-mJ6xv5FR5KNa5yL4j3Q7/jLyzb3K5MMmqzUcQg/jekmvPH/g1/wraSMAu7JsEDWxXXgZcXw7rJgeZ6adWrvImg==
   dependencies:
     "@types/mongodb" "*"
     "@types/sequelize" "*"
@@ -5567,20 +5567,10 @@ minimist-options@^3.0.1:
     arrify "^1.0.1"
     is-plain-obj "^1.1.0"
 
-minimist@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/minimist/-/minimist-0.0.8.tgz#857fcabfc3397d2625b8228262e86aa7a011b05d"
-  integrity sha1-hX/Kv8M5fSYluCKCYuhqp6ARsF0=
-
-minimist@^1.1.1, minimist@^1.1.3, minimist@^1.2.0, minimist@^1.2.5:
+minimist@0.0.8, minimist@^1.1.1, minimist@^1.1.3, minimist@^1.2.0, minimist@^1.2.5, minimist@~0.0.1:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.5.tgz#67d66014b66a6a8aaa0c083c5fd58df4e4e97602"
   integrity sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==
-
-minimist@~0.0.1:
-  version "0.0.10"
-  resolved "https://registry.yarnpkg.com/minimist/-/minimist-0.0.10.tgz#de3f98543dbf96082be48ad1a0c7cda836301dcf"
-  integrity sha1-3j+YVD2/lggr5IrRoMfNqDYwHc8=
 
 minipass@^2.3.5, minipass@^2.6.0, minipass@^2.8.6, minipass@^2.9.0:
   version "2.9.0"
