@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.4.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.3.2...@slonik/migrator@0.4.0) (2020-04-16)
+
+
+### Features
+
+* javascript and typescript migrations ([#181](https://github.com/mmkal/slonik-tools/issues/181)) ([aa3b6e3](https://github.com/mmkal/slonik-tools/commit/aa3b6e31c756ecba31e334dfaa6a2f77b24fb62d))
+
+
+
+
+
+
 ## [0.3.2](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.3.1...@slonik/migrator@0.3.2) (2020-04-07)
 
 
