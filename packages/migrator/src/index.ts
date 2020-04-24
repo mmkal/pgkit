@@ -37,9 +37,11 @@ export interface MigrationResult {
 }
 
 export interface SlonikMigratorCLI {
-  up(migration?: string): Promise<MigrationResult[]>
-  down(migration?: string): Promise<MigrationResult[]>
-  create(migration: string): string
+  up(to?: string): Promise<MigrationResult[]>
+  down(to?: string): Promise<MigrationResult[]>
+  pending(): Promise<MigrationResult[]>
+  executed(): Promise<MigrationResult[]>
+  create(migrations: string): string
 }
 
 /** @private not meant for general use, since this is coupled to @see umzug */
@@ -171,13 +173,15 @@ export const setupSlonikMigrator = ({
   })
 
   const migrator: SlonikMigratorCLI = {
-    up: (name?: string) => umzug.up(name).then(map(pick(['file', 'path']))),
-    down: (name?: string) => umzug.down(name).then(map(pick(['file', 'path']))),
-    create: (nameAndExtensions: string) => {
-      const explicitExtension = supportedExtensions.find(ex => extname(nameAndExtensions) === `.${ex}`)
+    up: to => (to ? umzug.up({to}) : umzug.up()).then(map(pick(['file', 'path']))),
+    down: to => (to ? umzug.down({to}) : umzug.down()).then(map(pick(['file', 'path']))),
+    pending: () => umzug.pending().then(map(pick(['file', 'path']))),
+    executed: () => umzug.executed().then(map(pick(['file', 'path']))),
+    create: (nameWithExtension: string) => {
+      const explicitExtension = supportedExtensions.find(ex => extname(nameWithExtension) === `.${ex}`)
       const name = explicitExtension
-        ? nameAndExtensions.slice(0, nameAndExtensions.lastIndexOf(`.${explicitExtension}`))
-        : nameAndExtensions
+        ? nameWithExtension.slice(0, nameWithExtension.lastIndexOf(`.${explicitExtension}`))
+        : nameWithExtension
 
       const extension =
         explicitExtension ||
@@ -211,7 +215,10 @@ export const setupSlonikMigrator = ({
   if (require.main === mainModule) {
     const [command, name] = process.argv.slice(2)
     if (command in migrator) {
-      migrator[command as keyof SlonikMigratorCLI](name)
+      ;(async () => {
+        const result = await migrator[command as keyof SlonikMigratorCLI](name)
+        if (command === 'pending' || command === 'executed') log(`${command}:`, result)
+      })()
     } else {
       const info = {'commands available': Object.keys(migrator), 'command from cli args': command}
       throw `command not found. ${inspect(info, {breakLength: Infinity})}`
