@@ -125,11 +125,19 @@ describe('run migrations', () => {
     expect(await executed()).toEqual(allMigrations)
     expect(await pending()).toEqual([])
 
-    await migrator.down('03.three.js')
+    await migrator.down('02.two.sql')
+    expect(await executed()).toMatchInlineSnapshot(`
+      Array [
+        "01.one.sql",
+      ]
+    `)
+
+    await migrator.up('03.three.js')
     expect(await executed()).toMatchInlineSnapshot(`
       Array [
         "01.one.sql",
         "02.two.sql",
+        "03.three.js",
       ]
     `)
 
@@ -137,7 +145,7 @@ describe('run migrations', () => {
       mockLogger.mock.calls.map(msg => {
         const json = JSON.stringify(msg)
         return JSON.parse(json.replace(/\d\.\d\d\ds/g, '?.???s'))
-      }),
+      })
     ).toMatchSnapshot()
   })
 })

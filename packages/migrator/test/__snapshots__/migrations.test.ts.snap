@@ -1,9 +1,9 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`run migrations up and down 4`] = `
+exports[`run migrations up and down 5`] = `
 Array [
   Array [
-    "getting pending migrations before initial migration",
+    "getting pending migrations before initial 'up'",
   ],
   Array [
     "migrations in database:",
@@ -234,6 +234,66 @@ Array [
       Object {
         "hash": "a65a32e9d3",
         "name": "02.two.sql",
+      },
+    ],
+  ],
+  Array [
+    "== 02.two: reverting =======",
+  ],
+  Array [
+    "== 02.two: reverted (?.???s)
+",
+  ],
+  Array [
+    "migrations in database:",
+    Array [
+      Object {
+        "hash": "68a0494793",
+        "name": "01.one.sql",
+      },
+    ],
+  ],
+  Array [
+    "== 02.two: migrating =======",
+  ],
+  Array [
+    "== 02.two: migrated (?.???s)
+",
+  ],
+  Array [
+    "migrations in database:",
+    Array [
+      Object {
+        "hash": "68a0494793",
+        "name": "01.one.sql",
+      },
+      Object {
+        "hash": "a65a32e9d3",
+        "name": "02.two.sql",
+      },
+    ],
+  ],
+  Array [
+    "== 03.three: migrating =======",
+  ],
+  Array [
+    "== 03.three: migrated (?.???s)
+",
+  ],
+  Array [
+    "migrations in database:",
+    Array [
+      Object {
+        "hash": "68a0494793",
+        "name": "01.one.sql",
+      },
+      Object {
+        "hash": "a65a32e9d3",
+        "name": "02.two.sql",
+      },
+      Object {
+        "hash": "a97f6162ee",
+        "name": "03.three.js",
       },
     ],
   ],
