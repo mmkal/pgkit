@@ -137,7 +137,7 @@ describe('run migrations', () => {
       mockLogger.mock.calls.map(msg => {
         const json = JSON.stringify(msg)
         return JSON.parse(json.replace(/\d\.\d\d\ds/g, '?.???s'))
-      })
+      }),
     ).toMatchSnapshot()
   })
 })
