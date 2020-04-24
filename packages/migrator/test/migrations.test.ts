@@ -20,7 +20,20 @@ toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 describe('run migrations', () => {
   const migrationsPath = join(__dirname, 'generated/run/migrations')
 
-  const migrator = setupSlonikMigrator({slonik, migrationsPath, migrationTableName: 'migration_test'})
+  const mockLogger = jest.fn()
+  const log = (...args: any[]) => {
+    if (JSON.stringify([args]) === JSON.stringify(mockLogger.mock.calls.slice(-1))) {
+      return
+    }
+    mockLogger(...args)
+  }
+
+  const migrator = setupSlonikMigrator({
+    slonik,
+    migrationsPath,
+    migrationTableName: 'migration_test',
+    log,
+  })
 
   const syncer = fsSyncer(migrationsPath, {
     '01.one.sql': 'create table migration_test_1(id int)',
@@ -31,7 +44,7 @@ describe('run migrations', () => {
     `,
     '04.four.ts': dedent`
       import {Migration} from '../..'
-      
+
       export const up: Migration = ({slonik, sql}) => slonik.query(sql\`create table migration_test_4(id int)\`)
       export const down: Migration = ({slonik, sql}) => slonik.query(sql\`drop table migration_test_4\`)
     `,
@@ -69,6 +82,9 @@ describe('run migrations', () => {
 
     const executed = () => migrator.executed().then(list => list.map(x => x.file))
     const pending = () => migrator.pending().then(list => list.map(x => x.file))
+
+    log(`getting pending migrations before initial 'up'`)
+
     const allMigrations = await pending()
     expect(allMigrations).toMatchInlineSnapshot(`
       Array [
@@ -109,12 +125,20 @@ describe('run migrations', () => {
     expect(await executed()).toEqual(allMigrations)
     expect(await pending()).toEqual([])
 
-    await migrator.down('02.two.sql')
+    await migrator.down('03.three.js')
     expect(await executed()).toMatchInlineSnapshot(`
       Array [
         "01.one.sql",
+        "02.two.sql",
       ]
     `)
+
+    expect(
+      mockLogger.mock.calls.map(msg => {
+        const json = JSON.stringify(msg)
+        return JSON.parse(json.replace(/\d\.\d\d\ds/g, '?.???s'))
+      })
+    ).toMatchSnapshot()
   })
 })
 
