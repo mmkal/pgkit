@@ -41,7 +41,7 @@ export interface SlonikMigratorCLI {
   down(to?: string): Promise<MigrationResult[]>
   pending(): Promise<MigrationResult[]>
   executed(): Promise<MigrationResult[]>
-  create(migrations: string): string
+  create(name: string): string
 }
 
 /** @private not meant for general use, since this is coupled to @see umzug */
