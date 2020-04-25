@@ -8,6 +8,6 @@ module.exports = {
   ],
   rules: {
     'prettier/prettier': ['warn', require('./.prettierrc.json')],
-    'codegen/codegen': ['error', {presets: {shit: () => '123'}}],
+    'codegen/codegen': 'error',
   },
 }
