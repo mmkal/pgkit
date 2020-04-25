@@ -1,0 +1,6 @@
+version: 1
+update_configs:
+  - package_manager: javascript
+    directory: /
+    version_update_requirements: increase_versions
+    update_schedule: weekly
