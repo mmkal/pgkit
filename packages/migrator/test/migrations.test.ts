@@ -1,12 +1,8 @@
-import {statSync, readdirSync, unlinkSync, writeFileSync, existsSync} from 'fs'
 import {join} from 'path'
-import {range, map} from 'lodash'
+import {range} from 'lodash'
 import {createPool, sql} from 'slonik'
 import {setupSlonikMigrator} from '../src'
 import * as dedent from 'dedent'
-import {inspect} from 'util'
-import {EOL} from 'os'
-
 import {fsSyncer} from 'fs-syncer'
 
 const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {idleTimeout: 1})
