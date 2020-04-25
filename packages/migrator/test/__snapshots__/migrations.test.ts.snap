@@ -254,6 +254,33 @@ Array [
     ],
   ],
   Array [
+    "== 01.one: reverting =======",
+  ],
+  Array [
+    "== 01.one: reverted (?.???s)
+",
+  ],
+  Array [
+    "migrations in database:",
+    Array [],
+  ],
+  Array [
+    "== 01.one: migrating =======",
+  ],
+  Array [
+    "== 01.one: migrated (?.???s)
+",
+  ],
+  Array [
+    "migrations in database:",
+    Array [
+      Object {
+        "hash": "68a0494793",
+        "name": "01.one.sql",
+      },
+    ],
+  ],
+  Array [
     "== 02.two: migrating =======",
   ],
   Array [

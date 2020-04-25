@@ -71,6 +71,18 @@ node migrate down
 
 The `users` table will now have been dropped again.
 
+```bash
+node migrate executed
+```
+
+The list of migrations that have already been applied will be printed.
+
+```bash
+node migrate pending
+```
+
+The list of migrations that are due to be applied will be printed.
+
 To run migrations programmatically, you can import the `migrator` object from another file. For example, in a lambda handler:
 
 ```javascript
@@ -102,6 +114,14 @@ parameters for the `setupSlonikMigrator` function
 | `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. | `migration` |
 | `log` | how information about the migrations will be logged. You can set to `() => {}` to prevent logs appearing at all. | `console.log` |
 | `mainModule` | if set to `module`, the javascript file calling `setupSlonikMigrator` can be used as a CLI script. If left undefined, the migrator can only be used programatically. | `undefined` |
+
+## Controlling migrations
+
+By default, `node migrate down` reverts only the most recent migration.
+
+It's also possible to migrate up or down "to" a specific migration. For example, if you have run migrations `one.sql`, `two.sql`, `three.sql` and `four.sql`, you can revert `three.sql` and `four.sql` by running `node migrate down three.sql`. Note that the range is *inclusive*. To revert all migrations in one go, run `node migrate down 0`
+
+Conversely, `node migrate up` runs all `up` migrations by default. To run only up to a certain migration, run `node migrate up two.sql`. This will run migrations `one.sql` and `two.sql` - again, the range is *inclusive* of the name.
 
 ## Implementation
 

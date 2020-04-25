@@ -174,7 +174,8 @@ export const setupSlonikMigrator = ({
 
   const migrator: SlonikMigratorCLI = {
     up: to => (to ? umzug.up({to}) : umzug.up()).then(map(pick(['file', 'path']))),
-    down: to => (to ? umzug.down({to}) : umzug.down()).then(map(pick(['file', 'path']))),
+    down: to =>
+      (to === '0' ? umzug.down({to: 0}) : to ? umzug.down({to}) : umzug.down()).then(map(pick(['file', 'path']))),
     pending: () => umzug.pending().then(map(pick(['file', 'path']))),
     executed: () => umzug.executed().then(map(pick(['file', 'path']))),
     create: (nameWithExtension: string) => {

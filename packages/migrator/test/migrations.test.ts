@@ -128,6 +128,9 @@ describe('run migrations', () => {
       ]
     `)
 
+    await migrator.down('0')
+    expect(await executed()).toEqual([])
+
     await migrator.up('03.three.js')
     expect(await executed()).toMatchInlineSnapshot(`
       Array [
@@ -141,7 +144,7 @@ describe('run migrations', () => {
       mockLogger.mock.calls.map(msg => {
         const json = JSON.stringify(msg)
         return JSON.parse(json.replace(/\d\.\d\d\ds/g, '?.???s'))
-      })
+      }),
     ).toMatchSnapshot()
   })
 })
