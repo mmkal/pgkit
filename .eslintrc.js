@@ -7,7 +7,7 @@ module.exports = {
     'codegen'
   ],
   rules: {
-    'prettier/prettier': ['warn', require('./.prettierrc.json')],
+    'prettier/prettier': ['warn', require('./.prettierrc')],
     'codegen/codegen': 'error',
   },
 }

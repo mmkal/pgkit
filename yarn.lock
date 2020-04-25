@@ -3706,6 +3706,11 @@ fs-minipass@^1.2.5:
   dependencies:
     minipass "^2.6.0"
 
+fs-syncer@^0.1.2:
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.1.2.tgz#fd1cf056b7a55925509ef82ac596723982dbb5ff"
+  integrity sha512-88hBDxNwvaaNLxaAwjtopeaJ/T8AF8MsGzmJCubDMHALAVKus2alZ86BPHMAQJpKKbRoAWIcGgByd4SvD3LbQA==
+
 fs-write-stream-atomic@^1.0.8:
   version "1.0.10"
   resolved "https://registry.yarnpkg.com/fs-write-stream-atomic/-/fs-write-stream-atomic-1.0.10.tgz#b47df53493ef911df75731e70a9ded0189db40c9"

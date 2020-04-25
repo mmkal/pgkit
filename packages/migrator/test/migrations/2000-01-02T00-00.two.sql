@@ -1,1 +1,0 @@
-create table migration_two(x text)

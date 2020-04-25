@@ -1,0 +1,1 @@
+create table two(id text)
