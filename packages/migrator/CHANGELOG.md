@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.5.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.4.0...@slonik/migrator@0.5.0) (2020-04-25)
+
+
+### Features
+
+* migrate up/down "to" named migration ([#193](https://github.com/mmkal/slonik-tools/issues/193)) ([6a1fd01](https://github.com/mmkal/slonik-tools/commit/6a1fd0108a360fe8a4f3a8dc6ae5b80b9676e432))
+
+
+
+
+
 # [0.4.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.3.2...@slonik/migrator@0.4.0) (2020-04-16)
 
 

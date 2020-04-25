@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.6.0](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.5.2...slonik-tools-demo@0.6.0) (2020-04-25)
+
+
+### Features
+
+* migrate up/down "to" named migration ([#193](https://github.com/mmkal/slonik-tools/issues/193)) ([6a1fd01](https://github.com/mmkal/slonik-tools/commit/6a1fd0108a360fe8a4f3a8dc6ae5b80b9676e432))
+
+
+
+
+
 ## [0.5.2](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.5.1...slonik-tools-demo@0.5.2) (2020-04-16)
 
 **Note:** Version bump only for package slonik-tools-demo
