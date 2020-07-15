@@ -1,5 +1,35 @@
 {
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:base",
+    ":semanticCommits"
+  ],
+  "prConcurrentLimit": 3,
+  "packageRules": [
+    {
+      "depTypeList": ["dependencies"],
+      "rangeStrategy": "update-lockfile"
+    },
+    {
+      "packagePatterns": ["slonik"],
+      "groupName": "slonik packages",
+      "labels": ["slonik"],
+      "prPriority": 1
+    },
+    {
+      "depTypeList": ["dependencies"],
+      "updateTypes": ["lockFileMaintenance"],
+      "automerge": true
+    },
+    {
+      "depTypeList": ["devDependencies"],
+      "automerge": true
+    },
+    {
+      "depTypeList": ["devDependencies"],
+      "packagePatterns": ["eslint"],
+      "groupName": "eslint packages",
+      "labels": ["linting"]
+    }
   ]
 }
