@@ -27,9 +27,9 @@
     "umzug": "^2.3.0"
   },
   "devDependencies": {
-    "@types/dedent": "^0.7.0",
-    "@types/lodash": "^4.14.134",
-    "@types/umzug": "^2.2.2"
+    "@types/dedent": "0.7.0",
+    "@types/lodash": "4.14.149",
+    "@types/umzug": "2.2.2"
   },
   "peerDependencies": {
     "slonik": ">= 21.0.0 < 23"
