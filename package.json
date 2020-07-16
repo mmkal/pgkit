@@ -71,7 +71,7 @@
     "eslint": "6.8.0",
     "eslint-plugin-codegen": "0.8.3",
     "eslint-plugin-prettier": "3.1.2",
-    "expect-type": "0.5.2",
+    "expect-type": "0.7.8",
     "fs-syncer": "0.1.2",
     "jest": "25.4.0",
     "lerna": "3.20.2",
