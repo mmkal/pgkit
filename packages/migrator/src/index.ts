@@ -17,7 +17,7 @@ export type SupportedExtension = typeof supportedExtensions[number]
 export interface SlonikMigratorOptions {
   slonik: DatabasePoolType
   migrationsPath: string
-  migrationTableName?: string
+  migrationTableName?: string | string[]
   log?: typeof console.log
   args?: string[]
   mainModule?: NodeModule
@@ -77,17 +77,21 @@ export const defaultResolvers = {
 export const setupSlonikMigrator = ({
   slonik,
   migrationsPath,
-  migrationTableName = 'migration',
+  migrationTableName = ['public', 'migration'],
   log = memoize(console.log, JSON.stringify),
   mainModule,
 }: SlonikMigratorOptions) => {
+  const migrationTableNameIdentifier = sql.identifier(
+    Array.isArray(migrationTableName) ? migrationTableName : [migrationTableName],
+  )
+
   const migrationResolver: GetUmzugResolver = params => {
     const ext = params.path.split('.').slice(-1)[0] as SupportedExtension
     return defaultResolvers[ext](params)
   }
   const createMigrationTable = once(async () => {
     void (await slonik.query(sql`
-      create table if not exists ${sql.identifier([migrationTableName])}(
+      create table if not exists ${migrationTableNameIdentifier}(
         name text primary key,
         hash text not null,
         date timestamptz not null default now()
@@ -111,7 +115,7 @@ export const setupSlonikMigrator = ({
       async executed() {
         await createMigrationTable()
         return slonik
-          .any(sql`select name, hash from ${sql.identifier([migrationTableName])}`)
+          .any(sql`select name, hash from ${migrationTableNameIdentifier}`)
           .then(migrations => {
             log('migrations in database:', migrations)
             return migrations
@@ -135,14 +139,14 @@ export const setupSlonikMigrator = ({
       async logMigration(name: string) {
         await createMigrationTable()
         await slonik.query(sql`
-            insert into ${sql.identifier([migrationTableName])}(name, hash)
+            insert into ${migrationTableNameIdentifier}(name, hash)
             values (${name}, ${hash(name)})
           `)
       },
       async unlogMigration(name: string) {
         await createMigrationTable()
         await slonik.query(sql`
-            delete from ${sql.identifier([migrationTableName])}
+            delete from ${migrationTableNameIdentifier}
             where name = ${name}
           `)
       },
