@@ -13,7 +13,7 @@ export const getApp = () => {
   app.post('/api/messages', (req, res) =>
     slonik
       .connect(async conn => {
-        const content = req.query.content
+        const content = req.query.content as string
         const id = await conn.oneFirst(sql.MessageId`
         insert into messages(content)
         values (${content})
@@ -27,7 +27,7 @@ export const getApp = () => {
   app.get('/api/messages', (req, res) =>
     slonik
       .connect(async conn => {
-        let {before} = req.query
+        let before = req.query.before as string
         const messages = await conn.any(sql.Message`
         select * from messages
         where id < ${before || 9999999}
