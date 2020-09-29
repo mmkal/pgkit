@@ -77,7 +77,7 @@ export const defaultResolvers = {
 export const setupSlonikMigrator = ({
   slonik,
   migrationsPath,
-  migrationTableName = ['public', 'migration'],
+  migrationTableName = 'migration',
   log = memoize(console.log, JSON.stringify),
   mainModule,
 }: SlonikMigratorOptions) => {
