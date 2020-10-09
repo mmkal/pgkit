@@ -331,7 +331,7 @@ const getFsTypeWriter = (generatedPath: string) => (typeName: string, properties
 
   const knownTypes = fs
     .readdirSync(generatedPath)
-    .filter(filename => filename !== 'index.ts')
+    .filter(filename => filename.endsWith('.ts') && filename !== 'index.ts')
     .map(filename => basename(filename, '.ts'))
 
   void writeIfChanged(
