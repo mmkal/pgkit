@@ -61,7 +61,7 @@
     "minimist": "^1.2.5"
   },
   "devDependencies": {
-    "@types/jest": "26.0.4",
+    "@types/jest": "26.0.14",
     "@types/node": "12.12.25",
     "@types/slonik": "22.1.4",
     "@typescript-eslint/eslint-plugin": "2.26.0",
