@@ -6,11 +6,31 @@ import {join} from 'path'
 import {tmpdir} from 'os'
 import {expectTypeOf} from 'expect-type'
 
+type Brands = {
+  CountInfo: {
+    a_count: 'count'
+  }
+}
+
+type Branded<T, TypeName, Field> = TypeName extends keyof Brands
+  ? Field extends keyof Brands[TypeName]
+    ? T & {_brand: Brands[TypeName][Field]}
+    : T
+  : T
+
+type OrigKnownTypes = typeof knownTypes
+
+type WrappedKnownTypes = {
+  [TypeName in keyof OrigKnownTypes]: {
+    [Field in keyof OrigKnownTypes[TypeName]]: Branded<OrigKnownTypes[TypeName][Field], TypeName, Field>
+  }
+}
+
 describe('type generator', () => {
   const writeTypes = join(__dirname, 'generated/main')
   const {sql, poolConfig} = setupTypeGen({
     reset: true,
-    knownTypes,
+    knownTypes: knownTypes as WrappedKnownTypes,
     writeTypes,
   })
   const connectionString = `postgresql://postgres:postgres@localhost:5433/postgres`
@@ -51,7 +71,10 @@ describe('type generator', () => {
       from foo
       group by a
     `)
-    expectTypeOf(countInfo).toEqualTypeOf<{a_count: number; a_value: string}>()
+    expectTypeOf(countInfo).toEqualTypeOf<{
+      a_count: number & {_brand: 'count'}
+      a_value: string
+    }>()
 
     const generatedFiles = readdirSync(writeTypes)
     generatedFiles.forEach(f => {
