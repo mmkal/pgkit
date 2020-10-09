@@ -103,6 +103,15 @@
     lodash "^4.17.13"
     source-map "^0.5.0"
 
+"@babel/generator@~7.11.6":
+  version "7.11.6"
+  resolved "https://registry.yarnpkg.com/@babel/generator/-/generator-7.11.6.tgz#b868900f81b163b4d464ea24545c61cbac4dc620"
+  integrity sha512-DWtQ1PV3r+cLbySoHrwn9RWEgKMBLLma4OBQloPRyDYvc5msJM9kvTLo1YnlJd1P/ZuKbdli3ijr5q3FvAF3uA==
+  dependencies:
+    "@babel/types" "^7.11.5"
+    jsesc "^2.5.1"
+    source-map "^0.5.0"
+
 "@babel/helper-function-name@^7.8.3":
   version "7.8.3"
   resolved "https://registry.yarnpkg.com/@babel/helper-function-name/-/helper-function-name-7.8.3.tgz#eeeb665a01b1f11068e9fb86ad56a1cb1a824cca"
@@ -182,6 +191,11 @@
   integrity sha512-3x3yOeyBhW851hroze7ElzdkeRXQYQbFIb7gLK1WQYsw2GWDay5gAJNw1sWJ0VFP6z5J1whqeXH/WCdCjZv6dA==
   dependencies:
     "@babel/types" "^7.8.3"
+
+"@babel/helper-validator-identifier@^7.10.4":
+  version "7.10.4"
+  resolved "https://registry.yarnpkg.com/@babel/helper-validator-identifier/-/helper-validator-identifier-7.10.4.tgz#a78c7a7251e01f616512d31b10adcf52ada5e0d2"
+  integrity sha512-3U9y+43hz7ZM+rzG24Qe2mufW5KhvFg/NhnNph+i9mgCtdTCtMJuI1TMkrIUiK7Ix4PYlRF9I5dhqaLYA/ADXw==
 
 "@babel/helper-validator-identifier@^7.9.0":
   version "7.9.0"
@@ -386,6 +400,15 @@
   dependencies:
     esutils "^2.0.2"
     lodash "^4.17.13"
+    to-fast-properties "^2.0.0"
+
+"@babel/types@^7.11.5":
+  version "7.11.5"
+  resolved "https://registry.yarnpkg.com/@babel/types/-/types-7.11.5.tgz#d9de577d01252d77c6800cee039ee64faf75662d"
+  integrity sha512-bvM7Qz6eKnJVFIn+1LPtjlBFPVN5jNDc1XmN15vWe7Q3DPBufWWsLiIvUu7xW87uTG6QoggpIDnUgLQvPheU+Q==
+  dependencies:
+    "@babel/helper-validator-identifier" "^7.10.4"
+    lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
 "@babel/types@^7.3.0", "@babel/types@^7.8.3":
@@ -3331,19 +3354,20 @@ escodegen@^1.11.1:
   optionalDependencies:
     source-map "~0.6.1"
 
-eslint-plugin-codegen@0.11.4:
-  version "0.11.4"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-codegen/-/eslint-plugin-codegen-0.11.4.tgz#0a440b36b86dde3b906b53e5a0586b435955ebf2"
-  integrity sha512-t20ZZlwBCS+1Hqf0ZxiBerbtzwdl09nUFpUQE9IYEVH1q2T2o9m21IHwZ88k0RtJbLACHT2PTJx8BnS9P+MdjA==
+eslint-plugin-codegen@0.13.2:
+  version "0.13.2"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-codegen/-/eslint-plugin-codegen-0.13.2.tgz#077b251291e8981507b17ccc4e1875fa611aa6bc"
+  integrity sha512-xIwb58C7U+VvKzL0ZjPlKS6j+JxVQShv17qhu+jyqk0zcFCcbewpPIernbK9t5Ak+dMpa9enHdaVbXbg/CxRuA==
   dependencies:
     "@babel/core" "^7.9.0"
+    "@babel/generator" "~7.11.6"
     "@babel/parser" "^7.9.4"
     "@babel/traverse" "^7.9.0"
     expect "^26.0.0"
     fp-ts "^2.1.0"
     glob "^7.1.4"
     io-ts "^2.2.4"
-    io-ts-extra "0.10.4"
+    io-ts-extra "0.10.9"
     js-yaml "^3.14.0"
     lodash "^4.17.15"
     string.prototype.matchall "^4.0.2"
@@ -4472,18 +4496,13 @@ internal-slot@^1.0.2:
     has "^1.0.3"
     side-channel "^1.0.2"
 
-io-ts-extra@0.10.4:
-  version "0.10.4"
-  resolved "https://registry.yarnpkg.com/io-ts-extra/-/io-ts-extra-0.10.4.tgz#63dd0517a6e77b46867e20690514a55aacb317d9"
-  integrity sha512-cWMZ+JImT2pVcG9Sf9cV5291UEVNsG3he+2WKB2PyVZLk9BiyeJdh5qTA9iOL4xbocAN6EwVeK0jxxXiZ3DsRw==
+io-ts-extra@0.10.9:
+  version "0.10.9"
+  resolved "https://registry.yarnpkg.com/io-ts-extra/-/io-ts-extra-0.10.9.tgz#6e3375c812c03270caf37081869d2f9b1508074d"
+  integrity sha512-yEHqr3oNberwvbG/44piGWlFxxy60hlDW/9YpXdMYjmgdoYiNj3OMr3AKOyIZiLpc6+ohFUDX3vqjVVubYe+1A==
   dependencies:
     fp-ts "^2.1.0"
-    io-ts "^2.0.1"
-
-io-ts@^2.0.1:
-  version "2.1.3"
-  resolved "https://registry.yarnpkg.com/io-ts/-/io-ts-2.1.3.tgz#02c03c375d14079496f0c046ef8a9aad4fbaeb74"
-  integrity sha512-QFMR2QEBSP6w1TPmkpfca6xkzBbXO+K7ubdbV26GlCGI7CP9LV59bfty422JYtWgbBITuL/zBb1+mziv9f5Wfg==
+    io-ts "^2.2.4"
 
 io-ts@^2.2.4:
   version "2.2.8"
@@ -5550,6 +5569,11 @@ lodash@^4.17.12, lodash@^4.17.13, lodash@^4.17.14, lodash@^4.17.15, lodash@^4.2.
   version "4.17.15"
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.15.tgz#b447f6670a0455bbfeedd11392eff330ea097548"
   integrity sha512-8xOcRHvCjnocdS5cpwXQXVzmmh5e5+saE2QGoeQmbKmRS6J3VQppPOIt0MnmE+4xlZoumy0GPG0D0MVIQbNA1A==
+
+lodash@^4.17.19:
+  version "4.17.20"
+  resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.20.tgz#b44a9b6297bcb698f1c51a3545a2b3b368d59c52"
+  integrity sha512-PlhdFcillOINfeV7Ni6oF1TAEayyZBoZ8bcshTHqOYJYlrqzRK5hagpagky5o4HfCzzd1TRkXPMFq6cKk9rGmA==
 
 log-driver@^1.2.7:
   version "1.2.7"
