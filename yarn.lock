@@ -2497,10 +2497,10 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==
 
-check-clean@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/check-clean/-/check-clean-0.1.0.tgz#8cf199c9147b549e3c207ade0fc7d1998c38759b"
-  integrity sha512-m8TQ/1VQsopm6YsstlZ6YdasKfSaDKDgfwOvNdVNFojmtoz2x1v4eMP96A7a5zuaTbggDxpkkX050UJur9Mp4g==
+check-clean@0.2.4:
+  version "0.2.4"
+  resolved "https://registry.yarnpkg.com/check-clean/-/check-clean-0.2.4.tgz#13861db4cd2821cc8bdea5e57668c44d9785222c"
+  integrity sha512-1HKufqrh798yt5jcUd7kTqDP2j/vQ2YYYiLilOWBzp6ZeaqV2Fh4VnRUN81PuDCmwlCGtm8BSGAJnc9b+G5RoQ==
 
 chownr@^1.1.1, chownr@^1.1.2:
   version "1.1.3"
