@@ -24,13 +24,6 @@ describe('run migrations', () => {
     mockLogger(...args)
   }
 
-  const migrator = setupSlonikMigrator({
-    slonik,
-    migrationsPath,
-    migrationTableName: 'migration_test',
-    log,
-  })
-
   const syncer = fsSyncer(migrationsPath, {
     '01.one.sql': 'create table migration_test_1(id int)',
     '02.two.sql': 'create table migration_test_2(id int)',
@@ -52,7 +45,8 @@ describe('run migrations', () => {
 
   const deleteTables = () =>
     slonik.query(sql`
-      drop table if exists migration_test;
+      drop table if exists migration_meta_1;
+      drop table if exists migration_meta_2;
       drop table if exists migration_test_;
       drop table if exists migration_test_1;
       drop table if exists migration_test_2;
@@ -60,7 +54,7 @@ describe('run migrations', () => {
       drop table if exists migration_test_4;
     `)
 
-  beforeAll(async () => {
+  beforeEach(async () => {
     await deleteTables()
     await syncer.sync()
   })
@@ -74,6 +68,13 @@ describe('run migrations', () => {
     `)
 
   test('up and down', async () => {
+    const migrator = setupSlonikMigrator({
+      slonik,
+      migrationsPath,
+      migrationTableName: 'migration_meta_1',
+      log,
+    })
+  
     expect(await migrationTables()).toEqual([])
 
     const executed = () => migrator.executed().then(list => list.map(x => x.file))
@@ -146,6 +147,25 @@ describe('run migrations', () => {
         return JSON.parse(json.replace(/\d\.\d\d\ds/g, '?.???s'))
       }),
     ).toMatchSnapshot()
+  })
+
+  test('migrationTableName array format', async () => {
+    const migrator = setupSlonikMigrator({
+      slonik,
+      migrationsPath,
+      migrationTableName: ['public', 'migration_meta_2'],
+      log,
+    })
+
+    expect(await migrationTables()).toEqual([])
+
+    await migrator.up('01.one.sql')
+
+    const executed = () => migrator.executed().then(list => list.map(x => x.file))
+
+    expect(await executed()).toEqual(['01.one.sql'])
+
+    expect(await slonik.manyFirst(sql`select name from migration_meta_2`)).toEqual(['01.one.sql'])
   })
 })
 
