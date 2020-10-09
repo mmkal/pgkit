@@ -5,6 +5,8 @@
     ":semanticCommits"
   ],
   "prConcurrentLimit": 3,
+  "dependencyDashboard": true,
+  "dependencyDashboardAutoclose": true,
   "packageRules": [
     {
       "depTypeList": ["dependencies"],
