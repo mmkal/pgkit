@@ -3554,10 +3554,10 @@ expand-brackets@^2.1.4:
     snapdragon "^0.8.1"
     to-regex "^3.0.1"
 
-expect-type@0.7.8:
-  version "0.7.8"
-  resolved "https://registry.yarnpkg.com/expect-type/-/expect-type-0.7.8.tgz#e97ba1981eab5dc69766858a8a7a06df4638d2d3"
-  integrity sha512-nFFkv3ywLhg8qfAygefj6jvmNmuGAVdRbDSCnKJnRdTob8IVWmBWFyimNBFqORRGbhg07bgNSBZ9imY0vE8p1Q==
+expect-type@0.8.0:
+  version "0.8.0"
+  resolved "https://registry.yarnpkg.com/expect-type/-/expect-type-0.8.0.tgz#dd82ab508e7b3eae083072d6197551cb18a82551"
+  integrity sha512-JJqodW5GNh8tDfupFEwlR9CGLWlI6JrS1G/bktgS2xFVZCLwIfgqstODtmoZ8/pSeqzSDSWLCYrqZy130NwyHQ==
 
 expect@^25.4.0:
   version "25.4.0"
