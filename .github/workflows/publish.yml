@@ -24,6 +24,7 @@ jobs:
     - name: publish
       env:
         NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+        GH_TOKEN: ${{ secrets.GH_CI_TOKEN }}
       run: |
         npm whoami | grep .
         yarn lerna publish --yes
