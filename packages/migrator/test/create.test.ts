@@ -29,10 +29,10 @@ describe('create', () => {
 
     expect(syncer.read()).toMatchInlineSnapshot(`
       Object {
-        "2000-01-01T00-00.sql.sql": "--sql (up)
+        "2000-01-01T00-00-00.sql.sql": "--sql (up)
       ",
         "down": Object {
-          "2000-01-01T00-00.sql.sql": "--sql (down)
+          "2000-01-01T00-00-00.sql.sql": "--sql (down)
       ",
         },
       }
@@ -44,7 +44,7 @@ describe('create', () => {
 
     expect(syncer.read()).toMatchInlineSnapshot(`
       Object {
-        "2000-01-01T00-00.javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
+        "2000-01-01T00-00-00.javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
       exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
       ",
         "down": Object {},
@@ -57,7 +57,7 @@ describe('create', () => {
 
     expect(syncer.read()).toMatchInlineSnapshot(`
       Object {
-        "2000-01-01T00-00.typescript.ts": "import {Migration} from '@slonik/migrator'
+        "2000-01-01T00-00-00.typescript.ts": "import {Migration} from '@slonik/migrator'
 
       export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
       export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
@@ -82,37 +82,37 @@ describe('create', () => {
 
     expect(syncer.read()).toMatchInlineSnapshot(`
       Object {
-        "2000-01-01T00-00.sql.sql": "--sql (up)
+        "2000-01-01T00-00-00.sql.sql": "--sql (up)
       ",
-        "2000-01-02T00-00.javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
+        "2000-01-02T00-00-00.javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
       exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
       ",
-        "2000-01-03T00-00.javascript2.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
+        "2000-01-03T00-00-00.javascript2.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
       exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
       ",
-        "2000-01-04T00-00.also-should-be-javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
+        "2000-01-04T00-00-00.also-should-be-javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
       exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
       ",
-        "2000-01-05T00-00.typescript.ts": "import {Migration} from '@slonik/migrator'
+        "2000-01-05T00-00-00.typescript.ts": "import {Migration} from '@slonik/migrator'
 
       export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
       export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
       ",
-        "2000-01-06T00-00.also-should-be-typescript.ts": "import {Migration} from '@slonik/migrator'
+        "2000-01-06T00-00-00.also-should-be-typescript.ts": "import {Migration} from '@slonik/migrator'
 
       export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
       export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
       ",
-        "2000-01-07T00-00.more-sql.sql": "--more-sql (up)
+        "2000-01-07T00-00-00.more-sql.sql": "--more-sql (up)
       ",
-        "2000-01-08T00-00.also-should-be-sql.sql": "--also-should-be-sql (up)
+        "2000-01-08T00-00-00.also-should-be-sql.sql": "--also-should-be-sql (up)
       ",
         "down": Object {
-          "2000-01-01T00-00.sql.sql": "--sql (down)
+          "2000-01-01T00-00-00.sql.sql": "--sql (down)
       ",
-          "2000-01-07T00-00.more-sql.sql": "--more-sql (down)
+          "2000-01-07T00-00-00.more-sql.sql": "--more-sql (down)
       ",
-          "2000-01-08T00-00.also-should-be-sql.sql": "--also-should-be-sql (down)
+          "2000-01-08T00-00-00.also-should-be-sql.sql": "--also-should-be-sql (down)
       ",
         },
       }
