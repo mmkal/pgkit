@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.6.1 (2020-10-12)
+
+**Note:** Version bump only for package slonik-tools-demo
+
+
+
+
+
 # [0.6.0](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.5.2...slonik-tools-demo@0.6.0) (2020-04-25)
 
 
