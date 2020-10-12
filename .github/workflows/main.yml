@@ -36,8 +36,5 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn
       - run: yarn ci
-        if: matrix.node-version == '12.x'
-      - run: yarn build && yarn test
-        if: matrix.node-version == '10.x'
       - uses: codecov/codecov-action@v1
         if: matrix.node-version == '12.x'
