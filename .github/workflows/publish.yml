@@ -25,5 +25,5 @@ jobs:
       env:
         NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
       run: |
-        npm whoami | grep mmkale
-        echo 'DRYRUN yarn lerna publish'
+        npm whoami | grep .
+        yarn lerna publish --yes
