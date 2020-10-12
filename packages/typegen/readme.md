@@ -7,7 +7,7 @@ A library that uses [slonik](https://npmjs.com/package/slonik) to generate types
 
 ## The idea
 
-This library gives you type-safety of an ORM, and the flexibility of sql. Read [@gajus](https://github.com/gajus)'s excellent blog post on why it's a good idea to use sql rather than ORMs or query-builders: [Stop using Knex.js](https://medium.com/@gajus/bf410349856c)
+This library gives you type-safety of an ORM, and the flexibility of sql. Read [@gajus](https://github.com/gajus)'s excellent blog post on why it's a good idea to use sql rather than ORMs or query-builders: [Stop using Knex.js](https://medium.com/@gajus/bf410349856c).
 
 The library will make sure that return values from all your SQL queries have strict, accurate TypeScript interfaces.
 
