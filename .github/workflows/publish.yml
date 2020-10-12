@@ -1,0 +1,29 @@
+name: publish
+on: 
+  workflow_dispatch
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.GH_CI_TOKEN }}
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 12.x
+    - name: setup/install/build
+      run: |
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        git config --global user.name "${{ github.actor }}"
+
+        yarn
+        yarn build
+
+        echo '//registry.npmjs.org/:_authToken=${NPM_AUTH_TOKEN}' > ~/.npmrc
+    - name: publish
+      env:
+        NPM_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}
+      run: |
+        npm whoami | grep mmkale
+        echo 'DRYRUN yarn lerna publish'
