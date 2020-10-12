@@ -199,7 +199,7 @@ export const setupSlonikMigrator = ({
       const timestamp = new Date()
         .toISOString()
         .replace(/\W/g, '-')
-        .replace(/Z/, '')
+        .replace(/-\d\d\dZ/, '')
 
       const filename = `${timestamp}.${name}.${extension}`
       const downDir = join(migrationsPath, 'down')
