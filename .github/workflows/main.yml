@@ -20,7 +20,7 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5432:5432
+          - 5433:5432
 
     strategy:
       matrix:
@@ -36,8 +36,5 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn
       - run: yarn ci
-        if: matrix.node-version == '12.x'
-      - run: yarn test
-        if: matrix.node-version == '10.x'
       - uses: codecov/codecov-action@v1
         if: matrix.node-version == '12.x'

@@ -4,7 +4,7 @@ const fs = require('fs')
 
 jest.mock('fs', () => {
   const mockableFunctions: Array<keyof typeof import('fs')> = ['writeFileSync', 'mkdirSync', 'unlinkSync', 'rmdirSync']
-  const realFs = require.requireActual('fs')
+  const realFs = jest.requireActual('fs')
   const mockFunctions = {} as any
   const mockedFsModule = {...realFs, mocks: mockFunctions}
   mockableFunctions.forEach(name => {
@@ -21,7 +21,7 @@ jest.spyOn(console, 'log').mockImplementation(() => {})
 
 expect.addSnapshotSerializer({
   test: jest.isMockFunction,
-  print: v =>
+  print: (v: any) =>
     JSON.stringify(v.mock.calls, null, 2)
       .replace(/(\\r)?\\n/g, '__EOL__')
       .replace(/\\+/g, '/') // fix Windows backslashes :'(
