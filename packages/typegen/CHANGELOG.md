@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.6.2 (2020-10-12)
+
+
+### Bug Fixes
+
+* add GH_TOKEN env var to publish step ([a667c89](https://github.com/mmkal/slonik-tools/commit/a667c895893598b33a7909b0d3bf0a797094c3cc))
+
+
+
+
+
 ## 0.6.1 (2020-10-12)
 
 **Note:** Version bump only for package @slonik/typegen
