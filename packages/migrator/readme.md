@@ -70,7 +70,7 @@ Note: `node migrate create xyz` will try to detect the type of pre-existing migr
  
   Note: if writing migrations in typescript, you will likely want to use a tool like [ts-node](https://npmjs.com/package/ts-node) to enable loading typescript modules. You can either add `require('ts-node/register/transpile-only')` at the top of your `migrate.js` file, or run `node -r ts-node/register/transpile-only migrate ...` instead of `node migrate ...`.
 
-  (In general, using `ts-node/register/transpile-only` is preferable over `ts-node/register` - type-checking is best left to a separate process)
+  (Using `ts-node/register/transpile-only` performs faster than `ts-node/register`, and is safe to use if type-checking is performed separately)
 
 </details>
 
