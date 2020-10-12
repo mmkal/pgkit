@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 0.6.0 (2020-10-12)
+
+
+### Features
+
+* include seconds in migration timestamp ([#251](https://github.com/mmkal/slonik-tools/issues/251)) ([df1ec3b](https://github.com/mmkal/slonik-tools/commit/df1ec3bea58482ce762acf1c35bb58c2fc7d8748))
+
+
+
+
+
 ## 0.5.2 (2020-10-12)
 
 
