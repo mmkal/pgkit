@@ -1,0 +1,43 @@
+name: CI
+on:
+  push: {}
+  pull_request: {}
+
+jobs:
+  build:
+    if: github.event_name == 'push' || github.event.pull_request.base.repo.url != github.event.pull_request.head.repo.url
+    runs-on: ubuntu-latest
+    services:
+      redis:
+        image: postgres:12
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    strategy:
+      matrix:
+        node-version: [12.x, 10.x]
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - run: yarn
+      - run: yarn ci
+        if: matrix.node-version == '12.x'
+      - run: yarn test
+        if: matrix.node-version == '10.x'
+      - uses: codecov/codecov-action@v1
+        if: matrix.node-version == '12.x'
