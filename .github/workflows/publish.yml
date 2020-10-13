@@ -1,4 +1,4 @@
-name: publish
+name: Publish
 on: 
   workflow_dispatch:
     inputs:
@@ -40,4 +40,4 @@ jobs:
           exit 1
         fi
 
-        echo 'skipping actual publish for now' # yarn lerna publish --yes
+        yarn lerna publish --yes
