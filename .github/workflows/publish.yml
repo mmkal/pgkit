@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       changes_hash:
-        description: Hash of expected changes from lerna publish. Get this by running `yarn lerna:changes:hash` locally or running this job with no input and copy-pasting the expected value from the error message.
+        description: Hash of expected changes from lerna publish. Get this by running `yarn changes:hash` locally, or leave blank and check the job's error logs for the expected value.
 
 jobs:
   run:
@@ -12,6 +12,7 @@ jobs:
     - uses: actions/checkout@v2
       with:
         token: ${{ secrets.GH_CI_TOKEN }}
+        fetch-depth: 0
     - uses: actions/setup-node@v1
       with:
         node-version: 12.x
@@ -31,10 +32,11 @@ jobs:
       run: |
         npm whoami | grep .
 
-        EXPECTED_CHANGES=$(yarn --silent lerna:changes:hash)
-        if [ "$EXPECTED_CHANGES" != "${{ github.events.inputs.changes_hash }}" ]; then
+        EXPECTED_CHANGES=$(yarn --silent changes:hash)
+        if [ "$EXPECTED_CHANGES" != "${{ github.event.inputs.changes_hash }}" ]; then
           echo "Expected hashed changes: $EXPECTED_CHANGES"
-          echo "Got: ${{ github.events.inputs.changes_hash }}"
+          echo "Got: ${{ github.event.inputs.changes_hash }}"
+          echo "If the changes printed above look OK, rerun this workflow with the expected hash."
           exit 1
         fi
 
