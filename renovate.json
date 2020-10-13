@@ -25,13 +25,8 @@
     },
     {
       "depTypeList": ["devDependencies"],
-      "automerge": true
-    },
-    {
-      "depTypeList": ["devDependencies"],
-      "packagePatterns": ["eslint"],
-      "groupName": "eslint packages",
-      "labels": ["linting"]
+      "automerge": true,
+      "groupName": "devDependencies"
     }
   ]
 }
