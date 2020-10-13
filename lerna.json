@@ -10,5 +10,5 @@
       "createRelease": "github"
     }
   },
-  "ignoreChanges": ["**/package-lock.json"]
+  "ignoreChanges": ["**/package-lock.json", "**/*.test.ts"]
 }

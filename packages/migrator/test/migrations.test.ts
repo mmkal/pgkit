@@ -74,7 +74,7 @@ describe('run migrations', () => {
       migrationTableName: 'migration_meta_1',
       log,
     })
-  
+
     expect(await migrationTables()).toEqual([])
 
     const executed = () => migrator.executed().then(list => list.map(x => x.file))
