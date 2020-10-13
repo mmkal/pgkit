@@ -27,7 +27,8 @@
     {
       "depTypeList": ["devDependencies"],
       "automerge": true,
-      "groupName": "devDependencies"
+      "groupName": "devDependencies",
+      "updateTypes": ["patch", "minor", "major", "lockFileMaintenance"]
     }
   ]
 }
