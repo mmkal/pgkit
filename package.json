@@ -1,61 +1,63 @@
 {
   "name": "slonik-tools",
   "version": "0.0.2",
-  "description": "slonik tools monorepo",
   "private": true,
-  "workspaces": [
-    "packages/*"
+  "description": "slonik tools monorepo",
+  "keywords": [
+    "slonik"
   ],
-  "scripts": {
-    "build": "tsc -b .",
-    "dependencies": "docker-compose up",
-    "eslint": "eslint --ext .ts,.js,.md",
-    "lint": "yarn eslint .",
-    "test": "jest",
-    "migrate": "lerna run migrate",
-    "ci": "run-s lint build migrate coverage build",
-    "coverage": "yarn test --coverage",
-    "commit-date": "git log -n 1 --date=format:'%Y-%m-%d-%H-%M-%S' --pretty=format:'%ad'",
-    "current-branch": "echo \"${CURRENT_BRANCH-$(git rev-parse --abbrev-ref HEAD)}\" | sed -E 's/refs\\/heads\\///' | sed -E 's/\\W|_/-/g'",
-    "canary-preid": "echo \"$(yarn --silent current-branch)-$(yarn --silent commit-date)\"",
-    "publish-canary": "lerna publish --canary --preid $(yarn --silent canary-preid) --dist-tag $(yarn --silent current-branch)"
-  },
-  "prettier": {
-    "bracketSpacing": false,
-    "tabWidth": 2,
-    "printWidth": 120,
-    "singleQuote": true,
-    "trailingComma": "all",
-    "semi": false
+  "homepage": "https://github.com/mmkal/slonik-tools#readme",
+  "bugs": {
+    "url": "https://github.com/mmkal/slonik-tools/issues"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mmkal/slonik-tools.git"
   },
-  "keywords": [
-    "slonik"
-  ],
-  "author": "mmkal",
   "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/mmkal/slonik-tools/issues"
+  "author": "mmkal",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "tsc -b .",
+    "canary-preid": "echo \"$(yarn --silent current-branch)-$(yarn --silent commit-date)\"",
+    "ci": "run-s lint build migrate coverage build",
+    "commit-date": "git log -n 1 --date=format:'%Y-%m-%d-%H-%M-%S' --pretty=format:'%ad'",
+    "coverage": "yarn test --coverage",
+    "current-branch": "echo \"${CURRENT_BRANCH-$(git rev-parse --abbrev-ref HEAD)}\" | sed -E 's/refs\\/heads\\///' | sed -E 's/\\W|_/-/g'",
+    "dependencies": "docker-compose up",
+    "eslint": "eslint --ext .ts,.js,.md",
+    "lerna:changes": "echo n | lerna publish | grep -v 'Are you sure you want to publish these packages?'",
+    "lerna:changes:hash": "export CHANGES=\"$(yarn --silent lerna:changes)\" && export B64=\"$(echo \"$CHANGES\" | base64 -w 0)\" && printf \"$CHANGES\\n\\n\" 1>&2 && echo \"$B64\"",
+    "lint": "yarn eslint .",
+    "migrate": "lerna run migrate",
+    "publish-canary": "lerna publish --canary --preid $(yarn --silent canary-preid) --dist-tag $(yarn --silent current-branch)",
+    "test": "jest"
+  },
+  "prettier": {
+    "bracketSpacing": false,
+    "printWidth": 120,
+    "semi": false,
+    "singleQuote": true,
+    "tabWidth": 2,
+    "trailingComma": "all"
   },
   "jest": {
-    "transform": {
-      "^.+\\.tsx?$": "ts-jest"
-    },
+    "collectCoverageFrom": [
+      "**/*.ts",
+      "!**/*.d.ts",
+      "!**/generated/**"
+    ],
     "globals": {
       "ts-jest": {
         "diagnostics": false
       }
     },
-    "collectCoverageFrom": [
-      "**/*.ts",
-      "!**/*.d.ts",
-      "!**/generated/**"
-    ]
+    "transform": {
+      "^.+\\.tsx?$": "ts-jest"
+    }
   },
-  "homepage": "https://github.com/mmkal/slonik-tools#readme",
   "resolutions": {
     "minimist": "^1.2.5"
   },

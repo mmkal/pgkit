@@ -1,6 +1,9 @@
 name: publish
 on: 
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      changes_hash:
+        description: Hash of expected changes from lerna publish. Get this by running `yarn lerna:changes:hash` locally or running this job with no input and copy-pasting the expected value from the error message.
 
 jobs:
   run:
@@ -27,4 +30,12 @@ jobs:
         GH_TOKEN: ${{ secrets.GH_CI_TOKEN }}
       run: |
         npm whoami | grep .
-        yarn lerna publish --yes
+
+        EXPECTED_CHANGES=$(yarn --silent lerna:changes:hash)
+        if [ "$EXPECTED_CHANGES" != "${{ github.events.inputs.changes_hash }}" ]; then
+          echo "Expected hashed changes: $EXPECTED_CHANGES"
+          echo "Got: ${{ github.events.inputs.changes_hash }}"
+          exit 1
+        fi
+
+        echo 'skipping actual publish for now' # yarn lerna publish --yes
