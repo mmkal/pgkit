@@ -223,6 +223,7 @@ export const setupSlonikMigrator = ({
       ;(async () => {
         const result = await migrator[command as keyof SlonikMigratorCLI](name)
         if (command === 'pending' || command === 'executed') log(`${command}:`, result)
+        await slonik.end()
       })()
     } else {
       const info = {'commands available': Object.keys(migrator), 'command from cli args': command}
