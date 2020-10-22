@@ -8040,11 +8040,12 @@ slonik@^20.1.0:
     through2 "^3.0.1"
     ulid "^2.3.0"
 
-slonik@^23.0.0:
-  version "23.0.0"
-  resolved "https://registry.yarnpkg.com/slonik/-/slonik-23.0.0.tgz#c1bad041e5c4cf1c4d7cd884a6a0ee33cb9e7cb6"
-  integrity sha512-nHfpFJu8yPov+pY8ArwroBYx2EmvW1kS4taP7xXP6auNeyWKW+FDfd9iBkhE05zKeFkRIrRdg3If0gZITdSDAg==
+slonik@^23.0.1:
+  version "23.0.1"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-23.0.1.tgz#0a2ad7b2f39bbee610939209ad971f2328759914"
+  integrity sha512-jnSUNrT0UAy3mMdtBDeJRzVEjKGKenuCdGtp0ga03m/Li+gA1Cf9fiVFrgmRP2b73GWqQ9jQXxz/ykCTMX0qng==
   dependencies:
+    "@types/roarr" "^2.14.2"
     concat-stream "^2.0.0"
     delay "^4.4.0"
     es6-error "^4.1.1"
