@@ -14,13 +14,13 @@ import {EOL} from 'os'
 const keys = <T>(obj: T) => Object.keys(obj) as Array<keyof T>
 const fromPairs = <K, V>(pairs: Array<[K, V]>) =>
   pairs.reduce((obj, [k, v]) => ({...obj, [k as any]: v}), {} as Record<string, V>) as Record<string, V>
-const orderBy = <T>(list: T[], cb: (value: T) => string | number) =>
+const orderBy = <T>(list: readonly T[], cb: (value: T) => string | number) =>
   [...list].sort((a, b) => {
     const left = cb(a)
     const right = cb(b)
     return left < right ? -1 : left > right ? 1 : 0
   })
-const groupBy = <T>(list: T[], getKey: (value: T) => string | number) => {
+const groupBy = <T>(list: readonly T[], getKey: (value: T) => string | number) => {
   const record: Record<string, T[] | undefined> = {}
   list.forEach(value => {
     const key = getKey(value)
@@ -182,8 +182,9 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
         {
           afterPoolConnection: async (_context, connection) => {
             if (!_oidToTypeName && typeof config.writeTypes === 'string') {
+              type PgType = {typname: string; oid: number}
               const types = orderBy(
-                await connection.any(slonikSql`
+                await connection.any(slonikSql<PgType>`
                   select typname, oid
                   from pg_type
                   where (typnamespace = 11 and typname not like 'pg_%')
@@ -191,9 +192,11 @@ export const setupSqlGetter = <KnownTypes>(config: TypeGenConfig<KnownTypes>): T
                 `),
                 t => `${t.typname}`.replace(/^_/, 'zzz'),
               )
+
+              type PgEnum = {enumtypid: number; enumlabel: string}
               const _oidToEnumValues = groupBy(
-                await connection.any(slonikSql`
-                  select * from pg_enum
+                await connection.any(slonikSql<PgEnum>`
+                  select enumtypid, enumlabel from pg_enum
                 `),
                 row => row.enumtypid,
               )
