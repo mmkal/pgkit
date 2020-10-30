@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.7.1](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.7.0...slonik-tools-demo@0.7.1) (2020-10-30)
+
+
+### Bug Fixes
+
+* formatting ([23af4af](https://github.com/mmkal/slonik-tools/commit/23af4af1a3198b9262e7aa3e9b6c0de00a3e19a6))
+
+
+
+
+
 # 0.7.0 (2020-10-12)
 
 
