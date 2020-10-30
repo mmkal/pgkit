@@ -5,7 +5,6 @@ import {map, pick} from 'lodash/fp'
 import {basename, dirname, join, extname} from 'path'
 import * as Umzug from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
-import {raw} from 'slonik-sql-tag-raw'
 import {inspect} from 'util'
 import * as dedent from 'dedent'
 import {EOL} from 'os'
@@ -60,11 +59,18 @@ const scriptResolver: GetUmzugResolver = params => {
   }
 }
 
+// slonik-sql-tag-raw will fail for certain inputs. This is simpler (/dumber) and won't: https://github.com/gajus/slonik-sql-tag-raw/issues/6
+export const rawSql = (query: string): ReturnType<typeof sql> => ({
+  type: 'SLONIK_TOKEN_SQL',
+  sql: query,
+  values: [],
+})
+
 const sqlResolver: GetUmzugResolver = ({path, slonik, sql}) => ({
-  up: () => slonik.query(sql`${raw(readFileSync(path, 'utf8'))}`),
+  up: () => slonik.query(rawSql(readFileSync(path, 'utf8'))),
   down: async () => {
     const downPath = join(dirname(path), 'down', basename(path))
-    await slonik.query(sql`${raw(readFileSync(downPath, 'utf8'))}`)
+    await slonik.query(rawSql(readFileSync(downPath, 'utf8')))
   },
 })
 
