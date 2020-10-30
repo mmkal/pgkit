@@ -10,70 +10,31 @@ Array [
     Array [],
   ],
   Array [
-    "== 01.one: migrating =======",
+    "== 01.one.sql: migrating =======",
   ],
   Array [
-    "== 01.one: migrated (?.???s)
+    "== 01.one.sql: migrated (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-    ],
+    "== 02.two.sql: migrating =======",
   ],
   Array [
-    "== 02.two: migrating =======",
-  ],
-  Array [
-    "== 02.two: migrated (?.???s)
+    "== 02.two.sql: migrated (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-      Object {
-        "hash": "a65a32e9d3",
-        "name": "02.two.sql",
-      },
-    ],
+    "== 03.three.js: migrating =======",
   ],
   Array [
-    "== 03.three: migrating =======",
-  ],
-  Array [
-    "== 03.three: migrated (?.???s)
+    "== 03.three.js: migrated (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-      Object {
-        "hash": "a65a32e9d3",
-        "name": "02.two.sql",
-      },
-      Object {
-        "hash": "a97f6162ee",
-        "name": "03.three.js",
-      },
-    ],
+    "== 04.four.ts: migrating =======",
   ],
   Array [
-    "== 04.four: migrating =======",
-  ],
-  Array [
-    "== 04.four: migrated (?.???s)
+    "== 04.four.ts: migrated (?.???s)
 ",
   ],
   Array [
@@ -98,10 +59,10 @@ Array [
     ],
   ],
   Array [
-    "== 04.four: reverting =======",
+    "== 04.four.ts: reverting =======",
   ],
   Array [
-    "== 04.four: reverted (?.???s)
+    "== 04.four.ts: reverted (?.???s)
 ",
   ],
   Array [
@@ -122,10 +83,10 @@ Array [
     ],
   ],
   Array [
-    "== 03.three: reverting =======",
+    "== 03.three.js: reverting =======",
   ],
   Array [
-    "== 03.three: reverted (?.???s)
+    "== 03.three.js: reverted (?.???s)
 ",
   ],
   Array [
@@ -142,34 +103,17 @@ Array [
     ],
   ],
   Array [
-    "== 03.three: migrating =======",
+    "== 03.three.js: migrating =======",
   ],
   Array [
-    "== 03.three: migrated (?.???s)
+    "== 03.three.js: migrated (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-      Object {
-        "hash": "a65a32e9d3",
-        "name": "02.two.sql",
-      },
-      Object {
-        "hash": "a97f6162ee",
-        "name": "03.three.js",
-      },
-    ],
+    "== 04.four.ts: migrating =======",
   ],
   Array [
-    "== 04.four: migrating =======",
-  ],
-  Array [
-    "== 04.four: migrated (?.???s)
+    "== 04.four.ts: migrated (?.???s)
 ",
   ],
   Array [
@@ -194,54 +138,24 @@ Array [
     ],
   ],
   Array [
-    "== 04.four: reverting =======",
+    "== 04.four.ts: reverting =======",
   ],
   Array [
-    "== 04.four: reverted (?.???s)
+    "== 04.four.ts: reverted (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-      Object {
-        "hash": "a65a32e9d3",
-        "name": "02.two.sql",
-      },
-      Object {
-        "hash": "a97f6162ee",
-        "name": "03.three.js",
-      },
-    ],
+    "== 03.three.js: reverting =======",
   ],
   Array [
-    "== 03.three: reverting =======",
-  ],
-  Array [
-    "== 03.three: reverted (?.???s)
+    "== 03.three.js: reverted (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-      Object {
-        "hash": "a65a32e9d3",
-        "name": "02.two.sql",
-      },
-    ],
+    "== 02.two.sql: reverting =======",
   ],
   Array [
-    "== 02.two: reverting =======",
-  ],
-  Array [
-    "== 02.two: reverted (?.???s)
+    "== 02.two.sql: reverted (?.???s)
 ",
   ],
   Array [
@@ -254,10 +168,10 @@ Array [
     ],
   ],
   Array [
-    "== 01.one: reverting =======",
+    "== 01.one.sql: reverting =======",
   ],
   Array [
-    "== 01.one: reverted (?.???s)
+    "== 01.one.sql: reverted (?.???s)
 ",
   ],
   Array [
@@ -265,46 +179,24 @@ Array [
     Array [],
   ],
   Array [
-    "== 01.one: migrating =======",
+    "== 01.one.sql: migrating =======",
   ],
   Array [
-    "== 01.one: migrated (?.???s)
+    "== 01.one.sql: migrated (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-    ],
+    "== 02.two.sql: migrating =======",
   ],
   Array [
-    "== 02.two: migrating =======",
-  ],
-  Array [
-    "== 02.two: migrated (?.???s)
+    "== 02.two.sql: migrated (?.???s)
 ",
   ],
   Array [
-    "migrations in database:",
-    Array [
-      Object {
-        "hash": "68a0494793",
-        "name": "01.one.sql",
-      },
-      Object {
-        "hash": "a65a32e9d3",
-        "name": "02.two.sql",
-      },
-    ],
+    "== 03.three.js: migrating =======",
   ],
   Array [
-    "== 03.three: migrating =======",
-  ],
-  Array [
-    "== 03.three: migrated (?.???s)
+    "== 03.three.js: migrated (?.???s)
 ",
   ],
   Array [
