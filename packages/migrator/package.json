@@ -24,12 +24,11 @@
     "dedent": "^0.7.0",
     "lodash": "^4.17.15",
     "slonik-sql-tag-raw": "^1.0.1",
-    "umzug": "^2.3.0"
+    "umzug": "..\\..\\..\\umzug\\umzug-3.0.0-beta.61.tgz"
   },
   "devDependencies": {
     "@types/dedent": "0.7.0",
-    "@types/lodash": "4.14.161",
-    "@types/umzug": "2.2.2"
+    "@types/lodash": "4.14.161"
   },
   "peerDependencies": {
     "slonik": ">= 21.0.0 < 24"

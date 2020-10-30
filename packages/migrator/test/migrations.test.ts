@@ -77,8 +77,8 @@ describe('run migrations', () => {
 
     expect(await migrationTables()).toEqual([])
 
-    const executed = () => migrator.executed().then(list => list.map(x => x.file))
-    const pending = () => migrator.pending().then(list => list.map(x => x.file))
+    const executed = () => migrator.executed().then(list => list.map(x => x.name))
+    const pending = () => migrator.pending().then(list => list.map(x => x.name))
 
     log(`getting pending migrations before initial 'up'`)
 
@@ -161,7 +161,7 @@ describe('run migrations', () => {
 
     await migrator.up('01.one.sql')
 
-    const executed = () => migrator.executed().then(list => list.map(x => x.file))
+    const executed = () => migrator.executed().then(list => list.map(x => x.name))
 
     expect(await executed()).toEqual(['01.one.sql'])
 

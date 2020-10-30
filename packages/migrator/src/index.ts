@@ -1,11 +1,9 @@
 import {createHash} from 'crypto'
 import {readFileSync, writeFileSync, mkdirSync, readdirSync} from 'fs'
 import {once, memoize} from 'lodash'
-import {map, pick} from 'lodash/fp'
 import {basename, dirname, join, extname} from 'path'
-import * as Umzug from 'umzug'
+import {Umzug} from 'umzug'
 import {sql, DatabasePoolType} from 'slonik'
-import {raw} from 'slonik-sql-tag-raw'
 import {inspect} from 'util'
 import * as dedent from 'dedent'
 import {EOL} from 'os'
@@ -29,11 +27,11 @@ export interface MigrationParams {
   sql: typeof sql
 }
 
-export type Migration = (params: MigrationParams) => PromiseLike<unknown>
+export type Migration = (params: MigrationParams) => Promise<unknown>
 
 export interface MigrationResult {
-  file: string
-  path: string
+  name: string
+  path?: string
 }
 
 export interface SlonikMigratorCLI {
@@ -48,8 +46,8 @@ export interface SlonikMigratorCLI {
 type GetUmzugResolver = (
   params: MigrationParams,
 ) => {
-  up: () => PromiseLike<unknown>
-  down?: () => PromiseLike<unknown>
+  up: () => Promise<unknown>
+  down?: () => Promise<unknown>
 }
 
 const scriptResolver: GetUmzugResolver = params => {
@@ -60,11 +58,18 @@ const scriptResolver: GetUmzugResolver = params => {
   }
 }
 
+// safer than slonik-sql-tag-raw: https://github.com/gajus/slonik-sql-tag-raw/issues/6
+const rawQuery = (query: string): ReturnType<typeof sql> => ({
+  type: 'SLONIK_TOKEN_SQL',
+  sql: query,
+  values: [],
+})
+
 const sqlResolver: GetUmzugResolver = ({path, slonik, sql}) => ({
-  up: () => slonik.query(sql`${raw(readFileSync(path, 'utf8'))}`),
+  up: () => slonik.query(rawQuery(readFileSync(path, 'utf8'))),
   down: async () => {
     const downPath = join(dirname(path), 'down', basename(path))
-    await slonik.query(sql`${raw(readFileSync(downPath, 'utf8'))}`)
+    await slonik.query(rawQuery(readFileSync(downPath, 'utf8')))
   },
 })
 
@@ -105,11 +110,18 @@ export const setupSlonikMigrator = ({
       .slice(0, 10)
 
   const umzug = new Umzug({
-    logging: log,
+    logger: {
+      info: log,
+      warn: log,
+      error: log,
+    },
     migrations: {
-      path: migrationsPath,
-      pattern: /\.(sql|js|ts)$/,
-      customResolver: path => migrationResolver({path, slonik, sql}),
+      glob: ['*.{sql,js,ts}', {cwd: migrationsPath}],
+      resolve: ({path, name}) => ({
+        path,
+        name,
+        ...migrationResolver({path, slonik, sql}),
+      }),
     },
     storage: {
       async executed() {
@@ -177,11 +189,10 @@ export const setupSlonikMigrator = ({
   })
 
   const migrator: SlonikMigratorCLI = {
-    up: to => (to ? umzug.up({to}) : umzug.up()).then(map(pick(['file', 'path']))),
-    down: to =>
-      (to === '0' ? umzug.down({to: 0}) : to ? umzug.down({to}) : umzug.down()).then(map(pick(['file', 'path']))),
-    pending: () => umzug.pending().then(map(pick(['file', 'path']))),
-    executed: () => umzug.executed().then(map(pick(['file', 'path']))),
+    up: to => (to ? umzug.up({to}) : umzug.up()),
+    down: to => (to === '0' ? umzug.down({to: 0}) : to ? umzug.down({to}) : umzug.down()),
+    pending: () => umzug.pending(),
+    executed: () => umzug.executed(),
     create: (nameWithExtension: string) => {
       const explicitExtension = supportedExtensions.find(ex => extname(nameWithExtension) === `.${ex}`)
       const name = explicitExtension
