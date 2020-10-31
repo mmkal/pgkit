@@ -118,9 +118,9 @@ export const setupSlonikMigrator = ({
     migrations: {
       glob: ['*.{sql,js,ts}', {cwd: migrationsPath}],
       resolve: ({path, name}) => ({
-        path,
         name,
-        ...migrationResolver({path, slonik, sql}),
+        path,
+        ...migrationResolver({path: path!, slonik, sql}),
       }),
     },
     storage: {
