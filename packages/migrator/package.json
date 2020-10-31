@@ -24,7 +24,7 @@
     "dedent": "^0.7.0",
     "lodash": "^4.17.15",
     "slonik-sql-tag-raw": "^1.0.1",
-    "umzug": "..\\..\\..\\umzug\\umzug-3.0.0-beta.61.tgz"
+    "umzug": "^3.0.0-beta.7"
   },
   "devDependencies": {
     "@types/dedent": "0.7.0",

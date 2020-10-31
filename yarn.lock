@@ -8860,9 +8860,10 @@ umask@^1.1.0:
   resolved "https://registry.yarnpkg.com/umask/-/umask-1.1.0.tgz#f29cebf01df517912bb58ff9c4e50fde8e33320d"
   integrity sha1-8pzr8B31F5ErtY/5xOUP3o4zMg0=
 
-"umzug@..\\..\\..\\umzug\\umzug-3.0.0-beta.61.tgz":
-  version "3.0.0-beta.61"
-  resolved "..\\..\\..\\umzug\\umzug-3.0.0-beta.61.tgz#7a2e1ea2c28335b9142dd75bbac40863fa2bf780"
+umzug@^3.0.0-beta.7:
+  version "3.0.0-beta.7"
+  resolved "https://registry.yarnpkg.com/umzug/-/umzug-3.0.0-beta.7.tgz#40e4136a1d5e32b37fa10c2d526724c2a2ecdcf5"
+  integrity sha512-m1WXs74dN6TYU0edehq+9NGmP9eoogHH/XG32pQ8SsJ5QzFmECnRUdkaH22QrZkhdOadzqC9L5Je/m5+wAhExQ==
   dependencies:
     fs-jetpack "^4.0.0"
     glob "^7.1.6"
