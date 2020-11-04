@@ -7876,10 +7876,10 @@ slide@^1.1.6:
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-slonik@23.0.1:
-  version "23.0.1"
-  resolved "https://registry.yarnpkg.com/slonik/-/slonik-23.0.1.tgz#0a2ad7b2f39bbee610939209ad971f2328759914"
-  integrity sha512-jnSUNrT0UAy3mMdtBDeJRzVEjKGKenuCdGtp0ga03m/Li+gA1Cf9fiVFrgmRP2b73GWqQ9jQXxz/ykCTMX0qng==
+slonik@23.0.2:
+  version "23.0.2"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-23.0.2.tgz#f8c15d49c4075dc43ba3eaedb8dcf207e10f50a2"
+  integrity sha512-sZ7Nkp+YrFdPKcJLciXF3xIavtp3HSQQzbhulIF1l4EGWZNmHkkGMvZ0vvIGAPdIYCsh/orM6K2afyhQjszcEw==
   dependencies:
     "@types/roarr" "^2.14.2"
     concat-stream "^2.0.0"
