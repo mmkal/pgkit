@@ -17,12 +17,7 @@ describe('run migrations', () => {
   const migrationsPath = join(__dirname, 'generated/run/migrations')
 
   const mockLogger = jest.fn()
-  const log = (...args: any[]) => {
-    if (JSON.stringify([args]) === JSON.stringify(mockLogger.mock.calls.slice(-1))) {
-      return
-    }
-    mockLogger(...args)
-  }
+  const log = mockLogger
 
   const syncer = fsSyncer(migrationsPath, {
     '01.one.sql': 'create table migration_test_1(id int)',
@@ -72,13 +67,18 @@ describe('run migrations', () => {
       slonik,
       migrationsPath,
       migrationTableName: 'migration_meta_1',
-      log,
+      logger: {
+        debug: log,
+        info: log,
+        warn: log,
+        error: log,
+      },
     })
 
     expect(await migrationTables()).toEqual([])
 
-    const executed = () => migrator.executed().then(list => list.map(x => x.file))
-    const pending = () => migrator.pending().then(list => list.map(x => x.file))
+    const executed = () => migrator.executed().then(list => list.map(x => x.name))
+    const pending = () => migrator.pending().then(list => list.map(x => x.name))
 
     log(`getting pending migrations before initial 'up'`)
 
@@ -122,17 +122,17 @@ describe('run migrations', () => {
     expect(await executed()).toEqual(allMigrations)
     expect(await pending()).toEqual([])
 
-    await migrator.down('02.two.sql')
+    await migrator.down({to: '02.two.sql'})
     expect(await executed()).toMatchInlineSnapshot(`
       Array [
         "01.one.sql",
       ]
     `)
 
-    await migrator.down('0')
+    await migrator.down({to: 0})
     expect(await executed()).toEqual([])
 
-    await migrator.up('03.three.js')
+    await migrator.up({to: '03.three.js'})
     expect(await executed()).toMatchInlineSnapshot(`
       Array [
         "01.one.sql",
@@ -144,7 +144,7 @@ describe('run migrations', () => {
     expect(
       mockLogger.mock.calls.map(msg => {
         const json = JSON.stringify(msg)
-        return JSON.parse(json.replace(/\d\.\d\d\ds/g, '?.???s'))
+        return JSON.parse(json.replace(/\d\.\d\d\d/g, '0.001'))
       }),
     ).toMatchSnapshot()
   })
@@ -154,14 +154,14 @@ describe('run migrations', () => {
       slonik,
       migrationsPath,
       migrationTableName: ['public', 'migration_meta_2'],
-      log,
+      logger: undefined,
     })
 
     expect(await migrationTables()).toEqual([])
 
-    await migrator.up('01.one.sql')
+    await migrator.up({to: '01.one.sql'})
 
-    const executed = () => migrator.executed().then(list => list.map(x => x.file))
+    const executed = () => migrator.executed().then(list => list.map(x => x.name))
 
     expect(await executed()).toEqual(['01.one.sql'])
 

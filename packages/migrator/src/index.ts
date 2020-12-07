@@ -1,241 +1,313 @@
 import {createHash} from 'crypto'
-import {readFileSync, writeFileSync, mkdirSync, readdirSync} from 'fs'
-import {once, memoize} from 'lodash'
-import {map, pick} from 'lodash/fp'
-import {basename, dirname, join, extname} from 'path'
-import * as Umzug from 'umzug'
-import {sql, DatabasePoolType} from 'slonik'
-import {inspect} from 'util'
+import {readFileSync} from 'fs'
+import {basename, dirname, join} from 'path'
+import * as umzug from 'umzug'
+import {sql, DatabasePoolType, DatabaseTransactionConnectionType, IdentifierSqlTokenType} from 'slonik'
+import * as path from 'path'
 import * as dedent from 'dedent'
-import {EOL} from 'os'
 
-export const supportedExtensions = ['sql', 'js', 'ts'] as const
-
-export type SupportedExtension = typeof supportedExtensions[number]
-
-export interface SlonikMigratorOptions {
-  slonik: DatabasePoolType
-  migrationsPath: string
-  migrationTableName?: string | string[]
-  log?: typeof console.log
-  args?: string[]
-  mainModule?: NodeModule
-}
-
-export interface MigrationParams {
-  path: string
-  slonik: DatabasePoolType
+interface SlonikMigratorContext {
+  parent: DatabasePoolType
+  transaction: DatabaseTransactionConnectionType
   sql: typeof sql
+  commit: () => Promise<void>
 }
 
-export type Migration = (params: MigrationParams) => PromiseLike<unknown>
+export const getTableNameIdentifier = (table: string | string[]) =>
+  sql.identifier(Array.isArray(table) ? table : [table])
 
-export interface MigrationResult {
-  file: string
-  path: string
-}
-
-export interface SlonikMigratorCLI {
-  up(to?: string): Promise<MigrationResult[]>
-  down(to?: string): Promise<MigrationResult[]>
-  pending(): Promise<MigrationResult[]>
-  executed(): Promise<MigrationResult[]>
-  create(name: string): string
-}
-
-/** @private not meant for general use, since this is coupled to @see umzug */
-type GetUmzugResolver = (
-  params: MigrationParams,
-) => {
-  up: () => PromiseLike<unknown>
-  down?: () => PromiseLike<unknown>
-}
-
-const scriptResolver: GetUmzugResolver = params => {
-  const exportedMigrations: {up: Migration; down?: Migration} = require(params.path)
-  return {
-    up: () => exportedMigrations.up(params),
-    down: exportedMigrations.down && (() => exportedMigrations.down!(params)),
-  }
-}
-
-// slonik-sql-tag-raw will fail for certain inputs. This is simpler (/dumber) and won't: https://github.com/gajus/slonik-sql-tag-raw/issues/6
-export const rawSql = (query: string): ReturnType<typeof sql> => ({
-  type: 'SLONIK_TOKEN_SQL',
-  sql: query,
-  values: [],
-})
-
-const sqlResolver: GetUmzugResolver = ({path, slonik, sql}) => ({
-  up: () => slonik.query(rawSql(readFileSync(path, 'utf8'))),
-  down: async () => {
-    const downPath = join(dirname(path), 'down', basename(path))
-    await slonik.query(rawSql(readFileSync(downPath, 'utf8')))
-  },
-})
-
-export const defaultResolvers = {
-  sql: sqlResolver,
-  js: scriptResolver,
-  ts: scriptResolver,
-}
-
-export const setupSlonikMigrator = ({
+/**
+ * Get an @see umzug.UmzugStorage object.
+ */
+export const getStorage = ({
   slonik,
   migrationsPath,
-  migrationTableName = 'migration',
-  log = memoize(console.log, JSON.stringify),
-  mainModule,
-}: SlonikMigratorOptions) => {
-  const migrationTableNameIdentifier = sql.identifier(
-    Array.isArray(migrationTableName) ? migrationTableName : [migrationTableName],
-  )
+  logger,
+  migrationTableName,
+}: SlonikMigratorOptions): umzug.UmzugStorage<SlonikMigratorContext> => {
+  const migrationTableNameIdentifier = getTableNameIdentifier(migrationTableName)
 
-  const migrationResolver: GetUmzugResolver = params => {
-    const ext = params.path.split('.').slice(-1)[0] as SupportedExtension
-    return defaultResolvers[ext](params)
-  }
-  const createMigrationTable = once(async () => {
-    void (await slonik.query(sql`
-      create table if not exists ${migrationTableNameIdentifier}(
-        name text primary key,
-        hash text not null,
-        date timestamptz not null default now()
-      )
-    `))
-  })
   const hash = (migrationName: string) =>
     createHash('md5')
       .update(readFileSync(join(migrationsPath, migrationName), 'utf8').trim().replace(/\s+/g, ' '))
       .digest('hex')
       .slice(0, 10)
 
-  const umzug = new Umzug({
-    logging: log,
-    migrations: {
-      path: migrationsPath,
-      pattern: /\.(sql|js|ts)$/,
-      customResolver: path => migrationResolver({path, slonik, sql}),
+  return {
+    async executed({context}) {
+      await getOrCreateMigrationsTable(migrationTableNameIdentifier, context)
+      const results = await context.parent
+        .any(sql`select name, hash from ${migrationTableNameIdentifier}`)
+        .then(migrations =>
+          migrations.map(r => {
+            const name = r.name as string
+            /* istanbul ignore if */
+            if (r.hash !== hash(name)) {
+              logger?.warn({
+                message: `hash in '${migrationTableName}' table didn't match content on disk.`,
+                question: `did you try to change a migration file after it had been run?`,
+                migration: r.name,
+                dbHash: r.hash,
+                diskHash: hash(name),
+              })
+            }
+            return name
+          }),
+        )
+
+      return results
     },
-    storage: {
-      async executed() {
-        await createMigrationTable()
-        return slonik
-          .any(sql`select name, hash from ${migrationTableNameIdentifier}`)
-          .then(migrations => {
-            log('migrations in database:', migrations)
-            return migrations
-          })
-          .then(migrations =>
-            migrations.map(r => {
-              const name = r.name as string
-              /* istanbul ignore if */
-              if (r.hash !== hash(name)) {
-                log(
-                  `warning:`,
-                  `hash in '${migrationTableName}' table didn't match content on disk.`,
-                  `did you try to change a migration file after it had been run?`,
-                  {migration: r.name, dbHash: r.hash, diskHash: hash(name)},
-                )
-              }
-              return name
-            }),
-          )
-      },
-      async logMigration(name: string) {
-        await createMigrationTable()
-        await slonik.query(sql`
-            insert into ${migrationTableNameIdentifier}(name, hash)
-            values (${name}, ${hash(name)})
-          `)
-      },
-      async unlogMigration(name: string) {
-        await createMigrationTable()
-        await slonik.query(sql`
-            delete from ${migrationTableNameIdentifier}
-            where name = ${name}
-          `)
-      },
+
+    async logMigration(name: string, {context}) {
+      await context.transaction.query(sql`
+        insert into ${migrationTableNameIdentifier}(name, hash)
+        values (${name}, ${hash(name)})
+      `)
     },
-  })
 
-  const templates = (name: string) => ({
-    sql: {
-      up: `--${name} (up)`,
-      down: `--${name} (down)`,
+    async unlogMigration(name: string, {context}) {
+      await context.transaction.query(sql`
+        delete from ${migrationTableNameIdentifier}
+        where name = ${name}
+      `)
     },
-    ts: {
-      up: dedent`
-        import {Migration} from '@slonik/migrator'
+  }
+}
 
-        export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-        export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      `,
-      down: null,
-    },
-    js: {
-      up: dedent`
-        exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
-        exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      `,
-      down: null,
-    },
-  })
+const getOrCreateMigrationsTable = (
+  migrationTableNameIdentifier: IdentifierSqlTokenType,
+  context: SlonikMigratorContext,
+) =>
+  context.parent.query(sql`
+    create table if not exists ${migrationTableNameIdentifier}(
+      name text primary key,
+      hash text not null,
+      date timestamptz not null default now()
+    )
+  `)
 
-  const migrator: SlonikMigratorCLI = {
-    up: to => (to ? umzug.up({to}) : umzug.up()).then(map(pick(['file', 'path']))),
-    down: to =>
-      (to === '0' ? umzug.down({to: 0}) : to ? umzug.down({to}) : umzug.down()).then(map(pick(['file', 'path']))),
-    pending: () => umzug.pending().then(map(pick(['file', 'path']))),
-    executed: () => umzug.executed().then(map(pick(['file', 'path']))),
-    create: (nameWithExtension: string) => {
-      const explicitExtension = supportedExtensions.find(ex => extname(nameWithExtension) === `.${ex}`)
-      const name = explicitExtension
-        ? nameWithExtension.slice(0, nameWithExtension.lastIndexOf(`.${explicitExtension}`))
-        : nameWithExtension
+export const getHooks = ({logger, migrationTableName}: SlonikMigratorOptions) => {
+  const migrationTableNameIdentifier = getTableNameIdentifier(migrationTableName)
 
-      const extension =
-        explicitExtension ||
-        readdirSync(migrationsPath)
-          .reverse()
-          .map(filename => supportedExtensions.find(ex => extname(filename) === `.${ex}`))
-          .find(Boolean) ||
-        'sql'
+  /**
+   * Use [postgres advisory locks](https://www.postgresql.org/docs/9.6/explicit-locking.html#ADVISORY-LOCKS) in setup and teardown.
+   * See [go-migrate](https://github.com/golang-migrate/migrate/blob/15931649a23b380e66a229c61ecd6097ea2fa807/database/postgres/postgres.go#L158-L194).
+   * for a similar implementation in go.
+   */
+  const advisoryLockId = parseInt(
+    createHash('md5')
+      .update('@slonik/migrator advisory lock:' + JSON.stringify(migrationTableName))
+      .digest('hex')
+      .slice(0, 8),
+    16,
+  )
 
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/\W/g, '-')
-        .replace(/-\d\d\dZ/, '')
+  return {
+    async setup({context}: {context: SlonikMigratorContext}) {
+      let settle!: Function
+      const settledPromise = new Promise(r => (settle = r))
 
-      const filename = `${timestamp}.${name}.${extension}`
-      const downDir = join(migrationsPath, 'down')
-      const {up, down} = templates(name)[extension as SupportedExtension]
+      let ready!: Function
+      const readyPromise = new Promise(r => (ready = r))
 
-      const upPath = join(migrationsPath, filename)
-      writeFileSync(upPath, up + EOL, 'utf8')
+      const transactionPromise = context.parent.transaction(async transaction => {
+        context.transaction = transaction
+        ready()
 
-      if (down) {
-        mkdirSync(downDir, {recursive: true})
-        writeFileSync(join(downDir, filename), down + EOL, 'utf8')
+        await settledPromise
+      })
+
+      await readyPromise
+
+      context.commit = () => {
+        settle()
+        return transactionPromise
       }
 
-      return upPath
+      const timeout = setTimeout(() => logger?.info({message: `Waiting for lock...`} as any), 1000)
+      await context.transaction.any(context.sql`select pg_advisory_lock(${advisoryLockId})`)
+      clearTimeout(timeout)
+
+      await getOrCreateMigrationsTable(migrationTableNameIdentifier, context)
+    },
+
+    async teardown({context}: {context: SlonikMigratorContext}) {
+      await context.transaction.query(context.sql`select pg_advisory_unlock(${advisoryLockId})`).catch(error => {
+        logger?.error({
+          message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
+          originalError: error,
+        })
+      })
+      await context.commit()
     },
   }
-  /* istanbul ignore if */
-  if (require.main === mainModule) {
-    const [command, name] = process.argv.slice(2)
-    if (command in migrator) {
-      ;(async () => {
-        const result = await migrator[command as keyof SlonikMigratorCLI](name)
-        if (command === 'pending' || command === 'executed') log(`${command}:`, result)
-        await slonik.end()
-      })()
-    } else {
-      const info = {'commands available': Object.keys(migrator), 'command from cli args': command}
-      throw `command not found. ${inspect(info, {breakLength: Infinity})}`
-    }
+}
+
+export const template = (filepath: string) => {
+  const templates: Record<string, Array<[string, string]>> = {
+    '.sql': [
+      [filepath, `raise 'up migration not implemented'`],
+      [path.join(path.dirname(filepath), 'down', path.basename(filepath)), `raise 'down migration not implemented'`],
+    ],
+    '.ts': [
+      [
+        filepath,
+        dedent`
+          import {Migration} from '@slonik/migrator'
+  
+          export const up: Migration = async ({slonik, sql}) => {
+            await slonik.query(sql\`raise 'up migration not implemented'\`)
+          }
+
+          export const down: Migration = async ({slonik, sql}) => {
+            await slonik.query(sql\`raise 'down migration not implemented'\`)
+          }
+        `,
+      ],
+    ],
+    '.js': [
+      [
+        filepath,
+        dedent`
+          exports.up = async ({slonik, sql}) => {
+            await slonik.query(sql\`raise 'up migration not implemented'\`)
+          }
+
+          exports.down = async ({slonik, sql}) => {
+            await slonik.query(sql\`raise 'down migration not implemented'\`)
+          }
+        `,
+      ],
+    ],
   }
 
+  return templates[path.extname(filepath)] || []
+}
+
+export interface SlonikMigratorOptions {
+  /**
+   * Slonik instance for running migrations. You can import this from the same place as your main application,
+   * or import another slonik instance with different permissions, security settings etc.
+   */
+  slonik: DatabasePoolType
+  /**
+   * Path to folder that will contain migration files.
+   */
+  migrationsPath: string
+  /**
+   * REQUIRED table name. @slonik/migrator will manage this table for you, but you have to tell it the name
+   * Note: prior to version 0.6.0 this had a default value of "migration", so if you're upgrading from that
+   * version, you should name it that!
+   */
+  migrationTableName: string | string[]
+  /**
+   * Logger with `info`, `warn`, `error` and `debug` methods - set explicitly to `undefined` to disable logging
+   */
+  logger: umzug.UmzugOptions['logger']
+  /**
+   * OPTIONAL "module" value. If you set `mainModule: module` in a nodejs script, that script will become a
+   * runnable CLI when invoked directly, but the migrator object can still be imported as normal if a different
+   * entrypoint is used.
+   */
+  mainModule?: NodeModule
+}
+
+/**
+ * More reliable than slonik-sql-tag-raw: https://github.com/gajus/slonik-sql-tag-raw/issues/6
+ * But doesn't sanitise any inputs, so shouldn't be used with templates
+ */
+const rawQuery = (query: string): ReturnType<typeof sql> => ({
+  type: 'SLONIK_TOKEN_SQL',
+  sql: query,
+  values: [],
+})
+
+export const sqlResolver: umzug.Resolver<SlonikMigratorContext> = params => ({
+  name: params.name,
+  path: params.path,
+  up: async ({path, context}) => {
+    await context!.transaction.query(rawQuery(readFileSync(path!, 'utf8')))
+  },
+  down: async ({path, context}) => {
+    const downPath = join(dirname(path!), 'down', basename(path!))
+    await context!.transaction.query(rawQuery(readFileSync(downPath, 'utf8')))
+  },
+})
+
+export const umzugResolver: umzug.Resolver<SlonikMigratorContext> = params => {
+  if (path.extname(params.name) === '.sql') {
+    return sqlResolver(params)
+  }
+  const {transaction: slonik} = params.context
+  const migrationModule = require(params.path!)
+  return {
+    name: params.name,
+    path: params.path,
+    up: upParams => migrationModule.up({slonik, sql, ...upParams}),
+    down: downParams => migrationModule.down({slonik, sql, ...downParams}),
+  }
+}
+
+/**
+ * Narrowing of @see umzug.UmzugOptions where the migrations input type specifically,, uses `glob`
+ */
+export type SlonikUmzugOptions = umzug.UmzugOptions<SlonikMigratorContext> & {
+  migrations: umzug.GlobInputMigrations<SlonikMigratorContext>
+}
+
+/**
+ * Get umzug constructor options. This is called by `setupSlonikMigrator`, but to tweak the umzug constructor
+ * options, this can be called directly and customised.
+ */
+export const getUmzugOptions = (slonikMigratorOptions: SlonikMigratorOptions): SlonikUmzugOptions => {
+  return {
+    context: {
+      parent: slonikMigratorOptions.slonik,
+      sql,
+      commit: null as never, // commit function is added later by storage setup.
+      transaction: null as never, // commit function is added later by storage setup.
+    },
+    migrations: {
+      glob: ['./*.{js,ts,sql}', {cwd: path.resolve(slonikMigratorOptions.migrationsPath)}],
+      resolve: umzugResolver,
+    },
+    storage: getStorage(slonikMigratorOptions),
+    logger: slonikMigratorOptions.logger,
+    create: {
+      template,
+      folder: path.resolve(slonikMigratorOptions.migrationsPath),
+    },
+  }
+}
+
+/**
+ * Default umzug `resolve` function for migrations. Runs sql files as queries, and executes `up` and `down`
+ * exports of javascript/typescript files, passing params `{slonik sql}`
+ */
+export const slonikMigrationResolver: umzug.Resolver<SlonikMigratorContext> = params => {
+  if (path.extname(params.name) === '.sql') {
+    return sqlResolver(params)
+  }
+  const {transaction} = params.context
+  const migrationModule = require(params.path!)
+  return {
+    name: params.name,
+    path: params.path,
+    up: upParams => migrationModule.up({slonik: transaction, sql, ...upParams}),
+    down: downParams => migrationModule.down({slonik: transaction, sql, ...downParams}),
+  }
+}
+
+/**
+ * Returns @see umzug.Umzug instance.
+ */
+export const setupSlonikMigrator = (options: SlonikMigratorOptions) => {
+  const migrator = new umzug.Umzug(getUmzugOptions(options))
+  const hooks = getHooks(options)
+  migrator.on('beforeAll', hooks.setup)
+  migrator.on('afterAll', hooks.teardown)
+  if (options.mainModule === require.main) {
+    migrator.runAsCLI().then(() => options.slonik.end())
+  }
   return migrator
 }

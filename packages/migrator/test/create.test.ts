@@ -3,6 +3,7 @@ import {range} from 'lodash'
 import {createPool, sql} from 'slonik'
 import {setupSlonikMigrator} from '../src'
 import {fsSyncer} from 'fs-syncer'
+import * as jsYaml from 'js-yaml'
 
 const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {idleTimeout: 1})
 
@@ -12,10 +13,20 @@ const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() 
 const toISOSpy = jest.spyOn(Date.prototype, 'toISOString')
 toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 
+expect.addSnapshotSerializer({
+  test: val => val && typeof val === 'object',
+  print: val => jsYaml.safeDump(val),
+})
+
 describe('create', () => {
   const syncer = fsSyncer(join(__dirname, 'generated/create/migrations'), {})
 
-  const migrator = setupSlonikMigrator({slonik, migrationsPath: syncer.baseDir})
+  const migrator = setupSlonikMigrator({
+    slonik,
+    migrationsPath: syncer.baseDir,
+    migrationTableName: 'migration',
+    logger: undefined,
+  })
 
   beforeEach(() => {
     syncer.sync()
@@ -24,101 +35,39 @@ describe('create', () => {
 
   afterAll(syncer.sync)
 
-  test('creates a sql file', () => {
-    migrator.create('sql')
+  test('creates sql, js and ts files', async () => {
+    await migrator.create({name: 'sql.sql'})
+    await migrator.create({name: 'javascript.js'})
+    await migrator.create({name: 'typescript.ts'})
+
+    await expect(migrator.create({name: 'text.txt'})).rejects.toThrowError(/Extension .txt not allowed./)
 
     expect(syncer.read()).toMatchInlineSnapshot(`
-      Object {
-        "2000-01-01T00-00-00.sql.sql": "--sql (up)
-      ",
-        "down": Object {
-          "2000-01-01T00-00-00.sql.sql": "--sql (down)
-      ",
-        },
-      }
-    `)
-  })
+      2000.01.01T00.00.00.sql.sql: raise 'up migration not implemented'
+      2000.01.02T00.00.00.javascript.js: |-
+        exports.up = async ({slonik, sql}) => {
+          await slonik.query(sql\`raise 'up migration not implemented'\`)
+        }
 
-  test('creates a js file', () => {
-    migrator.create('javascript.js')
+        exports.down = async ({slonik, sql}) => {
+          await slonik.query(sql\`raise 'down migration not implemented'\`)
+        }
+      2000.01.03T00.00.00.typescript.ts: |-
+        import {Migration} from '@slonik/migrator'
 
-    expect(syncer.read()).toMatchInlineSnapshot(`
-      Object {
-        "2000-01-01T00-00-00.javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "down": Object {},
-      }
-    `)
-  })
+        export const up: Migration = async ({slonik, sql}) => {
+          await slonik.query(sql\`raise 'up migration not implemented'\`)
+        }
 
-  test('creates a ts file', () => {
-    migrator.create('typescript.ts')
+        export const down: Migration = async ({slonik, sql}) => {
+          await slonik.query(sql\`raise 'down migration not implemented'\`)
+        }
+      down:
+        2000.01.01T00.00.00.sql.sql: raise 'down migration not implemented'
 
-    expect(syncer.read()).toMatchInlineSnapshot(`
-      Object {
-        "2000-01-01T00-00-00.typescript.ts": "import {Migration} from '@slonik/migrator'
-
-      export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "down": Object {},
-      }
-    `)
-  })
-
-  test(`mixed file types - uses last migration's file extension (not particularly recommneded!)`, () => {
-    migrator.create('sql')
-
-    migrator.create('javascript.js')
-    migrator.create('javascript2.js')
-    migrator.create('also-should-be-javascript')
-
-    migrator.create('typescript.ts')
-    migrator.create('also-should-be-typescript')
-
-    migrator.create('more-sql.sql')
-    migrator.create('also-should-be-sql')
-
-    expect(syncer.read()).toMatchInlineSnapshot(`
-      Object {
-        "2000-01-01T00-00-00.sql.sql": "--sql (up)
-      ",
-        "2000-01-02T00-00-00.javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "2000-01-03T00-00-00.javascript2.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "2000-01-04T00-00-00.also-should-be-javascript.js": "exports.up = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      exports.down = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "2000-01-05T00-00-00.typescript.ts": "import {Migration} from '@slonik/migrator'
-
-      export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "2000-01-06T00-00-00.also-should-be-typescript.ts": "import {Migration} from '@slonik/migrator'
-
-      export const up: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      export const down: Migration = ({slonik, sql}) => slonik.query(sql\`select true\`)
-      ",
-        "2000-01-07T00-00-00.more-sql.sql": "--more-sql (up)
-      ",
-        "2000-01-08T00-00-00.also-should-be-sql.sql": "--also-should-be-sql (up)
-      ",
-        "down": Object {
-          "2000-01-01T00-00-00.sql.sql": "--sql (down)
-      ",
-          "2000-01-07T00-00-00.more-sql.sql": "--more-sql (down)
-      ",
-          "2000-01-08T00-00-00.also-should-be-sql.sql": "--also-should-be-sql (down)
-      ",
-        },
-      }
     `)
   })
 })
 
 // https://github.com/gajus/slonik/issues/63#issuecomment-500889445
-afterAll(() => new Promise(r => setTimeout(r, 1)))
+afterAll(() => slonik.end())

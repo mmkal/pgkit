@@ -1,0 +1,1 @@
+select pg_sleep(3); insert into locking_test_table(id) values (1);

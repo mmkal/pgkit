@@ -1,0 +1,1 @@
+insert into transaction_test_table(id) values (1);
