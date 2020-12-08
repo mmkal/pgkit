@@ -144,7 +144,7 @@ describe('run migrations', () => {
     expect(
       mockLogger.mock.calls.map(msg => {
         const json = JSON.stringify(msg)
-        return JSON.parse(json.replace(/\d\.\d\d\d/g, '0.001'))
+        return JSON.parse(json.replace(/\d\.\d+/g, '0.001'))
       }),
     ).toMatchSnapshot()
   })

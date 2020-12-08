@@ -156,7 +156,7 @@ Array [
   ],
   Array [
     Object {
-      "durationSeconds": 0.03,
+      "durationSeconds": 0.001,
       "event": "reverted",
       "name": "01.one.sql",
     },

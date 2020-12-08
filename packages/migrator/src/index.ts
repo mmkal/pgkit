@@ -102,45 +102,55 @@ export const getHooks = ({logger, migrationTableName}: SlonikMigratorOptions) =>
     16,
   )
 
-  return {
-    async setup({context}: {context: SlonikMigratorContext}) {
-      let settle!: Function
-      const settledPromise = new Promise(r => (settle = r))
+  async function setup({context}: {context: SlonikMigratorContext}) {
+    let settle!: Function
+    const settledPromise = new Promise(resolve => (settle = resolve))
 
-      let ready!: Function
-      const readyPromise = new Promise(r => (ready = r))
+    let ready!: Function
+    const readyPromise = new Promise(r => (ready = r))
 
-      const transactionPromise = context.parent.transaction(async transaction => {
-        context.transaction = transaction
-        ready()
+    if (context.transaction) {
+      // throw new Error(`Transaction `)
+    }
 
-        await settledPromise
-      })
+    const transactionPromise = context.parent.transaction(async transaction => {
+      context.transaction = transaction
+      ready()
 
-      await readyPromise
+      await settledPromise
+    })
 
-      context.commit = () => {
-        settle()
-        return transactionPromise
-      }
+    await readyPromise
 
+    context.commit = () => {
+      settle()
+      return transactionPromise
+    }
+
+    try {
       const timeout = setTimeout(() => logger?.info({message: `Waiting for lock...`} as any), 1000)
       await context.transaction.any(context.sql`select pg_advisory_lock(${advisoryLockId})`)
       clearTimeout(timeout)
 
       await getOrCreateMigrationsTable(migrationTableNameIdentifier, context)
-    },
-
-    async teardown({context}: {context: SlonikMigratorContext}) {
-      await context.transaction.query(context.sql`select pg_advisory_unlock(${advisoryLockId})`).catch(error => {
-        logger?.error({
-          message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
-          originalError: error,
-        })
-      })
+    } catch (e) {
       await context.commit()
-    },
+      throw e
+    }
   }
+
+  async function teardown({context}: {context: SlonikMigratorContext}) {
+    await context.transaction.query(context.sql`select pg_advisory_unlock(${advisoryLockId})`).catch(error => {
+      logger?.error({
+        message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
+        originalError: error,
+      })
+    })
+    await context.commit()
+    context.transaction = null as never
+  }
+
+  return {setup, teardown}
 }
 
 export const template = (filepath: string) => {
@@ -234,6 +244,10 @@ export const sqlResolver: umzug.Resolver<SlonikMigratorContext> = params => ({
   },
 })
 
+/**
+ * Default umzug `resolve` function for migrations. Runs sql files as queries, and executes `up` and `down`
+ * exports of javascript/typescript files, passing params `{slonik sql}`
+ */
 export const umzugResolver: umzug.Resolver<SlonikMigratorContext> = params => {
   if (path.extname(params.name) === '.sql') {
     return sqlResolver(params)
@@ -277,24 +291,6 @@ export const getUmzugOptions = (slonikMigratorOptions: SlonikMigratorOptions): S
       template,
       folder: path.resolve(slonikMigratorOptions.migrationsPath),
     },
-  }
-}
-
-/**
- * Default umzug `resolve` function for migrations. Runs sql files as queries, and executes `up` and `down`
- * exports of javascript/typescript files, passing params `{slonik sql}`
- */
-export const slonikMigrationResolver: umzug.Resolver<SlonikMigratorContext> = params => {
-  if (path.extname(params.name) === '.sql') {
-    return sqlResolver(params)
-  }
-  const {transaction} = params.context
-  const migrationModule = require(params.path!)
-  return {
-    name: params.name,
-    path: params.path,
-    up: upParams => migrationModule.up({slonik: transaction, sql, ...upParams}),
-    down: downParams => migrationModule.down({slonik: transaction, sql, ...downParams}),
   }
 }
 
