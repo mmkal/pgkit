@@ -43,16 +43,19 @@ describe('create', () => {
     await expect(migrator.create({name: 'text.txt'})).rejects.toThrowError(/Extension .txt not allowed./)
 
     expect(syncer.read()).toMatchInlineSnapshot(`
-      2000.01.01T00.00.00.sql.sql: raise 'up migration not implemented'
-      2000.01.02T00.00.00.javascript.js: |-
+      2000.01.01T00.00.00.sql.sql: |
+        raise 'up migration not implemented'
+      2000.01.02T00.00.00.javascript.js: |
+        /** @type {import('@sloink/migrator').Migration} */
         exports.up = async ({slonik, sql}) => {
           await slonik.query(sql\`raise 'up migration not implemented'\`)
         }
 
+        /** @type {import('@sloink/migrator').Migration} */
         exports.down = async ({slonik, sql}) => {
           await slonik.query(sql\`raise 'down migration not implemented'\`)
         }
-      2000.01.03T00.00.00.typescript.ts: |-
+      2000.01.03T00.00.00.typescript.ts: |
         import {Migration} from '@slonik/migrator'
 
         export const up: Migration = async ({slonik, sql}) => {
@@ -63,7 +66,8 @@ describe('create', () => {
           await slonik.query(sql\`raise 'down migration not implemented'\`)
         }
       down:
-        2000.01.01T00.00.00.sql.sql: raise 'down migration not implemented'
+        2000.01.01T00.00.00.sql.sql: |
+          raise 'down migration not implemented'
 
     `)
   })
