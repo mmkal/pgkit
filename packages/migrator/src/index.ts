@@ -85,11 +85,11 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
         name: params.name,
         path: params.path,
         up: async ({path, context}) => {
-          await context!.transaction.query(rawQuery(readFileSync(path!, 'utf8'))).catch(rethrow(params))
+          await context!.transaction.query(rawQuery(readFileSync(path!, 'utf8')))
         },
         down: async ({path, context}) => {
           const downPath = join(dirname(path!), 'down', basename(path!))
-          await context!.transaction.query(rawQuery(readFileSync(downPath, 'utf8'))).catch(rethrow(params))
+          await context!.transaction.query(rawQuery(readFileSync(downPath, 'utf8')))
         },
       }
     }
@@ -98,8 +98,8 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     return {
       name: params.name,
       path: params.path,
-      up: upParams => migrationModule.up({slonik, sql, ...upParams}).catch(rethrow(params)),
-      down: downParams => migrationModule.down({slonik, sql, ...downParams}).catch(rethrow(params)),
+      up: upParams => migrationModule.up({slonik, sql, ...upParams}),
+      down: downParams => migrationModule.down({slonik, sql, ...downParams}),
     }
   }
 
@@ -245,16 +245,6 @@ const rawQuery = (query: string): ReturnType<typeof sql> => ({
   sql: query,
   values: [],
 })
-
-/** Get a function which wraps any errors thrown and includes which migrations threw it in the message */
-const rethrow = (migration: umzug.MigrationParams<SlonikMigratorContext>) => (e: unknown): asserts e is Error => {
-  const error = e instanceof Error ? e : Error(`${e}`)
-  Object.assign(error, {
-    message: `Migration ${migration.name} threw: ${error.message}`,
-    migration,
-  })
-  throw e
-}
 
 /**
  * Narrowing of @see umzug.UmzugOptions where the migrations input type specifically,, uses `glob`

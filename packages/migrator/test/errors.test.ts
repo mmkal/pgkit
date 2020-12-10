@@ -9,7 +9,7 @@ const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgre
 afterAll(() => slonik.end())
 
 describe('error messages', () => {
-  test('are helpful', async () => {
+  test('include migration name', async () => {
     const baseDir = path.join(__dirname, 'generated/errors')
     const syncer = fsSyncer(baseDir, {
       migrations: {
@@ -31,10 +31,7 @@ describe('error messages', () => {
     expect(await migrator.pending().then(names)).toEqual(['m1.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Migration m1.sql threw: syntax error at or near \\";\\""`,
+      `"Migration m1.sql (up) failed: Original error: syntax error at or near \\";\\""`,
     )
-    await expect(migrator.up()).rejects.toMatchObject({
-      migration: {name: 'm1.sql', path: expect.stringContaining('m1.sql')},
-    })
   })
 })

@@ -33,7 +33,7 @@ describe('transaction', () => {
     expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Migration m2.sql threw: Query violates a unique integrity constraint. duplicate key value violates unique constraint \\"transaction_test_table_pkey\\""`,
+      `"Migration m2.sql (up) failed: Original error: Query violates a unique integrity constraint. duplicate key value violates unique constraint \\"transaction_test_table_pkey\\""`,
     )
 
     await expect(slonik.any(sql`select * from transaction_test_table`)).resolves.toEqual([])
@@ -69,7 +69,7 @@ describe('transaction', () => {
     expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Migration m2.sql threw: Query violates a unique integrity constraint. duplicate key value violates unique constraint \\"disabled_transaction_test_table_pkey\\""`,
+      `"Migration m2.sql (up) failed: Original error: Query violates a unique integrity constraint. duplicate key value violates unique constraint \\"disabled_transaction_test_table_pkey\\""`,
     )
 
     await expect(slonik.any(sql`select id from disabled_transaction_test_table`)).resolves.toEqual([{id: 1}])
