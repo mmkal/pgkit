@@ -2,13 +2,7 @@ import {createHash} from 'crypto'
 import {readFileSync} from 'fs'
 import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
-import {
-  sql,
-  DatabasePoolType,
-  DatabaseTransactionConnectionType,
-  IdentifierSqlTokenType,
-  DatabasePoolConnectionType,
-} from 'slonik'
+import {sql, DatabasePoolType, DatabaseTransactionConnectionType, DatabasePoolConnectionType} from 'slonik'
 import * as path from 'path'
 import * as templates from './templates'
 
