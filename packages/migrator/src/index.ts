@@ -2,12 +2,12 @@ import {createHash} from 'crypto'
 import {readFileSync} from 'fs'
 import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
-import {sql, DatabasePoolType, DatabaseTransactionConnectionType, DatabasePoolConnectionType} from 'slonik'
+import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType} from 'slonik'
 import * as path from 'path'
 import * as templates from './templates'
 
 interface SlonikMigratorContext {
-  parent: DatabasePoolType
+  parent: SlonikConnectionType
   transaction: DatabasePoolConnectionType | DatabaseTransactionConnectionType
   sql: typeof sql
   commit: () => Promise<void>
@@ -16,18 +16,18 @@ interface SlonikMigratorContext {
 export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   constructor(private slonikMigratorOptions: SlonikMigratorOptions) {
     super({
-      context: {
+      context: () => ({
         parent: slonikMigratorOptions.slonik,
         sql,
         commit: null as never, // commit function is added later by storage setup.
         transaction: null as never, // commit function is added later by storage setup.
-      },
-      migrations: {
-        glob: ['./*.{js,ts,sql}', {cwd: path.resolve(slonikMigratorOptions.migrationsPath)}],
+      }),
+      migrations: () => ({
+        glob: [this.migrationsGlob(), {cwd: path.resolve(slonikMigratorOptions.migrationsPath)}],
         resolve: params => this.resolver(params),
-      },
+      }),
       storage: {
-        executed: params => this.executedNames(params),
+        executed: (...args) => this.executedNames(...args),
         logMigration: (...args) => this.logMigration(...args),
         unlogMigration: (...args) => this.unlogMigration(...args),
       },
@@ -38,10 +38,26 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
       },
     })
 
-    this.on('beforeAll', ev => this.setup(ev))
-    this.on('afterAll', ev => this.teardown(ev))
+    this.on('beforeCommand', ev => this.setup(ev))
+    this.on('afterCommand', ev => this.teardown(ev))
   }
 
+  getCli(options?: umzug.CommandLineParserOptions) {
+    return super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
+  }
+
+  async runAsCLI(argv?: string[]) {
+    const result = await super.runAsCLI(argv)
+    await this.slonikMigratorOptions.slonik.end?.()
+    return result
+  }
+
+  /** Glob pattern with `migrationsPath` as `cwd`. Could be overridden to support nested directories */
+  protected migrationsGlob() {
+    return './*.{js,ts,sql}'
+  }
+
+  /** Gets a hexadecimal integer to pass to postgres's `select pg_advisory_lock()` function */
   protected advisoryLockId() {
     const hashable = '@slonik/migrator advisory lock:' + JSON.stringify(this.slonikMigratorOptions.migrationTableName)
     const hex = createHash('md5').update(hashable).digest('hex').slice(0, 8)
@@ -110,10 +126,6 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     let ready!: Function
     const readyPromise = new Promise(r => (ready = r))
 
-    if (context.transaction) {
-      // throw new Error(`Transaction `)
-    }
-
     const transactionPromise = context.parent.transaction(async transaction => {
       context.transaction = transaction
       ready()
@@ -129,11 +141,10 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     }
 
     const logger = this.slonikMigratorOptions.logger
-    const advisoryLockId = this.advisoryLockId
 
     try {
       const timeout = setTimeout(() => logger?.info({message: `Waiting for lock...`} as any), 1000)
-      await context.transaction.any(context.sql`select pg_advisory_lock(${advisoryLockId()})`)
+      await context.transaction.any(context.sql`select pg_advisory_lock(${this.advisoryLockId()})`)
       clearTimeout(timeout)
 
       await this.getOrCreateMigrationsTable(context)
@@ -197,12 +208,20 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 }
 
+/**
+ * Should either be a `DatabasePoolType` or `DatabasePoolConnectionType`. If it's a `DatabasePoolType` with an `.end()`
+ * method, the `.end()` method will be called after running the migrator as a CLI.
+ */
+export interface SlonikConnectionType extends DatabasePoolConnectionType {
+  end?: () => Promise<void>
+}
+
 export interface SlonikMigratorOptions {
   /**
    * Slonik instance for running migrations. You can import this from the same place as your main application,
    * or import another slonik instance with different permissions, security settings etc.
    */
-  slonik: DatabasePoolType
+  slonik: SlonikConnectionType
   /**
    * Path to folder that will contain migration files.
    */
@@ -248,7 +267,7 @@ export type SlonikUmzugOptions = umzug.UmzugOptions<SlonikMigratorContext> & {
 export const setupSlonikMigrator = (options: SlonikMigratorOptions) => {
   const migrator = new SlonikMigrator(options)
   if (options.mainModule === require.main) {
-    migrator.runAsCLI().then(() => options.slonik.end())
+    migrator.runAsCLI()
   }
   return migrator
 }
