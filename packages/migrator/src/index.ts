@@ -42,13 +42,13 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     this.on('afterAll', ev => this.teardown(ev))
   }
 
-  protected get advisoryLockId() {
+  protected advisoryLockId() {
     const hashable = '@slonik/migrator advisory lock:' + JSON.stringify(this.slonikMigratorOptions.migrationTableName)
     const hex = createHash('md5').update(hashable).digest('hex').slice(0, 8)
     return parseInt(hex, 16)
   }
 
-  protected get migrationTableNameIdentifier() {
+  protected migrationTableNameIdentifier() {
     const table = this.slonikMigratorOptions.migrationTableName
     return sql.identifier(Array.isArray(table) ? table : [table])
   }
@@ -95,7 +95,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
 
   protected getOrCreateMigrationsTable(context: SlonikMigratorContext) {
     return context.parent.query(sql`
-      create table if not exists ${this.migrationTableNameIdentifier}(
+      create table if not exists ${this.migrationTableNameIdentifier()}(
         name text primary key,
         hash text not null,
         date timestamptz not null default now()
@@ -130,11 +130,10 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
 
     const logger = this.slonikMigratorOptions.logger
     const advisoryLockId = this.advisoryLockId
-    const migrationTableNameIdentifier = this.migrationTableNameIdentifier
 
     try {
       const timeout = setTimeout(() => logger?.info({message: `Waiting for lock...`} as any), 1000)
-      await context.transaction.any(context.sql`select pg_advisory_lock(${advisoryLockId})`)
+      await context.transaction.any(context.sql`select pg_advisory_lock(${advisoryLockId()})`)
       clearTimeout(timeout)
 
       await this.getOrCreateMigrationsTable(context)
@@ -145,7 +144,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected async teardown({context}: {context: SlonikMigratorContext}) {
-    await context.transaction.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId})`).catch(error => {
+    await context.transaction.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
       this.slonikMigratorOptions.logger?.error({
         message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
         originalError: error,
@@ -162,7 +161,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   protected async executedNames({context}: {context: SlonikMigratorContext}) {
     await this.getOrCreateMigrationsTable(context)
     const results = await context.parent
-      .any(sql`select name, hash from ${this.migrationTableNameIdentifier}`)
+      .any(sql`select name, hash from ${this.migrationTableNameIdentifier()}`)
       .then(migrations =>
         migrations.map(r => {
           const name = r.name as string
@@ -185,14 +184,14 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
 
   protected async logMigration(name: string, {context}: {context: SlonikMigratorContext}) {
     await context.transaction.query(sql`
-      insert into ${this.migrationTableNameIdentifier}(name, hash)
+      insert into ${this.migrationTableNameIdentifier()}(name, hash)
       values (${name}, ${this.hash(name)})
     `)
   }
 
   protected async unlogMigration(name: string, {context}: {context: SlonikMigratorContext}) {
     await context.transaction.query(sql`
-      delete from ${this.migrationTableNameIdentifier}
+      delete from ${this.migrationTableNameIdentifier()}
       where name = ${name}
     `)
   }
