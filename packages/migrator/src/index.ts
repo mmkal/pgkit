@@ -43,13 +43,9 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected get advisoryLockId() {
-    return parseInt(
-      createHash('md5')
-        .update('@slonik/migrator advisory lock:' + JSON.stringify(this.slonikMigratorOptions.migrationTableName))
-        .digest('hex')
-        .slice(0, 8),
-      16,
-    )
+    const hashable = '@slonik/migrator advisory lock:' + JSON.stringify(this.slonikMigratorOptions.migrationTableName)
+    const hex = createHash('md5').update(hashable).digest('hex').slice(0, 8)
+    return parseInt(hex, 16)
   }
 
   protected get migrationTableNameIdentifier() {
