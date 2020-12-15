@@ -29,7 +29,7 @@ describe('run migrations', () => {
     syncer.sync()
   })
 
-  test.only('up and down', async () => {
+  test('up and down', async () => {
     const migrator = new SlonikMigrator({
       slonik: pool,
       migrationsPath,

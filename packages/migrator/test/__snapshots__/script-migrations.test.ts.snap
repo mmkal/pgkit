@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`run sql, js and ts migrations up and down 5`] = `
+exports[`run sql, js and ts migrations up and down 4`] = `
 Array [
   Array [
     "getting pending migrations before initial 'up'",
@@ -29,58 +29,6 @@ Array [
       "durationSeconds": 0.001,
       "event": "migrated",
       "name": "02.two.sql",
-    },
-  ],
-  Array [
-    Object {
-      "event": "migrating",
-      "name": "03.three.js",
-    },
-  ],
-  Array [
-    Object {
-      "durationSeconds": 0.001,
-      "event": "migrated",
-      "name": "03.three.js",
-    },
-  ],
-  Array [
-    Object {
-      "event": "migrating",
-      "name": "04.four.ts",
-    },
-  ],
-  Array [
-    Object {
-      "durationSeconds": 0.001,
-      "event": "migrated",
-      "name": "04.four.ts",
-    },
-  ],
-  Array [
-    Object {
-      "event": "reverting",
-      "name": "04.four.ts",
-    },
-  ],
-  Array [
-    Object {
-      "durationSeconds": 0.001,
-      "event": "reverted",
-      "name": "04.four.ts",
-    },
-  ],
-  Array [
-    Object {
-      "event": "reverting",
-      "name": "03.three.js",
-    },
-  ],
-  Array [
-    Object {
-      "durationSeconds": 0.001,
-      "event": "reverted",
-      "name": "03.three.js",
     },
   ],
   Array [

@@ -97,29 +97,6 @@ describe('run sql, js and ts migrations', () => {
     expect(await executed()).toEqual(allMigrations)
     expect(await pending()).toEqual([])
 
-    // make sure `.down` with no arg reverts only the last migration
-    await migrator.down()
-    expect(await migrationTables()).toEqual(allTables.slice(0, -1))
-    expect(await executed()).toEqual(allMigrations.slice(0, -1))
-    expect(await pending()).toEqual(allMigrations.slice(-1))
-
-    await migrator.down()
-    expect(await migrationTables()).toEqual(allTables.slice(0, -2))
-    expect(await executed()).toEqual(allMigrations.slice(0, -2))
-    expect(await pending()).toEqual(allMigrations.slice(-2))
-
-    await migrator.up()
-    expect(await migrationTables()).toEqual(allTables)
-    expect(await executed()).toEqual(allMigrations)
-    expect(await pending()).toEqual([])
-
-    await migrator.down({to: '02.two.sql'})
-    expect(await executed()).toMatchInlineSnapshot(`
-      Array [
-        "01.one.sql",
-      ]
-    `)
-
     await migrator.down({to: 0})
     expect(await executed()).toEqual([])
 
