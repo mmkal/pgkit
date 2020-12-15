@@ -8780,9 +8780,10 @@ umask@^1.1.0:
   resolved "https://registry.yarnpkg.com/umask/-/umask-1.1.0.tgz#f29cebf01df517912bb58ff9c4e50fde8e33320d"
   integrity sha1-8pzr8B31F5ErtY/5xOUP3o4zMg0=
 
-umzug@../../../umzug/umzug-v3.0.0-beta.12.tgz:
-  version "3.0.0-beta.12"
-  resolved "../../../umzug/umzug-v3.0.0-beta.12.tgz#d828135b8734be8d7a1ed147511cabb3cd69cd2e"
+umzug@^3.0.0-beta.13:
+  version "3.0.0-beta.13"
+  resolved "https://registry.yarnpkg.com/umzug/-/umzug-3.0.0-beta.13.tgz#2a28ec0490fc6169b72208a4de010a720c68e886"
+  integrity sha512-+A7fFxDQDsq+VL/4aSzOOrwFuIOCSGESKsY5EcyEJ48yj6VseDpC+6/mlJs+w1ARsTb/yk1OxH6Zk7LqbNyXRQ==
   dependencies:
     "@rushstack/ts-command-line" "~4.7.7"
     "@types/verror" "^1.10.4"

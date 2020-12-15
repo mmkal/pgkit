@@ -1,11 +1,11 @@
 import {join} from 'path'
 import {range} from 'lodash'
-import {createPool, sql} from 'slonik'
-import {setupSlonikMigrator} from '../src'
+import {SlonikMigrator} from '../src'
 import {fsSyncer} from 'fs-syncer'
 import * as jsYaml from 'js-yaml'
+import {getTestPool} from './pool'
 
-const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {idleTimeout: 1})
+const helper = getTestPool({__filename})
 
 const millisPerDay = 1000 * 60 * 60 * 24
 const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())
@@ -19,10 +19,10 @@ expect.addSnapshotSerializer({
 })
 
 describe('create', () => {
-  const syncer = fsSyncer(join(__dirname, 'generated/create/migrations'), {})
+  const syncer = fsSyncer(join(__dirname, 'generated', helper.schemaName), {})
 
-  const migrator = setupSlonikMigrator({
-    slonik,
+  const migrator = new SlonikMigrator({
+    slonik: helper.pool,
     migrationsPath: syncer.baseDir,
     migrationTableName: 'migration',
     logger: undefined,
@@ -72,6 +72,3 @@ describe('create', () => {
     `)
   })
 })
-
-// https://github.com/gajus/slonik/issues/63#issuecomment-500889445
-afterAll(() => slonik.end())

@@ -21,7 +21,7 @@
   },
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/migrator#readme",
   "dependencies": {
-    "umzug": "../../../umzug/umzug-v3.0.0-beta.12.tgz"
+    "umzug": "^3.0.0-beta.13"
   },
   "peerDependencies": {
     "slonik": ">= 21.0.0 < 24"

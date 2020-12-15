@@ -2,13 +2,13 @@ import {createHash} from 'crypto'
 import {readFileSync} from 'fs'
 import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
-import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType} from 'slonik'
+import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType, DatabasePoolType} from 'slonik'
 import * as path from 'path'
 import * as templates from './templates'
 
 interface SlonikMigratorContext {
-  parent: SlonikConnectionType
-  transaction: DatabasePoolConnectionType | DatabaseTransactionConnectionType
+  parent: DatabasePoolType
+  connection: DatabaseTransactionConnectionType
   sql: typeof sql
   commit: () => Promise<void>
 }
@@ -16,10 +16,11 @@ interface SlonikMigratorContext {
 export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   constructor(
     private slonikMigratorOptions: {
-      slonik: SlonikConnectionType
+      slonik: DatabasePoolType
       migrationsPath: string
       migrationTableName: string | string[]
       logger: umzug.UmzugOptions['logger']
+      singleTransaction?: true
     },
   ) {
     super({
@@ -27,7 +28,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
         parent: slonikMigratorOptions.slonik,
         sql,
         commit: null as never, // commit function is added later by storage setup.
-        transaction: null as never, // commit function is added later by storage setup.
+        connection: null as never, // commit function is added later by storage setup.
       }),
       migrations: () => ({
         glob: [this.migrationsGlob(), {cwd: path.resolve(slonikMigratorOptions.migrationsPath)}],
@@ -98,15 +99,15 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
         name: params.name,
         path: params.path,
         up: async ({path, context}) => {
-          await context!.transaction.query(rawQuery(readFileSync(path!, 'utf8')))
+          await context!.connection.query(rawQuery(readFileSync(path!, 'utf8')))
         },
         down: async ({path, context}) => {
           const downPath = join(dirname(path!), 'down', basename(path!))
-          await context!.transaction.query(rawQuery(readFileSync(downPath, 'utf8')))
+          await context!.connection.query(rawQuery(readFileSync(downPath, 'utf8')))
         },
       }
     }
-    const {transaction: slonik} = params.context
+    const {connection: slonik} = params.context
     const migrationModule: {up: Migration; down?: Migration} = require(params.path!)
     return {
       name: params.name,
@@ -126,15 +127,22 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     `)
   }
 
-  protected async setup({context}: {context: SlonikMigratorContext}) {
+  protected async setup({command, context}: {command: string; context: SlonikMigratorContext}) {
+    // TODO [umzug>=3.0.0-beta.14] remove this
+    if (command !== 'up' && command !== 'down') {
+      context.connection = context.parent
+      context.commit = async () => {}
+      return
+    }
     let settle!: Function
     const settledPromise = new Promise(resolve => (settle = resolve))
 
     let ready!: Function
     const readyPromise = new Promise(r => (ready = r))
 
-    const transactionPromise = context.parent.transaction(async transaction => {
-      context.transaction = transaction
+    const connect = this.slonikMigratorOptions.singleTransaction ? context.parent.transaction : context.parent.connect
+    const connectionPromise = connect(async connection => {
+      context.connection = connection
       ready()
 
       await settledPromise
@@ -144,14 +152,14 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
 
     context.commit = () => {
       settle()
-      return transactionPromise
+      return connectionPromise
     }
 
     const logger = this.slonikMigratorOptions.logger
 
     try {
       const timeout = setTimeout(() => logger?.info({message: `Waiting for lock...`} as any), 1000)
-      await context.transaction.any(context.sql`select pg_advisory_lock(${this.advisoryLockId()})`)
+      await context.connection.any(context.sql`select pg_advisory_lock(${this.advisoryLockId()})`)
       clearTimeout(timeout)
 
       await this.getOrCreateMigrationsTable(context)
@@ -162,14 +170,14 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected async teardown({context}: {context: SlonikMigratorContext}) {
-    await context.transaction.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
+    await context.connection.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
       this.slonikMigratorOptions.logger?.error({
         message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
         originalError: error,
       })
     })
     await context.commit()
-    context.transaction = null as never
+    context.connection = null as never
   }
 
   protected hash(name: string) {
@@ -201,14 +209,14 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected async logMigration(name: string, {context}: {context: SlonikMigratorContext}) {
-    await context.transaction.query(sql`
+    await context.connection.query(sql`
       insert into ${this.migrationTableNameIdentifier()}(name, hash)
       values (${name}, ${this.hash(name)})
     `)
   }
 
   protected async unlogMigration(name: string, {context}: {context: SlonikMigratorContext}) {
-    await context.transaction.query(sql`
+    await context.connection.query(sql`
       delete from ${this.migrationTableNameIdentifier()}
       where name = ${name}
     `)
@@ -237,7 +245,7 @@ export interface SlonikMigratorOptions {
    * Slonik instance for running migrations. You can import this from the same place as your main application,
    * or import another slonik instance with different permissions, security settings etc.
    */
-  slonik: SlonikConnectionType
+  slonik: DatabasePoolType
   /**
    * Path to folder that will contain migration files.
    */

@@ -1,16 +1,18 @@
-import {setupSlonikMigrator} from '../src'
+import {setupSlonikMigrator, SlonikMigrator} from '../src'
 import * as path from 'path'
 import {fsSyncer} from 'fs-syncer'
 import {createPool, sql} from 'slonik'
+import {getTestPool} from './pool'
 
 const names = (migrations: Array<{name: string}>) => migrations.map(m => m.name)
 
-const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {idleTimeout: 1})
-afterAll(() => slonik.end())
-
+// const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {
+//   idleTimeout: 1,
+// })
 describe('locking', () => {
+  const helper = getTestPool({__filename})
   test('second instance waits for first', async () => {
-    const baseDir = path.join(__dirname, 'generated/locking')
+    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'wait')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'create table locking_test_table(id int primary key);',
@@ -23,12 +25,9 @@ describe('locking', () => {
     })
     syncer.sync()
 
-    await slonik.query(sql`drop table if exists locking_test_table`)
-    await slonik.query(sql`drop table if exists locking_migrations`)
-
     const migrator = () =>
-      setupSlonikMigrator({
-        slonik,
+      new SlonikMigrator({
+        slonik: helper.pool,
         migrationsPath: path.join(syncer.baseDir, 'migrations'),
         migrationTableName: 'locking_migrations',
         logger: undefined,
@@ -56,9 +55,25 @@ describe('locking', () => {
 
     expect(await migrator().executed().then(names)).toEqual(['m1.sql', 'm2.sql'])
   })
+})
+
+describe('concurrency', () => {
+  const helper = getTestPool({
+    __filename,
+    config: {
+      interceptors: [
+        {
+          afterPoolConnection: async (context, connection) => {
+            await connection.query(sql`set lock_timeout = '1s'`)
+            return null
+          },
+        },
+      ],
+    },
+  })
 
   test('local lock timeout', async () => {
-    const baseDir = path.join(__dirname, 'generated/lock_timeout')
+    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'localLockTimeout')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'create table lock_timeout_test_table(id int primary key);',
@@ -71,23 +86,13 @@ describe('locking', () => {
     })
     syncer.sync()
 
-    await slonik.query(sql`drop table if exists lock_timeout_test_table`)
-    await slonik.query(sql`drop table if exists lock_timeout_migrations`)
-
     const migrator = () =>
-      setupSlonikMigrator({
-        slonik: {
-          ...slonik,
-          transaction: async handler => {
-            return slonik.transaction(async transaction => {
-              await transaction.query(sql`set local lock_timeout = '1s'`)
-              return handler(transaction)
-            })
-          },
-        },
+      new SlonikMigrator({
+        slonik: helper.pool,
         migrationsPath: path.join(syncer.baseDir, 'migrations'),
-        migrationTableName: 'lock_timeout_migrations',
+        migrationTableName: 'migrations',
         logger: undefined,
+        singleTransaction: true,
       })
 
     const [m1, m2] = [migrator(), migrator()]
@@ -113,7 +118,7 @@ describe('locking', () => {
   })
 
   test(`single instance doesn't try to run concurrently`, async () => {
-    const baseDir = path.join(__dirname, 'generated/single_instance')
+    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'noConcurrentRuns')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'create table lock_timeout_test_table(id int primary key);',
@@ -126,22 +131,11 @@ describe('locking', () => {
     })
     syncer.sync()
 
-    await slonik.query(sql`drop table if exists lock_timeout_test_table`)
-    await slonik.query(sql`drop table if exists lock_timeout_migrations`)
-
     const migrator = () =>
-      setupSlonikMigrator({
-        slonik: {
-          ...slonik,
-          transaction: async handler => {
-            return slonik.transaction(async transaction => {
-              await transaction.query(sql`set local lock_timeout = '1s'`)
-              return handler(transaction)
-            })
-          },
-        },
+      new SlonikMigrator({
+        slonik: helper.pool,
         migrationsPath: path.join(syncer.baseDir, 'migrations'),
-        migrationTableName: 'lock_timeout_migrations',
+        migrationTableName: 'migrations',
         logger: undefined,
       })
 

@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`run migrations up and down 5`] = `
+exports[`run sql, js and ts migrations up and down 5`] = `
 Array [
   Array [
     "getting pending migrations before initial 'up'",
