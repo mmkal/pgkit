@@ -1,7 +1,11 @@
-require('@slonik/migrator').setupSlonikMigrator({
+const {SlonikMigrator} = require('@slonik/migrator')
+const {slonik} = require('./dist/db')
+
+const migrator = new SlonikMigrator({
+  slonik,
   migrationTableName: 'demo_migration',
   migrationsPath: __dirname + '/migrations',
-  slonik: require('./dist/db').slonik,
-  mainModule: module,
   logger: console,
 })
+
+migrator.runAsCLI()

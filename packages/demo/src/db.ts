@@ -13,4 +13,18 @@ export const {sql, poolConfig} = setupTypeGen({
   },
 })
 
-export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, poolConfig)
+export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, {
+  ...poolConfig,
+  interceptors: [
+    ...poolConfig.interceptors,
+    {
+      afterPoolConnection: async (context, connection) => {
+        await connection.query(sql`
+          create schema if not exists slonik_tools_demo_app;
+          set search_path to slonik_tools_demo_app;
+        `)
+        return null
+      },
+    },
+  ],
+})

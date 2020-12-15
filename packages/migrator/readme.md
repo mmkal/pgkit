@@ -29,6 +29,7 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
    - [pending](#pending)
    - [executed](#executed)
    - [create](#create)
+   - [Examples](#examples)
 - [Configuration](#configuration)
 - [Implementation](#implementation)
 <!-- codegen:end -->
@@ -120,7 +121,7 @@ Itlso possible to migrate up or down "to" a specific migration. For example, if 
 
 Conversely, `node migrate up` runs all `up` migrations by default. To run only up to a certain migaton, run `node migrate up --to two.sql`. This will run migrations `one.sql` and `two.sql` - again, the range is *inclusive* of the name.
 
-See [commands](#commands) for more options.
+See [commands](#commands) for more options, and [examples](#examples) to see how you can use the CLI.
 
 ### Running programatically
 
@@ -292,6 +293,50 @@ Optional arguments:
                         don't! If you're unsure, just ignore this option.
 ```
 <!-- codegen:end -->
+
+### Examples
+
+Assuming `migrate.js` is a script setup something like:
+
+```js
+const {SlonikMigrator} = require('@slonik/migrator')
+
+const migrator = new SlonikMigrator(...)
+migrator.runAsCLI()
+```
+
+Here are some ways you could use it:
+
+```bash
+ndoe migrate --help # shows help
+
+node migrate up # runs all pending migrations
+
+node migrate down # reverts the last-run migration
+
+node migrate down --to 0 # reverts all migrations
+node migrate up --to some-specific-migration.sql # runs all migrations up to and including some-specific-migration.sql
+node migrate down --to some-other-migration.sql # reverts all migrations down to and including some-other-migration.sql
+
+node migrate up --step 2 # runs the next two migrations
+node migrate down --step 2 # reverts the two most recent migrations
+
+node migrate up --name m1.sql --name m2.sql # runs only m1.sql and m2.sql. Throws if they aren't pending.
+node migrate up --name m1.sql --name m2.sql --rerun ALLOW # runs m1.sql and m2.sql, even if they've already been executed
+node migrate up --name m1.sql --name m2.sql --rerun SKIP # runs m1.sql and m2.sql, if they haven't already been executed. Skips if they have.
+
+node migrate down --name m1.sql --name m2.sql # reverts only m1.sql and m2.sql. Throws if they haven't been executed.
+node migrate down --name m1.sql --name m2.sql --rerun ALLOW # runs m1.sql and m2.sql, even if they haven't been executed yet.
+node migrate down --name m1.sql --name m2.sql --rerun SKIP # runs m1.sql and m2.sql, if they have already been executed. Skips if they haven't.
+
+node migrate up --help # shows help for `up`
+node migrate down --help # shows help for `down`
+
+node migrate create --name some-migration.sql # creates a new migration, prefixed with timestamp, in the migrations folder
+
+node migrate pending # lists pending migrations
+node migrate executed # lists executed migrations
+```
 
 ## Configuration
 
