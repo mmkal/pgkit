@@ -14,7 +14,14 @@ interface SlonikMigratorContext {
 }
 
 export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
-  constructor(private slonikMigratorOptions: SlonikMigratorOptions) {
+  constructor(
+    private slonikMigratorOptions: {
+      slonik: SlonikConnectionType
+      migrationsPath: string
+      migrationTableName: string | string[]
+      logger: umzug.UmzugOptions['logger']
+    },
+  ) {
     super({
       context: () => ({
         parent: slonikMigratorOptions.slonik,
@@ -279,7 +286,12 @@ export const setupSlonikMigrator = (
     mainModule?: NodeModule
   },
 ) => {
-  const migrator = new SlonikMigrator(options)
+  const migrator = new SlonikMigrator({
+    slonik: options.slonik,
+    migrationsPath: options.migrationsPath,
+    migrationTableName: options.migrationTableName,
+    logger: options.logger,
+  })
   if (options.mainModule === require.main) {
     migrator.runAsCLI()
   }
