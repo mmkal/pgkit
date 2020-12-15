@@ -46,6 +46,16 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
       },
     })
 
+    if ('mainModule' in slonikMigratorOptions) {
+      throw new Error(`Using \`mainModule\` is deprecated. Use \`migrator.runAsCLI()\` instead.`)
+    }
+
+    if (!slonikMigratorOptions.migrationTableName) {
+      throw new Error(
+        `@slonik/migrator: Relying on the default migration table name is deprecated. You should set this explicitly to 'migration' if you've used a prior version of this library.`,
+      )
+    }
+
     this.on('beforeCommand', ev => this.setup(ev))
     this.on('afterCommand', ev => this.teardown(ev))
   }
@@ -225,7 +235,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
 
 export type Migration = (
   params: umzug.MigrationParams<SlonikMigratorContext> & {
-    /** @deprecated use `context.transaction` */
+    /** @deprecated use `context.connection` */
     slonik: DatabaseTransactionConnectionType
     /** @deprecated use `context.sql` */
     sql: typeof sql
@@ -273,7 +283,7 @@ const rawQuery = (query: string): ReturnType<typeof sql> => ({
 })
 
 /**
- * Narrowing of @see umzug.UmzugOptions where the migrations input type specifically,, uses `glob`
+ * Narrowing of @see umzug.UmzugOptions where the migrations input type specifically, uses `glob`
  */
 export type SlonikUmzugOptions = umzug.UmzugOptions<SlonikMigratorContext> & {
   migrations: umzug.GlobInputMigrations<SlonikMigratorContext>
@@ -281,26 +291,48 @@ export type SlonikUmzugOptions = umzug.UmzugOptions<SlonikMigratorContext> & {
 
 /**
  * @deprecated use `new SlonikMigrator(...)` which takes the same options.
+ *
+ * Note: `mainModule` is not passed into `new SlonikMigrator(...)`. To get the same functionality, use `.runAsCLI()`
+ *
+ * @example
+ * ```
+ * const migrator = new SlonikMigrator(...)
+ *
+ * if (require.main === module) {
+ *  migrator.runAsCLI()
+ * }
+ * ```
  */
 export const setupSlonikMigrator = (
   options: SlonikMigratorOptions & {
     /**
-     * @deprecated Use `.runAsCLI()`, e.g. `if (require.main) migrator.runAsCLI()`
+     * @deprecated Use `.runAsCLI()`, e.g. `if (require.main === module) migrator.runAsCLI()`
      *
-     * OPTIONAL "module" value. If you set `mainModule: module` in a nodejs script, that script will become a
+     * ~OPTIONAL "module" value. If you set `mainModule: module` in a nodejs script, that script will become a
      * runnable CLI when invoked directly, but the migrator object can still be imported as normal if a different
-     * entrypoint is used.
+     * entrypoint is used.~
      */
     mainModule?: NodeModule
+    reasonForUsingDeprecatedAPI: 'Back-compat' | 'Testing' | `Life's too short` | 'Other'
   },
 ) => {
+  console.warn(
+    `@slonik/migrator: Use of ${setupSlonikMigrator.name} is deprecated. Use \`new SlonikMigrator(...)\` which takes the same options instead`,
+  )
+  const defaultMigrationTableName = () => {
+    console.warn(
+      `Relying on the default migration table name is deprecated. You should set this explicitly to 'migration'`,
+    )
+    return 'migration'
+  }
   const migrator = new SlonikMigrator({
     slonik: options.slonik,
     migrationsPath: options.migrationsPath,
-    migrationTableName: options.migrationTableName,
+    migrationTableName: options.migrationTableName || defaultMigrationTableName(),
     logger: options.logger,
   })
   if (options.mainModule === require.main) {
+    console.warn(`Using \`mainModule\` is deprecated. Use \`migrator.runAsCLI()\` instead.`)
     migrator.runAsCLI()
   }
   return migrator
