@@ -1,16 +1,13 @@
 import {setupSlonikMigrator, SlonikMigrator} from '../src'
 import * as path from 'path'
 import {fsSyncer} from 'fs-syncer'
-import {createPool, sql} from 'slonik'
-import {getTestPool} from './pool'
+import {sql} from 'slonik'
+import {getPoolHelper} from './pool-helper'
 
 const names = (migrations: Array<{name: string}>) => migrations.map(m => m.name)
 
-// const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {
-//   idleTimeout: 1,
-// })
 describe('locking', () => {
-  const helper = getTestPool({__filename})
+  const helper = getPoolHelper({__filename})
   test('second instance waits for first', async () => {
     const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'wait')
     const syncer = fsSyncer(baseDir, {
@@ -58,7 +55,7 @@ describe('locking', () => {
 })
 
 describe('concurrency', () => {
-  const helper = getTestPool({
+  const helper = getPoolHelper({
     __filename,
     config: {
       interceptors: [

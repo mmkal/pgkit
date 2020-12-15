@@ -1,29 +1,25 @@
 import {SlonikMigrator} from '../src'
 import * as path from 'path'
 import {fsSyncer} from 'fs-syncer'
-import {createPool, sql} from 'slonik'
-import {getTestPool} from './pool'
-// const slonik = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {idleTimeout: 1})
+import {sql} from 'slonik'
+import {getPoolHelper} from './pool-helper'
 
-// const names = (migrations: Array<{name: string}>) => migrations.map(m => m.name)
-
-// afterAll(() => slonik.end())
-
-const {pool, names, ...helper} = getTestPool({__filename})
+const {pool, names, ...helper} = getPoolHelper({__filename})
 
 describe('transaction', () => {
   test('rollback happens', async () => {
+    await pool.query(sql`drop table if exists transaction_test_table`)
+    await pool.query(sql`create table transaction_test_table(id int primary key)`)
+
     const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'singleTransaction')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'insert into transaction_test_table(id) values (1);',
-        'm2.sql': 'insert into transaction_test_table(id) values (1);', // will fail due to conflict with previous
+        'm2.sql': 'insert into transaction_test_table(id) values (1);',
+        //         ^-- will fail due to conflict with previous migration
       },
     })
     syncer.sync()
-
-    await pool.query(sql`drop table if exists transaction_test_table`)
-    await pool.query(sql`create table transaction_test_table(id int primary key)`)
 
     const migrator = new SlonikMigrator({
       slonik: pool,

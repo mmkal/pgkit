@@ -3,9 +3,9 @@ import {range} from 'lodash'
 import {sql} from 'slonik'
 import {SlonikMigrator} from '../src'
 import {fsSyncer} from 'fs-syncer'
-import {getTestPool} from './pool'
+import {getPoolHelper} from './pool-helper'
 
-const {pool, ...helper} = getTestPool({__filename})
+const {pool, ...helper} = getPoolHelper({__filename})
 
 const millisPerDay = 1000 * 60 * 60 * 24
 const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())

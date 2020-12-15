@@ -1,10 +1,10 @@
 import * as path from 'path'
 import {fsSyncer} from 'fs-syncer'
 import {sql} from 'slonik'
-import {getTestPool} from './pool'
+import {getPoolHelper} from './pool-helper'
 import {SlonikMigrator} from '../src'
 
-const {pool: slonik, ...helper} = getTestPool({__filename})
+const helper = getPoolHelper({__filename})
 
 describe('errors', () => {
   test('have helpful messages including migration name', async () => {
@@ -17,7 +17,7 @@ describe('errors', () => {
     syncer.sync()
 
     const migrator = new SlonikMigrator({
-      slonik,
+      slonik: helper.pool,
       migrationsPath: path.join(syncer.baseDir, 'migrations'),
       migrationTableName: 'errors_migrations',
       logger: undefined,
@@ -42,7 +42,7 @@ describe('errors', () => {
     syncer.sync()
 
     const migrator = new SlonikMigrator({
-      slonik,
+      slonik: helper.pool,
       migrationsPath: path.join(syncer.baseDir, 'migrations'),
       migrationTableName: 'migrations',
       logger: undefined,
@@ -54,7 +54,7 @@ describe('errors', () => {
       `"Migration m3.sql (up) failed: Original error: syntax error at or near \\";\\""`,
     )
 
-    expect(await slonik.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(`
+    expect(await helper.pool.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(`
       Array [
         Object {
           "id": 1,
@@ -62,7 +62,7 @@ describe('errors', () => {
       ]
     `)
 
-    expect(await slonik.anyFirst(sql`select name from migrations`)).toMatchInlineSnapshot(`
+    expect(await helper.pool.anyFirst(sql`select name from migrations`)).toMatchInlineSnapshot(`
       Array [
         "m1.sql",
         "m2.sql",
@@ -82,7 +82,7 @@ describe('errors', () => {
     syncer.sync()
 
     const migrator = new SlonikMigrator({
-      slonik,
+      slonik: helper.pool,
       migrationsPath: path.join(syncer.baseDir, 'migrations'),
       migrationTableName: 'migrations',
       logger: undefined,
@@ -95,9 +95,9 @@ describe('errors', () => {
       `"Migration m3.sql (up) failed: Original error: syntax error at or near \\";\\""`,
     )
 
-    expect(await slonik.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(
+    expect(await helper.pool.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(
       `[error: relation "errors_table1" does not exist]`,
     )
-    expect(await slonik.any(sql`select * from migrations`)).toMatchInlineSnapshot(`Array []`)
+    expect(await helper.pool.any(sql`select * from migrations`)).toMatchInlineSnapshot(`Array []`)
   })
 })

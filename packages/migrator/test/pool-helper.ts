@@ -5,7 +5,7 @@ import {createPool, sql, ClientConfigurationInputType} from 'slonik'
  * Gets a pool suitable for use in tests. Creates a schema based on the passed-in test file name,
  * which is wiped before every test. Adds an afterAll listener which makes sure jest exits cleanly.
  */
-export const getTestPool = (params: {__filename: string; config?: ClientConfigurationInputType}) => {
+export const getPoolHelper = (params: {__filename: string; config?: ClientConfigurationInputType}) => {
   const schemaName = path.parse(params.__filename).name.replace(/\W/g, '_')
   const schemaIdentifier = sql.identifier([schemaName])
 
@@ -42,5 +42,5 @@ export const getTestPool = (params: {__filename: string; config?: ClientConfigur
   /** Get the names from a list of migrations. Useful for light assertions */
   const names = (migrations: Array<{name: string}>) => migrations.map(m => m.name)
 
-  return {pool, schemaName, schemaIdentifier, mockLogger, names}
+  return {pool, schemaName, schemaIdentifier, mockLogger, names, sql}
 }
