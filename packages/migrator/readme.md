@@ -23,6 +23,12 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
    - [More commands](#more-commands)
    - [Controlling migrations](#controlling-migrations)
    - [Running programatically](#running-programatically)
+- [Commands](#commands)
+   - [up](#up)
+   - [down](#down)
+   - [pending](#pending)
+   - [executed](#executed)
+   - [create](#create)
 - [Configuration](#configuration)
 - [Implementation](#implementation)
 <!-- codegen:end -->
@@ -104,13 +110,17 @@ To print the list of migrations that are due to be applied:
 
 ```bash
 node migrate pending
+```
+
 ### Controlling migrations
 
 By default, `node migrate down` reverts only the most recent migration.
 
-Itlso possible to migrate up or down "to" a specific migration. For example, if you have run migrations `one.sql`, `two.sql`, `three.sql` and `four.sql`, you can revert `three.sql` and `four.sql` by running `node migrate down three.sql`. Note that the range is *inclusive*. To revert all migrations in one go, run `node migrae ow `
+Itlso possible to migrate up or down "to" a specific migration. For example, if you have run migrations `one.sql`, `two.sql`, `three.sql` and `four.sql`, you can revert `three.sql` and `four.sql` by running `node migrate down --to three.sql`. Note that the range is *inclusive*. To revert all migrations in one go, run `node migrate down --to 0`
 
-Conversely, `node migrate up` runs all `up` migrations by default. To run only up to a certain migaton, run `node migrate up two.sql`. This will run migrations `one.sql` and `two.sql` - again, the range is *inclusive* of the name.
+Conversely, `node migrate up` runs all `up` migrations by default. To run only up to a certain migaton, run `node migrate up --to two.sql`. This will run migrations `one.sql` and `two.sql` - again, the range is *inclusive* of the name.
+
+See [commands](#commands) for more options.
 
 ### Running programatically
 
@@ -136,7 +146,151 @@ export const seed = async () => {
 
 <!-- code-generate umzug's CLI section, since this package just exposes an umzug helper -->
 <!-- codegen:start {preset: custom, source: ./codegen.js} -->
+## Commands
 
+```
+usage: <script> [-h] <command> ...
+
+@slonik/migrator - PostgreSQL migration tool
+
+Positional arguments:
+  <command>
+    up        Applies pending migrations
+    down      Revert migrations
+    pending   Lists pending migrations
+    executed  Lists executed migrations
+    create    Create a migration file
+
+Optional arguments:
+  -h, --help  Show this help message and exit.
+
+For detailed help about a specific command, use: <script> <command> 
+-h
+```
+
+### up
+
+```
+usage: <script> up [-h] [--to NAME] [--step COUNT] [--name MIGRATION]
+                   [--rerun {THROW,SKIP,ALLOW}]
+                   
+
+Performs all migrations. See --help for more options
+
+Optional arguments:
+  -h, --help            Show this help message and exit.
+  --to NAME             All migrations up to and including this one should be 
+                        applied.
+  --step COUNT          Run this many migrations. If not specified, all will 
+                        be applied.
+  --name MIGRATION      Explicity declare migration name(s) to be applied.
+  --rerun {THROW,SKIP,ALLOW}
+                        Specify what action should be taken when a migration 
+                        that has already been applied is passed to --name. 
+                        The default value is "THROW".
+```
+
+### down
+
+```
+usage: <script> down [-h] [--to NAME] [--step COUNT] [--name MIGRATION]
+                     [--rerun {THROW,SKIP,ALLOW}]
+                     
+
+Undoes previously-applied migrations. By default, undoes the most recent 
+migration only. Use --help for more options. Useful in development to start 
+from a clean slate. Use with care in production!
+
+Optional arguments:
+  -h, --help            Show this help message and exit.
+  --to NAME             All migrations up to and including this one should be 
+                        reverted. Pass "0" to revert all.
+  --step COUNT          Run this many migrations. If not specified, one will 
+                        be reverted.
+  --name MIGRATION      Explicity declare migration name(s) to be reverted.
+  --rerun {THROW,SKIP,ALLOW}
+                        Specify what action should be taken when a migration 
+                        that has already been reverted is passed to --name. 
+                        The default value is "THROW".
+```
+
+### pending
+
+```
+usage: <script> pending [-h] [--json]
+
+Prints migrations returned by `umzug.pending()`. By default, prints migration 
+names one per line.
+
+Optional arguments:
+  -h, --help  Show this help message and exit.
+  --json      Print pending migrations in a json format including names and 
+              paths. This allows piping output to tools like jq. Without this 
+              flag, the migration names will be printed one per line.
+```
+
+### executed
+
+```
+usage: <script> executed [-h] [--json]
+
+Prints migrations returned by `umzug.executed()`. By default, prints 
+migration names one per line.
+
+Optional arguments:
+  -h, --help  Show this help message and exit.
+  --json      Print executed migrations in a json format including names and 
+              paths. This allows piping output to tools like jq. Without this 
+              flag, the migration names will be printed one per line.
+```
+
+### create
+
+```
+usage: <script> create [-h] --name NAME [--prefix {TIMESTAMP,DATE,NONE}]
+                       [--folder PATH] [--allow-extension EXTENSION]
+                       [--skip-verify] [--allow-confusing-ordering]
+                       
+
+Generates a placeholder migration file using a timestamp as a prefix. By 
+default, mimics the last existing migration, or guesses where to generate the 
+file if no migration exists yet.
+
+Optional arguments:
+  -h, --help            Show this help message and exit.
+  --name NAME           The name of the migration file. e.g. my-migration.js, 
+                        my-migration.ts or my-migration.sql. Note - a prefix 
+                        will be added to this name, usually based on a 
+                        timestamp. See --prefix
+  --prefix {TIMESTAMP,DATE,NONE}
+                        The prefix format for generated files. TIMESTAMP uses 
+                        a second-resolution timestamp, DATE uses a 
+                        day-resolution timestamp, and NONE removes the prefix 
+                        completely. The default value is "TIMESTAMP".
+  --folder PATH         Path on the filesystem where the file should be 
+                        created. The new migration will be created as a 
+                        sibling of the last existing one if this is omitted.
+  --allow-extension EXTENSION
+                        Allowable extension for created files. By default .js,
+                         .ts and .sql files can be created. To create txt 
+                        file migrations, for example, you could use '--name 
+                        my-migration.txt --allow-extension .txt' This 
+                        parameter may alternatively be specified via the 
+                        UMZUG_ALLOW_EXTENSION environment variable.
+  --skip-verify         By default, the generated file will be checked after 
+                        creation to make sure it is detected as a pending 
+                        migration. This catches problems like creation in the 
+                        wrong folder, or invalid naming conventions. This 
+                        flag bypasses that verification step.
+  --allow-confusing-ordering
+                        By default, an error will be thrown if you try to 
+                        create a migration that will run before a migration 
+                        that already exists. This catches errors which can 
+                        cause problems if you change file naming conventions. 
+                        If you use a custom ordering system, you can disable 
+                        this behavior, but it's strongly recommended that you 
+                        don't! If you're unsure, just ignore this option.
+```
 <!-- codegen:end -->
 
 ## Configuration

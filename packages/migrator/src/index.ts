@@ -100,12 +100,12 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
       }
     }
     const {transaction: slonik} = params.context
-    const migrationModule = require(params.path!)
+    const migrationModule: {up: Migration; down?: Migration} = require(params.path!)
     return {
       name: params.name,
       path: params.path,
-      up: upParams => migrationModule.up({slonik, sql, ...upParams}),
-      down: downParams => migrationModule.down({slonik, sql, ...downParams}),
+      up: async upParams => migrationModule.up({slonik, sql, ...upParams}),
+      down: async downParams => migrationModule.down?.({slonik, sql, ...downParams}),
     }
   }
 
@@ -208,6 +208,15 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 }
 
+export type Migration = (
+  params: umzug.MigrationParams<SlonikMigratorContext> & {
+    /** @deprecated use `context.transaction` */
+    slonik: DatabaseTransactionConnectionType
+    /** @deprecated use `context.sql` */
+    sql: typeof sql
+  },
+) => Promise<unknown>
+
 /**
  * Should either be a `DatabasePoolType` or `DatabasePoolConnectionType`. If it's a `DatabasePoolType` with an `.end()`
  * method, the `.end()` method will be called after running the migrator as a CLI.
@@ -236,12 +245,6 @@ export interface SlonikMigratorOptions {
    * Logger with `info`, `warn`, `error` and `debug` methods - set explicitly to `undefined` to disable logging
    */
   logger: umzug.UmzugOptions['logger']
-  /**
-   * OPTIONAL "module" value. If you set `mainModule: module` in a nodejs script, that script will become a
-   * runnable CLI when invoked directly, but the migrator object can still be imported as normal if a different
-   * entrypoint is used.
-   */
-  mainModule?: NodeModule
 }
 
 /**
@@ -262,9 +265,20 @@ export type SlonikUmzugOptions = umzug.UmzugOptions<SlonikMigratorContext> & {
 }
 
 /**
- * Returns @see umzug.Umzug instance.
+ * @deprecated use `new SlonikMigrator(...)` which takes the same options.
  */
-export const setupSlonikMigrator = (options: SlonikMigratorOptions) => {
+export const setupSlonikMigrator = (
+  options: SlonikMigratorOptions & {
+    /**
+     * @deprecated Use `.runAsCLI()`, e.g. `if (require.main) migrator.runAsCLI()`
+     *
+     * OPTIONAL "module" value. If you set `mainModule: module` in a nodejs script, that script will become a
+     * runnable CLI when invoked directly, but the migrator object can still be imported as normal if a different
+     * entrypoint is used.
+     */
+    mainModule?: NodeModule
+  },
+) => {
   const migrator = new SlonikMigrator(options)
   if (options.mainModule === require.main) {
     migrator.runAsCLI()
