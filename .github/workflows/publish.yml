@@ -13,7 +13,7 @@ jobs:
       with:
         token: ${{ secrets.GH_CI_TOKEN }}
         fetch-depth: 0
-    - uses: actions/setup-node@v1
+    - uses: actions/setup-node@v2
       with:
         node-version: 12.x
     - name: setup/install/build
