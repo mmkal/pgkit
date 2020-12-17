@@ -1,11 +1,8 @@
-import * as glob from 'glob'
 import * as lodash from 'lodash'
 import {defaultExtractQueries} from './extract'
 import {defaultWriteTypes} from './write'
 import {defaultGdescTypeMappings, psqlClient} from './pg'
-import {promisify} from 'util'
-
-const globAsync = promisify(glob)
+import {globAsync} from './util'
 
 export interface GdescriberParams {
   /**
@@ -112,7 +109,7 @@ export interface QueryField {
 export const gdescriber = ({
   psqlCommand = `docker-compose exec -T postgres psql -h localhost -U postgres postgres`,
   gdescToTypeScript = gdesc => defaultGdescTypeMappings[gdesc],
-  glob: globParams = ['**/*.{js,ts,cjs,mjs}', {ignore: ['node_modules/**', '**/generated/**']}],
+  glob = ['**/*.{js,ts,cjs,mjs}', {ignore: ['node_modules/**', '**/generated/**']}],
   defaultType = 'unknown',
   extractQueries = defaultExtractQueries,
   writeTypes = defaultWriteTypes('src/generated/db'),
@@ -166,8 +163,8 @@ export const gdescriber = ({
   }
 
   const findAll = async () => {
-    const globParamsArray: Parameters<typeof globAsync> = typeof globParams === 'string' ? [globParams] : globParams
-    const files = await globAsync(...globParamsArray)
+    const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob] : glob
+    const files = await globAsync(...globParams)
     const promises = files
       .flatMap(extractQueries)
       .map<Promise<DescribedQuery>>(async query => ({...query, fields: await describeCommand(query.sql)}))

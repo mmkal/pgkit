@@ -1,7 +1,11 @@
 import * as execa from 'execa'
 import {simplifyWhitespace} from '../util'
 
-export const psqlClient = (psqlCommand: string) => (query: string) => {
+/**
+ * Get a basic postgres client. which can execute simple queries and return row results.
+ * This parses `psql` output and no type parsing is done. Everything is a string.
+ */
+export const psqlClient = (psqlCommand: string) => async (query: string) => {
   query = simplifyWhitespace(query)
   const command = `echo '${query.replace(/'/g, `'"'"'`)}' | ${psqlCommand} -f -`
   const result = await execa('sh', ['-c', command])
@@ -18,7 +22,8 @@ export const psqlClient = (psqlCommand: string) => (query: string) => {
   }
 }
 
-export const psqlRows = (output: string) => {
+/** Parse a psql output into a list of rows (string tuples) */
+export const psqlRows = (output: string): string[][] => {
   const lines = output
     .split('\n')
     .map(line => line.trim())
