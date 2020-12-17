@@ -19,6 +19,12 @@ export const getApp = () => {
           values (${content})
           returning id
         `)
+
+        // await conn.oneFirst(sql.NotAType`
+        //   insert into messages(content)
+        //   values (${content})
+        //   returning id
+        // `)
         res.status(201).send({id})
       })
       .catch(handleError(res)),
@@ -35,13 +41,6 @@ export const getApp = () => {
           limit 10
         `)
 
-        sql.Foo`
-          select '{}'::json
-        `
-
-        sql.Bar`
-          select '{}'::jsonb
-        `
         res.status(200).send(
           messages.map(m => ({
             id: m.id,
