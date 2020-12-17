@@ -61,9 +61,8 @@ export interface GdescriberParams {
 
   /**
    * How to write types which have been collected by psql. Usually you'll want to write to disk, but this can be any side-effect.
-   * You could write to stdout instead, or throw an error if any new types are detected in CI.
-   *
-   * In theory you could use this to write some python code instead.
+   * You could write to stdout instead, or throw an error if any new types are detected in CI. In theory you could event use this
+   * to write some code in another language instead.
    * @default @see defaultWriteTypes
    */
   writeTypes: (types: Record<string, QueryType[]>) => void
@@ -150,7 +149,7 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
             fields: {
               ${q.fields.map(
                 f => `
-                /** PostgreSQL type: ${f.gdesc} */
+                /** postgres type: ${f.gdesc} */
                 ${f.name}: ${f.typescript}
               `,
               )}
@@ -170,20 +169,16 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
         ${interfaces.join(os.EOL + os.EOL)}
       `
     })
-    .mapKeys((typescript, name) => name + '.ts')
+    .mapKeys((typescript, name) => 'types/' + name + '.ts')
     .value()
 
   const names = Object.keys(typeFiles).map(filepath => path.parse(filepath).name)
-  const barrelExports = Object.keys(typeFiles)
-    .map(path.parse)
-    .map(({name}) => `import { ${lodash.camelCase(name)} } from './${name}'`)
-
   let allFiles: Record<string, string> = {
     ...typeFiles,
     'index.ts': `
       import * as slonik from 'slonik'
 
-      ${names.map(n => `import { ${n} } from './${n}'`).join(os.EOL)}
+      ${names.map(n => `import { ${n} } from './types/${n}'`).join(os.EOL)}
 
       export interface GenericSqlTaggedTemplateType<T> {
         <U = T>(
@@ -206,7 +201,7 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
     `,
   }
 
-  console.log(Object.keys(allFiles))
+  console.log({allFiles})
 
   try {
     const prettier: typeof import('prettier') = require('prettier')
@@ -228,14 +223,17 @@ const normaliseSQL = (sql: string, newlineReplacement = ' ') => {
 }
 
 export const gdescriber = ({
-  psqlCommand = `docker-compose exec -T postgres psql`,
-  psqlAuth = `-h localhost -U postgres postgres`,
+  psqlCommand = `docker-compose exec -T postgres psql -h localhost -U postgres postgres`,
   gdescTypeMappings = defaultGdescTypeMappings,
   glob: globParams = ['**/*.{js,ts,cjs,mjs}', {ignore: ['node_modules/**']}],
   defaultType = 'unknown',
   extractQueries = defaultExtractQueries,
   writeTypes = defaultWriteTypes('src/generated/db'),
 }: Partial<GdescriberParams> = {}) => {
+  if (psqlCommand.includes(`'`)) {
+    throw new Error(`Can't run psql command '${psqlCommand}'; it has quotes in it.`)
+  }
+
   const getEnumTypes = lodash.once(async () => {
     const rows = await psql(`
       select distinct t.typname, e.enumlabel
@@ -249,12 +247,8 @@ export const gdescriber = ({
 
   const psql = async (query: string) => {
     query = normaliseSQL(query)
-    const command = `echo '${query.replace(/'/g, `'"'"'`)}' | ${psqlCommand} ${psqlAuth} -f -`
-    if (`${psqlCommand} ${psqlAuth}`.includes(`'`)) {
-      throw new Error(`Can't run command '${psqlCommand}', maybe it needs escaping?`)
-    }
+    const command = `echo '${query.replace(/'/g, `'"'"'`)}' | ${psqlCommand} -f -`
     const result = await execa('sh', ['-c', command])
-    console.log({query})
     try {
       return psqlRows(result.stdout)
     } catch (e) {
