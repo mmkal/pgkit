@@ -3,18 +3,37 @@ import * as lodash from 'lodash'
 import {defaultExtractQueries} from './extract'
 import {defaultWriteTypes} from './write'
 import {defaultGdescTypeMappings, psqlClient} from './pg'
+import {promisify} from 'util'
+
+const globAsync = promisify(glob)
 
 export interface GdescriberParams {
   /**
    * How to execute `psql` from the machine running this tool.
-   * Note: It's recommended to only run this against a local/dev/CI database, not production!
+   *
+   * Note: It's not recommended to run this tool against a production database, even though it doesn't perform any dynamic queries.
    *
    * Some example values:
    *
-   * Scenario | Command
-   * -|-
-   * running postgres directly|`psql -h localhost -U postgres postgres`
-   * running postgres with docker-compose|`docker-compose exec -T postgres psql -h localhost -U postgres postgres`
+   * Scenario                             | Command
+   * -------------------------------------|-------------------------------------------------------------------------
+   * running postgres directly            | `psql -h localhost -U postgres postgres`
+   * running postgres with docker-compose | `docker-compose exec -T postgres psql -h localhost -U postgres postgres`
+   *
+   * ___
+   *
+   * You can test this by running `echo 'select 123' | ${your_psqlCommand} -f -`
+   *
+   * e.g. `echo 'select 1 as a, 2 as b' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -`
+   *
+   * You should see something like this printed:
+   *
+   * ```
+   *  a | b
+   * ---+---
+   *  1 | 2
+   * (1 row)
+   * ```
    */
   psqlCommand: string
 
@@ -23,7 +42,7 @@ export interface GdescriberParams {
    * Also allows passing `cwd` and `ignore` strings e.g. `['source/*.ts', {ignore: ['source/*.test.ts']}]`
    * Defaults to all JavaScript and TypeScript files, ignoring node_modules.
    */
-  glob: string | [string, {cwd?: string; ignore?: string[]}]
+  glob: string | [string, {cwd?: string; ignore?: string[]}?]
 
   /**
    * Map from a psql type description to a TypeScript type representation.
@@ -147,9 +166,9 @@ export const gdescriber = ({
   }
 
   const findAll = async () => {
-    const globParamsArray: Parameters<typeof glob.sync> = typeof globParams === 'string' ? [globParams] : globParams
-    const promises = glob
-      .sync(...globParamsArray)
+    const globParamsArray: Parameters<typeof globAsync> = typeof globParams === 'string' ? [globParams] : globParams
+    const files = await globAsync(...globParamsArray)
+    const promises = files
       .flatMap(extractQueries)
       .map<Promise<DescribedQuery>>(async query => ({...query, fields: await describeCommand(query.sql)}))
 
