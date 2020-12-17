@@ -8,7 +8,7 @@ export interface Message {
   /** postgres type: character varying(20) */
   content: string;
   /** postgres type: timestamp with time zone */
-  created_at: number;
+  created_at: string;
   /** postgres type: message_priority */
   priority: "high" | "low" | "medium";
 }

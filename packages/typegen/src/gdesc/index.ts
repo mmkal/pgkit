@@ -1,8 +1,10 @@
+import * as slonik from 'slonik'
 import * as lodash from 'lodash'
 import {defaultExtractQueries} from './extract'
 import {defaultWriteTypes} from './write'
 import {defaultPGDataTypeToTypeScriptMappings, psqlClient} from './pg'
 import {globAsync} from './util'
+import {defaultTypeParsers} from './slonik'
 
 export interface GdescriberParams {
   /**
@@ -84,6 +86,24 @@ export interface GdescriberParams {
    * @default @see defaultWriteTypes
    */
   writeTypes: (types: Record<string, DescribedQuery[]>) => void
+
+  /**
+   * List of `slonik.TypeParserType` objects, as passed into slonik. These should each have an extra `typescript` string property,
+   * which indicates what type the parse into.
+   *
+   * e.g. for a slonik type parser
+   * ```
+   * { name: 'int8', parse: i => parseInt(i, 10) }
+   * ```
+   *
+   * The equivalent type parser would be:
+   * ```
+   * { name: 'int8', parse: i => parseInt(i, 10), typescript: 'number' }
+   * ```
+   *
+   * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
+   */
+  typeParsers: Array<TypeScriptTypeParser>
 }
 
 export interface ExtractedQuery {
@@ -109,6 +129,10 @@ export interface QueryField {
   typescript: string
 }
 
+export interface TypeScriptTypeParser extends slonik.TypeParserType {
+  typescript: string
+}
+
 export const gdescriber = ({
   psqlCommand = `docker-compose exec -T postgres psql -h localhost -U postgres postgres`,
   gdescToTypeScript = gdesc => defaultPGDataTypeToTypeScriptMappings[gdesc],
@@ -116,8 +140,9 @@ export const gdescriber = ({
   defaultType = 'unknown',
   extractQueries = defaultExtractQueries,
   writeTypes = defaultWriteTypes('src/generated/db'),
+  typeParsers = defaultTypeParsers,
 }: Partial<GdescriberParams> = {}) => {
-  const {psql, getEnumTypes} = psqlClient(psqlCommand)
+  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
 
   const describeCommand = async (query: string): Promise<QueryField[]> => {
     const rows = await psql(`${query} \\gdesc`)
@@ -130,22 +155,29 @@ export const gdescriber = ({
     )
   }
 
-  const getTypeScriptType = async (gdescType: string, typeName: string): Promise<string> => {
-    if (!gdescType) {
+  const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
+    if (!regtype) {
       return defaultType
     }
+
     const enumTypes = await getEnumTypes()
-    if (gdescType?.endsWith('[]')) {
-      return `Array<${getTypeScriptType(gdescType.slice(0, -2), typeName)}>`
-    }
-    if (gdescType?.match(/\(\d+\)/)) {
-      return getTypeScriptType(gdescType.split('(')[0], typeName)
+    const regtypeToPGType = await getRegtypeToPGType()
+
+    if (regtype?.endsWith('[]')) {
+      return `Array<${getTypeScriptType(regtype.slice(0, -2), typeName)}>`
     }
 
+    if (regtype?.match(/\(\d+\)/)) {
+      return getTypeScriptType(regtype.split('(')[0], typeName)
+    }
+
+    const pgtype = regtypeToPGType[regtype]?.typname
+
     return (
-      gdescToTypeScript(gdescType, typeName) ||
-      enumTypes[gdescType]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-      defaultPGDataTypeToTypeScriptMappings[gdescType] ||
+      lodash.findLast(typeParsers, p => p.name === pgtype)?.typescript ||
+      gdescToTypeScript(regtype, typeName) ||
+      enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
+      defaultPGDataTypeToTypeScriptMappings[regtype] ||
       defaultType
     )
   }

@@ -41,18 +41,18 @@ export const psqlClient = (psqlCommand: string) => {
     return lodash.groupBy(types, t => t.typname)
   })
 
-  const regtypeToPGType = lodash.once(async () => {
+  const getRegtypeToPGType = lodash.once(async () => {
     const rows = await psql(`
       select oid, typname, oid::regtype as regtype
       from pg_type
-      where typename not like '_%'
+      where typname not like '_%'
     `)
 
     const types = rows.map(r => ({oid: r[0], typname: r[1], regtype: r[2]}))
     return lodash.keyBy(types, t => t.regtype)
   })
 
-  return {psql, getEnumTypes, regtypeToPGType}
+  return {psql, getEnumTypes, getRegtypeToPGType}
 }
 
 export /** Parse a psql output into a list of rows (string tuples) */
