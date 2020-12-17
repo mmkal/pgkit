@@ -8,12 +8,64 @@ import * as fp from 'lodash/fp'
 import {fsSyncer} from 'fs-syncer'
 
 export interface GdescriberParams {
+  /**
+   * How to execute `psql` from the machine running this tool. e.g. `docker-compose exec -T postgres psql`.
+   * Note: It's recommended to only run this against a local/dev/CI database, not production!
+   */
   psqlCommand: string
+
+  /**
+   * Auth string for passing to the `psql` command. e.g. `-h localhost -U postgres postgres`
+   * Note: It's recommended to only run this against a local/dev/CI database, not production!
+   */
   psqlAuth: string
+
+  /**
+   * Files to look for SQL queries in. e.g. `source/queries/*.ts`
+   * Also allows passing `cwd` and `ignore` strings e.g. `['source/*.ts', {ignore: ['source/*.test.ts']}]`
+   * Defaults to all JavaScript and TypeScript files, ignoring node_modules.
+   */
   glob: string | [string, {cwd?: string; ignore?: string[]}]
+
+  /**
+   * Map from a psql type description to a TypeScript type representation.
+   * @default @see defaultGdescTypeMappings
+   */
   gdescTypeMappings: Record<string, string>
+
+  /**
+   * TypeScript type when no mapping is found. This should usually be `unknown` or `any`
+   */
   defaultType: string
+
+  /**
+   * How to parse a file to get a list of SQL queries. By default, reads the file and uses naive regexes to
+   * search for blocks looking like
+   * @example
+   * ```
+   * pool.query(sql.SomeType`
+   *   select foo
+   *   from bar
+   * `)
+   * ```
+   *
+   * Which will parse to:
+   *
+   * ```
+   * {tag: 'SomeType', file: 'path/to/file.ts', sql: 'select foo from bar'}
+   * ```
+   *
+   * There is no edge-case handling for queries which contain backticks. If you have those, pass a custom function in here or raise an issue.
+   */
   extractQueries: (file: string) => Array<{tag: string; file: string; sql: string}>
+
+  /**
+   * How to write types which have been collected by psql. Usually you'll want to write to disk, but this can be any side-effect.
+   * You could write to stdout instead, or throw an error if any new types are detected in CI.
+   *
+   * In theory you could use this to write some python code instead.
+   * @default @see defaultWriteTypes
+   */
   writeTypes: (types: Record<string, QueryType[]>) => void
 }
 
@@ -82,6 +134,7 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
   const typeFiles = lodash
     .chain(groups)
     .mapKeys((val, key) => lodash.camelCase(key))
+    .mapKeys((val, typeName) => typeName.slice(0, 1).toUpperCase() + typeName.slice(1))
     .mapValues(
       fp.uniqBy(q => {
         const stringified = q.fields.map(f => JSON.stringify(f))
@@ -89,7 +142,6 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
       }),
     )
     .mapValues((queries, typeName) => {
-      typeName = typeName.slice(0, 1).toUpperCase() + typeName.slice(1)
       const interfaces = queries.map(
         (q, i) =>
           `export interface ${typeName}_${i} {
@@ -98,7 +150,7 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
             fields: {
               ${q.fields.map(
                 f => `
-                /** ${f.gdesc} */
+                /** PostgreSQL type: ${f.gdesc} */
                 ${f.name}: ${f.typescript}
               `,
               )}
@@ -114,26 +166,53 @@ export const defaultWriteTypes = (folder: string): GdescriberParams['writeTypes'
         export type ${typeName} = {
           [K in keyof ${typeName}_Type]: ${typeName}_Type[K]
         }
+
         ${interfaces.join(os.EOL + os.EOL)}
       `
     })
     .mapKeys((typescript, name) => name + '.ts')
     .value()
 
+  const names = Object.keys(typeFiles).map(filepath => path.parse(filepath).name)
   const barrelExports = Object.keys(typeFiles)
-    .map(name => path.parse(name).base)
-    .map(base => `export * from './${base}`)
+    .map(path.parse)
+    .map(({name}) => `import { ${lodash.camelCase(name)} } from './${name}'`)
 
   let allFiles: Record<string, string> = {
     ...typeFiles,
-    'index.ts': barrelExports.join(os.EOL),
+    'index.ts': `
+      import * as slonik from 'slonik'
+
+      ${names.map(n => `import { ${n} } from './${n}'`).join(os.EOL)}
+
+      export interface GenericSqlTaggedTemplateType<T> {
+        <U = T>(
+          template: TemplateStringsArray,
+          ...vals: slonik.ValueExpressionType[]
+        ): slonik.TaggedTemplateLiteralInvocationType<U>;
+      }
+      
+      export type SqlType = typeof slonik.sql & {
+        ${names.map(n => `${n}: GenericSqlTaggedTemplateType<${n}>`)}
+      };
+      
+      export const sql: SqlType = Object.assign(
+        (...args: Parameters<typeof slonik.sql>): ReturnType<typeof slonik.sql> => slonik.sql(...args),
+        slonik.sql,
+        {
+          ${names.map(n => `${n}: slonik.sql`)}
+        }
+      )
+    `,
   }
+
+  console.log(Object.keys(allFiles))
 
   try {
     const prettier: typeof import('prettier') = require('prettier')
     allFiles = lodash.mapValues(allFiles, (content, filepath) => prettier.format(content, {filepath}))
   } catch (e) {
-    console.warn(`prettier failed; your output will work but be very ugly! Install prettier to fix this`)
+    console.warn(`prettier failed; your output will be very ugly! Error: ${e.message}`)
   }
 
   fsSyncer(folder, allFiles).sync()
@@ -155,15 +234,15 @@ export const gdescriber = ({
   glob: globParams = ['**/*.{js,ts,cjs,mjs}', {ignore: ['node_modules/**']}],
   defaultType = 'unknown',
   extractQueries = defaultExtractQueries,
-  writeTypes = defaultWriteTypes('src/generated/pg-types'),
+  writeTypes = defaultWriteTypes('src/generated/db'),
 }: Partial<GdescriberParams> = {}) => {
   const getEnumTypes = lodash.once(async () => {
     const rows = await psql(`
-    select distinct t.typname, e.enumlabel
-    from pg_enum as e
-    join pg_type as t
-    on t.oid = e.enumtypid
-  `)
+      select distinct t.typname, e.enumlabel
+      from pg_enum as e
+      join pg_type as t
+      on t.oid = e.enumtypid
+    `)
     const types = rows.map(r => ({typname: r[0], enumlabel: r[1]}))
     return lodash.groupBy(types, t => t.typname)
   })
