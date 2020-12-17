@@ -20,5 +20,9 @@
   "license": "ISC",
   "peerDependencies": {
     "slonik": ">= 21.0.0 < 24"
+  },
+  "dependencies": {
+    "execa": "^5.0.0",
+    "fs-syncer": "^0.3.4"
   }
 }

@@ -15,10 +15,10 @@ export const getApp = () => {
       .connect(async conn => {
         const content = req.query.content as string
         const id = await conn.oneFirst(sql.MessageId`
-        insert into messages(content)
-        values (${content})
-        returning id
-      `)
+          insert into messages(content)
+          values (${content})
+          returning id
+        `)
         res.status(201).send({id})
       })
       .catch(handleError(res)),
@@ -29,11 +29,19 @@ export const getApp = () => {
       .connect(async conn => {
         let before = req.query.before as string
         const messages = await conn.any(sql.Message`
-        select * from messages
-        where id < ${before || 9999999}
-        order by created_at desc
-        limit 10
-      `)
+          select * from messages
+          where id < ${before || 9999999}
+          order by created_at desc
+          limit 10
+        `)
+
+        sql.Foo`
+          select '{}'::json
+        `
+
+        sql.Bar`
+          select '{}'::jsonb
+        `
         res.status(200).send(
           messages.map(m => ({
             id: m.id,
