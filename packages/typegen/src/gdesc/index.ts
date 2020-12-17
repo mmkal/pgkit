@@ -69,8 +69,11 @@ export interface GdescriberParams {
    * {tag: 'SomeType', file: 'path/to/file.ts', sql: 'select foo from bar'}
    * ```
    *
-   * There is no edge-case handling for queries with unusual formatting. If you have those, pass a custom function that
-   * uses a proper parser like babel or typescript in here, or raise an issue. I'm not going to write it before it's needed.
+   * ___
+   *
+   * Tries to use typescript to parse input files and search for template tag expressions, and falls back to using naive regexes if
+   * typescript isn't installed. Installing typescript will make the parsing more resilient to unusually-formatted queries with backticks
+   * and/or nested template expressions.
    */
   extractQueries: (file: string) => Array<ExtractedQuery>
 
