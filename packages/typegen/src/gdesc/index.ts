@@ -3,7 +3,6 @@ import * as lodash from 'lodash'
 import {defaultExtractQueries} from './extract'
 import {defaultWriteTypes} from './write'
 import {defaultGdescTypeMappings, psqlClient} from './pg'
-import {newFunction} from './newFunction'
 
 export interface GdescriberParams {
   /**

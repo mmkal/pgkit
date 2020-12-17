@@ -1,7 +1,7 @@
 import * as execa from 'execa'
 import {simplifyWhitespace} from '../util'
 
-export const psqlClient = (psqlCommand: string) => async (query: string) => {
+export const psqlClient = (psqlCommand: string) => (query: string) => {
   query = simplifyWhitespace(query)
   const command = `echo '${query.replace(/'/g, `'"'"'`)}' | ${psqlCommand} -f -`
   const result = await execa('sh', ['-c', command])
