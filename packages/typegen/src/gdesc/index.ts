@@ -1,7 +1,7 @@
 import * as lodash from 'lodash'
 import {defaultExtractQueries} from './extract'
 import {defaultWriteTypes} from './write'
-import {defaultGdescTypeMappings, psqlClient} from './pg'
+import {defaultPGDataTypeToTypeScriptMappings, psqlClient} from './pg'
 import {globAsync} from './util'
 
 export interface GdescriberParams {
@@ -43,7 +43,7 @@ export interface GdescriberParams {
 
   /**
    * Map from a psql type description to a TypeScript type representation.
-   * @default @see defaultGdescTypeMappings
+   * @default @see defaultPGDataTypeToTypeScriptMappings
    */
   gdescToTypeScript: (gdesc: string, typeName: string) => string | undefined
 
@@ -111,28 +111,13 @@ export interface QueryField {
 
 export const gdescriber = ({
   psqlCommand = `docker-compose exec -T postgres psql -h localhost -U postgres postgres`,
-  gdescToTypeScript = gdesc => defaultGdescTypeMappings[gdesc],
+  gdescToTypeScript = gdesc => defaultPGDataTypeToTypeScriptMappings[gdesc],
   glob = ['**/*.{js,ts,cjs,mjs}', {ignore: ['node_modules/**', '**/generated/**']}],
   defaultType = 'unknown',
   extractQueries = defaultExtractQueries,
   writeTypes = defaultWriteTypes('src/generated/db'),
 }: Partial<GdescriberParams> = {}) => {
-  if (psqlCommand.includes(`'`)) {
-    throw new Error(`Can't run psql command '${psqlCommand}'; it has quotes in it.`)
-  }
-
-  const psql = psqlClient(psqlCommand)
-
-  const getEnumTypes = lodash.once(async () => {
-    const rows = await psql(`
-      select distinct t.typname, e.enumlabel
-      from pg_enum as e
-      join pg_type as t
-      on t.oid = e.enumtypid
-    `)
-    const types = rows.map(r => ({typname: r[0], enumlabel: r[1]}))
-    return lodash.groupBy(types, t => t.typname)
-  })
+  const {psql, getEnumTypes} = psqlClient(psqlCommand)
 
   const describeCommand = async (query: string): Promise<QueryField[]> => {
     const rows = await psql(`${query} \\gdesc`)
@@ -160,7 +145,7 @@ export const gdescriber = ({
     return (
       gdescToTypeScript(gdescType, typeName) ||
       enumTypes[gdescType]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-      defaultGdescTypeMappings[gdescType] ||
+      defaultPGDataTypeToTypeScriptMappings[gdescType] ||
       defaultType
     )
   }
