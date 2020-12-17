@@ -5,8 +5,6 @@ export const defaultGdescTypeMappings: Record<string, string> = {
   text: 'string',
   integer: 'number',
   boolean: 'boolean',
-  json: 'any',
-  jsonb: 'any',
   name: 'string',
   'double precision': 'number',
   'character varying': 'string',
