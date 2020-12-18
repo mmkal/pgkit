@@ -22,6 +22,7 @@
     "slonik": ">= 21.0.0 < 24"
   },
   "dependencies": {
+    "@rushstack/ts-command-line": "^4.7.8",
     "execa": "^5.0.0",
     "fs-syncer": "^0.3.4"
   }
