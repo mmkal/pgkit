@@ -2,63 +2,78 @@ import * as cli from '@rushstack/ts-command-line'
 import {gdescriber} from './index'
 import * as path from 'path'
 
-export interface CommandLineParserOptions {
-  toolFileName?: string
-  toolDescription?: string
-}
-
 export class SlonikTypegenCLI extends cli.CommandLineParser {
-  private _params!: ReturnType<typeof SlonikTypegenCLI._defineParameters>
-
   constructor() {
     super({
       toolFilename: 'slonik-typegen',
-      toolDescription: 'Scans source files for sql queries and generates typescript interfaces for them.',
+      toolDescription: `CLI for https://npmjs.com/package/@slonik/typegen.`,
+    })
+
+    this.addAction(new GenerateAction())
+  }
+
+  onDefineParameters() {}
+}
+export class GenerateAction extends cli.CommandLineAction {
+  private _params!: ReturnType<typeof GenerateAction._defineParameters>
+
+  constructor() {
+    super({
+      actionName: 'generate',
+      summary: `Scans source files for SQL queries and generates TypeScript interfaces for them.`,
+      documentation: '',
     })
   }
 
-  private static _defineParameters(action: cli.CommandLineParser) {
+  private static _defineParameters(action: cli.CommandLineAction) {
     return {
       options: action.defineStringParameter({
         parameterLongName: '--options',
         argumentName: 'PATH',
-        description:
-          `Path to a module containing parameters to be passed to 'gdescriber'. If specified, it will be required ` +
-          `and the default export will be used as parameters. If not specified, defaults will be used. ` +
-          `Note: other CLI arguments will override values set in this module`,
+        description: `
+          Path to a module containing parameters to be passed to 'gdescriber'. If specified, it will be required
+          and the default export will be used as parameters. If not specified, defaults will be used.
+          Note: other CLI arguments will override values set in this module
+        `,
       }),
       rootDir: action.defineStringParameter({
         parameterLongName: '--root-dir',
-        argumentName: 'RELATIVEPATH',
-        description:
-          'Relative path from CWD to the source directory that contains SQL queries. ' +
-          'Defaults to `src` if no value is provided',
+        argumentName: 'PATH',
+        description: `Path to the source directory containing SQL queries. Defaults to 'src if no value is provided`,
       }),
       psql: action.defineStringParameter({
         parameterLongName: '--psql',
         argumentName: 'COMMAND',
-        description: `psql command`,
+        description: `
+          psql command used to query postgres via CLI client. e.g. 
+          'psql -h localhost -U postgres postgres' if running postgres locally, or 
+          'docker-compose exec -T postgres psql -h localhost -U postgres postgres' if running with docker-compose. 
+          You can test this by running "<<your_psql_command>> -c 'select 1 as a, 2 as b'". Note that this command will 
+          be executed dynamically, so avoid using any escape characters in here.
+        `,
       }),
       defaultType: action.defineStringParameter({
         parameterLongName: '--default-type',
         argumentName: 'TYPESCRIPT',
-        description:
-          `TypeScript fallback type for when no type is found. Most simple types (text, int etc.)` +
-          `Are mapped to their TypeScript equivalent automatically. This should usually be 'unknown', ` +
-          `or 'any' if you like to live dangerously.`,
+        description: `
+          TypeScript fallback type for when no type is found. Most simple types (text, int etc.)
+          are mapped to their TypeScript equivalent automatically. This should usually be 'unknown',
+          or 'any' if you like to live dangerously.
+        `,
       }),
       glob: action.defineStringParameter({
         parameterLongName: '--glob',
         argumentName: 'PATTERN',
-        description:
-          `Glob pattern of source files to search for SQL queries in. By default searches for all ts, js, ` +
-          'sql, cjs and mjs files under `rootDir`',
+        description: `
+          Glob pattern of source files to search for SQL queries in. By default searches for all ts, js,
+          sql, cjs and mjs files under 'rootDir'
+        `,
       }),
     }
   }
 
   onDefineParameters(): void {
-    this._params = SlonikTypegenCLI._defineParameters(this)
+    this._params = GenerateAction._defineParameters(this)
   }
 
   async onExecute() {
@@ -73,4 +88,8 @@ export class SlonikTypegenCLI extends cli.CommandLineParser {
       glob: this._params.glob.value,
     })
   }
+}
+
+if (require.main === module) {
+  new SlonikTypegenCLI().execute()
 }
