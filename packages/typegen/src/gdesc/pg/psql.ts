@@ -55,8 +55,8 @@ export const psqlClient = (psqlCommand: string) => {
   return {psql, getEnumTypes, getRegtypeToPGType}
 }
 
-export /** Parse a psql output into a list of rows (string tuples) */
-const psqlRows = (output: string): string[][] => {
+/** Parse a psql output into a list of rows (string tuples) */
+export const psqlRows = (output: string): string[][] => {
   const lines = output
     .split('\n')
     .map(line => line.trim())
