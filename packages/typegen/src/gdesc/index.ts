@@ -38,6 +38,8 @@ export interface GdescriberParams {
    */
   psqlCommand: string
 
+  rootDir: string
+
   /**
    * Files to look for SQL queries in. e.g. `source/queries/*.ts`
    * Also allows passing `cwd` and `ignore` strings e.g. `['source/*.ts', {ignore: ['source/*.test.ts']}]`
@@ -138,10 +140,11 @@ export interface TypeScriptTypeParser extends slonik.TypeParserType {
 export const gdescriber = ({
   psqlCommand = `docker-compose exec -T postgres psql -h localhost -U postgres postgres`,
   gdescToTypeScript = gdesc => defaultPGDataTypeToTypeScriptMappings[gdesc],
-  glob = ['**/*.{js,ts,cjs,mjs}', {ignore: ['node_modules/**', '**/generated/**']}],
+  rootDir = 'src',
+  glob = [`**/*.{js,ts,cjs,mjs}`, {cwd: rootDir, ignore: ['**/node_modules/**', '**/generated/**']}],
   defaultType = 'unknown',
   extractQueries = defaultExtractQueries,
-  writeTypes = defaultWriteTypes('src/generated/db'),
+  writeTypes = defaultWriteTypes(`${rootDir}/generated/db`),
   typeParsers = defaultTypeParsers,
 }: Partial<GdescriberParams> = {}) => {
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)

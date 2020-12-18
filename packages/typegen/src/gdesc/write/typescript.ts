@@ -5,6 +5,7 @@ import * as fp from 'lodash/fp'
 import {fsSyncer} from 'fs-syncer'
 import {DescribedQuery, GdescriberParams} from '../index'
 import {simplifyWhitespace} from '../util'
+import {prettify} from './prettify'
 
 export const writeTypeScriptFiles = (folder: string): GdescriberParams['writeTypes'] => groups => {
   const typeFiles = lodash
@@ -27,16 +28,7 @@ export const writeTypeScriptFiles = (folder: string): GdescriberParams['writeTyp
     'index.ts': indexFile(names, groups),
   }
 
-  try {
-    const prettier: typeof import('prettier') = require('prettier')
-    const prettify = (val: any, filepath: string): typeof val =>
-      typeof val === 'string' ? prettier.format(val, {filepath}) : lodash.mapValues(val, prettify)
-    allFiles = prettify(allFiles, '.')
-  } catch (e) {
-    const help =
-      e?.code === 'MODULE_NOT_FOUND' ? `Install prettier to fix this. ${e.message}` : `Error below:\n${e.message}`
-    console.warn(`prettier failed to run; Your output will be very ugly! ${help}`)
-  }
+  allFiles = prettify(allFiles)
 
   fsSyncer(folder, allFiles).sync()
 }

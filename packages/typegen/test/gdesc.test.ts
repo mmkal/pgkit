@@ -140,10 +140,10 @@ test('write types', async () => {
       export const q2 = sql.Q2\`select 'foo' as f, 'bar' as b\`
 
   `)
-}, 10000)
+}, 20000)
 
 test('edit before write', async () => {
-  const syncer = fsSyncer(path.join(__dirname, 'fixtures/gdesc/edit'), {
+  const syncer = fsSyncer<any>(path.join(__dirname, 'fixtures/gdesc/edit'), {
     'queries.ts': dedent`
       import {sql} from './generated'
 
