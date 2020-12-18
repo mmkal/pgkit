@@ -1,8 +1,18 @@
 import {dumbExtractQueries} from './dumb'
 import {GdescriberParams} from '../types'
 import {extractWithTypeScript} from './typescript'
+import {extractSQLFile} from './sql'
+
+// codegen:start {preset: barrel}
+export * from './dumb'
+export * from './sql'
+export * from './typescript'
+// codegen:end
 
 export const defaultExtractQueries: GdescriberParams['extractQueries'] = file => {
+  if (file.endsWith('.sql')) {
+    return extractSQLFile(file)
+  }
   try {
     return extractWithTypeScript(file)
   } catch (e) {
