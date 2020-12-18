@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as os from 'os'
-import {GdescriberParams} from '../index'
+import {GdescriberParams} from '../types'
 import {simplifyWhitespace} from '../util'
 
 export const dumbExtractQueries: GdescriberParams['extractQueries'] = file => {

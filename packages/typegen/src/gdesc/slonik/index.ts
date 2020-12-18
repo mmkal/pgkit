@@ -1,4 +1,4 @@
-import {TypeScriptTypeParser} from '..'
+import {TypeScriptTypeParser} from '../types'
 import * as slonik from 'slonik'
 
 const matchers: Array<[type: string, test: (value: unknown) => boolean]> = [

@@ -3,7 +3,7 @@ import * as os from 'os'
 import * as lodash from 'lodash'
 import * as fp from 'lodash/fp'
 import {fsSyncer} from 'fs-syncer'
-import {DescribedQuery, GdescriberParams} from '../index'
+import {DescribedQuery, GdescriberParams} from '../types'
 import {simplifyWhitespace} from '../util'
 import {prettify} from './prettify'
 

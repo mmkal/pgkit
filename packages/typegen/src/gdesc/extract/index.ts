@@ -1,5 +1,5 @@
 import {dumbExtractQueries} from './dumb'
-import {GdescriberParams} from '../index'
+import {GdescriberParams} from '../types'
 import {extractWithTypeScript} from './typescript'
 
 export const defaultExtractQueries: GdescriberParams['extractQueries'] = file => {

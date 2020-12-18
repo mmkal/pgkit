@@ -1,4 +1,4 @@
-import {ExtractedQuery, GdescriberParams} from '..'
+import {ExtractedQuery, GdescriberParams} from '../types'
 import * as lodash from 'lodash'
 import * as fs from 'fs'
 import type * as ts from 'typescript'
