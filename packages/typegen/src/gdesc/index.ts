@@ -4,6 +4,9 @@ import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
 
+export * from './types'
+export * from './defaults'
+
 export const gdescriber = ({
   psqlCommand = defaults.defaultPsqlCommand,
   gdescToTypeScript = () => undefined,
