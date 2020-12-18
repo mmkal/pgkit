@@ -4,8 +4,10 @@ import * as lodash from 'lodash'
 import * as fp from 'lodash/fp'
 import {fsSyncer} from 'fs-syncer'
 import {DescribedQuery, GdescriberParams} from '../types'
-import {simplifyWhitespace} from '../util'
+import {relativeUnixPath, simplifyWhitespace, truncate} from '../util'
 import {prettify} from './prettify'
+
+const jsdocQuery = (query: string) => truncate(simplifyWhitespace(query))
 
 export const writeTypeScriptFiles = (folder: string): GdescriberParams['writeTypes'] => groups => {
   const typeFiles = lodash
@@ -76,7 +78,8 @@ const getQueryTypeFile = (queries: DescribedQuery[], typeName: string) => {
 
 const queryResultType = (query: DescribedQuery, interfaceName: string) => `
   /**
-   * - query: \`${simplifyWhitespace(query.sql)}\`
+   * - query: \`${jsdocQuery(query.sql)}\`
+   * - file: ${relativeUnixPath(query.file)}
    */
   export interface ${interfaceName} {
     ${query.fields.map(
@@ -112,7 +115,7 @@ function indexFile(names: string[], groups: Record<string, DescribedQuery[]>): a
               * @example
               * \`\`\`
               * await connection.query(sql.${n}\`
-              *   ${simplifyWhitespace(g.sql)}
+              *   ${jsdocQuery(g.sql)}
               * \`)
               * \`\`\`
               `.trim(),
@@ -129,7 +132,7 @@ function indexFile(names: string[], groups: Record<string, DescribedQuery[]>): a
      * @example
      * \`\`\`
      * const result = await connection.query(sql.${names[0] || 'Example'}\`
-     *  ${simplifyWhitespace(groups[Object.keys(groups)[0]]?.[0]?.sql || 'select foo, bar from baz')}
+     *  ${jsdocQuery(groups[Object.keys(groups)[0]]?.[0]?.sql || 'select foo, bar from baz')}
      * \`)
      * 
      * result.rows.forEach(row => {
