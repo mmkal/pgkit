@@ -24,8 +24,12 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
       const node = unknownNode as ts.TaggedTemplateExpression
       if (node.tag.kind == ts.SyntaxKind.PropertyAccessExpression) {
         const tag = node.tag as ts.PropertyAccessExpression
-        if (tag.expression.getFullText() === 'sql') {
-          let sql = node.template.getText()
+        if (tag.expression.getText() === 'sql') {
+          let sql: string = ''
+          if (node.template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
+            const template = node.template as ts.NoSubstitutionTemplateLiteral
+            sql = template.text
+          }
           if (node.template.kind === ts.SyntaxKind.TemplateExpression) {
             const template = node.template as ts.TemplateExpression
             sql = [
@@ -35,11 +39,13 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
             ].join('$1')
           }
 
-          queries.push({
-            tag: tag.name.getFullText(),
-            file,
-            sql,
-          })
+          if (sql) {
+            queries.push({
+              tag: tag.name.getFullText(),
+              file,
+              sql,
+            })
+          }
         }
       }
     }

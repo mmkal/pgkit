@@ -85,7 +85,6 @@ const getQueryTypeFile = (queries: DescribedQuery[], typeName: string) => {
 const queryResultType = (query: DescribedQuery, interfaceName: string) => `
   /**
    * - query: \`${simplifyWhitespace(query.sql)}\`
-   * - file: ${query.file}
    */
   export interface ${interfaceName} {
     ${query.fields.map(

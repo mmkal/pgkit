@@ -6,6 +6,8 @@ import {defaultPGDataTypeToTypeScriptMappings, psqlClient} from './pg'
 import {globAsync} from './util'
 import {defaultTypeParsers} from './slonik'
 
+export {defaultWriteTypes, defaultTypeParsers, defaultExtractQueries, defaultPGDataTypeToTypeScriptMappings}
+
 export interface GdescriberParams {
   /**
    * How to execute `psql` from the machine running this tool.
@@ -183,15 +185,15 @@ export const gdescriber = ({
   }
 
   const findAll = async () => {
-    const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob] : glob
-    const files = await globAsync(...globParams)
+    const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
+    const files = await globAsync(globParams[0], {...globParams[1], absolute: true})
     const promises = files
       .flatMap(extractQueries)
       .map<Promise<DescribedQuery>>(async query => ({...query, fields: await describeCommand(query.sql)}))
 
     const queries = lodash.groupBy(await Promise.all(promises), q => q.tag)
 
-    return writeTypes(queries)
+    writeTypes(queries)
   }
 
   return findAll()

@@ -10,7 +10,7 @@ const matchers: Array<[type: string, test: (value: unknown) => boolean]> = [
 ]
 
 export const inferTypeParserTypeScript = (tp: slonik.TypeParserType<any>, sampleInput = '') => {
-  const sample = tp.parse('')
+  const sample = tp.parse(sampleInput)
   const match = matchers.find(m => m[1](sample))
   return match?.[0] || `unknown /* ${tp.name} */`
 }
