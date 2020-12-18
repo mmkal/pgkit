@@ -8,7 +8,7 @@ export const gdescriber = ({
   psqlCommand = defaults.defaultPsqlCommand,
   gdescToTypeScript = () => undefined,
   rootDir = defaults.defaultRootDir,
-  glob = [`**/*.{js,ts,cjs,mjs}`, {cwd: rootDir, ignore: ['**/node_modules/**', '**/generated/**']}],
+  glob = [`**/*.{js,ts,cjs,mjs,sql}`, {cwd: rootDir, ignore: ['**/node_modules/**', '**/generated/**']}],
   defaultType = defaults.defaultTypeScriptType,
   extractQueries = defaults.defaultExtractQueries,
   writeTypes = defaults.defaultWriteTypes(`${rootDir}/generated/db`),
