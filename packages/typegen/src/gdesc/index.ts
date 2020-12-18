@@ -6,7 +6,7 @@ import {GdescriberParams, QueryField, DescribedQuery} from './types'
 
 export const gdescriber = ({
   psqlCommand = defaults.defaultPsqlCommand,
-  gdescToTypeScript = gdesc => defaults.defaultPGDataTypeToTypeScriptMappings[gdesc],
+  gdescToTypeScript = () => undefined,
   rootDir = defaults.defaultRootDir,
   glob = [`**/*.{js,ts,cjs,mjs}`, {cwd: rootDir, ignore: ['**/node_modules/**', '**/generated/**']}],
   defaultType = defaults.defaultTypeScriptType,
@@ -48,8 +48,8 @@ export const gdescriber = ({
     return (
       lodash.findLast(typeParsers, p => p.name === pgtype)?.typescript ||
       gdescToTypeScript(regtype, typeName) ||
+      defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
       enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-      defaultPGDataTypeToTypeScriptMappings[regtype] ||
       defaultType
     )
   }
