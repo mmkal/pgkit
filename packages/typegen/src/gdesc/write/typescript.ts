@@ -41,15 +41,17 @@ const getQueryTypeFile = (queries: DescribedQuery[], typeName: string) => {
   }
   const interfaces = queries.map((q, i) => queryResultType(q, `${typeName}_${i}`))
 
-  const allKeys = [...new Set(queries.flatMap(q => q.fields.map(f => f.name)))]
-  const intersectionKeys = lodash.intersection(...queries.map(q => q.fields.map(f => f.name)))
+  const keyLists = queries.map(q => q.fields.map(f => f.name))
+  const allKeys = [...new Set(keyLists.flat())]
+  const intersectionKeys = lodash.intersection(...keyLists)
   const inconsistentKeys = lodash.difference(allKeys, intersectionKeys)
 
   const unionType = queries.map((q, i) => `${typeName}_${i}`).join(' | ')
 
   const inconsistentKeysWarning =
-    inconsistentKeys.length > 0
-      ? `
+    inconsistentKeys.length === 0
+      ? ''
+      : `
         /**
          * ⚠️⚠️⚠️ WARNING! ⚠️⚠️⚠️
          *
@@ -61,7 +63,6 @@ const getQueryTypeFile = (queries: DescribedQuery[], typeName: string) => {
          * To avoid this, use different type names for queries returning different fields.
          */
       `.trim()
-      : ''
 
   return `
     ${inconsistentKeysWarning}
