@@ -1,4 +1,5 @@
 import * as slonik from 'slonik'
+import * as pgsqlAST from 'pgsql-ast-parser'
 
 export interface GdescriberParams {
   /**
@@ -111,7 +112,25 @@ export interface ExtractedQuery {
   sql: string
 }
 
-export interface DescribedQuery extends ExtractedQuery {
+export interface ParsedQuery extends ExtractedQuery {
+  suggestedTag: string
+  columns: ParsedColumn[]
+}
+
+// todo: use a sql ast parse to get the column name and maybe-table
+// then query the db to get the table name and not-null status
+
+export interface ParsedColumn {
+  table?: string
+  name: string
+}
+
+export interface ResolvedColumn extends ParsedColumn {
+  table: string
+  notNull: boolean
+}
+
+export interface DescribedQuery extends ParsedQuery {
   /** List of meta objects with info about field types returned by this query */
   fields: QueryField[]
 }
@@ -123,6 +142,11 @@ export interface QueryField {
   gdesc: string
   /** The generated typescript type. based on `gdesc` */
   typescript: string
+  column: {
+    table: string
+    name: string
+    nullable: boolean
+  }
 }
 
 export interface TypeScriptTypeParser extends slonik.TypeParserType {

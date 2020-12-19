@@ -7,6 +7,10 @@ import {GdescriberParams, QueryField, DescribedQuery} from './types'
 export * from './types'
 export * from './defaults'
 
+// todo: logging
+// todo: search for non-type-tagged queries and use a heuristic to guess a good name from them
+// using either sql-surveyor or https://github.com/oguimbal/pgsql-ast-parser
+
 export const gdescriber = ({
   psqlCommand = defaults.defaultPsqlCommand,
   gdescToTypeScript = () => undefined,
@@ -22,10 +26,11 @@ export const gdescriber = ({
   const describeCommand = async (query: string): Promise<QueryField[]> => {
     const rows = await psql(`${query} \\gdesc`)
     return Promise.all(
-      rows.map(async row => ({
+      rows.map<QueryField>(async row => ({
         name: row[0],
         gdesc: row[1],
         typescript: await getTypeScriptType(row[1], row[0]),
+        column: {},
       })),
     )
   }
@@ -60,9 +65,10 @@ export const gdescriber = ({
   const findAll = async () => {
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
     const files = await globAsync(globParams[0], {...globParams[1], absolute: true})
-    const promises = files
-      .flatMap(extractQueries)
-      .map<Promise<DescribedQuery>>(async query => ({...query, fields: await describeCommand(query.sql)}))
+    const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => ({
+      ...query,
+      fields: await describeCommand(query.sql),
+    }))
 
     const queries = lodash.groupBy(await Promise.all(promises), q => q.tag)
 

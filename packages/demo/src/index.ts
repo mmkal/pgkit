@@ -20,6 +20,8 @@ export const getApp = () => {
           returning id
         `)
 
+        await conn.query(sql`select typname from pg_type limit 1`)
+
         // await conn.oneFirst(sql.NotAType`
         //   insert into messages(content)
         //   values (${content})
