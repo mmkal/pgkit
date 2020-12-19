@@ -174,5 +174,7 @@ function typesBarrel(names: string[]): any {
       ${names.map(n => `import { ${n} } from './types/${n}'`).join(os.EOL)}
 
       ${names.map(n => `export { ${n} }`).join(os.EOL)}
+
+      ${names.length === 0 ? 'export const noTypesFound = "No types found!"' : ''}
     `
 }
