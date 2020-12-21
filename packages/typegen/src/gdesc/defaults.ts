@@ -22,7 +22,7 @@ export const getParams = ({
   glob = [`**/*.{js,ts,cjs,mjs,sql}`, {ignore: ['**/node_modules/**', '**/generated/**']}],
   defaultType = defaultTypeScriptType,
   extractQueries = defaultExtractQueries,
-  writeTypes = defaultWriteTypes(`${rootDir}/generated/db`),
+  writeTypes = defaultWriteTypes({folder: `${rootDir}/generated/db`}),
   typeParsers = defaultTypeParsers,
 }: Partial<GdescriberParams> = {}): GdescriberParams => ({
   psqlCommand,

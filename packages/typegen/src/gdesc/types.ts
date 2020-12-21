@@ -125,8 +125,9 @@ export interface ParsedColumn {
   name: string
 }
 
-export interface ResolvedColumn extends ParsedColumn {
+export interface ResolvedTableColumn extends ParsedColumn {
   table: string
+  name: string
   notNull: boolean
 }
 
@@ -142,7 +143,8 @@ export interface QueryField {
   gdesc: string
   /** The generated typescript type. based on `gdesc` */
   typescript: string
-  // column: ResolvedColumn
+  /** For simple queries which just select from some known table, sometimes we can determine if they're not-null. */
+  column?: ResolvedTableColumn
 }
 
 export interface TypeScriptTypeParser extends slonik.TypeParserType {

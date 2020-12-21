@@ -2,6 +2,7 @@ import * as pgsqlAST from 'pgsql-ast-parser'
 import {ExtractedQuery, ParsedQuery} from '../types'
 import * as lodash from 'lodash'
 import {pascalCase} from '../util'
+// @ts-expect-error
 import * as sqlSurveyor from 'sql-surveyor'
 import {match} from 'io-ts-extra'
 
@@ -90,6 +91,7 @@ export const parse2 = (sql: string): any | Omit<ParsedQuery, 'tag' | 'file'> => 
       .map(pascalCase)
       .join('_')
       .value(),
+    // @ts-expect-error
     columns: query.outputColumns.map(c => ({
       table: c.tableName,
       name: c.columnAlias,

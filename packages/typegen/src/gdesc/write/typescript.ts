@@ -9,7 +9,27 @@ import {prettify} from './prettify'
 
 const jsdocQuery = (query: string) => truncate(simplifyWhitespace(query))
 
-export const writeTypeScriptFiles = (folder: string): GdescriberParams['writeTypes'] => groups => {
+export interface WriteTypeScriptFilesOptions {
+  /** Folder to write into. Note that this folder will be wiped clean. */
+  folder: string
+  /**
+   * Modifier to add to nullable props. To be very cautious, set to `'?'`. If you do this, though,
+   * a lot of fields will come back null, since postgres doesn't keep very good track of non-nullability.
+   * e.g. results from `insert into foo(x) values (1) returning x, y` will yield nulls even if columns `x` and `y` are non-nullable.
+   * e.g. results from `count (*) from foo` will yield null since functions can't have `not null` return values.
+   * e.g. `count x from foo where x is not null` will yield null.
+   */
+  nullablePropModifier?: '' | '?'
+}
+
+export const writeTypeScriptFiles = ({
+  folder,
+  // todo: make the default `?` once common cases are correctly picked up as not null:
+  // 1. `select foo, bar from baz` or `select * from baz`. See view.sql
+  // 2. `insert into foo(id) values ('bar')` or `update ...`. Might require query parsing, and converting to a fake `select`.
+  // 3. (maybe) common functions like `count(...)`.
+  nullablePropModifier = '',
+}: WriteTypeScriptFilesOptions): GdescriberParams['writeTypes'] => groups => {
   const typeFiles = lodash
     .chain(groups)
     .mapKeys((val, typeName) => typeName.slice(0, 1).toUpperCase() + typeName.slice(1))
@@ -18,6 +38,16 @@ export const writeTypeScriptFiles = (folder: string): GdescriberParams['writeTyp
         const stringified = q.fields.map(f => JSON.stringify(f))
         return stringified.sort().join(',')
       }),
+    )
+    .mapValues(queries =>
+      queries.map(q => ({
+        ...q,
+        fields: q.fields.map(f =>
+          f.column?.notNull
+            ? f // if we *know* it's not null, don't add the modifier
+            : {...f, name: f.name + nullablePropModifier},
+        ),
+      })),
     )
     .mapValues(getQueryTypeFile)
     .mapKeys((content, name) => name + '.ts')
