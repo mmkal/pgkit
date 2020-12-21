@@ -9,7 +9,7 @@ import {match} from 'io-ts-extra'
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 // $ echo 'select oid, proname from pg_proc where proname like '"'"'%advisory%'"'"' limit 1' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 
-export const parse = (sql: string): Omit<ParsedQuery, 'tag' | 'file'> => {
+export const parse = (sql: string): Omit<ParseadQuery, 'tag' | 'file'> => {
   if (Math.random()) {
     // return parse2(sql)
   }
@@ -19,39 +19,43 @@ export const parse = (sql: string): Omit<ParsedQuery, 'tag' | 'file'> => {
     throw new Error(`Can't parse query ${sql}; it has ${statements.length} statements.`)
   }
   const ast = statements[0]
-  if (Math.random()) return ast
+  // if (Math.random()) return ast
   const cols = ast.type === 'select' ? ast.columns! : ast.type === 'insert' ? ast.returning : []
   const colExpressions: Array<{table?: string; name: string}> = cols!
     .map(c => c.expr)
     .map(c =>
       match(c)
-        .target<{table?: string; name: string}>()
+        // .target<{table?: string; name: string}>()
         .case(
           // e.g. `select oid from pg_type`
           {type: 'ref'} as const,
-          e => e,
+          e => console.log({e}) || e,
         )
         .case(
           // e.g. `select oid::regtype from pg_type`
           {type: 'cast', operand: {type: 'ref'}} as const,
           e => e.operand,
         )
-        .default(() => ({name: '???'}))
+        .default(() => ({table: undefined, name: '???'}))
         .get(),
     )
     .map(c => ({table: c.table, name: c.name}))
 
   return {
     sql,
-    suggestedTag: pascalCase(
-      lodash
-        .chain(colExpressions)
-        .map(c => c.table)
-        .uniq()
-        .map(pascalCase)
-        .join('_')
-        .value(),
-    ),
+    suggestedTag: match(ast)
+      .case({type: 'select'} as const, q =>
+        (q.from || []).map(f =>
+          match(f)
+            .case({name: String}, fr => fr.name)
+            .default(() => 'unknown')
+            .get(),
+        ),
+      )
+      .default(() => ['unknown'])
+      .get()
+      ?.join('_'),
+    // ),
     columns: colExpressions.map(c => ({
       name: c.name,
       table: c.table,
