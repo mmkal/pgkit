@@ -29,11 +29,11 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
   const describeCommand = async (query: string): Promise<QueryField[]> => {
     const rows = await psql(`${query} \\gdesc`)
     return Promise.all(
-      rows.map<QueryField>(async row => ({
+      rows.map<Promise<QueryField>>(async row => ({
         name: row[0],
         gdesc: row[1],
         typescript: await getTypeScriptType(row[1], row[0]),
-        column: {},
+        // column: {},
       })),
     )
   }

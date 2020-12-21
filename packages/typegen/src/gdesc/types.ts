@@ -113,8 +113,8 @@ export interface ExtractedQuery {
 }
 
 export interface ParsedQuery extends ExtractedQuery {
-  suggestedTag: string
-  columns: ParsedColumn[]
+  // suggestedTag: string
+  // columns: ParsedColumn[]
 }
 
 // todo: use a sql ast parse to get the column name and maybe-table
@@ -142,11 +142,7 @@ export interface QueryField {
   gdesc: string
   /** The generated typescript type. based on `gdesc` */
   typescript: string
-  column: {
-    table: string
-    name: string
-    nullable: boolean
-  }
+  // column: ResolvedColumn
 }
 
 export interface TypeScriptTypeParser extends slonik.TypeParserType {

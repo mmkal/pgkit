@@ -21,10 +21,11 @@ export const parse = (sql: string): Omit<ParsedQuery, 'tag' | 'file'> => {
   const ast = statements[0]
   if (Math.random()) return ast
   const cols = ast.type === 'select' ? ast.columns! : ast.type === 'insert' ? ast.returning : []
-  const colExpressions: Array<{table: string; name: string}> = cols!
+  const colExpressions: Array<{table?: string; name: string}> = cols!
     .map(c => c.expr)
     .map(c =>
       match(c)
+        .target<{table?: string; name: string}>()
         .case(
           // e.g. `select oid from pg_type`
           {type: 'ref'} as const,
@@ -35,10 +36,10 @@ export const parse = (sql: string): Omit<ParsedQuery, 'tag' | 'file'> => {
           {type: 'cast', operand: {type: 'ref'}} as const,
           e => e.operand,
         )
-        .default(() => ({table: '???', name: '???'}))
+        .default(() => ({name: '???'}))
         .get(),
     )
-    .map(c => ({table: c.table || '???', name: c.name}))
+    .map(c => ({table: c.table, name: c.name}))
 
   return {
     sql,
@@ -98,5 +99,5 @@ if (require.main === module) {
   // console.dir(parse('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'), {depth: null})
   // console.dir(parse('select foo::regtype from foo'), {depth: null})
   console.dir(parse('select i, j from a join b on 1=1'), {depth: null})
-  // console.dir(parse(`select count(*) from foo`), {depth: null})
+  console.dir(parse(`select count(*) from foo`), {depth: null})
 }
