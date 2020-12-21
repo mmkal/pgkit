@@ -38,7 +38,7 @@ export interface GdescriberParams {
    * Also allows passing `cwd` and `ignore` strings e.g. `['source/*.ts', {ignore: ['source/*.test.ts']}]`
    * Defaults to all JavaScript and TypeScript files, ignoring node_modules.
    */
-  glob: string | [string, {cwd?: string; ignore?: string[]}?]
+  glob: string | [string, {ignore?: string[]}?]
 
   /**
    * Map from a psql type description to a TypeScript type representation.

@@ -11,16 +11,19 @@ export * from './defaults'
 // todo: search for non-type-tagged queries and use a heuristic to guess a good name from them
 // using either sql-surveyor or https://github.com/oguimbal/pgsql-ast-parser
 
-export const gdescriber = ({
-  psqlCommand = defaults.defaultPsqlCommand,
-  gdescToTypeScript = () => undefined,
-  rootDir = defaults.defaultRootDir,
-  glob = [`**/*.{js,ts,cjs,mjs,sql}`, {cwd: rootDir, ignore: ['**/node_modules/**', '**/generated/**']}],
-  defaultType = defaults.defaultTypeScriptType,
-  extractQueries = defaults.defaultExtractQueries,
-  writeTypes = defaults.defaultWriteTypes(`${rootDir}/generated/db`),
-  typeParsers = defaults.defaultTypeParsers,
-}: Partial<GdescriberParams> = {}) => {
+export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
+  const {
+    psqlCommand,
+    gdescToTypeScript,
+    rootDir,
+    glob,
+    defaultType,
+    extractQueries,
+    writeTypes,
+    typeParsers,
+  } = defaults.getParams({
+    ...params,
+  })
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
 
   const describeCommand = async (query: string): Promise<QueryField[]> => {
@@ -64,7 +67,7 @@ export const gdescriber = ({
 
   const findAll = async () => {
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
-    const files = await globAsync(globParams[0], {...globParams[1], absolute: true})
+    const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
     const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => ({
       ...query,
       fields: await describeCommand(query.sql),
