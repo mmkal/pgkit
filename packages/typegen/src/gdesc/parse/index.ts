@@ -9,7 +9,8 @@ import {match} from 'io-ts-extra'
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 // $ echo 'select oid, proname from pg_proc where proname like '"'"'%advisory%'"'"' limit 1' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 
-export const parse = (sql: string): Omit<ParseadQuery, 'tag' | 'file'> => {
+export const parse = (sql: string): any => {
+  //Omit<ParsedQuery, 'tag' | 'file'> => {
   if (Math.random()) {
     // return parse2(sql)
   }
@@ -29,7 +30,7 @@ export const parse = (sql: string): Omit<ParseadQuery, 'tag' | 'file'> => {
         .case(
           // e.g. `select oid from pg_type`
           {type: 'ref'} as const,
-          e => console.log({e}) || e,
+          e => e,
         )
         .case(
           // e.g. `select oid::regtype from pg_type`
