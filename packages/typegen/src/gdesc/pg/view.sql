@@ -56,8 +56,8 @@ begin
 		and c.column_name = vcu.column_name
 	where
 		c.table_name = v_tmp_name
-		or vcu.view_name = v_tmp_name
-	limit 6
+		or vcu.view_name = v_tmp_name -- todo: this includes too much!
+	limit 600
 --   select
 --   	t.table_schema as schema_name,
 -- 	t.table_name as view_name,
@@ -92,7 +92,7 @@ begin
 		return next returnrec;
     end loop;
 
- 	execute 'drop view ' || v_tmp_name;
+--  	execute 'drop view ' || v_tmp_name;
 
 	RAISE NOTICE 'the view name is %', v_tmp_name;
 
@@ -107,8 +107,51 @@ LANGUAGE 'plpgsql';
 -- select * from gettypes('select d.name, m.hash from demo_migration d join migration m on m.name = d.name limit 2');
 drop table nn cascade;
 create table nn(id int primary key, x int not null, t text, a text[], j json, jb jsonb);
-select * from information_schema.columns where column_name = 'a';
-select * from gettypes('select count(*) from nn');
+drop table mm cascade;
+create table mm(mi int not null, mt text, mtnn text not null);
+-- select * from gettypes('insert into nn(id) values(1)');
+-- select *
+-- from gettypes('with ii as (insert into nn(id) values (1) returning *) select * from ii');
+-- select * from information_schema.tables
+-- where table_schema in ('information_schema', 'pg_catalog')
+-- order by table_name
+
+CREATE or replace FUNCTION mktestadd1(integer, integer) RETURNS integer
+    AS 'select $1 + $2;'
+    LANGUAGE SQL
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+
+CREATE or replace FUNCTION mktestadd2(integer, integer) RETURNS integer
+    AS 'select $1 + $2;'
+    LANGUAGE SQL
+    IMMUTABLE
+    RETURNS NULL ON NULL INPUT;
+	
+CREATE or replace FUNCTION mktestadd3(text, text) RETURNS text
+    AS 'select $1 || $2;'
+    LANGUAGE SQL
+    IMMUTABLE;
+		
+-- CREATE or replace FUNCTION mktestadd3(integer, integer) RETURNS integer
+--     AS 'select id from nn'
+--     LANGUAGE SQL
+--     IMMUTABLE;
+	
+-- select proname, proleakproof, proisstrict, prorettype
+-- from pg_proc
+-- where proname
+-- like 'mktest%'
+-- limit 10;
+
+select * from gettypes('select t from nn where id is not null');
+
+select * from information_schema.columns
+where table_name = 'temp2_fa091df901198bc4028d98700c380990'
+limit 10
+;
+
+-- select id from nn where id = null;
 -- select * from information_schema.view_column_usage where view_name like 'temp2%' limit 10;
 -- select * from information_schema.tables where table_schema = 'information_schema' and table_name like '%view%'
 -- select * from information_schema.views
