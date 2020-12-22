@@ -22,8 +22,7 @@ test('write types', async () => {
   syncer.sync()
 
   await gdesc.gdescriber({
-    glob: ['./*.ts', {cwd: syncer.baseDir}],
-    writeTypes: gdesc.defaultWriteTypes(path.join(syncer.baseDir, 'generated')),
+    rootDir: syncer.baseDir,
   })
 
   expect(syncer.read() as any).toMatchInlineSnapshot(`
