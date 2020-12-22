@@ -137,13 +137,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     `)
   }
 
-  protected async setup({command, context}: {command: string; context: SlonikMigratorContext}) {
-    // TODO [umzug>=3.0.0-beta.14] remove this
-    if (command !== 'up' && command !== 'down') {
-      context.connection = context.parent
-      context.commit = async () => {}
-      return
-    }
+  protected async setup({context}: {context: SlonikMigratorContext}) {
     let settle!: Function
     const settledPromise = new Promise(resolve => (settle = resolve))
 
