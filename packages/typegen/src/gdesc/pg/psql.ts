@@ -15,8 +15,8 @@ export const psqlClient = (psqlCommand: string) => {
 
   const psql = async (query: string) => {
     query = simplifyWhitespace(query)
-    const command = `echo '${query.replace(/'/g, `'"'"'`)}' | ${psqlCommand} -f -`
-    const result = await execa('sh', ['-c', command])
+    const command = `echo "\${SLONIK_TYPEGEN_QUERY}" | ${psqlCommand} -f -`
+    const result = await execa('sh', ['-c', command], {env: {SLONIK_TYPEGEN_QUERY: query}})
     try {
       return psqlRows(result.stdout)
     } catch (e) {
