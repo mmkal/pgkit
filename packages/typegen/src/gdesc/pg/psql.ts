@@ -10,7 +10,7 @@ export type PSQLClient = ReturnType<typeof psqlClient>
  */
 export const psqlClient = (psqlCommand: string) => {
   if (psqlCommand.includes(`'`)) {
-    throw new Error(`Can't run psql command ${JSON.stringify(psqlCommand)}; it has quotes in it.`)
+    throw new Error(`Can't run psql command ${JSON.stringify(psqlCommand)}; it has quotes in it. Try using an alias.`)
   }
 
   const psql = async (query: string) => {

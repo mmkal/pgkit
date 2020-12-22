@@ -1,5 +1,4 @@
 import * as pgsqlAST from 'pgsql-ast-parser'
-import {ExtractedQuery, ParsedQuery} from '../types'
 import * as lodash from 'lodash'
 import {pascalCase} from '../util'
 // @ts-expect-error
@@ -43,20 +42,12 @@ export const parse = (sql: string): {tables?: string[]; columns?: string[]} => {
         ?.map(f =>
           match(f)
             .case({type: 'table'} as const, t => t.name)
-            .default(f => f.alias!)
+            .default(f => f.alias || '')
             .get(),
         )
         .filter(Boolean),
       columns: ast.columns
-        ?.map<string>(
-          c =>
-            c.alias ||
-            match(c.expr)
-              .case({type: 'ref' as const}, e => e.name)
-              .case({type: 'call', function: String} as const, e => e.function)
-              .default(() => '')
-              .get(),
-        )
+        ?.map<string>(c => c.alias || expressionName(c.expr)) // break
         .filter(Boolean),
     }
   }
@@ -141,33 +132,45 @@ export const parse = (sql: string): {tables?: string[]; columns?: string[]} => {
   //   }
 }
 
+const expressionName = (ex: pgsqlAST.Expr): string => {
+  return match(ex)
+    .case({type: 'ref' as const}, e => e.name)
+    .case({type: 'call', function: String} as const, e => e.function)
+    .case({type: 'cast'} as const, e => expressionName(e.operand))
+    .default(() => '')
+    .get()
+}
+
 export const suggestedTags = ({tables, columns}: ReturnType<typeof parse>): string[] => {
   if (!tables && !columns) {
-    return []
+    return ['void']
   }
   tables = tables || []
   columns = columns || []
 
   const tablesInvolved = tables.map(pascalCase).join('_')
 
-  return [
+  return lodash.uniq([
     tablesInvolved,
     // e.g. User_Role
     [tablesInvolved, ...columns.map(lodash.camelCase)].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
-  ]
+  ])
 }
 
 if (require.main === module) {
-  // console.dir(parse('insert into foo(id) values (1) returning id, date'), {depth: null})
-  // console.dir(parse('insert into foo(id) values (1) returning id, date'), {depth: null})
-  // console.dir(parse('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'), {depth: null})
-  // console.dir(parse('select foo::regtype from foo'), {depth: null})
-  // console.dir(parse('select i, j from a join b on 1=1'), {depth: null})
   console.log = (x: any) => console.dir(x, {depth: null})
-  console.dir(parse(`select count(*), * from foo where y = null`), {depth: null})
-  console.dir(parse(`select pg_advisory_lock(123), x, y from foo`), {depth: null})
-  console.dir(parse(`insert into foo(id) values (1) returning *`), {depth: null})
-  console.dir(parse(`insert into foo(id) values (1)`), {depth: null})
-  console.dir(parse(`update foo set bar = 'baz' returning *`), {depth: null})
-  console.dir(parse(`select foo.x from foo where y = null`), {depth: null})
+  // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
+  // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
+  console.dir(parse('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'), {
+    depth: null,
+  })
+  throw ''
+  // console.dir(suggestedTags(parse('select foo::regtype from foo')), {depth: null})
+  // console.dir(suggestedTags(parse('select i, j from a join b on 1=1')), {depth: null})
+  console.dir(suggestedTags(parse(`select count(*), * from foo where y = null`)), {depth: null})
+  console.dir(suggestedTags(parse(`select pg_advisory_lock(123), x, y from foo`)), {depth: null})
+  console.dir(suggestedTags(parse(`insert into foo(id) values (1) returning *`)), {depth: null})
+  console.dir(suggestedTags(parse(`insert into foo(id) values (1)`)), {depth: null})
+  console.dir(suggestedTags(parse(`update foo set bar = 'baz' returning *`)), {depth: null})
+  console.dir(suggestedTags(parse(`select foo.x from foo where y = null`)), {depth: null})
 }
