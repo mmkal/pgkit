@@ -10,7 +10,7 @@ import {match} from 'io-ts-extra'
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 // $ echo 'select oid, proname from pg_proc where proname like '"'"'%advisory%'"'"' limit 1' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 
-export const parse = (sql: string): any => {
+export const parse = (sql: string): {tables?: string[]; columns?: string[]} => {
   //Omit<ParsedQuery, 'tag' | 'file'> => {
   if (Math.random()) {
     // return parse2(sql)
@@ -43,7 +43,7 @@ export const parse = (sql: string): any => {
         ?.map(f =>
           match(f)
             .case({type: 'table'} as const, t => t.name)
-            .default(f => f.alias)
+            .default(f => f.alias!)
             .get(),
         )
         .filter(Boolean),
@@ -139,6 +139,22 @@ export const parse = (sql: string): any => {
   //       notNull: false,
   //     })),
   //   }
+}
+
+export const suggestedTags = ({tables, columns}: ReturnType<typeof parse>): string[] => {
+  if (!tables && !columns) {
+    return []
+  }
+  tables = tables || []
+  columns = columns || []
+
+  const tablesInvolved = tables.map(pascalCase).join('_')
+
+  return [
+    tablesInvolved,
+    // e.g. User_Role
+    [tablesInvolved, ...columns.map(lodash.camelCase)].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
+  ]
 }
 
 if (require.main === module) {
