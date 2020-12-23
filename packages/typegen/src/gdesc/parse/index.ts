@@ -1,8 +1,6 @@
 import * as pgsqlAST from 'pgsql-ast-parser'
 import * as lodash from 'lodash'
 import {pascalCase} from '../util'
-// @ts-expect-error
-import * as sqlSurveyor from 'sql-surveyor'
 import {match} from 'io-ts-extra'
 
 // function return types:
