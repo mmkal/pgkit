@@ -70,7 +70,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
     const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => ({
       ...query,
-      fields: await describeCommand(query.sql),
+      fields: await describeCommand(query.template.map((s, i) => (i === 0 ? s : `$${i + 1}${s}`)).join('')),
     }))
 
     const queries = lodash.groupBy(await Promise.all(promises), q => q.tag)

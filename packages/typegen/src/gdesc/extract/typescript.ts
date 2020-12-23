@@ -28,25 +28,29 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
       if (node.tag.kind == ts.SyntaxKind.PropertyAccessExpression) {
         const tag = node.tag as ts.PropertyAccessExpression
         if (tag.expression.getText() === 'sql') {
-          let sql: string = ''
+          let template: string[] = []
           if (node.template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
-            const template = node.template as ts.NoSubstitutionTemplateLiteral
-            sql = template.text
+            const templateNode = node.template as ts.NoSubstitutionTemplateLiteral
+            template = [templateNode.text]
           }
           if (node.template.kind === ts.SyntaxKind.TemplateExpression) {
-            const template = node.template as ts.TemplateExpression
-            sql = [
+            const templateNode = node.template as ts.TemplateExpression
+            template = [
               // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
-              template.head.text,
-              ...template.templateSpans.map(s => s.literal.text),
-            ].join('$1')
+              templateNode.head.text,
+              ...templateNode.templateSpans.map(s => s.literal.text),
+            ]
           }
 
-          if (sql) {
+          if (template.length > 0) {
             queries.push({
               tag: tag.name.getFullText(),
               file,
-              sql,
+              sql: template
+                .map((t, i) => `$${i}${t}`)
+                .join('')
+                .slice(2), // slice off $0 at the start
+              template,
             })
           }
         }

@@ -110,6 +110,8 @@ export interface ExtractedQuery {
   file: string
   /** Query SQL */
   sql: string
+  /** Query SQL template parts. e.g. `['select * from users where name = ', ' and dob < ', '']` */
+  template: string[]
 }
 
 export interface ParsedQuery extends ExtractedQuery {
