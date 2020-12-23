@@ -7,7 +7,18 @@ import {match} from 'io-ts-extra'
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 // $ echo 'select oid, proname from pg_proc where proname like '"'"'%advisory%'"'"' limit 1' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
 
-export const parse = (sql: string): {tables?: string[]; columns?: string[]} => {
+/**
+ * parser needs valid-ish sql, so can't use $1, $2 placeholders. Use `null` as a placeholder instead.
+ * Will probably still fail when placeholder is used for a table identifier, but we can't get any types
+ * at all for those kinds of queries anyway.
+ */
+export const templateToValidSql = (template: string[]) => template.join('null')
+
+/**
+ * Get tables and columns used in a sql query. Not complete; optimistic. Useful for getting a (non-unique)
+ * name that can be used to refer to queries.
+ */
+export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: string[]} => {
   //Omit<ParsedQuery, 'tag' | 'file'> => {
   if (Math.random()) {
     // return parse2(sql)
@@ -44,9 +55,11 @@ export const parse = (sql: string): {tables?: string[]; columns?: string[]} => {
             .get(),
         )
         .filter(Boolean),
-      columns: ast.columns
-        ?.map<string>(c => c.alias || expressionName(c.expr)) // break
-        .filter(Boolean),
+      columns: lodash
+        .chain(ast.columns)
+        .map(c => c.alias || expressionName(c.expr))
+        .compact()
+        .value(),
     }
   }
 
@@ -130,16 +143,16 @@ export const parse = (sql: string): {tables?: string[]; columns?: string[]} => {
   //   }
 }
 
-const expressionName = (ex: pgsqlAST.Expr): string => {
+const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
   return match(ex)
     .case({type: 'ref' as const}, e => e.name)
     .case({type: 'call', function: String} as const, e => e.function)
     .case({type: 'cast'} as const, e => expressionName(e.operand))
-    .default(() => '')
+    .default(() => undefined)
     .get()
 }
 
-export const suggestedTags = ({tables, columns}: ReturnType<typeof parse>): string[] => {
+export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
   if (!tables && !columns) {
     return ['void']
   }
@@ -149,26 +162,30 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof parse>): stri
   const tablesInvolved = tables.map(pascalCase).join('_')
 
   return lodash.uniq([
-    tablesInvolved,
-    // e.g. User_Role
+    tablesInvolved, // e.g. User_Role
     [tablesInvolved, ...columns.map(lodash.camelCase)].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
   ])
 }
+
+export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
 if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
-  console.dir(parse('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'), {
-    depth: null,
-  })
+  console.dir(
+    sqlTablesAndColumns('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'),
+    {
+      depth: null,
+    },
+  )
   throw ''
   // console.dir(suggestedTags(parse('select foo::regtype from foo')), {depth: null})
   // console.dir(suggestedTags(parse('select i, j from a join b on 1=1')), {depth: null})
-  console.dir(suggestedTags(parse(`select count(*), * from foo where y = null`)), {depth: null})
-  console.dir(suggestedTags(parse(`select pg_advisory_lock(123), x, y from foo`)), {depth: null})
-  console.dir(suggestedTags(parse(`insert into foo(id) values (1) returning *`)), {depth: null})
-  console.dir(suggestedTags(parse(`insert into foo(id) values (1)`)), {depth: null})
-  console.dir(suggestedTags(parse(`update foo set bar = 'baz' returning *`)), {depth: null})
-  console.dir(suggestedTags(parse(`select foo.x from foo where y = null`)), {depth: null})
+  console.dir(suggestedTags(sqlTablesAndColumns(`select count(*), * from foo where y = null`)), {depth: null})
+  console.dir(suggestedTags(sqlTablesAndColumns(`select pg_advisory_lock(123), x, y from foo`)), {depth: null})
+  console.dir(suggestedTags(sqlTablesAndColumns(`insert into foo(id) values (1) returning *`)), {depth: null})
+  console.dir(suggestedTags(sqlTablesAndColumns(`insert into foo(id) values (1)`)), {depth: null})
+  console.dir(suggestedTags(sqlTablesAndColumns(`update foo set bar = 'baz' returning *`)), {depth: null})
+  console.dir(suggestedTags(sqlTablesAndColumns(`select foo.x from foo where y = null`)), {depth: null})
 }

@@ -3,9 +3,6 @@ import * as lodash from 'lodash'
 import * as fs from 'fs'
 import type * as ts from 'typescript'
 
-// todo: use https://github.com/oguimbal/pgsql-ast-parser to parse the queries and get useful info out
-// ^- that todo doesn't really belong here but I wanted to capture it
-
 const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
   const ts: typeof import('typescript') = require('typescript')
   const sourceFile = ts.createSourceFile(
