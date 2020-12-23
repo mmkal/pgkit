@@ -4168,10 +4168,10 @@ fs-syncer@0.3.0:
   resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.0.tgz#a94df551685d388033f27ef0d984215aef0afeb4"
   integrity sha512-2/sSLnms2gTMDyAZH2KKI0L+Rw+ysX7FkzG3GWiqT/3cBJ0WsJpZOr7s2QAm7t2trpROwW6YOEdZkq4WmvnNKg==
 
-fs-syncer@^0.3.4:
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.4.tgz#f936b911b8d7cf964d30bce987edc000f60a93e8"
-  integrity sha512-asbPmY/9PCKM8bOBas2W73RYeYOC5qUSno8+HXtT4+Pwxsl7VjKL6rk1V1pGgvoCMFV3qb6tPdWoFm8oDyyPCQ==
+fs-syncer@^0.3.4-next.1:
+  version "0.3.4-next.1"
+  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.4-next.1.tgz#14db1d7628387f74982299f60a2484ac63ed6599"
+  integrity sha512-QxG4/ya9RkTvuRxXGbz0ULZJa7iDEi3IzrA7UFwt23jabIZ3Ud5adlpI1rOOOPBQMJmJl7xd9AoB0gEpP8ZwtA==
 
 fs-write-stream-atomic@^1.0.8:
   version "1.0.10"

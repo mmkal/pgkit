@@ -1,5 +1,6 @@
 /**
  * - query: `select 1 as a, 2 as b`
+ * - file: packages/typegen/test/fixtures/gdesc.test.ts/write-types/queries.ts
  */
 export interface Q1 {
   /** postgres type: integer */
