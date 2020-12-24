@@ -31,24 +31,22 @@ export const psqlClient = (psqlCommand: string) => {
   }
 
   const getEnumTypes = lodash.once(async () => {
-    const rows = await psql(`
+    const types = await psql(`
       select distinct t.typname, e.enumlabel
       from pg_enum as e
       join pg_type as t
       on t.oid = e.enumtypid
     `)
-    const types = rows.map(r => ({typname: r[0], enumlabel: r[1]}))
     return lodash.groupBy(types, t => t.typname)
   })
 
   const getRegtypeToPGType = lodash.once(async () => {
-    const rows = await psql(`
+    const types = await psql(`
       select oid, typname, oid::regtype as regtype
       from pg_type
       where typname not like '_%'
     `)
 
-    const types = rows.map(r => ({oid: r[0], typname: r[1], regtype: r[2]}))
     return lodash.keyBy(types, t => t.regtype)
   })
 
@@ -56,7 +54,7 @@ export const psqlClient = (psqlCommand: string) => {
 }
 
 /** Parse a psql output into a list of rows (string tuples) */
-export const psqlRows = (output: string): string[][] => {
+export const psqlRows = (output: string): Record<string, string>[] => {
   const lines = output
     .split('\n')
     .map(line => line.trim())
@@ -72,5 +70,13 @@ export const psqlRows = (output: string): string[][] => {
     throw new Error(`Unexpected psql table format:\n${output}`)
   }
 
-  return lines.slice(start + 1).map(row => row.split('|').map(cell => cell.trim()))
+  const columns = Object.fromEntries(lines[start - 1].split('|').map((h, i) => [i, h.trim()]))
+
+  return lines.slice(start + 1).map(row =>
+    Object.fromEntries(
+      row.split('|').map((cell, i) => {
+        return [columns[i], cell.trim()]
+      }),
+    ),
+  )
 }
