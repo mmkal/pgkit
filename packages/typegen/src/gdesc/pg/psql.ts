@@ -15,7 +15,8 @@ export const psqlClient = (psqlCommand: string) => {
 
   const psql = async (query: string) => {
     query = simplifyWhitespace(query)
-    const command = `echo "\${SLONIK_TYPEGEN_QUERY}" | ${psqlCommand} -f -`
+    const echoQuery = 'echo "${SLONIK_TYPEGEN_QUERY}"'
+    const command = `${echoQuery} | ${psqlCommand} -f -`
     const result = await execa('sh', ['-c', command], {env: {SLONIK_TYPEGEN_QUERY: query}})
     try {
       return psqlRows(result.stdout)
@@ -70,13 +71,16 @@ export const psqlRows = (output: string): Record<string, string>[] => {
     throw new Error(`Unexpected psql table format:\n${output}`)
   }
 
-  const columns = Object.fromEntries(lines[start - 1].split('|').map((h, i) => [i, h.trim()]))
+  const headers = parseRow(lines[start - 1])
+  if (new Set(headers).size !== headers.length) {
+    throw new Error(`Headers contain duplicates! ${headers}`)
+  }
+  const headerMap = Object.fromEntries(headers.map((h, i) => [i, h]))
 
-  return lines.slice(start + 1).map(row =>
-    Object.fromEntries(
-      row.split('|').map((cell, i) => {
-        return [columns[i], cell.trim()]
-      }),
-    ),
-  )
+  return lines
+    .slice(start + 1)
+    .map(parseRow)
+    .map(row => Object.fromEntries(row.map((val, i) => [headerMap[i], val])))
 }
+
+const parseRow = (r: string) => r.split('|').map(cell => cell.trim())
