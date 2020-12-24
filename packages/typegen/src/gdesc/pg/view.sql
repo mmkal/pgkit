@@ -41,7 +41,7 @@ begin
   	vcu.table_schema as schema_name,
 		vcu.view_name as view_name,
 		c.column_name,
-		c.udt_name,
+		c.table_name,
 		case when c.character_maximum_length is not null
 			then c.character_maximum_length
 			else c.numeric_precision end as max_length,
@@ -51,7 +51,7 @@ begin
 		pg_get_viewdef(v_tmp_name) as formatted_query
 	from
 		information_schema.columns c
-	left join
+	join
 		information_schema.view_column_usage vcu
 			on c.table_name = vcu.table_name
 			and c.column_name = vcu.column_name
@@ -106,9 +106,9 @@ LANGUAGE 'plpgsql';
 -- select * from gettypes('select d.name, m.hash from demo_migration d join migration m on m.name = d.name limit 2');
 
 -- select * from gettypes('select d.name, m.hash from demo_migration d join migration m on m.name = d.name limit 2');
-drop table nn cascade;
+drop table if exists nn cascade;
 create table nn(id int primary key, x int not null, t text, a text[], j json, jb jsonb);
-drop table mm cascade;
+drop table if exists mm cascade;
 create table mm(mi int not null, mt text, mtnn text not null);
 -- select * from gettypes('insert into nn(id) values(1)');
 -- select *
@@ -145,12 +145,15 @@ CREATE or replace FUNCTION mktestadd3(text, text) RETURNS text
 -- like 'mktest%'
 -- limit 10;
 
-select * from gettypes('select t from nn where id is not null');
 
 select * from information_schema.columns
-where table_name = 'temp2_fa091df901198bc4028d98700c380990'
-limit 10
-;
+ where table_name = 'temp2_fa091df901198bc4028d98700c380990'
+ limit 10
+ ;
+
+select * from gettypes('select t from nn where id is not null');
+
+select * from gettypes('select t from nn');
 
 -- select id from nn where id = null;
 -- select * from information_schema.view_column_usage where view_name like 'temp2%' limit 10;
