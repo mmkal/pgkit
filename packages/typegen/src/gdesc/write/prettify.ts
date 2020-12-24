@@ -1,10 +1,14 @@
 import * as lodash from 'lodash'
+import * as findUp from 'find-up'
 
 export function prettify(allFiles: Record<string, any>) {
   try {
     const prettier: typeof import('prettier') = require('prettier')
-    const prettify = (val: any, filepath: string): typeof val =>
-      typeof val === 'string' ? prettier.format(val, {filepath}) : lodash.mapValues(val, prettify)
+    const prettify = (val: any, filepath: string): typeof val => {
+      const rcFile = findUp.sync('.prettierrc.js')
+      const rc = rcFile && require(rcFile)
+      typeof val === 'string' ? prettier.format(val, {filepath, ...rc}) : lodash.mapValues(val, prettify)
+    }
     allFiles = prettify(allFiles, '.')
   } catch (e) {
     const help =
