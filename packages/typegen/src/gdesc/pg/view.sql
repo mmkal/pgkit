@@ -35,28 +35,29 @@ begin
   v_tmp_name := 'temp2_' || md5(sql_query);
 	execute 'drop view if exists ' || v_tmp_name;
   execute 'create view ' || v_tmp_name || ' as ' || sql_query;
-  
+
   FOR returnrec in
   select
   	vcu.table_schema as schema_name,
-	vcu.view_name as view_name,
-	c.column_name,
-	c.udt_name,
- 	case when c.character_maximum_length is not null
- 		then c.character_maximum_length
- 		else c.numeric_precision end as max_length,
-	c.is_nullable,
-	vcu.table_name as underlying_table_name,
-	c.is_nullable as is_underlying_nullable,
-	pg_get_viewdef(v_tmp_name) as formatted_query
-	
-	from information_schema.columns c
-	left join information_schema.view_column_usage vcu
-		on c.table_name = vcu.table_name
-		and c.column_name = vcu.column_name
+		vcu.view_name as view_name,
+		c.column_name,
+		c.udt_name,
+		case when c.character_maximum_length is not null
+			then c.character_maximum_length
+			else c.numeric_precision end as max_length,
+		c.is_nullable,
+		vcu.table_name as underlying_table_name,
+		c.is_nullable as is_underlying_nullable,
+		pg_get_viewdef(v_tmp_name) as formatted_query
+	from
+		information_schema.columns c
+	left join
+		information_schema.view_column_usage vcu
+			on c.table_name = vcu.table_name
+			and c.column_name = vcu.column_name
 	where
 		c.table_name = v_tmp_name
-		or vcu.view_name = v_tmp_name -- todo: this includes too much!
+		or vcu.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
 	limit 600
 --   select
 --   	t.table_schema as schema_name,
@@ -90,11 +91,11 @@ begin
 -- 		view_name
 	loop
 		return next returnrec;
-    end loop;
+  end loop;
 
 --  	execute 'drop view ' || v_tmp_name;
 
-	RAISE NOTICE 'the view name is %', v_tmp_name;
+	raise notice 'the view name is %', v_tmp_name;
 
 -- 	select 1, 2 into rec;
 -- 	return rec;

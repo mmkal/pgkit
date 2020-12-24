@@ -11,7 +11,7 @@ import {prettify} from './prettify'
 // dynamically change the `import {sql} from 'slonik'` to `import {sql} from '../generated/db/queries.message-query'` which has the exact types needed.
 // maybe.
 
-const jsdocQuery = (query: string) => truncate(simplifyWhitespace(query))
+const jsdocQuery = lodash.flow(simplifyWhitespace, truncate)
 
 export interface WriteTypeScriptFilesOptions {
   /** Folder to write into. Note that this folder will be wiped clean. */
@@ -19,9 +19,9 @@ export interface WriteTypeScriptFilesOptions {
   /**
    * Modifier to add to nullable props. To be very cautious, set to `'?'`. If you do this, though,
    * a lot of fields will come back null, since postgres doesn't keep very good track of non-nullability.
-   * e.g. results from `insert into foo(x) values (1) returning x, y` will yield nulls even if columns `x` and `y` are non-nullable.
-   * e.g. results from `count (*) from foo` will yield null since functions can't have `not null` return values.
-   * e.g. `count x from foo where x is not null` will yield null.
+   * - e.g. results from `insert into foo(x) values (1) returning x, y` will yield nulls even if columns `x` and `y` are non-nullable.
+   * - e.g. results from `count (*) from foo` will yield null since functions can't have `not null` return values.
+   * - e.g. `count x from foo where x is not null` will yield null.
    */
   nullablePropModifier?: '' | '?'
 }

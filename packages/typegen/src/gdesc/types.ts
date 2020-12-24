@@ -127,12 +127,6 @@ export interface ParsedColumn {
   name: string
 }
 
-export interface ResolvedTableColumn extends ParsedColumn {
-  table: string
-  name: string
-  notNull: boolean
-}
-
 export interface DescribedQuery extends ParsedQuery {
   /** List of meta objects with info about field types returned by this query */
   fields: QueryField[]
@@ -147,6 +141,12 @@ export interface QueryField {
   typescript: string
   /** For simple queries which just select from some known table, sometimes we can determine if they're not-null. */
   column?: ResolvedTableColumn
+}
+
+export interface ResolvedTableColumn extends ParsedColumn {
+  table: string
+  name: string
+  notNull: boolean
 }
 
 export interface TypeScriptTypeParser extends slonik.TypeParserType {
