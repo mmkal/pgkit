@@ -152,6 +152,7 @@ export interface ResolvedTableColumn extends ParsedColumn {
   table: string
   name: string
   notNull: boolean
+  comment: string
 }
 
 export interface TypeScriptTypeParser extends slonik.TypeParserType {

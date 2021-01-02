@@ -6,7 +6,7 @@ import {fsSyncer} from 'fs-syncer'
 import {DescribedQuery, GdescriberParams} from '../types'
 import {relativeUnixPath, simplifyWhitespace, truncate} from '../util'
 import {prettify} from './prettify'
-import {getSuggestedTags} from '../parse'
+import {getSuggestedTags} from '../query-analysis'
 
 // todo: instead of having global types which might overlap, and needing to change sql`select * from message` to sql.Message`select * from message`
 // dynamically change the `import {sql} from 'slonik'` to `import {sql} from '../generated/db/queries.message-query'` which has the exact types needed.

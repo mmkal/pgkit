@@ -1,11 +1,10 @@
 import * as lodash from 'lodash'
-import * as fp from 'lodash/fp'
 import {DescribedQuery, GdescriberParams} from '../types'
 import {simplifyWhitespace, truncate} from '../util'
 import {prettifyOne} from './prettify'
 import type * as ts from 'typescript'
 import * as fs from 'fs'
-import {getSuggestedTags, suggestedTags} from '../parse'
+import {getSuggestedTags, suggestedTags} from '../query-analysis'
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
@@ -145,10 +144,20 @@ const queryResultType = (query: DescribedQuery, interfaceName: string) => `
    * - query: \`${jsdocQuery(query.sql)}\`
    */
   export interface ${interfaceName} {
-    ${query.fields.map(
-      f => `
-      /** postgres type: ${f.gdesc} */
-      ${f.name}: ${f.typescript}
-    `,
-    )}
+    ${query.fields.map(f => {
+      const typeComment = `postgres type: ${f.gdesc}`
+      const comment = f.column?.comment
+        ? `
+          /**
+           * ${f.column.comment}
+           * 
+           * ${typeComment}
+           */
+        `.trim()
+        : `/** ${typeComment} */`
+      return `
+          ${comment}
+          ${f.name}: ${f.typescript}
+        `
+    })}
 }`

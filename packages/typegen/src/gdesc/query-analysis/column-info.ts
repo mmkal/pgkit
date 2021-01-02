@@ -1,5 +1,4 @@
 import * as lodash from 'lodash'
-import * as fp from 'lodash/fp'
 import {DescribedQuery} from '../types'
 import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
@@ -14,7 +13,7 @@ create type types_type as (
   table_column_name text,
   query_column_name text,
   udt_name name,
-  max_length int,
+  comment text,
   is_nullable text,
   underlying_table_name text,
   is_underlying_nullable text,
@@ -46,9 +45,14 @@ begin
     c.column_name,
     vcu.column_name,
     c.table_name,
-    case when c.character_maximum_length is not null
-      then c.character_maximum_length
-      else c.numeric_precision end as max_length,
+    col_description(
+      to_regclass(
+        quote_ident(c.table_schema) ||
+        '.' ||
+        quote_ident(c.table_name)
+      ),
+      c.ordinal_position
+    ),
     c.is_nullable,
     vcu.table_name as underlying_table_name,
     c.is_nullable as is_underlying_nullable,
@@ -77,14 +81,14 @@ interface ViewResult {
   table_column_name: string
   underlying_table_name: string
   is_underlying_nullable: string
+  comment: string
   formatted_query: string
 }
 
 // todo: logging
-// todo: search for non-type-tagged queries and use a heuristic to guess a good name from them
-// using either sql-surveyor or https://github.com/oguimbal/pgsql-ast-parser
+// todo: get table description from obj_description(oid) (like column)
 
-export const nullablise = (pool: DatabasePoolType) => {
+export const getColumnInfo = (pool: DatabasePoolType) => {
   const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
   const addColumnInfo = async (query: DescribedQuery): Promise<DescribedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
@@ -92,10 +96,10 @@ export const nullablise = (pool: DatabasePoolType) => {
     await createViewAnalyser()
 
     const viewResultQuery = sql<ViewResult>`
-      select table_column_name, underlying_table_name, is_underlying_nullable, formatted_query
+      select table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
       from gettypes(${viewFriendlySql})
     `
-    const viewResult = await pool.any(viewResultQuery).then(fp.uniqBy(JSON.stringify))
+    const viewResult = await pool.any(viewResultQuery).then(results => lodash.uniqBy(results, JSON.stringify))
 
     const formattedSqls = [...new Set(viewResult.map(r => r.formatted_query))]
     if (formattedSqls.length !== 1) {
@@ -122,7 +126,8 @@ export const nullablise = (pool: DatabasePoolType) => {
           column: res && {
             name: f.name,
             table: res.underlying_table_name,
-            notNull: res.is_underlying_nullable === 'NO',
+            notNull: isNotNull(res),
+            comment: res.comment || '',
           },
         }
       }),
@@ -130,4 +135,13 @@ export const nullablise = (pool: DatabasePoolType) => {
   }
 
   return async (query: DescribedQuery) => addColumnInfo(query).catch(() => query)
+}
+
+export const isNotNull = (viewResult: ViewResult) => {
+  if (viewResult.is_underlying_nullable === 'NO') {
+    return true
+  }
+
+  // todo: check for some known functions which always return non-null like `count(*)`
+  return false
 }
