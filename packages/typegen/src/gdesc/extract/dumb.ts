@@ -19,5 +19,5 @@ export const dumbExtractQueries: GdescriberParams['extractQueries'] = file => {
     .slice(1)
     .map(sqlPlusCruft => sqlPlusCruft.split('`'))
     .map(([tag, sql]) => ({file, tag, sql: simplifyWhitespace(sql, os.EOL)}))
-    .map(q => ({...q, template: [q.sql]}))
+    .map(q => ({...q, template: [q.sql], text: ''}))
 }

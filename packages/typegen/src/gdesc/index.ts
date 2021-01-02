@@ -72,13 +72,12 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
       const described: DescribedQuery = {
         ...query,
         fields: await describeCommand(query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')),
-        tag: getSuggestedTags(query.template)[0],
       }
 
       return n(described)
     })
 
-    const queries = lodash.groupBy(await Promise.all(promises), q => q.tag)
+    const queries = await Promise.all(promises)
 
     writeTypes(queries)
   }

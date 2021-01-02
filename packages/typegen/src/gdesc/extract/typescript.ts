@@ -42,7 +42,7 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
           if (template.length > 0) {
             queries.push({
               // tag: 'unknown',
-              node,
+              text: node.getFullText(),
               file,
               sql: template
                 .map((t, i) => `$${i}${t}`)
@@ -79,8 +79,7 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
 
           if (template.length > 0) {
             queries.push({
-              // tag: tag.name.getFullText(),
-              node,
+              text: node.getFullText(),
               file,
               sql: template
                 .map((t, i) => `$${i}${t}`)

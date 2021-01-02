@@ -10,6 +10,7 @@ export const extractSQLFile: GdescriberParams['extractQueries'] = file => {
   const sql = fs.readFileSync(file).toString()
   return [
     {
+      text: sql,
       file,
       sql,
       tag: pascalCase(path.parse(file).name),

@@ -6,6 +6,7 @@ import {fsSyncer} from 'fs-syncer'
 import {DescribedQuery, GdescriberParams} from '../types'
 import {relativeUnixPath, simplifyWhitespace, truncate} from '../util'
 import {prettify} from './prettify'
+import {getSuggestedTags} from '../parse'
 
 // todo: instead of having global types which might overlap, and needing to change sql`select * from message` to sql.Message`select * from message`
 // dynamically change the `import {sql} from 'slonik'` to `import {sql} from '../generated/db/queries.message-query'` which has the exact types needed.
@@ -33,7 +34,13 @@ export const writeTypeScriptFiles = ({
   // 2. `insert into foo(id) values ('bar')` or `update ...`. Might require query parsing, and converting to a fake `select`.
   // 3. (maybe) common functions like `count(...)`.
   nullablePropModifier = '',
-}: WriteTypeScriptFilesOptions): GdescriberParams['writeTypes'] => groups => {
+}: WriteTypeScriptFilesOptions): GdescriberParams['writeTypes'] => queries => {
+  const groups = lodash
+    .chain(queries)
+    .map(q => ({...q, tag: getSuggestedTags(q.template)[0]}))
+    .groupBy(q => q.tag)
+    .value()
+
   const typeFiles = lodash
     .chain(groups)
     .mapKeys((val, typeName) => typeName.slice(0, 1).toUpperCase() + typeName.slice(1))

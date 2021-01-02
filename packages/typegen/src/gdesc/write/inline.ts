@@ -1,18 +1,11 @@
-import * as path from 'path'
-import * as os from 'os'
 import * as lodash from 'lodash'
 import * as fp from 'lodash/fp'
-import {fsSyncer} from 'fs-syncer'
 import {DescribedQuery, GdescriberParams} from '../types'
-import {relativeUnixPath, simplifyWhitespace, truncate} from '../util'
-import {prettify, prettifyOne} from './prettify'
+import {simplifyWhitespace, truncate} from '../util'
+import {prettifyOne} from './prettify'
 import type * as ts from 'typescript'
 import * as fs from 'fs'
 import {getSuggestedTags, suggestedTags} from '../parse'
-
-// todo: instead of having global types which might overlap, and needing to change sql`select * from message` to sql.Message`select * from message`
-// dynamically change the `import {sql} from 'slonik'` to `import {sql} from '../generated/db/queries.message-query'` which has the exact types needed.
-// maybe.
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
@@ -26,7 +19,7 @@ export interface WriteTypeScriptFilesOptions {
    * Modifier to add to nullable props. To be very cautious, set to `'?'`. If you do this, though,
    * a lot of fields will come back null, since postgres doesn't keep very good track of non-nullability.
    * - e.g. results from `insert into foo(x) values (1) returning x, y` will yield nulls even if columns `x` and `y` are non-nullable.
-   * - e.g. results from `count (*) from foo` will yield null since functions can't have `not null` return values.
+   * - e.g. results from `count(*) from foo` will yield null since functions can't have `not null` return values.
    * - e.g. `count x from foo where x is not null` will yield null.
    */
   nullablePropModifier?: '' | '?'
@@ -39,11 +32,9 @@ export const writeTypeScriptFiles = ({
   // 2. `insert into foo(id) values ('bar')` or `update ...`. Might require query parsing, and converting to a fake `select`.
   // 3. (maybe) common functions like `count(...)`.
   nullablePropModifier = '',
-}: WriteTypeScriptFilesOptions): GdescriberParams['writeTypes'] => groups => {
+}: WriteTypeScriptFilesOptions): GdescriberParams['writeTypes'] => queries => {
   lodash
-    .chain(groups)
-    .values()
-    .flatten()
+    .chain(queries)
     .groupBy(q => q.file)
     .mapValues(addTags)
     .forIn((group, file) => {
@@ -98,7 +89,7 @@ export const writeTypeScriptFiles = ({
         if (ts.isTaggedTemplateExpression(node)) {
           if (ts.isIdentifier(node.tag)) {
             if (node.tag.getText() === 'sql') {
-              const match = group.find(q => q.node.getFullText() === node.getFullText())
+              const match = group.find(q => q.text === node.getFullText())
               if (match) {
                 edits.push({
                   start: node.tag.getStart(sourceFile),

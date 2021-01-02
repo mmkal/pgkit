@@ -1,6 +1,4 @@
 import * as slonik from 'slonik'
-import * as pgsqlAST from 'pgsql-ast-parser'
-import type * as ts from 'typescript'
 
 export interface GdescriberParams {
   /**
@@ -83,7 +81,7 @@ export interface GdescriberParams {
    * to write some code in another language instead.
    * @default @see defaultWriteTypes
    */
-  writeTypes: (types: Record<string, DescribedQuery[]>) => void
+  writeTypes: (queries: DescribedQuery[]) => void
 
   /**
    * Slonik pool instance. By default uses localhost.
@@ -110,7 +108,7 @@ export interface GdescriberParams {
 }
 
 export interface ExtractedQuery {
-  node: ts.TaggedTemplateExpression
+  text: string
   /** Path to file containing the query, relative to cwd */
   file: string
   /** Query SQL */

@@ -12,6 +12,7 @@ export const bar = () => {
     sql<queries.Messages_id>`select id from messages`,
     sql<queries.Messages_count>`select count(*) from messages`,
     sql<queries.PgAdvisoryLock>`select pg_advisory_lock(123)`,
+    sql<queries.PgAdvisoryLock>`insert into messages(id, content) values (1, ${'hi'}) returning id`,
   ]
 }
 
