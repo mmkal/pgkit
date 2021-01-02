@@ -85,6 +85,11 @@ export interface GdescriberParams {
   writeTypes: (types: Record<string, DescribedQuery[]>) => void
 
   /**
+   * Slonik pool instance. By default uses localhost.
+   */
+  pool: slonik.DatabasePoolType
+
+  /**
    * List of `slonik.TypeParserType` objects, as passed into slonik. These should each have an extra `typescript` string property,
    * which indicates what type the parse into.
    *
@@ -101,8 +106,6 @@ export interface GdescriberParams {
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
   typeParsers: Array<TypeScriptTypeParser>
-
-  pool: slonik.DatabasePoolType
 }
 
 export interface ExtractedQuery {

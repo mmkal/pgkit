@@ -16,11 +16,11 @@ export const templateToValidSql = (template: string[]) => template.join('null')
 
 export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
   const statements = pgsqlAST.parse(sql)
-  if (statements.length !== 1) {
+  const ast = statements[0]
+  if (!ast || statements.length !== 1) {
     // todo: don't throw (find out what slonik/other clients do here?)
     throw new Error(`Can't parse query ${sql}; it has ${statements.length} statements.`)
   }
-  const ast = statements[0]
 
   if ((ast.type === 'update' || ast.type === 'insert') && ast.returning) {
     return {

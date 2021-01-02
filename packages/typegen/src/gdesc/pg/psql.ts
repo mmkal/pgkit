@@ -10,7 +10,7 @@ export type PSQLClient = ReturnType<typeof psqlClient>
  */
 export const psqlClient = (psqlCommand: string) => {
   if (psqlCommand.includes(`'`)) {
-    throw new Error(`Can't run psql command ${JSON.stringify(psqlCommand)}; it has quotes in it. Try using an alias.`)
+    throw new Error(`Can't run psql command ${JSON.stringify(psqlCommand)}; with quotes in it. Try using a bash alias.`)
   }
 
   const psql = async (query: string) => {
@@ -64,7 +64,7 @@ export const psqlRows = (output: string): Record<string, string>[] => {
 
   const dividerLines = lines
     .map((row, index) => ({row, index}))
-    .filter(({row, index}) => {
+    .filter(({row}) => {
       const dividers = row.split('+')
       return dividers.length > 0 && dividers.every(d => d.match(/^-+$/))
     })
@@ -78,8 +78,6 @@ export const psqlRows = (output: string): Record<string, string>[] => {
   const start = dividerLines[0]?.index
 
   if (typeof start !== 'number') {
-    console.error('cannotfindstart', {output, lines})
-    return []
     throw new Error(`Unexpected psql table format:\n${output}`)
   }
 
@@ -96,15 +94,3 @@ export const psqlRows = (output: string): Record<string, string>[] => {
 }
 
 const parseRow = (r: string) => r.split('|').map(cell => cell.trim())
-
-if (require.main === module) {
-  const client = psqlClient('docker-compose exec -T postgres psql -h localhost -U postgres postgres')
-  client
-    .psql(
-      `
-        select column_name, underlying_table_name, is_underlying_nullable
-        from gettypes('select t as id from nn where id is not null')
-      `,
-    )
-    .then(console.log)
-}
