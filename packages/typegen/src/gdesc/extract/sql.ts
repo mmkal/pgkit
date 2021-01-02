@@ -7,11 +7,13 @@ import {pascalCase} from '../util'
 // `sql.file('type/checked/relative/path/to/file.sql', values: [type, checked, variables, too])`
 // or does that belong in a separate lib? I like it here I think.
 export const extractSQLFile: GdescriberParams['extractQueries'] = file => {
+  const sql = fs.readFileSync(file).toString()
   return [
     {
       file,
-      sql: fs.readFileSync(file).toString(),
+      sql,
       tag: pascalCase(path.parse(file).name),
+      template: [sql], // todo: split based on `$1` or something?
     },
   ]
 }

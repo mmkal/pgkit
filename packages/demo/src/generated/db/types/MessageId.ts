@@ -4,5 +4,5 @@
  */
 export interface MessageId {
   /** postgres type: integer */
-  id: number;
+  id: number | null
 }

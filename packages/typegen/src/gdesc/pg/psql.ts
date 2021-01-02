@@ -56,18 +56,29 @@ export const psqlClient = (psqlCommand: string) => {
 
 /** Parse a psql output into a list of rows (string tuples) */
 export const psqlRows = (output: string): Record<string, string>[] => {
+  console.log({output})
   const lines = output
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
     .filter(line => !line.match(/^\(\d+ rows?\)$/))
 
-  const start = lines.findIndex(row => {
-    const dividers = row.split('+')
-    return dividers.length > 0 && dividers.every(d => d.match(/^-+$/))
-  })
+  const dividerLines = lines
+    .map((row, index) => ({row, index}))
+    .filter(({row, index}) => {
+      const dividers = row.split('+')
+      return dividers.length > 0 && dividers.every(d => d.match(/^-+$/))
+    })
 
-  if (start === -1) {
+  if (dividerLines.length > 1) {
+    // multi-statement
+    throw new Error(`multi statements not handled yet`)
+    // return {}
+  }
+
+  const start = dividerLines[0]?.index
+
+  if (typeof start !== 'number') {
     throw new Error(`Unexpected psql table format:\n${output}`)
   }
 
@@ -84,3 +95,15 @@ export const psqlRows = (output: string): Record<string, string>[] => {
 }
 
 const parseRow = (r: string) => r.split('|').map(cell => cell.trim())
+
+if (require.main === module) {
+  const client = psqlClient('docker-compose exec -T postgres psql -h localhost -U postgres postgres')
+  client
+    .psql(
+      `
+        select column_name, underlying_table_name, is_underlying_nullable
+        from gettypes('select t as id from nn where id is not null')
+      `,
+    )
+    .then(console.log)
+}

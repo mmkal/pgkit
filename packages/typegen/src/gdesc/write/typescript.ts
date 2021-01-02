@@ -49,7 +49,7 @@ export const writeTypeScriptFiles = ({
         fields: q.fields.map(f =>
           f.column?.notNull
             ? f // if we *know* it's not null, don't add the modifier
-            : {...f, name: f.name + nullablePropModifier},
+            : {...f, typescript: `${f.typescript} | null`},
         ),
       })),
     )

@@ -28,7 +28,6 @@
     "fs-syncer": "^0.3.4-next.1",
     "io-ts-extra": "^0.11.4",
     "pgsql-ast-parser": "^2.0.0",
-    "slonik": "^23.4.0",
     "sql-surveyor": "^1.2.2"
   }
 }

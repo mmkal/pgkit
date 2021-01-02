@@ -7,7 +7,7 @@ export function prettify(allFiles: Record<string, any>) {
     const prettify = (val: any, filepath: string): typeof val => {
       const rcFile = findUp.sync('.prettierrc.js')
       const rc = rcFile && require(rcFile)
-      typeof val === 'string' ? prettier.format(val, {filepath, ...rc}) : lodash.mapValues(val, prettify)
+      return typeof val === 'string' ? prettier.format(val, {filepath, ...rc}) : lodash.mapValues(val, prettify)
     }
     allFiles = prettify(allFiles, '.')
   } catch (e) {

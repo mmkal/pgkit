@@ -1,13 +1,13 @@
-import * as slonik from "slonik";
-import * as types from "./types";
+import * as slonik from 'slonik'
+import * as types from './types'
 
-export { types };
+export {types}
 
 export interface GenericSqlTaggedTemplateType<T> {
   <U = T>(
     template: TemplateStringsArray,
     ...vals: slonik.ValueExpressionType[]
-  ): slonik.TaggedTemplateLiteralInvocationType<U>;
+  ): slonik.TaggedTemplateLiteralInvocationType<U>
 }
 
 export type SqlType = typeof slonik.sql & {
@@ -21,7 +21,7 @@ export type SqlType = typeof slonik.sql & {
    * `)
    * ```
    */
-  MessageId: GenericSqlTaggedTemplateType<types.MessageId>;
+  MessageId: GenericSqlTaggedTemplateType<types.MessageId>
   /**
    * Template tag for queries returning `Message`
    *
@@ -32,8 +32,8 @@ export type SqlType = typeof slonik.sql & {
    * `)
    * ```
    */
-  Message: GenericSqlTaggedTemplateType<types.Message>;
-};
+  Message: GenericSqlTaggedTemplateType<types.Message>
+}
 
 /**
  * Wrapper for `slonik.sql` with properties for types `MessageId`, `Message`
@@ -65,7 +65,7 @@ export type SqlType = typeof slonik.sql & {
 export const sql: SqlType = Object.assign(
   // wrapper function for `slonik.sql`
   (...args: Parameters<typeof slonik.sql>): ReturnType<typeof slonik.sql> => {
-    return slonik.sql(...args);
+    return slonik.sql(...args)
   },
   // attach helpers (`sql.join`, `sql.unnest` etc.) to wrapper function
   slonik.sql,
@@ -73,5 +73,5 @@ export const sql: SqlType = Object.assign(
   {
     MessageId: slonik.sql,
     Message: slonik.sql,
-  }
-);
+  },
+)

@@ -14,24 +14,16 @@ import {match} from 'io-ts-extra'
  */
 export const templateToValidSql = (template: string[]) => template.join('null')
 
-/**
- * Get tables and columns used in a sql query. Not complete; optimistic. Useful for getting a (non-unique)
- * name that can be used to refer to queries.
- */
-export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: string[]} => {
-  //Omit<ParsedQuery, 'tag' | 'file'> => {
-  if (Math.random()) {
-    // return parse2(sql)
-  }
+export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
   const statements = pgsqlAST.parse(sql)
   if (statements.length !== 1) {
     // todo: don't throw (find out what slonik/other clients do here?)
     throw new Error(`Can't parse query ${sql}; it has ${statements.length} statements.`)
   }
-  let ast = statements[0]
+  const ast = statements[0]
 
   if ((ast.type === 'update' || ast.type === 'insert') && ast.returning) {
-    ast = {
+    return {
       type: 'select',
       from: [
         {
@@ -44,6 +36,23 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
       })),
     }
   }
+
+  console.log({ast})
+
+  return ast
+}
+
+/**
+ * Get tables and columns used in a sql query. Not complete; optimistic. Useful for getting a (non-unique)
+ * name that can be used to refer to queries.
+ */
+export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: string[]} => {
+  //Omit<ParsedQuery, 'tag' | 'file'> => {
+  if (Math.random()) {
+    // return parse2(sql)
+  }
+
+  const ast = getHopefullyViewableAST(sql)
 
   if (ast.type === 'select') {
     return {
@@ -169,15 +178,14 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
 
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
+export const getViewFriendlySql = lodash.flow(templateToValidSql, getHopefullyViewableAST, pgsqlAST.toSql.statement)
+
 if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
-  console.dir(
+  console.log(
     sqlTablesAndColumns('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'),
-    {
-      depth: null,
-    },
   )
   throw ''
   // console.dir(suggestedTags(parse('select foo::regtype from foo')), {depth: null})
