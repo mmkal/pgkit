@@ -101,6 +101,8 @@ export interface GdescriberParams {
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
   typeParsers: Array<TypeScriptTypeParser>
+
+  pool: slonik.DatabasePoolType
 }
 
 export interface ExtractedQuery {

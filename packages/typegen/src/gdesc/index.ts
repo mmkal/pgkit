@@ -4,6 +4,7 @@ import {PSQLClient, psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
 import {getViewFriendlySql} from './parse'
+import {sql, DatabasePoolType} from 'slonik'
 
 export * from './types'
 export * from './defaults'
@@ -12,8 +13,8 @@ export * from './defaults'
 // todo: search for non-type-tagged queries and use a heuristic to guess a good name from them
 // using either sql-surveyor or https://github.com/oguimbal/pgsql-ast-parser
 
-export const nullablise = (client: PSQLClient) => {
-  const getTypesSql = `
+export const nullablise = (pool: DatabasePoolType) => {
+  const getTypesSql = sql`
     drop type if exists types_type cascade;
 
     create type types_type as (
@@ -81,27 +82,32 @@ export const nullablise = (client: PSQLClient) => {
     LANGUAGE 'plpgsql';
   `
 
-  const createViewAnalyser = lodash.once(() => client.psql(getTypesSql))
+  const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
   return async (query: DescribedQuery): Promise<DescribedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
 
     await createViewAnalyser()
 
-    const viewResult = await client.psql(`
-      select column_name, underlying_table_name, is_underlying_nullable
-      from gettypes('${viewFriendlySql}')
+    const viewResult = await pool.any(sql<{
+      table_column_name: string
+      underlying_table_name: string
+      is_underlying_nullable: string
+    }>`
+      select table_column_name, underlying_table_name, is_underlying_nullable
+      from gettypes(${viewFriendlySql})
     `)
 
     return {
       ...query,
       fields: query.fields.map(f => {
-        const res = viewResult.find(v => f.name === v.column_name)
+        const res = viewResult.find(v => f.name === v.table_column_name)
+        console.log('\n\n\n\n', viewResult, {res, f})
         return {
           ...f,
           column: res && {
             name: f.name,
-            table: res.underlying_table_name,
-            notNull: res.is_nullable === 'NO',
+            table: res.underlying_table_name!.toString(),
+            notNull: res.is_underlying_nullable === 'NO',
           },
         }
       }),
@@ -119,8 +125,10 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     extractQueries,
     writeTypes,
     typeParsers,
+    pool,
   } = defaults.getParams(params)
-  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
+  const client = psqlClient(psqlCommand)
+  const {psql, getEnumTypes, getRegtypeToPGType} = client
 
   const describeCommand = async (query: string): Promise<QueryField[]> => {
     const rows = await psql(`${query} \\gdesc`)
@@ -169,12 +177,18 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
   }
 
   const findAll = async () => {
+    const n = nullablise(pool)
+
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
-    const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => ({
-      ...query,
-      fields: await describeCommand(query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')),
-    }))
+    const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => {
+      const described: DescribedQuery = {
+        ...query,
+        fields: await describeCommand(query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')),
+      }
+
+      return n(described)
+    })
 
     const queries = lodash.groupBy(await Promise.all(promises), q => q.tag)
 

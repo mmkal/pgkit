@@ -3,6 +3,7 @@ import {defaultWriteTypes} from './write'
 import {defaultPGDataTypeToTypeScriptMappings} from './pg'
 import {defaultTypeParsers} from './slonik'
 import {GdescriberParams} from './types'
+import {createPool} from 'slonik'
 
 // Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
 // e.g. the default `writeTypes` implementation depends on the specific value of `rootDir`.
@@ -33,4 +34,5 @@ export const getParams = ({
   extractQueries,
   writeTypes,
   typeParsers,
+  pool: createPool('postgresql://postgres:postgres@localhost:5433/postgres'),
 })

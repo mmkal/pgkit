@@ -37,7 +37,7 @@ export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
     }
   }
 
-  console.log({ast})
+  // console.log({ast})
 
   return ast
 }

@@ -56,7 +56,6 @@ export const psqlClient = (psqlCommand: string) => {
 
 /** Parse a psql output into a list of rows (string tuples) */
 export const psqlRows = (output: string): Record<string, string>[] => {
-  console.log({output})
   const lines = output
     .split('\n')
     .map(line => line.trim())
@@ -79,6 +78,8 @@ export const psqlRows = (output: string): Record<string, string>[] => {
   const start = dividerLines[0]?.index
 
   if (typeof start !== 'number') {
+    console.error('cannotfindstart', {output, lines})
+    return []
     throw new Error(`Unexpected psql table format:\n${output}`)
   }
 
