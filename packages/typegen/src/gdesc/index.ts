@@ -101,7 +101,6 @@ export const nullablise = (pool: DatabasePoolType) => {
       ...query,
       fields: query.fields.map(f => {
         const res = viewResult.find(v => f.name === v.table_column_name)
-        console.log('\n\n\n\n', viewResult, {res, f})
         return {
           ...f,
           column: res && {

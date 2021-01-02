@@ -10,6 +10,8 @@ import {createPool} from 'slonik'
 
 export {defaultWriteTypes, defaultTypeParsers, defaultExtractQueries, defaultPGDataTypeToTypeScriptMappings}
 
+export const defaultSlonikConnectionString = 'postgresql://postgres:postgres@localhost:5433/postgres'
+
 export const defaultPsqlCommand = `docker-compose exec -T postgres psql -h localhost -U postgres postgres`
 
 export const defaultRootDir = 'src'
@@ -24,7 +26,8 @@ export const getParams = ({
   defaultType = defaultTypeScriptType,
   extractQueries = defaultExtractQueries,
   writeTypes = defaultWriteTypes({folder: `${rootDir}/generated/db`}),
-  typeParsers = defaultTypeParsers,
+  pool = createPool(defaultSlonikConnectionString),
+  typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
 }: Partial<GdescriberParams> = {}): GdescriberParams => ({
   psqlCommand,
   gdescToTypeScript,
@@ -33,6 +36,6 @@ export const getParams = ({
   defaultType,
   extractQueries,
   writeTypes,
-  typeParsers,
   pool: createPool('postgresql://postgres:postgres@localhost:5433/postgres'),
+  typeParsers,
 })

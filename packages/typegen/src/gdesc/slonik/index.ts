@@ -38,8 +38,9 @@ export const inferTypeParserTypeScript = (tp: slonik.TypeParserType<any>, defaul
   return match?.[0] || `unknown /* ${tp.name} */`
 }
 
-export const defaultTypeParsers: TypeScriptTypeParser[] = slonik.createTypeParserPreset().map(tp => ({
-  name: tp.name,
-  parse: tp.parse,
-  typescript: inferTypeParserTypeScript(tp),
-}))
+export const defaultTypeParsers = (parsers: readonly slonik.TypeParserType<unknown>[]): TypeScriptTypeParser[] =>
+  parsers.map(tp => ({
+    name: tp.name,
+    parse: tp.parse,
+    typescript: inferTypeParserTypeScript(tp),
+  }))
