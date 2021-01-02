@@ -44,7 +44,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const regtypeToPGType = await getRegtypeToPGType()
 
     if (regtype?.endsWith('[]')) {
-      return `Array<${getTypeScriptType(regtype.slice(0, -2), typeName)}>`
+      return `Array<${await getTypeScriptType(regtype.slice(0, -2), typeName)}>`
     }
 
     if (regtype?.match(/\(\d+\)/)) {

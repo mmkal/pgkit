@@ -7,7 +7,7 @@ export const foo = () => {
 export const bar = () => {
   return [
     //
-    sql<queries.Nn>`select t from nn`,
+    sql<queries.Nn>`select * from nn where t = ${1}`,
     sql<queries.Messages_id_content>`select id, content from messages`,
     sql<queries.Messages>`select * from messages`,
     sql<queries.Messages_id>`select id from messages`,
@@ -33,15 +33,25 @@ module queries {
   }
 
   /**
-   * - query: `select t from nn`
+   * - query: `select * from nn where t = $1`
    */
   export interface Nn {
+    /** postgres type: integer */
+    id: number
+    /** postgres type: integer */
+    x: number
     /**
      * some text value that does not really mean anything
      *
      * postgres type: text
      */
     t: string
+    /** postgres type: text[] */
+    a: Array<string>
+    /** postgres type: json */
+    j: unknown
+    /** postgres type: jsonb */
+    jb: unknown
   }
 
   /**
