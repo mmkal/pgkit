@@ -73,83 +73,6 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
   }
 
   return {}
-
-  //   const cols = ast.type === 'select' ? ast.columns! : ast.type === 'insert' ? ast.returning : []
-  //   const colExpressions: Array<{table?: string; name: string}> = cols!
-  //     .map(c => c.expr)
-  //     .map(c =>
-  //       match(c)
-  //         // .target<{table?: string; name: string}>()
-  //         .case(
-  //           // e.g. `select oid from pg_type`
-  //           {type: 'ref'} as const,
-  //           e => e,
-  //         )
-  //         .case(
-  //           // e.g. `select oid::regtype from pg_type`
-  //           {type: 'cast', operand: {type: 'ref'}} as const,
-  //           e => e.operand,
-  //         )
-  //         .default(() => ({table: undefined, name: '???'}))
-  //         .get(),
-  //     )
-  //     .map(c => ({table: c.table, name: c.name}))
-
-  //   return {
-  //     sql,
-  //     suggestedTag: match(ast)
-  //       .case({type: 'select'} as const, q =>
-  //         (q.from || []).map(f =>
-  //           match(f)
-  //             .case({name: String}, fr => fr.name)
-  //             .default(() => 'unknown')
-  //             .get(),
-  //         ),
-  //       )
-  //       .default(() => ['unknown'])
-  //       .get()
-  //       ?.join('_'),
-  //     // ),
-  //     columns: colExpressions.map(c => ({
-  //       name: c.name,
-  //       table: c.table,
-  //       notNull: false,
-  //     })),
-  //   }
-  // }
-
-  // export const parse2 = (sql: string): any | Omit<ParsedQuery, 'tag' | 'file'> => {
-  //   const surveyor = new sqlSurveyor.SQLSurveyor(sqlSurveyor.SQLDialect.PLpgSQL)
-  //   const ast = surveyor.survey(sql)
-  //   if (Object.keys(ast.parsedQueries).length !== 1) {
-  //     // throw 'foo'
-  //   }
-  //   const query = ast.getQueryAtLocation(0)
-  //   if (Math.random()) {
-  //     // query.get
-  //     return [
-  //       query.outputColumns,
-  //       query.referencedTables, //
-  //       query.getTableFromAlias('as f'),
-  //       query,
-  //     ] as any
-  //   }
-  //   return {
-  //     sql,
-  //     suggestedTag: lodash
-  //       .chain(query.outputColumns)
-  //       .map(c => c.tableName)
-  //       .uniq()
-  //       .map(pascalCase)
-  //       .join('_')
-  //       .value(),
-  //     // @ts-expect-error
-  //     columns: query.outputColumns.map(c => ({
-  //       table: c.tableName,
-  //       name: c.columnAlias,
-  //       notNull: false,
-  //     })),
-  //   }
 }
 
 const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
@@ -217,10 +140,13 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
 
   const tablesInvolved = tables.map(pascalCase).join('_')
 
-  return lodash.uniq([
-    tablesInvolved, // e.g. User_Role
-    [tablesInvolved, ...columns.map(lodash.camelCase)].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
-  ])
+  return lodash
+    .uniq([
+      tablesInvolved, // e.g. User_Role
+      [tablesInvolved, ...columns.map(lodash.camelCase)].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
+    ])
+    .map(lodash.upperFirst)
+    .filter(Boolean)
 }
 
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)

@@ -13,10 +13,7 @@ export const simplifyWhitespace = (whitespaceInsensitiveString: string, newlineR
     .trim()
 }
 
-export const pascalCase = (str: string) => {
-  const camel = lodash.camelCase(str)
-  return camel.slice(0, 1).toUpperCase() + camel.slice(1)
-}
+export const pascalCase = lodash.flow(lodash.camelCase, lodash.upperFirst)
 
 export const relativeUnixPath = (filepath: string, relativeFrom = process.cwd()) => {
   return path.relative(relativeFrom, filepath).replace(/\\/g, '/')
