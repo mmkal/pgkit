@@ -1,3 +1,3 @@
-import {writeTypeScriptFiles} from './typescript'
+import {writeTypeScriptFiles} from './inline'
 
 export const defaultWriteTypes = writeTypeScriptFiles

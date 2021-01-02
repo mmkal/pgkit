@@ -4,6 +4,7 @@ import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
 import {nullablise} from './parse/nullablise'
+import {getSuggestedTags} from './parse'
 
 export * from './types'
 export * from './defaults'
@@ -71,6 +72,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
       const described: DescribedQuery = {
         ...query,
         fields: await describeCommand(query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')),
+        tag: getSuggestedTags(query.template)[0],
       }
 
       return n(described)

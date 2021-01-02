@@ -1,5 +1,6 @@
 import * as slonik from 'slonik'
 import * as pgsqlAST from 'pgsql-ast-parser'
+import type * as ts from 'typescript'
 
 export interface GdescriberParams {
   /**
@@ -109,8 +110,7 @@ export interface GdescriberParams {
 }
 
 export interface ExtractedQuery {
-  /** Tag for the type. Usually this corresponds to an interface name for the query type */
-  tag: string
+  node: ts.TaggedTemplateExpression
   /** Path to file containing the query, relative to cwd */
   file: string
   /** Query SQL */
@@ -133,6 +133,8 @@ export interface ParsedColumn {
 }
 
 export interface DescribedQuery extends ParsedQuery {
+  // /** Tag for the type. Usually this corresponds to an interface name for the query type */
+  // tag: string
   /** List of meta objects with info about field types returned by this query */
   fields: QueryField[]
 }

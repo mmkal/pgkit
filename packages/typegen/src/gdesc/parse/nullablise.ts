@@ -86,7 +86,7 @@ interface ViewResult {
 
 export const nullablise = (pool: DatabasePoolType) => {
   const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
-  return async (query: DescribedQuery): Promise<DescribedQuery> => {
+  const addColumnInfo = async (query: DescribedQuery): Promise<DescribedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
 
     await createViewAnalyser()
@@ -99,7 +99,7 @@ export const nullablise = (pool: DatabasePoolType) => {
 
     const formattedSqls = [...new Set(viewResult.map(r => r.formatted_query))]
     if (formattedSqls.length !== 1) {
-      throw new Error(`Expected exactly 1 formatted sql`)
+      throw new Error(`Expected exactly 1 formatted sql ${JSON.stringify(formattedSqls)}`)
     }
 
     const parsed = parse.getAliasMappings(formattedSqls[0])
@@ -128,4 +128,6 @@ export const nullablise = (pool: DatabasePoolType) => {
       }),
     }
   }
+
+  return async (query: DescribedQuery) => addColumnInfo(query).catch(() => query)
 }
