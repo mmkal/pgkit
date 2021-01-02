@@ -1,7 +1,9 @@
 import * as lodash from 'lodash'
+import * as fp from 'lodash/fp'
 import {DescribedQuery} from '../types'
 import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
+import * as parse from './index'
 
 const getTypesSql = sql`
   drop type if exists types_type cascade;
@@ -70,6 +72,14 @@ const getTypesSql = sql`
   $$
   LANGUAGE 'plpgsql';
 `
+
+interface ViewResult {
+  table_column_name: string
+  underlying_table_name: string
+  is_underlying_nullable: string
+  formatted_query: string
+}
+
 // todo: logging
 // todo: search for non-type-tagged queries and use a heuristic to guess a good name from them
 // using either sql-surveyor or https://github.com/oguimbal/pgsql-ast-parser
@@ -81,24 +91,37 @@ export const nullablise = (pool: DatabasePoolType) => {
 
     await createViewAnalyser()
 
-    const viewResult = await pool.any(sql<{
-      table_column_name: string
-      underlying_table_name: string
-      is_underlying_nullable: string
-    }>`
-      select table_column_name, underlying_table_name, is_underlying_nullable
+    const viewResultQuery = sql<ViewResult>`
+      select table_column_name, underlying_table_name, is_underlying_nullable, formatted_query
       from gettypes(${viewFriendlySql})
-    `)
+    `
+    const viewResult = await pool.any(viewResultQuery).then(fp.uniqBy(JSON.stringify))
+
+    const formattedSqls = [...new Set(viewResult.map(r => r.formatted_query))]
+    if (formattedSqls.length !== 1) {
+      throw new Error(`Expected exactly 1 formatted sql`)
+    }
+
+    const parsed = parse.getAliasMappings(formattedSqls[0])
 
     return {
       ...query,
       fields: query.fields.map(f => {
-        const res = viewResult.find(v => f.name === v.table_column_name)
+        const relatedResults = parsed.flatMap(c =>
+          viewResult.filter(v => {
+            return (
+              c.queryColumn === f.name &&
+              c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
+              c.aliasFor === v.table_column_name
+            )
+          }),
+        )
+        const res = relatedResults.length === 1 ? relatedResults[0] : undefined
         return {
           ...f,
           column: res && {
             name: f.name,
-            table: res.underlying_table_name!.toString(),
+            table: res.underlying_table_name,
             notNull: res.is_underlying_nullable === 'NO',
           },
         }

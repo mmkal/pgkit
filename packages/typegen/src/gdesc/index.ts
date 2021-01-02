@@ -17,8 +17,8 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     defaultType,
     extractQueries,
     writeTypes,
-    typeParsers,
     pool,
+    typeParsers,
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
 

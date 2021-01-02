@@ -161,6 +161,53 @@ const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
     .get()
 }
 
+/**
+ * This analyses an AST statement, and tries to find the table name and column name the query column could possibly correspond to.
+ * It doesn't try to understand every possible kind of postgres statement, so for very complicated queries it will return a long
+ * list of `tablesColumnCouldBeFrom`. For simple queries like `select id from messages` it'll get sensible results, though, and those
+ * results can be used to look for non-nullability of columns.
+ */
+export const aliasMappings = (
+  statement: pgsqlAST.Statement,
+): Array<{queryColumn: string; aliasFor: string; tablesColumnCouldBeFrom: string[]}> => {
+  if (statement.type !== 'select') {
+    return []
+  }
+
+  const allTableReferences: Array<{table: string; referredToAs: string}> = []
+  pgsqlAST
+    .astVisitor(map => ({
+      tableRef: t => allTableReferences.push({table: t.name, referredToAs: t.alias || t.name}),
+      join: t => map.super().join(t),
+    }))
+    .statement(statement)
+
+  const availableTables = lodash.uniqBy(allTableReferences, JSON.stringify)
+
+  if (
+    lodash
+      .chain(availableTables)
+      .groupBy(t => t.referredToAs)
+      .some(group => group.length > 1)
+      .value()
+  ) {
+    throw new Error(`Some aliases are duplicated, this is too confusing`)
+  }
+
+  const mappings = statement.columns
+    ?.map(c => ({
+      queryColumn: c.alias,
+      aliasFor: c.expr.type === 'ref' ? c.expr.name : '',
+      tablesColumnCouldBeFrom: availableTables
+        .filter(t => (c.expr.type === 'ref' && c.expr.table ? c.expr.table === t.referredToAs : true))
+        .map(t => t.table),
+    }))
+    .map(c => ({...c, queryColumn: c.queryColumn || c.aliasFor}))
+    .filter(c => c.queryColumn && c.aliasFor)
+
+  return mappings || []
+}
+
 export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
   if (!tables && !columns) {
     return ['void']
@@ -180,14 +227,20 @@ export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColu
 
 export const getViewFriendlySql = lodash.flow(templateToValidSql, getHopefullyViewableAST, pgsqlAST.toSql.statement)
 
+export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappings)
+
 if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
+
+  // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
+  console.log(getHopefullyViewableAST('select m.content from messages m'))
+  console.log(lodash.flow(getHopefullyViewableAST, aliasMappings)('select * from messages where id = 1'))
+  throw ''
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
   console.log(
     sqlTablesAndColumns('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'),
   )
-  throw ''
   // console.dir(suggestedTags(parse('select foo::regtype from foo')), {depth: null})
   // console.dir(suggestedTags(parse('select i, j from a join b on 1=1')), {depth: null})
   console.dir(suggestedTags(sqlTablesAndColumns(`select count(*), * from foo where y = null`)), {depth: null})
