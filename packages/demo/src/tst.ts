@@ -12,7 +12,7 @@ export const bar = () => {
     sql<queries.Messages_id>`select id from messages`,
     sql<queries.Messages_count>`select count(*) from messages`,
     sql<queries.PgAdvisoryLock>`select pg_advisory_lock(123)`,
-    sql<queries.PgAdvisoryLock>`insert into messages(id, content) values (1, ${'hi'}) returning id`,
+    sql<queries.Messages_id_createdAt>`insert into messages(id, content) values (1, ${'hi'}) returning id, created_at`,
   ]
 }
 
@@ -67,5 +67,15 @@ module queries {
   export interface PgAdvisoryLock {
     /** postgres type: void */
     pg_advisory_lock: unknown
+  }
+
+  /**
+   * - query: `insert into messages(id, content) values (1, $1) returning id, created_at`
+   */
+  export interface Messages_id_createdAt {
+    /** postgres type: integer */
+    id: number
+    /** postgres type: timestamp with time zone */
+    created_at: string
   }
 }

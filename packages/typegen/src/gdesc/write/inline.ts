@@ -119,11 +119,6 @@ const addTags = (queries: DescribedQuery[]) => {
         alternatives: allTags,
       })),
     )
-    .tap(
-      fp.map(q => {
-        q.sql.includes('advisory') && console.log(q.alternatives)
-      }),
-    )
     .sortBy(q => q.alternatives.length)
     .map((q, i, arr) => {
       const firstWithTagIndex = lodash.findIndex(arr, o => o.tag === q.tag)
