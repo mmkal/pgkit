@@ -1,6 +1,9 @@
 import * as cli from '@rushstack/ts-command-line'
 import {gdescriber} from './index'
+import * as fs from 'fs'
 import * as path from 'path'
+import {tryOrNull} from './util'
+import * as defaults from './defaults'
 
 export class SlonikTypegenCLI extends cli.CommandLineParser {
   constructor() {
@@ -80,9 +83,12 @@ export class GenerateAction extends cli.CommandLineAction {
   }
 
   async onExecute() {
-    const options = this._params.options.value
-      ? require(path.resolve(process.cwd(), this._params.options.value)).default
-      : {}
+    let optionsModule = this._params.options.value
+      ? require(path.resolve(process.cwd(), this._params.options.value))
+      : tryOrNull(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)))
+
+    const options = optionsModule?.default || optionsModule
+
     return gdescriber({
       ...options,
       rootDir: this._params.rootDir.value,

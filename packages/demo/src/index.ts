@@ -66,33 +66,27 @@ if (require.main === module) {
 }
 
 module queries {
-  /**
-   * - query: `insert into messages(content) values ($1) returning id`
-   */
+  /** - query: `insert into messages(content) values ($1) returning id` */
   export interface Messages_id {
     /** postgres type: integer */
     id: number
   }
 
-  /**
-   * - query: `select typname from pg_type limit 1`
-   */
+  /** - query: `select typname from pg_type limit 1` */
   export interface PgType {
     /** postgres type: name */
-    typname: string
+    typname: string | null
   }
 
-  /**
-   * - query: `select * from messages where id < $1 order by created_at desc limit 10`
-   */
+  /** - query: `select * from messages where id < $1 order by created_at desc limit 10` */
   export interface Messages {
     /** postgres type: integer */
     id: number
     /** postgres type: character varying(20) */
-    content: string
+    content: string | null
     /** postgres type: timestamp with time zone */
     created_at: Date
     /** postgres type: message_priority */
-    priority: 'high' | 'low' | 'medium'
+    priority: 'high' | 'low' | 'medium' | null
   }
 }

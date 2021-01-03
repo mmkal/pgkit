@@ -22,19 +22,15 @@ export const baz = async () => {
 }
 
 module queries {
-  /**
-   * - query: `select id, content from messages`
-   */
+  /** - query: `select id, content from messages` */
   export interface Messages_id_content {
     /** postgres type: integer */
     id: number
     /** postgres type: character varying(20) */
-    content: string
+    content: string | null
   }
 
-  /**
-   * - query: `select * from nn where t = $1`
-   */
+  /** - query: `select * from nn where t = $1` */
   export interface Nn {
     /** postgres type: integer */
     id: number
@@ -45,56 +41,46 @@ module queries {
      *
      * postgres type: text
      */
-    t: string
+    t: string | null
     /** postgres type: text[] */
-    a: Array<string>
+    a: Array<string> | null
     /** postgres type: json */
     j: unknown
     /** postgres type: jsonb */
     jb: unknown
   }
 
-  /**
-   * - query: `select * from messages`
-   */
+  /** - query: `select * from messages` */
   export interface Messages {
     /** postgres type: integer */
     id: number
     /** postgres type: character varying(20) */
-    content: string
+    content: string | null
     /** postgres type: timestamp with time zone */
     created_at: Date
     /** postgres type: message_priority */
-    priority: 'high' | 'low' | 'medium'
+    priority: 'high' | 'low' | 'medium' | null
   }
 
-  /**
-   * - query: `select id from messages`
-   */
+  /** - query: `select id from messages` */
   export interface Messages_id {
     /** postgres type: integer */
     id: number
   }
 
-  /**
-   * - query: `select count(*) from messages`
-   */
+  /** - query: `select count(*) from messages` */
   export interface Messages_count {
     /** postgres type: bigint */
-    count: number
+    count: number | null
   }
 
-  /**
-   * - query: `select pg_advisory_lock(123)`
-   */
+  /** - query: `select pg_advisory_lock(123)` */
   export interface PgAdvisoryLock {
     /** postgres type: void */
     pg_advisory_lock: unknown
   }
 
-  /**
-   * - query: `insert into messages(id, content) values (1, $1) returning id, created_at`
-   */
+  /** - query: `insert into messages(id, content) values (1, $1) returning id, created_at` */
   export interface Messages_id_createdAt {
     /** postgres type: integer */
     id: number

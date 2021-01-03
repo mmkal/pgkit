@@ -8,6 +8,8 @@ import {createPool} from 'slonik'
 // Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
 // e.g. the default `writeTypes` implementation depends on the specific value of `rootDir`.
 
+export const typegenConfigFile = 'typegen.config.js'
+
 export {defaultWriteTypes, defaultTypeParsers, defaultExtractQueries, defaultPGDataTypeToTypeScriptMappings}
 
 export const defaultSlonikConnectionString = 'postgresql://postgres:postgres@localhost:5433/postgres'

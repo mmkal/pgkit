@@ -13,6 +13,20 @@ import {getSuggestedTags} from '../query-analysis'
 
 const jsdocQuery = lodash.flow(simplifyWhitespace, truncate)
 
+const jsdocComment = (lines: Array<string | undefined | false>) => {
+  const middle = lines
+    .filter(line => typeof line === 'string')
+    .join('\n\n')
+    .trim()
+    .split('\n')
+    .map(line => `* ${line}`)
+    .join('\n')
+
+  return middle.includes('\n')
+    ? `/**\n${middle}\n*/` // surround multiline comments with new lines
+    : `/** ${middle} */`.replace('* *', '*')
+}
+
 export interface WriteTypeScriptFilesOptions {
   /**
    * A function determining where to write types. Receives the source file path as an input. By default, returns `sourceFilePath` unmodified.
@@ -28,13 +42,15 @@ export const writeTypeScriptFiles = ({
   lodash
     .chain(queries)
     .groupBy(q => q.file)
-    .mapValues((queries): TaggedQuery[] => {
+    .mapValues((queries): null | TaggedQuery[] => {
       try {
         return addTags(queries)
       } catch (e) {
-        return queries.map(q => ({...q, tag: `__unknown /* ${e} */`}))
+        return null
       }
     })
+    .pickBy(Boolean)
+    .mapValues(queries => queries!) // help the type system figure out we threw out the nulls
     .forIn(getFileWriter(getQueriesModule))
     .value()
 }
@@ -76,25 +92,23 @@ const addTags = (queries: DescribedQuery[]): TaggedQuery[] => {
   }))
 }
 
+// * - query: \`${jsdocQuery(query.sql)}\`
+// ${query.comment ? `\n* ${query.comment}` : ''}
+
 const queryInterface = (query: DescribedQuery, interfaceName: string) => `
-  /**
-   * - query: \`${jsdocQuery(query.sql)}\`
-   */
+   ${jsdocComment([
+     `- query: \`${jsdocQuery(query.sql)}\``, // break
+     query.comment,
+   ])}
   export interface ${interfaceName} {
     ${query.fields.map(f => {
-      const typeComment = `postgres type: ${f.gdesc}`
-      const comment = f.column?.comment
-        ? `
-          /**
-           * ${f.column.comment}
-           * 
-           * ${typeComment}
-           */
-        `.trim()
-        : `/** ${typeComment} */`
+      const type =
+        f.column?.notNull || f.typescript === 'any' || f.typescript === 'unknown'
+          ? f.typescript
+          : `${f.typescript} | null`
       return `
-          ${comment}
-          ${f.name}: ${f.typescript}
+          ${jsdocComment([f.column?.comment, `postgres type: ${f.gdesc}`])}
+          ${f.name}: ${type}
         `
     })}
 }`
@@ -173,6 +187,9 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
 }
 
 function queriesModule(group: TaggedQuery[]) {
+  if (group.length === 0) {
+    return ''
+  }
   return `
     module queries {
       ${queryInterfaces(group)}

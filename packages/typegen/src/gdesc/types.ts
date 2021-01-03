@@ -115,6 +115,8 @@ export interface ExtractedQuery {
   sql: string
   /** Query SQL template parts. e.g. `['select * from users where name = ', ' and dob < ', '']` */
   template: string[]
+  /** Optional comment on the query e.g. `Fields from the user_role table, which maps role ids to user ids` */
+  comment?: string
 }
 
 export interface ParsedQuery extends ExtractedQuery {

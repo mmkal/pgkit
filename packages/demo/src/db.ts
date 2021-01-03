@@ -17,7 +17,7 @@ export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, {
   interceptors: [
     {
       afterPoolConnection: async (context, connection) => {
-        await connection.query(sql<queries.__unknown>`
+        await connection.query(sql`
           create schema if not exists slonik_tools_demo_app;
           set search_path to slonik_tools_demo_app;
         `)
@@ -26,10 +26,3 @@ export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, {
     },
   ],
 })
-
-module queries {
-  /**
-   * - query: `create schema if not exists slonik_tools_demo_app; set search_path to slonik_tools_demo_app;`
-   */
-  export interface __unknown {}
-}
