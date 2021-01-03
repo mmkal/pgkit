@@ -25,7 +25,7 @@ export const getParams = ({
   glob = [`**/*.{js,ts,cjs,mjs,sql}`, {ignore: ['**/node_modules/**', '**/generated/**']}],
   defaultType = defaultTypeScriptType,
   extractQueries = defaultExtractQueries,
-  writeTypes = defaultWriteTypes({folder: `${rootDir}/generated/db`}),
+  writeTypes = defaultWriteTypes(),
   pool = createPool(defaultSlonikConnectionString),
   typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
 }: Partial<GdescriberParams> = {}): GdescriberParams => ({
