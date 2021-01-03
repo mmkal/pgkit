@@ -3,7 +3,7 @@ import {globAsync} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
-import {getColumnInfo} from './query-analysis'
+import {columnInfoGetter} from './query-analysis'
 
 export * from './types'
 export * from './defaults'
@@ -63,7 +63,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
   }
 
   const findAll = async () => {
-    const n = getColumnInfo(pool)
+    const getColumnInfo = columnInfoGetter(pool)
 
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
@@ -74,7 +74,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
         fields: await describeCommand(querySql).catch(() => []),
       }
 
-      return n(described)
+      return getColumnInfo(described)
     })
 
     const queries = await Promise.all(promises)

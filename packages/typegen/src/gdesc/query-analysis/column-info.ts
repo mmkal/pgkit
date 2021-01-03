@@ -83,7 +83,7 @@ interface ViewResult {
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const getColumnInfo = (pool: DatabasePoolType) => {
+export const columnInfoGetter = (pool: DatabasePoolType) => {
   const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
