@@ -152,7 +152,7 @@ if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
 
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
-  console.log(getHopefullyViewableAST('select m.content from messages m'))
+  console.log(getHopefullyViewableAST('select count(*) from messages m'))
   console.log(lodash.flow(getHopefullyViewableAST, aliasMappings)('select * from messages where id = 1'))
   throw ''
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})

@@ -14,6 +14,8 @@ export const bar = () => {
     sql<queries.Messages_count>`select count(*) from messages`,
     sql<queries.PgAdvisoryLock>`select pg_advisory_lock(123)`,
     sql<queries.Messages_id_createdAt>`insert into messages(id, content) values (1, ${'hi'}) returning id, created_at`,
+    sql<queries.Anonymous>`select '{"foo":{"bar":"baz"}}'::json->'foo'->'bar'`,
+    sql<queries.Anonymous_0>`select '{"foo":{"bar":"baz"}}'::json->'foo'->>'bar'`,
   ]
 }
 
@@ -86,5 +88,17 @@ module queries {
     id: number
     /** postgres type: timestamp with time zone */
     created_at: Date
+  }
+
+  /** - query: `select '{"foo":{"bar":"baz"}}'::json->'foo'->'bar'` */
+  export interface Anonymous {
+    /** postgres type: json */
+    '?column?': unknown
+  }
+
+  /** - query: `select '{"foo":{"bar":"baz"}}'::json->'foo'->>'bar'` */
+  export interface Anonymous_0 {
+    /** postgres type: text */
+    '?column?': string | null
   }
 }

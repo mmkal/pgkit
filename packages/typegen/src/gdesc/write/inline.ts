@@ -1,5 +1,4 @@
 import * as lodash from 'lodash'
-import * as fp from 'lodash/fp'
 import {DescribedQuery, GdescriberParams} from '../types'
 import {relativeUnixPath, simplifyWhitespace, truncate, tryOr} from '../util'
 import {prettifyOne} from './prettify'
@@ -65,7 +64,7 @@ const addTags = (queries: DescribedQuery[]): TaggedQuery[] => {
   const tagMap = lodash
     .chain(withIdentifiers)
     .flatMap(q =>
-      getSuggestedTags(q.template).map((tag, _i, allTags) => ({
+      [...getSuggestedTags(q.template), 'Anonymous'].map((tag, _i, allTags) => ({
         ...q,
         tag,
         alternatives: allTags,
@@ -92,9 +91,6 @@ const addTags = (queries: DescribedQuery[]): TaggedQuery[] => {
   }))
 }
 
-// * - query: \`${jsdocQuery(query.sql)}\`
-// ${query.comment ? `\n* ${query.comment}` : ''}
-
 const queryInterface = (query: DescribedQuery, interfaceName: string) => `
    ${jsdocComment([
      `- query: \`${jsdocQuery(query.sql)}\``, // break
@@ -104,11 +100,11 @@ const queryInterface = (query: DescribedQuery, interfaceName: string) => `
     ${query.fields.map(f => {
       const type =
         f.column?.notNull || f.typescript === 'any' || f.typescript === 'unknown'
-          ? f.typescript
+          ? `${f.typescript}`
           : `${f.typescript} | null`
       return `
           ${jsdocComment([f.column?.comment, `postgres type: ${f.gdesc}`])}
-          ${f.name}: ${type}
+          ${JSON.stringify(f.name)}: ${type}
         `
     })}
 }`
