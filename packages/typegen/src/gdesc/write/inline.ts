@@ -129,12 +129,18 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
         replacement: queriesModule(group),
       })
     } else {
-      fs.writeFileSync(destPath, queryInterfaces(group) + '\n', 'utf8')
+      fs.mkdirSync(path.dirname(destPath), {recursive: true})
+      fs.writeFileSync(destPath, prettifyOne({filepath: destPath, content: queryInterfaces(group)}), 'utf8')
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
-      const importStatement = `import * as queries from '${importPath}'`
+      const importStatement = `import * as queries from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
 
-      if (!source.includes(importStatement) && !source.includes(importStatement.replace(/'/g, `"`))) {
+      const importExists =
+        source.includes(importStatement) ||
+        source.includes(importStatement.replace(/'/g, `"`)) || // double quotes
+        !source.includes(importStatement.replace('import * as', 'import')) // synthetic default import
+
+      if (importExists) {
         edits.push({
           start: 0,
           end: 0,
