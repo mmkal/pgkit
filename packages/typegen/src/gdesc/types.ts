@@ -154,14 +154,19 @@ export interface QueryField {
 }
 
 export interface AnalysedQueryField extends QueryField {
-  /** For simple queries which just select from some known table, sometimes we can determine if they're not-null. */
-  column: ResolvedTableColumn
-}
-
-export interface ResolvedTableColumn {
+  /**
+   * true if the query field is *known* not to be null. This is only the case when the field comes directly from a
+   * not-null table column, or is the return value of a common function like `count(*)`.
+   */
   notNull: boolean
+  /**
+   * The postgres comment applied to the field, e.g. with `comment on column my_table.my_column is 'Some helpful context about the column'`.
+   * This will be mapped to a jsdoc comment on generated types.
+   */
   comment?: string
 }
+
+export interface ResolvedTableColumn {}
 
 /** Corresponds to a @see slonik.TypeParserType */
 export interface TypeParserInfo {

@@ -54,7 +54,7 @@ export const writeTypeScriptFiles = ({
       queries.map(q => ({
         ...q,
         fields: q.fields.map(f =>
-          f.column?.notNull
+          f.notNull
             ? f // if we *know* it's not null, don't add the modifier
             : {...f, typescript: `${f.typescript} | null`},
         ),

@@ -99,11 +99,9 @@ const queryInterface = (query: AnalysedQuery, interfaceName: string) => `
   export interface ${interfaceName} {
     ${query.fields.map(f => {
       const type =
-        f.column?.notNull || f.typescript === 'any' || f.typescript === 'unknown'
-          ? `${f.typescript}`
-          : `${f.typescript} | null`
+        f.notNull || f.typescript === 'any' || f.typescript === 'unknown' ? `${f.typescript}` : `${f.typescript} | null`
       return `
-          ${jsdocComment([f.column?.comment, `postgres type: ${f.gdesc}`])}
+          ${jsdocComment([f.comment, `postgres type: ${f.gdesc}`])}
           ${JSON.stringify(f.name)}: ${type}
         `
     })}

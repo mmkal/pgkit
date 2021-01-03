@@ -117,10 +117,8 @@ export const getColumnInfo = (pool: DatabasePoolType) => {
         )
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
         const notNull = (res && isNotNull(res)) || isFieldNotNull(formattedSqls[0], f)
-        return {
-          ...f,
-          column: {notNull, comment: res?.comment},
-        }
+
+        return {...f, notNull, comment: res?.comment}
       }),
     }
   }
@@ -128,10 +126,7 @@ export const getColumnInfo = (pool: DatabasePoolType) => {
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(() => ({
       ...query,
-      fields: query.fields.map(f => ({
-        ...f,
-        column: {notNull: false},
-      })),
+      fields: query.fields.map(f => ({...f, notNull: false})),
     }))
 }
 
@@ -147,7 +142,6 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
       const name = c.alias || 'count'
       return field.name === c.alias
     })
-    console.log({matchingColumns})
     return matchingColumns.length === 1
   }
 
