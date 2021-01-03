@@ -81,7 +81,7 @@ export interface GdescriberParams {
    * to write some code in another language instead.
    * @default @see defaultWriteTypes
    */
-  writeTypes: (queries: DescribedQuery[]) => void
+  writeTypes: (queries: AnalysedQuery[]) => void
 
   /**
    * Slonik pool instance. By default uses localhost.
@@ -139,6 +139,11 @@ export interface DescribedQuery extends ParsedQuery {
   fields: QueryField[]
 }
 
+export interface AnalysedQuery extends ParsedQuery {
+  /** List of meta objects with info about field types returned by this query */
+  fields: AnalysedQueryField[]
+}
+
 export interface QueryField {
   /** Field name. e.g. for `select foo, bar from baz` this will be `foo` or `bar` */
   name: string
@@ -146,15 +151,16 @@ export interface QueryField {
   gdesc: string
   /** The generated typescript type. based on `gdesc` */
   typescript: string
-  /** For simple queries which just select from some known table, sometimes we can determine if they're not-null. */
-  column?: ResolvedTableColumn
 }
 
-export interface ResolvedTableColumn extends ParsedColumn {
-  table: string
-  name: string
+export interface AnalysedQueryField extends QueryField {
+  /** For simple queries which just select from some known table, sometimes we can determine if they're not-null. */
+  column: ResolvedTableColumn
+}
+
+export interface ResolvedTableColumn {
   notNull: boolean
-  comment: string
+  comment?: string
 }
 
 /** Corresponds to a @see slonik.TypeParserType */

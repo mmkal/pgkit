@@ -67,7 +67,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
 
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
-    const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => {
+    const promises = files.flatMap(extractQueries).map(async query => {
       const querySql = query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')
       const described: DescribedQuery = {
         ...query,

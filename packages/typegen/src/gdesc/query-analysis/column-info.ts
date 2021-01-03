@@ -1,8 +1,9 @@
 import * as lodash from 'lodash'
-import {DescribedQuery} from '../types'
+import {AnalysedQuery, DescribedQuery, QueryField} from '../types'
 import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
+import {getHopefullyViewableAST} from './parse'
 
 const getTypesSql = sql`
 drop type if exists types_type cascade;
@@ -84,7 +85,7 @@ interface ViewResult {
 
 export const getColumnInfo = (pool: DatabasePoolType) => {
   const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
-  const addColumnInfo = async (query: DescribedQuery): Promise<DescribedQuery> => {
+  const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
 
     await createViewAnalyser()
@@ -115,27 +116,48 @@ export const getColumnInfo = (pool: DatabasePoolType) => {
           }),
         )
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
+        const notNull = (res && isNotNull(res)) || isFieldNotNull(formattedSqls[0], f)
         return {
           ...f,
-          column: res && {
-            name: f.name,
-            table: res.underlying_table_name,
-            notNull: isNotNull(res),
-            comment: res.comment || '',
-          },
+          column: {notNull, comment: res?.comment},
         }
       }),
     }
   }
 
-  return async (query: DescribedQuery) => addColumnInfo(query).catch(() => query)
+  return async (query: DescribedQuery): Promise<AnalysedQuery> =>
+    addColumnInfo(query).catch(() => ({
+      ...query,
+      fields: query.fields.map(f => ({
+        ...f,
+        column: {notNull: false},
+      })),
+    }))
+}
+
+export const isFieldNotNull = (sql: string, field: QueryField) => {
+  const ast = getHopefullyViewableAST(sql)
+  sql.includes('count(') && console.log(ast)
+
+  if (ast.type === 'select' && ast.columns) {
+    const matchingColumns = ast.columns.filter(c => {
+      if (c.expr.type !== 'call' || c.expr.function !== 'count') {
+        return false
+      }
+      const name = c.alias || 'count'
+      return field.name === c.alias
+    })
+    console.log({matchingColumns})
+    return matchingColumns.length === 1
+  }
+
+  return false
 }
 
 export const isNotNull = (viewResult: ViewResult) => {
   if (viewResult.is_underlying_nullable === 'NO') {
     return true
   }
-
   // todo: check for some known functions which always return non-null like `count(*)`
   return false
 }

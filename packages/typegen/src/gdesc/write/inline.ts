@@ -1,5 +1,5 @@
 import * as lodash from 'lodash'
-import {DescribedQuery, GdescriberParams} from '../types'
+import {AnalysedQuery, GdescriberParams} from '../types'
 import {relativeUnixPath, simplifyWhitespace, truncate, tryOr} from '../util'
 import {prettifyOne} from './prettify'
 import type * as ts from 'typescript'
@@ -54,11 +54,11 @@ export const writeTypeScriptFiles = ({
     .value()
 }
 
-interface TaggedQuery extends DescribedQuery {
+interface TaggedQuery extends AnalysedQuery {
   tag: string
 }
 
-const addTags = (queries: DescribedQuery[]): TaggedQuery[] => {
+const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
   const withIdentifiers = queries.map(q => ({...q, identifier: JSON.stringify(q.template)}))
 
   const tagMap = lodash
@@ -91,7 +91,7 @@ const addTags = (queries: DescribedQuery[]): TaggedQuery[] => {
   }))
 }
 
-const queryInterface = (query: DescribedQuery, interfaceName: string) => `
+const queryInterface = (query: AnalysedQuery, interfaceName: string) => `
    ${jsdocComment([
      `- query: \`${jsdocQuery(query.sql)}\``, // break
      query.comment,
