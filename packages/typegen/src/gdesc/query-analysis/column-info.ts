@@ -85,6 +85,7 @@ interface ViewResult {
 
 export const columnInfoGetter = (pool: DatabasePoolType) => {
   const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
+
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
 
@@ -116,7 +117,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
           }),
         )
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
-        const notNull = (res && isNotNull(res)) || isFieldNotNull(formattedSqls[0], f)
+        const notNull = res?.is_underlying_nullable === 'NO' || isFieldNotNull(formattedSqls[0], f)
 
         return {...f, notNull, comment: res?.comment}
       }),
@@ -140,9 +141,9 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
         return false
       }
       const name = c.alias || 'count'
-      return field.name === c.alias
+      return field.name === name
     })
-    return matchingColumns.length === 1
+    return matchingColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
   }
 
   return false
