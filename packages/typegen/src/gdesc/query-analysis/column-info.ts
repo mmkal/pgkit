@@ -14,7 +14,6 @@ create type types_type as (
   query_column_name text,
   udt_name name,
   comment text,
-  is_nullable text,
   underlying_table_name text,
   is_underlying_nullable text,
   formatted_query text
@@ -46,14 +45,9 @@ begin
     vcu.column_name,
     c.table_name,
     col_description(
-      to_regclass(
-        quote_ident(c.table_schema) ||
-        '.' ||
-        quote_ident(c.table_name)
-      ),
+      to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
       c.ordinal_position
     ),
-    c.is_nullable,
     vcu.table_name as underlying_table_name,
     c.is_nullable as is_underlying_nullable,
     pg_get_viewdef(v_tmp_name) as formatted_query
@@ -70,7 +64,7 @@ loop
   return next returnrec;
 end loop;
 
---execute 'drop view if exists ' || v_tmp_name;
+execute 'drop view if exists ' || v_tmp_name;
 
 end;
 $$
