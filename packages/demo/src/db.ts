@@ -1,27 +1,23 @@
-import {setupTypeGen} from '@slonik/typegen'
 import {sql} from './generated/db'
-import {createPool} from 'slonik'
+import {createPool, createTypeParserPreset} from 'slonik'
 import {load} from 'dotenv-extended'
 
 load()
 
 export {sql}
 
-// export const {sql, poolConfig} = setupTypeGen({
-//   knownTypes: knownTypes,
-//   writeTypes: __dirname + '/../src/generated/db',
-//   typeMapper: {
-//     timestamptz: ['Date', str => new Date(str)],
-//   },
-// })
-
 export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, {
-  // ...poolConfig,
+  typeParsers: [
+    ...createTypeParserPreset(),
+    {
+      name: 'timestamptz',
+      parse: str => new Date(str),
+    },
+  ],
   interceptors: [
-    // ...poolConfig.interceptors,
     {
       afterPoolConnection: async (context, connection) => {
-        await connection.query(sql`
+        await connection.query(sql<queries.__unknown>`
           create schema if not exists slonik_tools_demo_app;
           set search_path to slonik_tools_demo_app;
         `)
@@ -30,3 +26,10 @@ export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, {
     },
   ],
 })
+
+module queries {
+  /**
+   * - query: `create schema if not exists slonik_tools_demo_app; set search_path to slonik_tools_demo_app;`
+   */
+  export interface __unknown {}
+}

@@ -14,13 +14,13 @@ export const getApp = () => {
     slonik
       .connect(async conn => {
         const content = req.query.content as string
-        const id = await conn.oneFirst(sql.MessageId`
+        const id = await conn.oneFirst(sql<queries.Messages_id>`
           insert into messages(content)
           values (${content})
           returning id
         `)
 
-        await conn.query(sql`select typname from pg_type limit 1`)
+        await conn.query(sql<queries.PgType>`select typname from pg_type limit 1`)
 
         // await conn.oneFirst(sql.NotAType`
         //   insert into messages(content)
@@ -36,7 +36,7 @@ export const getApp = () => {
     slonik
       .connect(async conn => {
         let before = req.query.before as string
-        const messages = await conn.any(sql.Message`
+        const messages = await conn.any(sql<queries.Messages>`
           select * from messages
           where id < ${before || 9999999}
           order by created_at desc
@@ -63,4 +63,36 @@ export const getApp = () => {
 if (require.main === module) {
   const port = process.env.PORT
   getApp().listen(port, () => console.log(`server listening on http://localhost:${port}`))
+}
+
+module queries {
+  /**
+   * - query: `insert into messages(content) values ($1) returning id`
+   */
+  export interface Messages_id {
+    /** postgres type: integer */
+    id: number
+  }
+
+  /**
+   * - query: `select typname from pg_type limit 1`
+   */
+  export interface PgType {
+    /** postgres type: name */
+    typname: string
+  }
+
+  /**
+   * - query: `select * from messages where id < $1 order by created_at desc limit 10`
+   */
+  export interface Messages {
+    /** postgres type: integer */
+    id: number
+    /** postgres type: character varying(20) */
+    content: string
+    /** postgres type: timestamp with time zone */
+    created_at: Date
+    /** postgres type: message_priority */
+    priority: 'high' | 'low' | 'medium'
+  }
 }

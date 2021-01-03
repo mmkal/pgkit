@@ -45,7 +45,6 @@ export const psqlClient = (psqlCommand: string) => {
     const types = await psql(`
       select oid, typname, oid::regtype as regtype
       from pg_type
-      where typname not like '_%'
     `)
 
     return lodash.keyBy(types, t => t.regtype)

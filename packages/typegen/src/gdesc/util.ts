@@ -26,3 +26,21 @@ export const truncate = (str: string, maxLength = 100, truncatedMessage = '... [
   const halfLength = Math.floor((maxLength - truncatedMessage.length) / 2)
   return str.slice(0, halfLength) + truncatedMessage + str.slice(-halfLength)
 }
+
+export const tryOr = <A extends unknown[], T>(fn: (...args: A) => T, onErr: (...args: [...A, unknown]) => T) => (
+  ...args: A
+) => {
+  try {
+    return fn(...args)
+  } catch (e: unknown) {
+    return onErr(...args, e)
+  }
+}
+
+export const tryOrNull = <T>(fn: () => T) => {
+  try {
+    return fn()
+  } catch {
+    return null
+  }
+}

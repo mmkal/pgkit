@@ -37,8 +37,6 @@ export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
     }
   }
 
-  // console.log({ast})
-
   return ast
 }
 
@@ -47,11 +45,6 @@ export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
  * name that can be used to refer to queries.
  */
 export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: string[]} => {
-  //Omit<ParsedQuery, 'tag' | 'file'> => {
-  if (Math.random()) {
-    // return parse2(sql)
-  }
-
   const ast = getHopefullyViewableAST(sql)
 
   if (ast.type === 'select') {

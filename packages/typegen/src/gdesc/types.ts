@@ -104,7 +104,7 @@ export interface GdescriberParams {
    *
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
-  typeParsers: Array<TypeScriptTypeParser>
+  typeParsers: Array<TypeParserInfo>
 }
 
 export interface ExtractedQuery {
@@ -155,6 +155,10 @@ export interface ResolvedTableColumn extends ParsedColumn {
   comment: string
 }
 
-export interface TypeScriptTypeParser extends slonik.TypeParserType {
+/** Corresponds to a @see slonik.TypeParserType */
+export interface TypeParserInfo {
+  /** Corresponds to @see slonik.TypeParserType.name */
+  pgtype: string
+  /** The TypeScript type that the @see slonik.TypeParserType transforms values to. */
   typescript: string
 }

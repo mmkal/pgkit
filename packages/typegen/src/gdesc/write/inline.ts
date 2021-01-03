@@ -1,6 +1,7 @@
 import * as lodash from 'lodash'
+import * as fp from 'lodash/fp'
 import {DescribedQuery, GdescriberParams} from '../types'
-import {simplifyWhitespace, truncate} from '../util'
+import {simplifyWhitespace, truncate, tryOr} from '../util'
 import {prettifyOne} from './prettify'
 import type * as ts from 'typescript'
 import * as fs from 'fs'
@@ -35,7 +36,12 @@ export const writeTypeScriptFiles = ({
   lodash
     .chain(queries)
     .groupBy(q => q.file)
-    .mapValues(addTags)
+    .mapValues(
+      tryOr(
+        addTags,
+        fp.map(q => ({...q, tag: '__unknown'})),
+      ),
+    )
     .forIn((group, file) => {
       const ts: typeof import('typescript') = require('typescript')
       let source = fs.readFileSync(file).toString()
@@ -106,7 +112,7 @@ export const writeTypeScriptFiles = ({
     .value()
 }
 
-const addTags = (queries: DescribedQuery[]) => {
+const addTags = (queries: DescribedQuery[]): Array<DescribedQuery & {tag: string}> => {
   const withIdentifiers = queries.map(q => ({...q, identifier: JSON.stringify(q.template)}))
 
   const tagMap = lodash

@@ -1,4 +1,4 @@
-import {TypeScriptTypeParser} from '../types'
+import {TypeParserInfo} from '../types'
 import * as slonik from 'slonik'
 
 const jsValueMatchers: Array<[type: string, test: (value: unknown) => boolean]> = [
@@ -38,9 +38,8 @@ export const inferTypeParserTypeScript = (tp: slonik.TypeParserType<any>, defaul
   return match?.[0] || `unknown /* ${tp.name} */`
 }
 
-export const defaultTypeParsers = (parsers: readonly slonik.TypeParserType<unknown>[]): TypeScriptTypeParser[] =>
+export const defaultTypeParsers = (parsers: readonly slonik.TypeParserType<unknown>[]): TypeParserInfo[] =>
   parsers.map(tp => ({
-    name: tp.name,
-    parse: tp.parse,
+    pgtype: tp.name, // slonik uses `name` for the type, corresponding to `pg_type.typname`
     typescript: inferTypeParserTypeScript(tp),
   }))

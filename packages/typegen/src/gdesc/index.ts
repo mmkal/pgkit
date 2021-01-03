@@ -54,7 +54,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const pgtype = regtypeToPGType[regtype]?.typname
 
     return (
-      lodash.findLast(typeParsers, p => p.name === pgtype)?.typescript ||
+      lodash.findLast(typeParsers, p => p.pgtype === pgtype)?.typescript ||
       gdescToTypeScript(regtype, typeName) ||
       defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
       enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
@@ -68,9 +68,10 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
     const promises = files.flatMap(extractQueries).map<Promise<DescribedQuery>>(async query => {
+      const querySql = query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')
       const described: DescribedQuery = {
         ...query,
-        fields: await describeCommand(query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')),
+        fields: await describeCommand(querySql).catch(() => []),
       }
 
       return n(described)

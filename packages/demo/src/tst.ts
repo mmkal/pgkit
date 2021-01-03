@@ -63,7 +63,7 @@ module queries {
     /** postgres type: character varying(20) */
     content: string
     /** postgres type: timestamp with time zone */
-    created_at: string
+    created_at: Date
     /** postgres type: message_priority */
     priority: 'high' | 'low' | 'medium'
   }
@@ -81,7 +81,7 @@ module queries {
    */
   export interface Messages_count {
     /** postgres type: bigint */
-    count: unknown
+    count: number
   }
 
   /**
@@ -99,6 +99,6 @@ module queries {
     /** postgres type: integer */
     id: number
     /** postgres type: timestamp with time zone */
-    created_at: string
+    created_at: Date
   }
 }
