@@ -4,6 +4,7 @@ import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
 import {getHopefullyViewableAST} from './parse'
+import * as assert from 'assert'
 
 // todo: create a schema to put these in?
 const getTypesSql = sql`
@@ -114,9 +115,8 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
     const viewResult = await pool.any(viewResultQuery).then(results => lodash.uniqBy(results, JSON.stringify))
 
     const formattedSqlStatements = [...new Set(viewResult.map(r => r.formatted_query))]
-    if (formattedSqlStatements.length > 1) {
-      throw new Error(`Expected exactly 1 formatted sql, got ${formattedSqlStatements}`)
-    }
+
+    assert.ok(formattedSqlStatements.length <= 1, `Expected exactly 1 formatted sql, got ${formattedSqlStatements}`)
 
     const parseableSql = formattedSqlStatements[0] || viewFriendlySql
 
