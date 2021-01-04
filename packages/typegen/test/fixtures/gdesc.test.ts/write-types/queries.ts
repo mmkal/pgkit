@@ -53,7 +53,14 @@ module queries {
     jb_nn: unknown
   }
 
-  /** - query: `select id, t from test_table` */
+  /**
+   * queries:
+   * - `select id, t from test_table`
+   * - `insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t`
+   * - `update test_table set t = '' returning id, t`
+   * - `insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t`
+   * - `update test_table as tt set t = '' returning id, t`
+   */
   export interface TestTable_id_t {
     /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
     id: number
@@ -89,59 +96,12 @@ module queries {
     id: number
   }
 
-  /** - query: `insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')` */
+  /**
+   * queries:
+   * - `insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')`
+   * - `update test_table set t = ''`
+   */
   export interface _void {}
-
-  /** - query: `update test_table set t = ''` */
-  export interface _void {}
-
-  /** - query: `insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t` */
-  export interface TestTable_id_t {
-    /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
-    id: number
-    /**
-     * Some custom comment on "t"
-     *
-     * column: `gdesc_test.test_table.t`, postgres type: `text`
-     */
-    t: string | null
-  }
-
-  /** - query: `update test_table set t = '' returning id, t` */
-  export interface TestTable_id_t {
-    /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
-    id: number
-    /**
-     * Some custom comment on "t"
-     *
-     * column: `gdesc_test.test_table.t`, postgres type: `text`
-     */
-    t: string | null
-  }
-
-  /** - query: `insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t` */
-  export interface TestTable_id_t {
-    /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
-    id: number
-    /**
-     * Some custom comment on "t"
-     *
-     * column: `gdesc_test.test_table.t`, postgres type: `text`
-     */
-    t: string | null
-  }
-
-  /** - query: `update test_table as tt set t = '' returning id, t` */
-  export interface TestTable_id_t {
-    /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
-    id: number
-    /**
-     * Some custom comment on "t"
-     *
-     * column: `gdesc_test.test_table.t`, postgres type: `text`
-     */
-    t: string | null
-  }
 
   /** - query: `select t as t_aliased1, t_nn as t_nn_ali... [truncated] ...ed2 from test_table as tt2 where n = 1 )` */
   export interface TestTable_tAliased1_tNnAliased {

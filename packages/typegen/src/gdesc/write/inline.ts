@@ -1,6 +1,6 @@
 import * as lodash from 'lodash'
 import {AnalysedQuery, GdescriberParams} from '../types'
-import {relativeUnixPath, simplifyWhitespace, truncate, tryOr} from '../util'
+import {relativeUnixPath, simplifyWhitespace, truncate} from '../util'
 import {prettifyOne} from './prettify'
 import type * as ts from 'typescript'
 import * as fs from 'fs'
@@ -49,7 +49,7 @@ export const writeTypeScriptFiles = ({
       }
     })
     .pickBy(Boolean)
-    .mapValues(queries => queries!) // help the type system figure out we threw out the nulls
+    .mapValues(queries => queries!) // help the type system figure out we threw out the nulls using `pickBy(Boolean)`
     .forIn(getFileWriter(getQueriesModule))
     .value()
 }
@@ -59,7 +59,10 @@ interface TaggedQuery extends AnalysedQuery {
 }
 
 const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
-  const withIdentifiers = queries.map(q => ({...q, identifier: JSON.stringify(q.fields)}))
+  const withIdentifiers = queries.map(q => ({
+    ...q,
+    identifier: JSON.stringify(q.fields), // if two queries have _identical_ fields, we can give them the same tag
+  }))
 
   const tagMap = lodash
     .chain(withIdentifiers)
@@ -92,13 +95,21 @@ const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
 }
 
 // todo: make `comment?: string` into `comments: string[]` so that it can be tweaked, and this becomes a pure write-to-disk method.
-const queryInterface = (query: AnalysedQuery, interfaceName: string) => `
-   ${jsdocComment([
-     `- query: \`${jsdocQuery(query.sql)}\``, // break
-     query.comment,
-   ])}
-  export interface ${interfaceName} ${interfaceBody(query)}
-`
+export const renderQueryInterface = (queryGroup: AnalysedQuery[], interfaceName: string) => {
+  const [query, ...rest] = queryGroup
+  const comments =
+    rest.length === 0
+      ? [`- query: \`${jsdocQuery(query.sql)}\``, query.comment]
+      : [`queries:\n${queryGroup.map(q => `- \`${jsdocQuery(q.sql)}\``).join('\n')}`, ...queryGroup.map(q => q.comment)]
+  const bodies = queryGroup.map(interfaceBody)
+  if (new Set(bodies).size !== 1) {
+    throw new Error(`Query group ${interfaceName} produced inconsistent interface bodies: ${bodies}`)
+  }
+  return `
+    ${jsdocComment(comments)}
+     export interface ${interfaceName} ${bodies[0]}
+  `
+}
 
 const interfaceBody = (query: AnalysedQuery) =>
   `{
@@ -214,9 +225,8 @@ function queriesModule(group: TaggedQuery[]) {
 function queryInterfaces(group: TaggedQuery[]) {
   return lodash
     .chain(group)
-    .map(q => ({...q, typescript: queryInterface(q, 'placeholder')}))
-    .uniqBy(q => q.typescript)
-    .map(q => queryInterface(q, q.tag))
+    .groupBy(q => q.tag)
+    .map(renderQueryInterface)
     .value()
     .join('\n\n')
 }
