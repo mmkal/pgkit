@@ -95,6 +95,12 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       select table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
       from gettypes(${viewFriendlySql})
     `
+
+    const ast = getHopefullyViewableAST(viewFriendlySql)
+    if (ast.type !== 'select') {
+      return {...query, fields: query.fields.map(f => ({...f, notNull: false}))}
+    }
+
     const viewResult = await pool.any(viewResultQuery).then(results => lodash.uniqBy(results, JSON.stringify))
 
     const formattedSqls = [...new Set(viewResult.map(r => r.formatted_query))]
@@ -125,10 +131,13 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
   }
 
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
-    addColumnInfo(query).catch(() => ({
-      ...query,
-      fields: query.fields.map(f => ({...f, notNull: false})),
-    }))
+    addColumnInfo(query).catch(e => {
+      console.error({e})
+      return {
+        ...query,
+        fields: query.fields.map(f => ({...f, notNull: false})),
+      }
+    })
 }
 
 export const isFieldNotNull = (sql: string, field: QueryField) => {

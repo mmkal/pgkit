@@ -55,6 +55,10 @@ export const psqlClient = (psqlCommand: string) => {
 
 /** Parse a psql output into a list of rows (string tuples) */
 export const psqlRows = (output: string): Record<string, string>[] => {
+  if (output === 'The command has no result, or the result has no columns.') {
+    return []
+  }
+
   const lines = output
     .split('\n')
     .map(line => line.trim())

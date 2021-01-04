@@ -38,6 +38,6 @@ export const getParams = ({
   defaultType,
   extractQueries,
   writeTypes,
-  pool: createPool('postgresql://postgres:postgres@localhost:5433/postgres'),
+  pool,
   typeParsers,
 })

@@ -14,6 +14,8 @@ import {match} from 'io-ts-extra'
  */
 export const templateToValidSql = (template: string[]) => template.join('null')
 
+// todo: return null if statement is not a select
+// and have test cases for when a view can't be created
 export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
   const statements = pgsqlAST.parse(sql)
   const ast = statements[0]
@@ -126,7 +128,7 @@ export const aliasMappings = (
 
 export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
   if (!tables && !columns) {
-    return ['void']
+    return ['_void']
   }
   tables = tables || []
   columns = columns || []
