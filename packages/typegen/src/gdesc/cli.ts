@@ -1,9 +1,9 @@
 import * as cli from '@rushstack/ts-command-line'
 import {gdescriber} from './index'
-import * as fs from 'fs'
 import * as path from 'path'
 import {tryOrNull} from './util'
 import * as defaults from './defaults'
+import * as lodash from 'lodash'
 
 export class SlonikTypegenCLI extends cli.CommandLineParser {
   constructor() {
@@ -33,8 +33,8 @@ export class GenerateAction extends cli.CommandLineAction {
 
   private static _defineParameters(action: cli.CommandLineAction) {
     return {
-      options: action.defineStringParameter({
-        parameterLongName: '--options',
+      config: action.defineStringParameter({
+        parameterLongName: '--config',
         argumentName: 'PATH',
         description: `
           Path to a module containing parameters to be passed to 'gdescriber'. If specified, it will be required
@@ -83,22 +83,24 @@ export class GenerateAction extends cli.CommandLineAction {
   }
 
   async onExecute() {
-    let optionsModule = this._params.options.value
-      ? require(path.resolve(process.cwd(), this._params.options.value))
+    let optionsModule = this._params.config.value
+      ? require(path.resolve(process.cwd(), this._params.config.value))
       : tryOrNull(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)))
 
     const options = optionsModule?.default || optionsModule
 
-    return gdescriber({
-      ...options,
-      rootDir: this._params.rootDir.value,
-      psqlCommand: this._params.psql.value,
-      defaultType: this._params.defaultType.value,
-      glob: this._params.glob.value,
-    })
+    return gdescriber(
+      lodash.merge({}, options, {
+        rootDir: this._params.rootDir.value,
+        psqlCommand: this._params.psql.value,
+        defaultType: this._params.defaultType.value,
+        glob: this._params.glob.value,
+      }),
+    )
   }
 }
 
+/* istanbul ignore if */
 if (require.main === module) {
   new SlonikTypegenCLI().execute()
 }

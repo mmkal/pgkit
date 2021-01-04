@@ -5,6 +5,7 @@ import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
 import {columnInfoGetter} from './query-analysis'
 import * as assert from 'assert'
+import * as path from 'path'
 
 export * from './types'
 export * from './defaults'
@@ -68,7 +69,11 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const getColumnInfo = columnInfoGetter(pool)
 
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
-    const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
+    const files = await globAsync(globParams[0], {
+      ...globParams[1],
+      cwd: path.resolve(process.cwd(), rootDir),
+      absolute: true,
+    })
 
     const promises = files.flatMap(extractQueries).map(
       async (query): Promise<DescribedQuery | null> => {
