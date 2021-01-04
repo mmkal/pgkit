@@ -3,13 +3,14 @@ import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
 import * as dedent from 'dedent'
 import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
+import {createPool, createTypeParserPreset} from 'slonik'
 
 const helper = getPoolHelper({__filename})
 
 const gdescParams = (baseDir: string): Partial<gdesc.GdescriberParams> => ({
   rootDir: baseDir,
   pool: helper.pool,
-  psqlCommand: `docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres?options=--search_path%3dgdesc_test"`,
+  psqlCommand: `docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres?options=--search_path%3d${helper.schemaName}"`,
 })
 
 beforeEach(async () => {
@@ -33,7 +34,7 @@ beforeEach(async () => {
 
 test('write types', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'queries.ts': dedent`
+    'index.ts': dedent`
       import {sql} from 'slonik'
 
       export default [
@@ -48,6 +49,12 @@ test('write types', async () => {
         sql\`update test_table set t = '' returning id, t\`,
         sql\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
         sql\`update test_table as tt set t = '' returning id, t\`,
+        sql\`select pg_advisory_lock(123)\`,
+        sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
+        sql\`select jb->'foo'->>'bar' from test_table\`,
+        sql\`select n::numeric from test_table\`,
+        sql\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
+        sql\`select t from (select id from test_table) t\`,
         sql\`
           select t as t_aliased1, t_nn as t_nn_aliased
           from test_table as tt1
@@ -68,7 +75,7 @@ test('write types', async () => {
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
-    queries.ts: |-
+    index.ts: |-
       import {sql} from 'slonik'
       
       export default [
@@ -83,6 +90,12 @@ test('write types', async () => {
         sql<queries.TestTable_id_t>\`update test_table set t = '' returning id, t\`,
         sql<queries.TestTable_id_t>\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
         sql<queries.TestTable_id_t>\`update test_table as tt set t = '' returning id, t\`,
+        sql<queries.PgAdvisoryLock>\`select pg_advisory_lock(123)\`,
+        sql<queries.TestTable_id>\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
+        sql<queries.TestTable_2>\`select jb->'foo'->>'bar' from test_table\`,
+        sql<queries.TestTable_n>\`select n::numeric from test_table\`,
+        sql<queries.Anonymous>\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
+        sql<queries.T>\`select t from (select id from test_table) t\`,
         sql<queries.TestTable_tAliased1_tNnAliased>\`
           select t as t_aliased1, t_nn as t_nn_aliased
           from test_table as tt1
@@ -161,7 +174,11 @@ test('write types', async () => {
           talias: string | null
         }
       
-        /** - query: \`select id from test_table where id = $1 and n = $2\` */
+        /**
+         * queries:
+         * - \`select id from test_table where id = $1 and n = $2\`
+         * - \`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`
+         */
         export interface TestTable_id {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
@@ -173,6 +190,38 @@ test('write types', async () => {
          * - \`update test_table set t = ''\`
          */
         export interface _void {}
+      
+        /** - query: \`select pg_advisory_lock(123)\` */
+        export interface PgAdvisoryLock {
+          /** postgres type: \`void\` */
+          pg_advisory_lock: unknown
+        }
+      
+        /** - query: \`select jb->'foo'->>'bar' from test_table\` */
+        export interface TestTable_2 {
+          /** postgres type: \`text\` */
+          '?column?': string | null
+        }
+      
+        /** - query: \`select n::numeric from test_table\` */
+        export interface TestTable_n {
+          /** postgres type: \`numeric\` */
+          n: number | null
+        }
+      
+        /** - query: \`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\` */
+        export interface Anonymous {
+          /** postgres type: \`integer\` */
+          num: number | null
+          /** postgres type: \`text\` */
+          letter: string | null
+        }
+      
+        /** - query: \`select t from (select id from test_table) t\` */
+        export interface T {
+          /** postgres type: \`record\` */
+          t: unknown
+        }
       
         /** - query: \`select t as t_aliased1, t_nn as t_nn_ali... [truncated] ...ed2 from test_table as tt2 where n = 1 )\` */
         export interface TestTable_tAliased1_tNnAliased {
@@ -190,40 +239,40 @@ test('write types', async () => {
   `)
 }, 20000)
 
-test('edit before write', async () => {
+test('debug write types', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'queries.ts': dedent`
+    'index.ts': dedent`
       import {sql} from 'slonik'
 
-      export const q = sql\`select id from test_table\`
+      export default [
+        // small number of queries here makes it easier to add log statements without tons of noise
+        sql\`select id from test_table\`,
+        sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
+      ]
     `,
   })
 
   syncer.sync()
 
-  await gdesc.gdescriber({
-    ...gdescParams(syncer.baseDir),
-    writeTypes: queries => {
-      queries.forEach(query => {
-        query.fields.forEach(field => {
-          if (field.gdesc === 'text' && field.name === 'f') {
-            field.typescript = `(${field.typescript} & { _brand: 'foo })`
-          }
-        })
-      })
-      return gdesc.defaultWriteTypes()(queries)
-    },
-  })
+  await gdesc.gdescriber(gdescParams(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
-    queries.ts: |-
+    index.ts: |-
       import {sql} from 'slonik'
       
-      export const q = sql<queries.TestTable>\`select id from test_table\`
+      export default [
+        // small number of queries here makes it easier to add log statements without tons of noise
+        sql<queries.TestTable>\`select id from test_table\`,
+        sql<queries.TestTable>\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
+      ]
       
       module queries {
-        /** - query: \`select id from test_table\` */
+        /**
+         * queries:
+         * - \`select id from test_table\`
+         * - \`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`
+         */
         export interface TestTable {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
@@ -231,6 +280,97 @@ test('edit before write', async () => {
       }
       "
   `)
-}, 10000)
+}, 20000)
 
-test.todo(`queries with syntax errors don't affect others`)
+test('ignore irrelevant syntax', async () => {
+  const syncer = fsSyncer.jest.jestFixture({
+    'index.ts': dedent`
+      import {sql} from 'slonik'
+
+      export default () => {
+        if (Math.random() > 0.5) {
+          const otherTag: any = (val: any) => val
+          return otherTag\`foo\`
+        }
+        if (Math.random() > 0.5) {
+          const otherTag: any = {foo: (val: any) => val}
+          return otherTag.foo\`bar\`
+        }
+        return sql\`select 1\`
+      }
+    `,
+  })
+
+  syncer.sync()
+
+  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default () => {
+        if (Math.random() > 0.5) {
+          const otherTag: any = (val: any) => val
+          return otherTag\`foo\`
+        }
+        if (Math.random() > 0.5) {
+          const otherTag: any = {foo: (val: any) => val}
+          return otherTag.foo\`bar\`
+        }
+        return sql<queries.Anonymous>\`select 1\`
+      }
+      
+      module queries {
+        /** - query: \`select 1\` */
+        export interface Anonymous {
+          /** postgres type: \`integer\` */
+          '?column?': number | null
+        }
+      }
+      "
+  `)
+}, 20000)
+
+test(`queries with syntax errors don't affect others`, async () => {
+  const syncer = fsSyncer.jest.jestFixture({
+    'index.ts': dedent`
+      import {sql} from 'slonik'
+
+      export default [
+        sql\`select id from gdesc_test.test_table\`, // this should get a valid type
+        sql\`this is a nonsense query which will cause an error\`
+      ]
+    `,
+  })
+
+  syncer.sync()
+
+  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default [
+        sql<queries.TestTable>\`select id from gdesc_test.test_table\`, // this should get a valid type
+        sql<queries.Anonymous>\`this is a nonsense query which will cause an error\`,
+      ]
+      
+      module queries {
+        /** - query: \`select id from gdesc_test.test_table\` */
+        export interface TestTable {
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+          id: number
+        }
+      
+        /** - query: \`this is a nonsense query which will cause an error\` */
+        export interface Anonymous {}
+      }
+      "
+  `)
+})
+
+test.todo('sql.identifier will not work')

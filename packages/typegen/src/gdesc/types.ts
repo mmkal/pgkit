@@ -139,11 +139,6 @@ export interface DescribedQuery extends ParsedQuery {
   fields: QueryField[]
 }
 
-export interface AnalysedQuery extends ParsedQuery {
-  /** List of meta objects with info about field types returned by this query */
-  fields: AnalysedQueryField[]
-}
-
 export interface QueryField {
   /** Field name. e.g. for `select foo, bar from baz` this will be `foo` or `bar` */
   name: string
@@ -151,6 +146,12 @@ export interface QueryField {
   gdesc: string
   /** The generated typescript type. based on `gdesc` */
   typescript: string
+}
+
+export interface AnalysedQuery extends ParsedQuery {
+  suggestedTags: string[]
+  /** List of meta objects with info about field types returned by this query */
+  fields: AnalysedQueryField[]
 }
 
 export interface AnalysedQueryField extends QueryField {

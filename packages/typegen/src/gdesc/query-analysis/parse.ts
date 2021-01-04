@@ -2,6 +2,7 @@ import * as pgsqlAST from 'pgsql-ast-parser'
 import * as lodash from 'lodash'
 import {pascalCase} from '../util'
 import {match} from 'io-ts-extra'
+import * as assert from 'assert'
 
 // function return types:
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
@@ -18,11 +19,9 @@ export const templateToValidSql = (template: string[]) => template.join('null')
 // and have test cases for when a view can't be created
 export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
   const statements = pgsqlAST.parse(sql)
+  assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
+
   const ast = statements[0]
-  if (!ast || statements.length !== 1) {
-    // todo: don't throw (find out what slonik/other clients do here?)
-    throw new Error(`Can't parse query ${sql}; it has ${statements.length} statements.`)
-  }
 
   if ((ast.type === 'update' || ast.type === 'insert') && ast.returning) {
     return {
@@ -55,7 +54,7 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
         ?.map(f =>
           match(f)
             .case({type: 'table'} as const, t => t.name)
-            .default(f => f.alias || '')
+            .case({alias: String}, f => f.alias)
             .get(),
         )
         .filter(Boolean),
@@ -88,11 +87,11 @@ const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
 export const aliasMappings = (
   statement: pgsqlAST.Statement,
 ): Array<{queryColumn: string; aliasFor: string; tablesColumnCouldBeFrom: string[]}> => {
-  if (statement.type !== 'select') {
-    return []
-  }
+  assert.strictEqual(statement.type, 'select' as const)
+  assert.ok(statement.columns, `Can't get alias mappings from query with no columns`)
 
   const allTableReferences: Array<{table: string; referredToAs: string}> = []
+
   pgsqlAST
     .astVisitor(map => ({
       tableRef: t => allTableReferences.push({table: t.name, referredToAs: t.alias || t.name}),
@@ -102,18 +101,15 @@ export const aliasMappings = (
 
   const availableTables = lodash.uniqBy(allTableReferences, JSON.stringify)
 
-  if (
-    lodash
-      .chain(availableTables)
-      .groupBy(t => t.referredToAs)
-      .some(group => group.length > 1)
-      .value()
-  ) {
-    throw new Error(`Some aliases are duplicated, this is too confusing`)
-  }
+  const aliasGroups = lodash.groupBy(availableTables, t => t.referredToAs)
+
+  assert.ok(
+    !lodash.some(aliasGroups, group => group.length > 1),
+    `Some aliases are duplicated, this is too confusing. ${JSON.stringify({aliasGroups})}`,
+  )
 
   const mappings = statement.columns
-    ?.map(c => ({
+    .map(c => ({
       queryColumn: c.alias,
       aliasFor: c.expr.type === 'ref' ? c.expr.name : '',
       tablesColumnCouldBeFrom: availableTables
@@ -123,17 +119,15 @@ export const aliasMappings = (
     .map(c => ({...c, queryColumn: c.queryColumn || c.aliasFor}))
     .filter(c => c.queryColumn && c.aliasFor)
 
-  return mappings || []
+  return mappings
 }
 
 export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
-  if (!tables && !columns) {
+  if (!columns) {
     return ['_void']
   }
-  tables = tables || []
-  columns = columns || []
 
-  const tablesInvolved = tables.map(pascalCase).join('_')
+  const tablesInvolved = (tables || []).map(pascalCase).join('_')
 
   return lodash
     .uniq([
@@ -150,13 +144,46 @@ export const getViewFriendlySql = lodash.flow(templateToValidSql, getHopefullyVi
 
 export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappings)
 
+/* istanbul ignore if */
 if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
 
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
-  console.log(getHopefullyViewableAST('select count(*) from messages m'))
-  console.log(lodash.flow(getHopefullyViewableAST, aliasMappings)('select * from messages where id = 1'))
+  console.log(
+    getHopefullyViewableAST(
+      'SELECT "t1"."id"  FROM "test_table" AS "t1" INNER JOIN "test_table" AS "t2" ON ("t1"."id" = "t2"."n")',
+    ),
+  )
   throw ''
+  console.log(getHopefullyViewableAST('select t1.id from test_table t1 join test_table t2 on t1.id = t2.n'))
+  console.log(aliasMappings(getHopefullyViewableAST(`select a.a, b.b from atable a join btable b on a.i = b.j`)))
+  console.log(getHopefullyViewableAST(`select * from (select id from test) d`))
+  console.log(getHopefullyViewableAST(`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)`))
+  console.log(
+    pgsqlAST
+      .astVisitor(map => ({
+        tableRef: t => console.log({table: t.name, referredToAs: t.alias || t.name}),
+        join: t => map.super().join(t),
+      }))
+      .statement(getHopefullyViewableAST('select 1 from (select * from t)')),
+  )
+  console.log(
+    getHopefullyViewableAST(
+      `select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)` ||
+        `drop table test` ||
+        `
+      BEGIN
+        SELECT * INTO STRICT myrec FROM emp WHERE empname = myname;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                RAISE EXCEPTION 'employee % not found', myname;
+            WHEN TOO_MANY_ROWS THEN
+                RAISE EXCEPTION 'employee % not unique', myname;
+      END
+  `,
+    ),
+  )
+  console.log(lodash.flow(getHopefullyViewableAST, aliasMappings)('select * from messages where id = 1'))
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
   // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
   console.log(

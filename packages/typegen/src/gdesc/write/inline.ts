@@ -68,7 +68,7 @@ const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
   const tagMap = lodash
     .chain(withIdentifiers)
     .flatMap(q =>
-      [...getSuggestedTags(q.template), 'Anonymous'].map((tag, _i, allTags) => ({
+      q.suggestedTags.map((tag, _i, allTags) => ({
         ...q,
         tag,
         alternatives: allTags,

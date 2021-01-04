@@ -2,6 +2,7 @@ import {ExtractedQuery, GdescriberParams} from '../types'
 import * as lodash from 'lodash'
 import * as fs from 'fs'
 import type * as ts from 'typescript'
+import * as assert from 'assert'
 
 const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
   const ts: typeof import('typescript') = require('typescript')
@@ -19,79 +20,35 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
 
   return queries
 
-  function visitNodeGenerics(unknownNode: ts.Node) {
-    if (unknownNode.kind === ts.SyntaxKind.TaggedTemplateExpression) {
-      const node = unknownNode as ts.TaggedTemplateExpression
-      if (node.tag.kind === ts.SyntaxKind.Identifier) {
-        const tag = node.tag as ts.Identifier
-        if (tag.getText() === 'sql') {
+  function visitNodeGenerics(node: ts.Node) {
+    if (ts.isTaggedTemplateExpression(node)) {
+      if (ts.isIdentifier(node.tag)) {
+        if (node.tag.getText() === 'sql') {
           let template: string[] = []
-          if (node.template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
-            const templateNode = node.template as ts.NoSubstitutionTemplateLiteral
-            template = [templateNode.text]
+          if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
+            template = [node.template.text]
           }
-          if (node.template.kind === ts.SyntaxKind.TemplateExpression) {
-            const templateNode = node.template as ts.TemplateExpression
-            template = [
-              // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
-              templateNode.head.text,
-              ...templateNode.templateSpans.map(s => s.literal.text),
-            ]
+          if (ts.isTemplateExpression(node.template)) {
+            template = [node.template.head.text, ...node.template.templateSpans.map(s => s.literal.text)]
           }
 
-          if (template.length > 0) {
-            queries.push({
-              // tag: 'unknown',
-              text: node.getFullText(),
-              file,
-              sql: template
-                .map((t, i) => `$${i}${t}`)
-                .join('')
-                .slice(2), // slice off $0 at the start
-              template,
-            })
-          }
+          assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
+
+          queries.push({
+            // tag: 'unknown',
+            text: node.getFullText(),
+            file,
+            sql: template
+              // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
+              .map((t, i) => `$${i}${t}`)
+              .join('')
+              .slice(2), // slice off $0 at the start
+            template,
+          })
         }
       }
     }
-    ts.forEachChild(unknownNode, visitNodeGenerics)
-  }
-
-  function visitNodePropertyAccessThing(unknownNode: ts.Node) {
-    if (unknownNode.kind === ts.SyntaxKind.TaggedTemplateExpression) {
-      const node = unknownNode as ts.TaggedTemplateExpression
-      if (node.tag.kind == ts.SyntaxKind.PropertyAccessExpression) {
-        const tag = node.tag as ts.PropertyAccessExpression
-        if (tag.expression.getText() === 'sql') {
-          let template: string[] = []
-          if (node.template.kind === ts.SyntaxKind.NoSubstitutionTemplateLiteral) {
-            const templateNode = node.template as ts.NoSubstitutionTemplateLiteral
-            template = [templateNode.text]
-          }
-          if (node.template.kind === ts.SyntaxKind.TemplateExpression) {
-            const templateNode = node.template as ts.TemplateExpression
-            template = [
-              // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
-              templateNode.head.text,
-              ...templateNode.templateSpans.map(s => s.literal.text),
-            ]
-          }
-
-          if (template.length > 0) {
-            queries.push({
-              text: node.getFullText(),
-              file,
-              sql: template
-                .map((t, i) => `$${i}${t}`)
-                .join('')
-                .slice(2), // slice off $0 at the start
-              template,
-            })
-          }
-        }
-      }
-    }
-    ts.forEachChild(unknownNode, visitNodePropertyAccessThing)
+    ts.forEachChild(node, visitNodeGenerics)
   }
 }
 

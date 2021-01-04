@@ -73,7 +73,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
       const described: DescribedQuery = {
         ...query,
         fields: await describeCommand(querySql).catch(e => {
-          console.error({e})
+          // console.error({e})
           return []
         }),
       }

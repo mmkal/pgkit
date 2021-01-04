@@ -35,7 +35,7 @@ export const sampleTypeValues: Record<string, any> = {
 export const inferTypeParserTypeScript = (tp: slonik.TypeParserType<any>, defaultSampleInput = '') => {
   const sample = tp.parse(sampleTypeValues[tp.name] || defaultSampleInput)
   const match = jsValueMatchers.find(m => m[1](sample))
-  return match?.[0] || `unknown /* ${tp.name} */`
+  return match?.[0] || `unknown`
 }
 
 export const defaultTypeParsers = (parsers: readonly slonik.TypeParserType<unknown>[]): TypeParserInfo[] =>

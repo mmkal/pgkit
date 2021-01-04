@@ -1,6 +1,7 @@
 import * as execa from 'execa'
 import * as lodash from 'lodash'
 import {simplifyWhitespace} from '../util'
+import * as assert from 'assert'
 
 export type PSQLClient = ReturnType<typeof psqlClient>
 
@@ -9,9 +10,10 @@ export type PSQLClient = ReturnType<typeof psqlClient>
  * This parses `psql` output and no type parsing is done. Everything is a string.
  */
 export const psqlClient = (psqlCommand: string) => {
-  if (psqlCommand.includes(`'`)) {
-    throw new Error(`Can't run psql command ${JSON.stringify(psqlCommand)}; with quotes in it. Try using a bash alias.`)
-  }
+  assert.ok(
+    !psqlCommand.includes(`'`),
+    `Can't run psql command "${psqlCommand}"; with single quotes in it. Try using double quotes or a bash alias.`,
+  )
 
   const psql = async (query: string) => {
     query = simplifyWhitespace(query)
@@ -72,11 +74,7 @@ export const psqlRows = (output: string): Record<string, string>[] => {
       return dividers.length > 0 && dividers.every(d => d.match(/^-+$/))
     })
 
-  if (dividerLines.length > 1) {
-    // multi-statement
-    throw new Error(`multi statements not handled yet`)
-    // return {}
-  }
+  assert.ok(dividerLines.length <= 1, `multi statements not handled yet`)
 
   const start = dividerLines[0]?.index
 
@@ -85,9 +83,9 @@ export const psqlRows = (output: string): Record<string, string>[] => {
   }
 
   const headers = parseRow(lines[start - 1])
-  if (new Set(headers).size !== headers.length) {
-    throw new Error(`Headers contain duplicates! ${headers}`)
-  }
+
+  assert.ok(headers.length === new Set(headers).size, `Headers must not contain duplicates! ${headers}`)
+
   const headerMap = Object.fromEntries(headers.map((h, i) => [i, h]))
 
   return lines

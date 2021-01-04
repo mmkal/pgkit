@@ -9,7 +9,8 @@ export const getPoolHelper = (params: {__filename: string; config?: ClientConfig
   const schemaName = path.parse(params.__filename).name.replace(/\W/g, '_')
   const schemaIdentifier = sql.identifier([schemaName])
 
-  const pool = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {
+  const connectionString = 'postgresql://postgres:postgres@localhost:5433/postgres'
+  const pool = createPool(connectionString, {
     idleTimeout: 1,
     ...params?.config,
     interceptors: [
@@ -42,5 +43,5 @@ export const getPoolHelper = (params: {__filename: string; config?: ClientConfig
   /** Get the names from a list of migrations. Useful for light assertions */
   const names = (migrations: Array<{name: string}>) => migrations.map(m => m.name)
 
-  return {pool, schemaName, schemaIdentifier, mockLogger, names, sql}
+  return {connectionString, pool, schemaName, schemaIdentifier, mockLogger, names, sql}
 }

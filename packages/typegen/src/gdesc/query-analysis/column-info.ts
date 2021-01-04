@@ -1,10 +1,11 @@
 import * as lodash from 'lodash'
-import {AnalysedQuery, DescribedQuery, QueryField} from '../types'
+import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
-import {getHopefullyViewableAST} from './parse'
+import {getHopefullyViewableAST, getSuggestedTags} from './parse'
 import * as assert from 'assert'
+import {tryOr, tryOrNull} from '../util'
 
 // todo: create a schema to put these in?
 const getTypesSql = sql`
@@ -91,6 +92,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
+    const suggestedTags = getSuggestedTags(query.template).concat(['Anonymous'])
 
     await createViewAnalyser()
 
@@ -103,12 +105,8 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
     if (ast.type !== 'select') {
       return {
         ...query,
-        fields: query.fields.map(f => ({
-          ...f,
-          notNull: false,
-          column: undefined,
-          comment: undefined,
-        })),
+        suggestedTags,
+        fields: query.fields.map(defaultAnalysedQueryField),
       }
     }
 
@@ -120,10 +118,14 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
     const parseableSql = formattedSqlStatements[0] || viewFriendlySql
 
-    const parsed = parse.getAliasMappings(parseableSql)
+    const parsed = tryOr(
+      () => parse.getAliasMappings(parseableSql),
+      () => parse.getAliasMappings(viewFriendlySql), // If parsing failed for the formatted query, try the unformatted one: https://github.com/oguimbal/pgsql-ast-parser/issues/1#issuecomment-754072470
+    )()
 
     return {
       ...query,
+      suggestedTags,
       fields: query.fields.map(f => {
         const relatedResults = parsed.flatMap(c =>
           viewResult.filter(v => {
@@ -135,7 +137,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
           }),
         )
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
-        const notNull = res?.is_underlying_nullable === 'NO' || isFieldNotNull(parseableSql, f)
+        const notNull = res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))
 
         return {
           ...f,
@@ -149,32 +151,36 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
-      console.error({e})
+      // console.error({e})
+      const suggestedTags = tryOrNull(() => getSuggestedTags(query.template)) || ['Anonymous']
       return {
         ...query,
-        fields: query.fields.map(f => ({
-          ...f,
-          notNull: false,
-          comment: undefined,
-          column: undefined,
-        })),
+        suggestedTags,
+        fields: query.fields.map(defaultAnalysedQueryField),
       }
     })
 }
 
+export const defaultAnalysedQueryField = (f: QueryField): AnalysedQueryField => ({
+  ...f,
+  notNull: false,
+  comment: undefined,
+  column: undefined,
+})
+
 export const isFieldNotNull = (sql: string, field: QueryField) => {
   const ast = getHopefullyViewableAST(sql)
-  if (ast.type === 'select' && ast.columns) {
-    // special case: `count(...)` is always non-null
-    const matchingCountColumns = ast.columns.filter(c => {
+  const getMatchingCountColumns = () =>
+    ast.type === 'select' &&
+    ast.columns &&
+    ast.columns.filter(c => {
       if (c.expr.type !== 'call' || c.expr.function !== 'count') {
         return false
       }
       const name = c.alias || 'count'
       return field.name === name
     })
-    return matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
-  }
 
-  return false
+  const matchingCountColumns = getMatchingCountColumns()
+  return matchingCountColumns && matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
 }
