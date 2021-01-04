@@ -39,6 +39,7 @@ test('write types', async () => {
       export default [
         sql\`select * from gdesc_test.test_table\`,
         sql\`select id, t from test_table\`,
+        sql\`select count(*) from test_table\`,
         sql\`select id as idalias, t as talias from test_table\`,
         sql\`select id from test_table where id = ${'${1}'} and n = ${'${2}'}\`,
         sql\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
@@ -73,6 +74,7 @@ test('write types', async () => {
       export default [
         sql<queries.TestTable>\`select * from gdesc_test.test_table\`,
         sql<queries.TestTable_id_t>\`select id, t from test_table\`,
+        sql<queries.TestTable_count>\`select count(*) from test_table\`,
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
         sql<queries.TestTable_id>\`select id from test_table where id = \${1} and n = \${2}\`,
         sql<queries._void>\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
@@ -96,59 +98,65 @@ test('write types', async () => {
       module queries {
         /** - query: \`select * from gdesc_test.test_table\` */
         export interface TestTable {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.n\`, postgres type: \`integer\` */
           n: number | null
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
-          /** postgres type: text */
+          /** column: \`gdesc_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
           t_nn: string
-          /** postgres type: timestamp with time zone */
+          /** column: \`gdesc_test.test_table.tz\`, postgres type: \`timestamp with time zone\` */
           tz: number | null
-          /** postgres type: timestamp with time zone */
+          /** column: \`gdesc_test.test_table.tz_nn\`, not null: \`true\`, postgres type: \`timestamp with time zone\` */
           tz_nn: number
-          /** postgres type: json */
+          /** column: \`gdesc_test.test_table.j\`, postgres type: \`json\` */
           j: unknown
-          /** postgres type: jsonb */
+          /** column: \`gdesc_test.test_table.jb\`, postgres type: \`jsonb\` */
           jb: unknown
-          /** postgres type: json */
+          /** column: \`gdesc_test.test_table.j_nn\`, not null: \`true\`, postgres type: \`json\` */
           j_nn: unknown
-          /** postgres type: jsonb */
+          /** column: \`gdesc_test.test_table.jb_nn\`, not null: \`true\`, postgres type: \`jsonb\` */
           jb_nn: unknown
         }
       
         /** - query: \`select id, t from test_table\` */
         export interface TestTable_id_t {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
         }
       
+        /** - query: \`select count(*) from test_table\` */
+        export interface TestTable_count {
+          /** not null: \`true\`, postgres type: \`bigint\` */
+          count: number
+        }
+      
         /** - query: \`select id as idalias, t as talias from test_table\` */
         export interface TestTable_idalias_talias {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           idalias: number
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           talias: string | null
         }
       
         /** - query: \`select id from test_table where id = $1 and n = $2\` */
         export interface TestTable_id {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
         }
       
@@ -160,48 +168,48 @@ test('write types', async () => {
       
         /** - query: \`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\` */
         export interface TestTable_0 {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
         }
       
         /** - query: \`update test_table set t = '' returning id, t\` */
         export interface TestTable_0 {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
         }
       
         /** - query: \`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\` */
         export interface TestTable_0 {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
         }
       
         /** - query: \`update test_table as tt set t = '' returning id, t\` */
         export interface TestTable_0 {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
         }
@@ -211,10 +219,10 @@ test('write types', async () => {
           /**
            * Some custom comment on \\"t\\"
            *
-           * postgres type: text
+           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
            */
           t_aliased1: string | null
-          /** postgres type: text */
+          /** column: \`gdesc_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
           t_nn_aliased: string
         }
       }
@@ -257,7 +265,7 @@ test('edit before write', async () => {
       module queries {
         /** - query: \`select id from test_table\` */
         export interface TestTable {
-          /** postgres type: integer */
+          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
         }
       }

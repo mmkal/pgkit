@@ -74,6 +74,7 @@ LANGUAGE 'plpgsql';
 `
 
 interface ViewResult {
+  schema_name: string
   table_column_name: string
   underlying_table_name: string
   is_underlying_nullable: string
@@ -93,23 +94,33 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
     await createViewAnalyser()
 
     const viewResultQuery = sql<ViewResult>`
-      select table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
+      select schema_name, table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
       from gettypes(${viewFriendlySql})
     `
 
     const ast = getHopefullyViewableAST(viewFriendlySql)
     if (ast.type !== 'select') {
-      return {...query, fields: query.fields.map(f => ({...f, notNull: false}))}
+      return {
+        ...query,
+        fields: query.fields.map(f => ({
+          ...f,
+          notNull: false,
+          column: undefined,
+          comment: undefined,
+        })),
+      }
     }
 
     const viewResult = await pool.any(viewResultQuery).then(results => lodash.uniqBy(results, JSON.stringify))
 
-    const formattedSqls = [...new Set(viewResult.map(r => r.formatted_query))]
-    if (formattedSqls.length !== 1) {
-      throw new Error(`Expected exactly 1 formatted sql ${JSON.stringify(formattedSqls)}`)
+    const formattedSqlStatements = [...new Set(viewResult.map(r => r.formatted_query))]
+    if (formattedSqlStatements.length > 1) {
+      throw new Error(`Expected exactly 1 formatted sql, got ${formattedSqlStatements}`)
     }
 
-    const parsed = parse.getAliasMappings(formattedSqls[0])
+    const parseableSql = formattedSqlStatements[0] || viewFriendlySql
+
+    const parsed = parse.getAliasMappings(parseableSql)
 
     return {
       ...query,
@@ -124,9 +135,14 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
           }),
         )
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
-        const notNull = res?.is_underlying_nullable === 'NO' || isFieldNotNull(formattedSqls[0], f)
+        const notNull = res?.is_underlying_nullable === 'NO' || isFieldNotNull(parseableSql, f)
 
-        return {...f, notNull, comment: res?.comment}
+        return {
+          ...f,
+          notNull,
+          column: res && `${res.schema_name}.${res.underlying_table_name}.${res.table_column_name}`,
+          comment: res?.comment,
+        }
       }),
     }
   }
@@ -136,15 +152,18 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       console.error({e})
       return {
         ...query,
-        fields: query.fields.map(f => ({...f, notNull: false})),
+        fields: query.fields.map(f => ({
+          ...f,
+          notNull: false,
+          comment: undefined,
+          column: undefined,
+        })),
       }
     })
 }
 
 export const isFieldNotNull = (sql: string, field: QueryField) => {
   const ast = getHopefullyViewableAST(sql)
-  sql.includes('count(') && console.log(ast)
-
   if (ast.type === 'select' && ast.columns) {
     // special case: `count(...)` is always non-null
     const matchingCountColumns = ast.columns.filter(c => {
