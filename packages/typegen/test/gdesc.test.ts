@@ -420,11 +420,10 @@ test(`queries with syntax errors don't affect others`, async () => {
   expect(errorMock).toHaveBeenCalledTimes(1)
   expect(errorMock.mock.calls[0]).toMatchInlineSnapshot(`
     Array [
-      "Describing query failed: Error: Error running psql query.
+      "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
     Query: \\"this is a nonsense query which will cause an error \\\\\\\\gdesc\\"
     Result: \\"psql:<stdin>:1: ERROR:  syntax error at or near \\\\\\"this\\\\\\"\\\\nLINE 1: this is a nonsense query which will cause an error \\\\n        ^\\"
-    Error: Unexpected psql table format:
-    ",
+    Error: Empty output received",
     ]
   `)
 
@@ -534,11 +533,10 @@ test('variable table name', async () => {
   expect(errorMock).toHaveBeenCalledTimes(1)
   expect(errorMock.mock.calls[0]).toMatchInlineSnapshot(`
     Array [
-      "Describing query failed: Error: Error running psql query.
+      "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
     Query: \\"select * from $1 \\\\\\\\gdesc\\"
     Result: \\"psql:<stdin>:1: ERROR:  syntax error at or near \\\\\\"$1\\\\\\"\\\\nLINE 1: select * from $1 \\\\n                      ^\\"
-    Error: Unexpected psql table format:
-    ",
+    Error: Empty output received",
     ]
   `)
 

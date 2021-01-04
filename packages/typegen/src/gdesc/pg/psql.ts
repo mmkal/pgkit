@@ -78,9 +78,8 @@ export const psqlRows = (output: string): Record<string, string>[] => {
 
   const start = dividerLines[0]?.index
 
-  if (typeof start !== 'number') {
-    throw new Error(`Unexpected psql table format:\n${output}`)
-  }
+  assert.ok(output, `Empty output received`)
+  assert.ok(typeof start === 'number', `Unexpected psql table format:\n${output}`)
 
   const headers = parseRow(lines[start - 1])
 

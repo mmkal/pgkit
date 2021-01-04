@@ -1,3 +1,3 @@
 import {sql} from 'slonik'
 
-export default sql`select 3 as a`
+export default sql`select 0 as a`
