@@ -62,4 +62,4 @@ test('edit before write', async () => {
       }
       "
   `)
-}, 10000)
+}, 20000)
