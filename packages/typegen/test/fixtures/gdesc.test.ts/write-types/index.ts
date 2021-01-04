@@ -45,6 +45,12 @@ module queries {
     t: string | null
     /** column: `gdesc_test.test_table.t_nn`, not null: `true`, postgres type: `text` */
     t_nn: string
+    /** column: `gdesc_test.test_table.cv`, postgres type: `character varying(1)` */
+    cv: string | null
+    /** column: `gdesc_test.test_table.arr`, postgres type: `text[]` */
+    arr: Array<string> | null
+    /** column: `gdesc_test.test_table.e`, postgres type: `test_enum` */
+    e: ('aa' | 'bb' | 'cc') | null
     /** column: `gdesc_test.test_table.tz`, postgres type: `timestamp with time zone` */
     tz: number | null
     /** column: `gdesc_test.test_table.tz_nn`, not null: `true`, postgres type: `timestamp with time zone` */

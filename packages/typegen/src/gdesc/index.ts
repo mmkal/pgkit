@@ -4,6 +4,7 @@ import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
 import {columnInfoGetter} from './query-analysis'
+import * as assert from 'assert'
 
 export * from './types'
 export * from './defaults'
@@ -36,22 +37,23 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
   }
 
   const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
-    if (!regtype) {
-      return defaultType
-    }
+    assert.ok(regtype, `No regtype found!`)
 
     const enumTypes = await getEnumTypes()
     const regtypeToPGType = await getRegtypeToPGType()
 
-    if (regtype?.endsWith('[]')) {
+    if (regtype.endsWith('[]')) {
       return `Array<${await getTypeScriptType(regtype.slice(0, -2), typeName)}>`
     }
 
-    if (regtype?.match(/\(\d+\)/)) {
+    if (regtype.match(/\(\d+\)/)) {
+      // e.g. `character varying(10)`, which is the regtype from `create table t(s varchar(10))`
       return getTypeScriptType(regtype.split('(')[0], typeName)
     }
 
-    const pgtype = regtypeToPGType[regtype]?.typname
+    const pgtype = regtypeToPGType[regtype].typname
+
+    assert.ok(pgtype, `pgtype not found from regtype ${regtype}`)
 
     return (
       lodash.findLast(typeParsers, p => p.pgtype === pgtype)?.typescript ||
@@ -69,11 +71,10 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
 
     const promises = files.flatMap(extractQueries).map(async query => {
-      const querySql = query.sql || query.template.map((s, i) => (i === 0 ? s : `$${i}${s}`)).join('')
       const described: DescribedQuery = {
         ...query,
-        fields: await describeCommand(querySql).catch(e => {
-          // console.error({e})
+        fields: await describeCommand(query.sql).catch(e => {
+          console.error(`Describing query failed: ${e}`)
           return []
         }),
       }

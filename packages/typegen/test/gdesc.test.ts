@@ -1,9 +1,7 @@
-import * as path from 'path'
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
-import * as dedent from 'dedent'
 import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
-import {createPool, createTypeParserPreset} from 'slonik'
+import * as path from 'path'
 
 const helper = getPoolHelper({__filename})
 
@@ -15,11 +13,16 @@ const gdescParams = (baseDir: string): Partial<gdesc.GdescriberParams> => ({
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
+    create type test_enum as enum('aa', 'bb', 'cc');
+
     create table test_table(
       id int primary key,
       n int,
       t text,
       t_nn text not null,
+      cv varchar(1),
+      arr text[],
+      e test_enum,
       tz timestamptz,
       tz_nn timestamptz not null default now(),
       j json,
@@ -34,7 +37,7 @@ beforeEach(async () => {
 
 test('write types', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': dedent`
+    'index.ts': `
       import {sql} from 'slonik'
 
       export default [
@@ -123,6 +126,12 @@ test('write types', async () => {
           t: string | null
           /** column: \`gdesc_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
           t_nn: string
+          /** column: \`gdesc_test.test_table.cv\`, postgres type: \`character varying(1)\` */
+          cv: string | null
+          /** column: \`gdesc_test.test_table.arr\`, postgres type: \`text[]\` */
+          arr: Array<string> | null
+          /** column: \`gdesc_test.test_table.e\`, postgres type: \`test_enum\` */
+          e: ('aa' | 'bb' | 'cc') | null
           /** column: \`gdesc_test.test_table.tz\`, postgres type: \`timestamp with time zone\` */
           tz: number | null
           /** column: \`gdesc_test.test_table.tz_nn\`, not null: \`true\`, postgres type: \`timestamp with time zone\` */
@@ -239,16 +248,81 @@ test('write types', async () => {
   `)
 }, 20000)
 
-test('debug write types', async () => {
+test('can write queries to separate file', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': dedent`
+    'a.ts': `
       import {sql} from 'slonik'
 
-      export default [
-        // small number of queries here makes it easier to add log statements without tons of noise
-        sql\`select id from test_table\`,
-        sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
-      ]
+      export default sql\`select 1 as a\`
+
+      module queries {
+        // this should be removed!
+      }
+    `,
+    // this file has already imported its queries - need to make sure we don't end up with a double import statement
+    'b.ts': `
+      import {sql} from 'slonik'
+      import * as queries from "./__sql__/b";
+
+      export default sql\`select 1 as a\`
+
+      module queries {
+        // this should be removed!
+      }
+    `,
+  })
+
+  syncer.sync()
+
+  await gdesc.gdescriber({
+    ...gdescParams(syncer.baseDir),
+    writeTypes: gdesc.defaultWriteTypes({
+      getQueriesModule: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
+    }),
+  })
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    a.ts: |-
+      import * as queries from './__sql__/a'
+      import {sql} from 'slonik'
+      
+      export default sql<queries.A>\`select 1 as a\`
+      
+    b.ts: |-
+      import {sql} from 'slonik'
+      import * as queries from './__sql__/b'
+      
+      export default sql<queries.A>\`select 1 as a\`
+      
+    __sql__: 
+      a.ts: |-
+        /** - query: \`select 1 as a\` */
+        export interface A {
+          /** postgres type: \`integer\` */
+          a: number | null
+        }
+        
+      b.ts: |-
+        /** - query: \`select 1 as a\` */
+        export interface A {
+          /** postgres type: \`integer\` */
+          a: number | null
+        }
+        "
+  `)
+}, 20000)
+
+test('replaces existing queries module', async () => {
+  const syncer = fsSyncer.jest.jestFixture({
+    'index.ts': `
+      import {sql} from 'slonik'
+
+      export default sql\`select 1 as a\`
+
+      module queries {
+        // this should be removed!
+      }
     `,
   })
 
@@ -261,21 +335,13 @@ test('debug write types', async () => {
     index.ts: |-
       import {sql} from 'slonik'
       
-      export default [
-        // small number of queries here makes it easier to add log statements without tons of noise
-        sql<queries.TestTable>\`select id from test_table\`,
-        sql<queries.TestTable>\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
-      ]
+      export default sql<queries.A>\`select 1 as a\`
       
       module queries {
-        /**
-         * queries:
-         * - \`select id from test_table\`
-         * - \`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`
-         */
-        export interface TestTable {
-          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
-          id: number
+        /** - query: \`select 1 as a\` */
+        export interface A {
+          /** postgres type: \`integer\` */
+          a: number | null
         }
       }
       "
@@ -284,7 +350,7 @@ test('debug write types', async () => {
 
 test('ignore irrelevant syntax', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': dedent`
+    'index.ts': `
       import {sql} from 'slonik'
 
       export default () => {
@@ -335,7 +401,7 @@ test('ignore irrelevant syntax', async () => {
 
 test(`queries with syntax errors don't affect others`, async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': dedent`
+    'index.ts': `
       import {sql} from 'slonik'
 
       export default [
@@ -347,7 +413,20 @@ test(`queries with syntax errors don't affect others`, async () => {
 
   syncer.sync()
 
+  const errorMock = jest.spyOn(console, 'error').mockReset()
+
   await gdesc.gdescriber(gdescParams(syncer.baseDir))
+
+  expect(errorMock).toHaveBeenCalledTimes(1)
+  expect(errorMock.mock.calls[0]).toMatchInlineSnapshot(`
+    Array [
+      "Describing query failed: Error: Error running psql query.
+    Query: \\"this is a nonsense query which will cause an error \\\\\\\\gdesc\\"
+    Result: \\"psql:<stdin>:1: ERROR:  syntax error at or near \\\\\\"this\\\\\\"\\\\nLINE 1: this is a nonsense query which will cause an error \\\\n        ^\\"
+    Error: Unexpected psql table format:
+    ",
+    ]
+  `)
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -373,4 +452,109 @@ test(`queries with syntax errors don't affect others`, async () => {
   `)
 })
 
-test.todo('sql.identifier will not work')
+test('custom glob pattern', async () => {
+  const syncer = fsSyncer.jest.jestFixture({
+    'excluded.ts': `
+      import {sql} from 'slonik'
+
+      export default sql\`select 0 as a\`
+    `,
+    'included1.ts': `
+      import {sql} from 'slonik'
+
+      export default sql\`select 1 as a\`
+    `,
+    'included2.ts': `
+      import {sql} from 'slonik'
+
+      export default sql\`select 2 as a\`
+    `,
+  })
+
+  syncer.sync()
+
+  await gdesc.gdescriber({
+    ...gdescParams(syncer.baseDir),
+    glob: 'included*.ts',
+  })
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    excluded.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql\`select 0 as a\`
+      
+    included1.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.A>\`select 1 as a\`
+      
+      module queries {
+        /** - query: \`select 1 as a\` */
+        export interface A {
+          /** postgres type: \`integer\` */
+          a: number | null
+        }
+      }
+      
+    included2.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.A>\`select 2 as a\`
+      
+      module queries {
+        /** - query: \`select 2 as a\` */
+        export interface A {
+          /** postgres type: \`integer\` */
+          a: number | null
+        }
+      }
+      "
+  `)
+}, 20000)
+
+test('variable table name', async () => {
+  const syncer = fsSyncer.jest.jestFixture({
+    'index.ts': `
+      import {sql} from 'slonik'
+
+      const tableName = 'test_table'
+
+      export default sql\`select * from ${'${sql.identifier([tableName])}'}\`
+    `,
+  })
+
+  syncer.sync()
+
+  const errorMock = jest.spyOn(console, 'error').mockReset()
+
+  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+
+  expect(errorMock).toHaveBeenCalledTimes(1)
+  expect(errorMock.mock.calls[0]).toMatchInlineSnapshot(`
+    Array [
+      "Describing query failed: Error: Error running psql query.
+    Query: \\"select * from $1 \\\\\\\\gdesc\\"
+    Result: \\"psql:<stdin>:1: ERROR:  syntax error at or near \\\\\\"$1\\\\\\"\\\\nLINE 1: select * from $1 \\\\n                      ^\\"
+    Error: Unexpected psql table format:
+    ",
+    ]
+  `)
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      const tableName = 'test_table'
+      
+      export default sql<queries.Anonymous>\`select * from \${sql.identifier([tableName])}\`
+      
+      module queries {
+        /** - query: \`select * from $1\` */
+        export interface Anonymous {}
+      }
+      "
+  `)
+}, 20000)

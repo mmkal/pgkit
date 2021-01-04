@@ -42,13 +42,7 @@ export const writeTypeScriptFiles = ({
   lodash
     .chain(queries)
     .groupBy(q => q.file)
-    .mapValues((queries): null | TaggedQuery[] => {
-      try {
-        return addTags(queries)
-      } catch (e) {
-        return null
-      }
-    })
+    .mapValues(addTags)
     .pickBy(Boolean)
     .mapValues(queries => queries!) // help the type system figure out we threw out the nulls using `pickBy(Boolean)`
     .forIn(getFileWriter(getQueriesModule))
@@ -59,6 +53,13 @@ interface TaggedQuery extends AnalysedQuery {
   tag: string
 }
 
+/**
+ * Find a tag (interface) name for each query. This is based on the "suggested tags" which are calculated from the tables
+ * and columns referenced in the query. e.g. `select id, content from message` will have suggested tags
+ * `['Message', 'Message_id_content']`. If multiple queries share the same type, they can use the same tag. If they have
+ * different types they will get different tags, going through the suggestions and using `_0`, `_1` to disambiguate as a
+ * last resort.
+ */
 const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
   const withIdentifiers = queries.map(q => ({
     ...q,
@@ -197,13 +198,15 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
         if (ts.isIdentifier(node.tag)) {
           if (node.tag.getText() === 'sql') {
             const match = group.find(q => q.text === node.getFullText())
-            if (match) {
-              edits.push({
-                start: node.tag.getStart(sourceFile),
-                end: node.template.getStart(sourceFile),
-                replacement: `sql<queries.${match.tag}>`,
-              })
-            }
+            assert.ok(
+              match,
+              `Couldn't find ${node.getFullText()} in list of extracted queries. Maybe the source was modified part-way through the run?`,
+            )
+            edits.push({
+              start: node.tag.getStart(sourceFile),
+              end: node.template.getStart(sourceFile),
+              replacement: `sql<queries.${match.tag}>`,
+            })
           }
         }
       }
@@ -214,9 +217,6 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
 }
 
 function queriesModule(group: TaggedQuery[]) {
-  if (group.length === 0) {
-    return ''
-  }
   return `
     module queries {
       ${queryInterfaces(group)}

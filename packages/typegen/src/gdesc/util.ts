@@ -15,7 +15,7 @@ export const simplifyWhitespace = (whitespaceInsensitiveString: string, newlineR
 
 export const pascalCase = lodash.flow(lodash.camelCase, lodash.upperFirst)
 
-export const relativeUnixPath = (filepath: string, relativeFrom = process.cwd()) => {
+export const relativeUnixPath = (filepath: string, relativeFrom: string) => {
   return path.relative(relativeFrom, filepath).replace(/\\/g, '/')
 }
 
