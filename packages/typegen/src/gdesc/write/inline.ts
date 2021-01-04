@@ -6,6 +6,7 @@ import type * as ts from 'typescript'
 import * as fs from 'fs'
 import * as path from 'path'
 import {getSuggestedTags} from '../query-analysis'
+import * as assert from 'assert'
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
@@ -102,9 +103,10 @@ export const renderQueryInterface = (queryGroup: AnalysedQuery[], interfaceName:
       ? [`- query: \`${jsdocQuery(query.sql)}\``, query.comment]
       : [`queries:\n${queryGroup.map(q => `- \`${jsdocQuery(q.sql)}\``).join('\n')}`, ...queryGroup.map(q => q.comment)]
   const bodies = queryGroup.map(interfaceBody)
-  if (new Set(bodies).size !== 1) {
-    throw new Error(`Query group ${interfaceName} produced inconsistent interface bodies: ${bodies}`)
-  }
+
+  const numBodies = new Set(bodies).size
+  assert.strictEqual(numBodies, 1, `Query group ${interfaceName} produced inconsistent interface bodies: ${bodies}`)
+
   return `
     ${jsdocComment(comments)}
      export interface ${interfaceName} ${bodies[0]}
