@@ -78,11 +78,11 @@ test('write types', async () => {
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
         sql<queries.TestTable_id>\`select id from test_table where id = \${1} and n = \${2}\`,
         sql<queries._void>\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
-        sql<queries._void_2>\`update test_table set t = ''\`,
-        sql<queries.TestTable_0>\`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\`,
-        sql<queries.TestTable_0>\`update test_table set t = '' returning id, t\`,
-        sql<queries.TestTable_0>\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
-        sql<queries.TestTable_0>\`update test_table as tt set t = '' returning id, t\`,
+        sql<queries._void>\`update test_table set t = ''\`,
+        sql<queries.TestTable_id_t>\`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\`,
+        sql<queries.TestTable_id_t>\`update test_table set t = '' returning id, t\`,
+        sql<queries.TestTable_id_t>\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
+        sql<queries.TestTable_id_t>\`update test_table as tt set t = '' returning id, t\`,
         sql<queries.TestTable_tAliased1_tNnAliased>\`
           select t as t_aliased1, t_nn as t_nn_aliased
           from test_table as tt1
@@ -164,10 +164,10 @@ test('write types', async () => {
         export interface _void {}
       
         /** - query: \`update test_table set t = ''\` */
-        export interface _void_2 {}
+        export interface _void {}
       
         /** - query: \`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\` */
-        export interface TestTable_0 {
+        export interface TestTable_id_t {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
@@ -179,7 +179,7 @@ test('write types', async () => {
         }
       
         /** - query: \`update test_table set t = '' returning id, t\` */
-        export interface TestTable_0 {
+        export interface TestTable_id_t {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
@@ -191,7 +191,7 @@ test('write types', async () => {
         }
       
         /** - query: \`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\` */
-        export interface TestTable_0 {
+        export interface TestTable_id_t {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**
@@ -203,7 +203,7 @@ test('write types', async () => {
         }
       
         /** - query: \`update test_table as tt set t = '' returning id, t\` */
-        export interface TestTable_0 {
+        export interface TestTable_id_t {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
           /**

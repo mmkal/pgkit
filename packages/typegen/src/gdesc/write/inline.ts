@@ -59,7 +59,7 @@ interface TaggedQuery extends AnalysedQuery {
 }
 
 const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
-  const withIdentifiers = queries.map(q => ({...q, identifier: JSON.stringify(q.template)}))
+  const withIdentifiers = queries.map(q => ({...q, identifier: JSON.stringify(q.fields)}))
 
   const tagMap = lodash
     .chain(withIdentifiers)
@@ -91,12 +91,17 @@ const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
   }))
 }
 
+// todo: make `comment?: string` into `comments: string[]` so that it can be tweaked, and this becomes a pure write-to-disk method.
 const queryInterface = (query: AnalysedQuery, interfaceName: string) => `
    ${jsdocComment([
      `- query: \`${jsdocQuery(query.sql)}\``, // break
      query.comment,
    ])}
-  export interface ${interfaceName} {
+  export interface ${interfaceName} ${interfaceBody(query)}
+`
+
+const interfaceBody = (query: AnalysedQuery) =>
+  `{
     ${query.fields.map(f => {
       const prop = JSON.stringify(f.name) // prop key might not be a valid identifier name. JSON-ify it, and prettier will get rid of the quotes in most cases.
       const type =
