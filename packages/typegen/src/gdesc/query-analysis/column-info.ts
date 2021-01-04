@@ -146,23 +146,16 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
   sql.includes('count(') && console.log(ast)
 
   if (ast.type === 'select' && ast.columns) {
-    const matchingColumns = ast.columns.filter(c => {
+    // special case: `count(...)` is always non-null
+    const matchingCountColumns = ast.columns.filter(c => {
       if (c.expr.type !== 'call' || c.expr.function !== 'count') {
         return false
       }
       const name = c.alias || 'count'
       return field.name === name
     })
-    return matchingColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
+    return matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
   }
 
-  return false
-}
-
-export const isNotNull = (viewResult: ViewResult) => {
-  if (viewResult.is_underlying_nullable === 'NO') {
-    return true
-  }
-  // todo: check for some known functions which always return non-null like `count(*)`
   return false
 }
