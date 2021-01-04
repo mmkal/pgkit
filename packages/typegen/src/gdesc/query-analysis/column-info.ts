@@ -5,6 +5,7 @@ import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
 import {getHopefullyViewableAST} from './parse'
 
+// todo: create a schema to put these in?
 const getTypesSql = sql`
 drop type if exists types_type cascade;
 

@@ -138,9 +138,9 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
       const importExists =
         source.includes(importStatement) ||
         source.includes(importStatement.replace(/'/g, `"`)) || // double quotes
-        !source.includes(importStatement.replace('import * as', 'import')) // synthetic default import
+        source.includes(importStatement.replace('import * as', 'import')) // synthetic default import
 
-      if (importExists) {
+      if (!importExists) {
         edits.push({
           start: 0,
           end: 0,
@@ -200,10 +200,7 @@ function queriesModule(group: TaggedQuery[]) {
 function queryInterfaces(group: TaggedQuery[]) {
   return lodash
     .chain(group)
-    .map(q => ({
-      ...q,
-      typescript: queryInterface(q, 'placeholder'),
-    }))
+    .map(q => ({...q, typescript: queryInterface(q, 'placeholder')}))
     .uniqBy(q => q.typescript)
     .map(q => queryInterface(q, q.tag))
     .value()
