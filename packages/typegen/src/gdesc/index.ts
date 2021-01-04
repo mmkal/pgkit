@@ -70,21 +70,27 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
     const files = await globAsync(globParams[0], {...globParams[1], cwd: rootDir, absolute: true})
 
-    const promises = files.flatMap(extractQueries).map(async query => {
-      const described: DescribedQuery = {
-        ...query,
-        fields: await describeCommand(query.sql).catch(e => {
+    const promises = files.flatMap(extractQueries).map(
+      async (query): Promise<DescribedQuery | null> => {
+        try {
+          return {
+            ...query,
+            fields: await describeCommand(query.sql),
+          }
+        } catch (e) {
           console.error(`Describing query failed: ${e}`)
-          return []
-        }),
-      }
+          return null
+        }
+      },
+    )
 
-      return getColumnInfo(described)
-    })
+    const describedQueries = lodash.compact(await Promise.all(promises))
 
-    const queries = await Promise.all(promises)
+    const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
 
-    writeTypes(queries)
+    // const queries = await Promise.all(lodash.compact(await Promise.all(promises)).map(getColumnInfo))
+
+    writeTypes(analysedQueries)
   }
 
   return findAll()

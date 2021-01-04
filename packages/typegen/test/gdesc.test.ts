@@ -434,7 +434,7 @@ test(`queries with syntax errors don't affect others`, async () => {
       
       export default [
         sql<queries.TestTable>\`select id from gdesc_test.test_table\`, // this should get a valid type
-        sql<queries.Anonymous>\`this is a nonsense query which will cause an error\`,
+        sql\`this is a nonsense query which will cause an error\`,
       ]
       
       module queries {
@@ -443,9 +443,6 @@ test(`queries with syntax errors don't affect others`, async () => {
           /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
         }
-      
-        /** - query: \`this is a nonsense query which will cause an error\` */
-        export interface Anonymous {}
       }
       "
   `)
@@ -547,12 +544,7 @@ test('variable table name', async () => {
       
       const tableName = 'test_table'
       
-      export default sql<queries.Anonymous>\`select * from \${sql.identifier([tableName])}\`
-      
-      module queries {
-        /** - query: \`select * from $1\` */
-        export interface Anonymous {}
-      }
+      export default sql\`select * from \${sql.identifier([tableName])}\`
       "
   `)
 }, 20000)

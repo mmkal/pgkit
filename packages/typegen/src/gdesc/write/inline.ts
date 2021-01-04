@@ -198,15 +198,13 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
         if (ts.isIdentifier(node.tag)) {
           if (node.tag.getText() === 'sql') {
             const match = group.find(q => q.text === node.getFullText())
-            assert.ok(
-              match,
-              `Couldn't find ${node.getFullText()} in list of extracted queries. Maybe the source was modified part-way through the run?`,
-            )
-            edits.push({
-              start: node.tag.getStart(sourceFile),
-              end: node.template.getStart(sourceFile),
-              replacement: `sql<queries.${match.tag}>`,
-            })
+            if (match) {
+              edits.push({
+                start: node.tag.getStart(sourceFile),
+                end: node.template.getStart(sourceFile),
+                replacement: `sql<queries.${match.tag}>`,
+              })
+            }
           }
         }
       }
