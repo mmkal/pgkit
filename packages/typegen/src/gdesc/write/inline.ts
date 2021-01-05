@@ -5,7 +5,6 @@ import {prettifyOne} from './prettify'
 import type * as ts from 'typescript'
 import * as fs from 'fs'
 import * as path from 'path'
-import {getSuggestedTags} from '../query-analysis'
 import * as assert from 'assert'
 
 // todo: pg-protocol parseError adds all the actually useful information
@@ -36,8 +35,11 @@ export interface WriteTypeScriptFilesOptions {
   getQueriesModule?: (sourceFilePath: string) => string
 }
 
+export const defaultGetQueriesModule = (filepath: string) =>
+  filepath.endsWith('.ts') ? filepath : path.join(path.dirname(filepath), '__sql__', path.basename(filepath) + '.ts')
+
 export const writeTypeScriptFiles = ({
-  getQueriesModule = filepath => filepath,
+  getQueriesModule = defaultGetQueriesModule,
 }: WriteTypeScriptFilesOptions = {}): GdescriberParams['writeTypes'] => queries => {
   lodash
     .chain(queries)
@@ -183,7 +185,11 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
         source = source.slice(0, e.start) + e.replacement + source.slice(e.end)
       })
 
-    fs.writeFileSync(file, prettifyOne({filepath: file, content: source}), 'utf8')
+    if (file.endsWith('.sql')) {
+      // todo: write tyepscript file which links the .sql file with the query module in destPath
+    } else {
+      fs.writeFileSync(file, prettifyOne({filepath: file, content: source}), 'utf8')
+    }
 
     function visit(node: ts.Node) {
       if (ts.isModuleDeclaration(node) && node.name.getText() === 'queries') {

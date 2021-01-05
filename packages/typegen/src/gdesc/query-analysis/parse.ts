@@ -149,12 +149,13 @@ if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
 
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
+  console.log(getHopefullyViewableAST(`select * from test_table where id = null`))
+  throw ''
   console.log(
     getHopefullyViewableAST(
       'SELECT "t1"."id"  FROM "test_table" AS "t1" INNER JOIN "test_table" AS "t2" ON ("t1"."id" = "t2"."n")',
     ),
   )
-  throw ''
   console.log(getHopefullyViewableAST('select t1.id from test_table t1 join test_table t2 on t1.id = t2.n'))
   console.log(aliasMappings(getHopefullyViewableAST(`select a.a, b.b from atable a join btable b on a.i = b.j`)))
   console.log(getHopefullyViewableAST(`select * from (select id from test) d`))
