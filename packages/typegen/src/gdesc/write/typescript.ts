@@ -2,7 +2,7 @@ import * as lodash from 'lodash'
 import {tsPrettify} from './prettify'
 import {TaggedQuery, AnalysedQuery} from '../types'
 import * as assert from 'assert'
-import {simplifyWhitespace, truncate} from '../util'
+import {dedent, simplifyWhitespace, truncate} from '../util'
 
 export const jsdocComment = (lines: Array<string | undefined | false>) => {
   const middle = lines
@@ -18,11 +18,13 @@ export const jsdocComment = (lines: Array<string | undefined | false>) => {
     : `/** ${middle} */`.replace('* *', '*')
 }
 
+export const quotePropKey = (key: string) => (key.match(/\W/) ? JSON.stringify(key) : key)
+
 export const interfaceBody = (query: AnalysedQuery) =>
   `{
     ${query.fields
       .map(f => {
-        const prop = f.name.match(/\W/) ? JSON.stringify(f.name) : f.name
+        const prop = quotePropKey(f.name)
         const type =
           f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
             ? `${f.typescript}`

@@ -35,32 +35,44 @@ module queries {
   export interface TestTable {
     /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
     id: number
+
     /** column: `gdesc_test.test_table.n`, postgres type: `integer` */
     n: number | null
+
     /**
      * Some custom comment on "t"
      *
      * column: `gdesc_test.test_table.t`, postgres type: `text`
      */
     t: string | null
+
     /** column: `gdesc_test.test_table.t_nn`, not null: `true`, postgres type: `text` */
     t_nn: string
+
     /** column: `gdesc_test.test_table.cv`, postgres type: `character varying(1)` */
     cv: string | null
+
     /** column: `gdesc_test.test_table.arr`, postgres type: `text[]` */
     arr: Array<string> | null
+
     /** column: `gdesc_test.test_table.e`, postgres type: `test_enum` */
     e: ('aa' | 'bb' | 'cc') | null
+
     /** column: `gdesc_test.test_table.tz`, postgres type: `timestamp with time zone` */
     tz: number | null
+
     /** column: `gdesc_test.test_table.tz_nn`, not null: `true`, postgres type: `timestamp with time zone` */
     tz_nn: number
+
     /** column: `gdesc_test.test_table.j`, postgres type: `json` */
     j: unknown
+
     /** column: `gdesc_test.test_table.jb`, postgres type: `jsonb` */
     jb: unknown
+
     /** column: `gdesc_test.test_table.j_nn`, not null: `true`, postgres type: `json` */
     j_nn: unknown
+
     /** column: `gdesc_test.test_table.jb_nn`, not null: `true`, postgres type: `jsonb` */
     jb_nn: unknown
   }
@@ -76,6 +88,7 @@ module queries {
   export interface TestTable_id_t {
     /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
     id: number
+
     /**
      * Some custom comment on "t"
      *
@@ -94,6 +107,7 @@ module queries {
   export interface TestTable_idalias_talias {
     /** column: `gdesc_test.test_table.id`, not null: `true`, postgres type: `integer` */
     idalias: number
+
     /**
      * Some custom comment on "t"
      *
@@ -141,6 +155,7 @@ module queries {
   export interface Anonymous {
     /** postgres type: `integer` */
     num: number | null
+
     /** postgres type: `text` */
     letter: string | null
   }
@@ -159,6 +174,7 @@ module queries {
      * column: `gdesc_test.test_table.t`, postgres type: `text`
      */
     t_aliased1: string | null
+
     /** column: `gdesc_test.test_table.t_nn`, not null: `true`, postgres type: `text` */
     t_nn_aliased: string
   }

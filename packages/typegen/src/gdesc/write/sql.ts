@@ -1,7 +1,7 @@
-import {relativeUnixPath} from '../util'
+import {dedent, relativeUnixPath} from '../util'
 import * as path from 'path'
 import * as fs from 'fs'
-import {queryInterfaces} from './typescript'
+import {jsdocComment, jsdocQuery, queryInterfaces} from './typescript'
 import {TaggedQuery} from '../types'
 import {prettifyOne, tsPrettify} from './prettify'
 
@@ -12,9 +12,7 @@ export interface WriteSQLFileOptions {
 export const defaultGetModulePathFromSQLPath: WriteSQLFileOptions['getModulePath'] = sqlPath =>
   path.join(path.dirname(sqlPath), '__sql__', path.basename(sqlPath) + '.ts')
 
-export const getSQLHelperWriter = ({getModulePath = defaultGetModulePathFromSQLPath}: WriteSQLFileOptions = {}) => (
-  query: TaggedQuery,
-) => {
+export const getSQLHelperWriter = (getModulePath = defaultGetModulePathFromSQLPath) => (query: TaggedQuery) => {
   const destPath = getModulePath(query.file)
   const newContent = getSQLHelperContent(query, destPath)
 
@@ -28,7 +26,33 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
 
   const content = queryInterfaces([query])
 
+  const comment = dedent(`
+    Helper which reads the file system synchronously to get a query object for ${relPath}.
+    (query: \`${jsdocQuery(query.sql)}\`)
+
+    Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFileSync\` function for use-cases where disk access is not possible.
+
+    @example
+    \`\`\`
+    import {createPool} from 'slonik'
+    import {get${tag}QuerySync} from './path/to/${path.parse(destPath).name}'
+
+    async function () {
+      const pool = createPool('...connection string...')
+
+      const result = await pool.query(get${tag}QuerySync())
+
+      return result.rows.map(r => [${query.fields
+        .filter(f => !f.name.match(/\W/))
+        .slice(0, 2)
+        .map(f => `r.${f.name}`)
+        .join(', ')}])
+    }
+    \`\`\`
+  `)
+
   const queryHelpers = tsPrettify(`
+    ${jsdocComment([comment])}
     export const get${tag}QuerySync = ({
       readFileSync = defaultReadFileSync,
       values = []
@@ -38,6 +62,11 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       values,
     })
 
+    ${jsdocComment([comment])
+      .replace(/readFileSync/g, 'readFile')
+      .replace(/Sync/g, 'Async')
+      .replace(/sync/g, 'async')
+      .replace(`get${tag}QueryAsync()`, `await get${tag}QueryAsync()`)}
     export const get${tag}QueryAync = async ({
       readFile = defaultReadFileAsync,
       values = []

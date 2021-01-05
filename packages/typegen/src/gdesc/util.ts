@@ -2,6 +2,7 @@ import * as glob from 'glob'
 import {promisify} from 'util'
 import * as lodash from 'lodash'
 import * as path from 'path'
+import * as assert from 'assert'
 
 export const globAsync = promisify(glob)
 
@@ -25,6 +26,13 @@ export const truncate = (str: string, maxLength = 100, truncatedMessage = '... [
   }
   const halfLength = Math.floor((maxLength - truncatedMessage.length) / 2)
   return str.slice(0, halfLength) + truncatedMessage + str.slice(-halfLength)
+}
+
+export const dedent = (str: string) => {
+  const lines = str.split('\n').slice(1)
+  if (lines.length === 0) return str
+  const margin = lines[0].match(/^\s+/)?.[0] || ''
+  return lines.map(line => line.replace(margin, '')).join('\n')
 }
 
 export const tryOr = <A extends unknown[], T>(fn: (...args: A) => T, onErr: (...args: [...A, unknown]) => T) => (
