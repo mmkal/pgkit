@@ -120,7 +120,7 @@ const interfaceBody = (query: AnalysedQuery) =>
   `{
     ${query.fields
       .map(f => {
-        const prop = JSON.stringify(f.name) // prop key might not be a valid identifier name. JSON-ify it, and prettier will get rid of the quotes in most cases.
+        const prop = f.name.match(/\W/) ? JSON.stringify(f.name) : f.name
         const type =
           f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
             ? `${f.typescript}`
