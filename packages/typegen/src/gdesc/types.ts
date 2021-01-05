@@ -169,6 +169,10 @@ export interface AnalysedQueryField extends QueryField {
   comment: string | undefined
 }
 
+export interface TaggedQuery extends AnalysedQuery {
+  tag: string
+}
+
 export interface ResolvedTableColumn {}
 
 /** Corresponds to a @see slonik.TypeParserType */

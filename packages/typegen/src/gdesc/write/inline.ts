@@ -1,30 +1,15 @@
 import * as lodash from 'lodash'
-import {AnalysedQuery, GdescriberParams} from '../types'
-import {relativeUnixPath, simplifyWhitespace, truncate} from '../util'
-import {prettifyOne} from './prettify'
+import {GdescriberParams, TaggedQuery} from '../types'
+import {relativeUnixPath} from '../util'
+import {prettifyOne, tsPrettify} from './prettify'
 import type * as ts from 'typescript'
 import * as fs from 'fs'
 import * as path from 'path'
-import * as assert from 'assert'
+import {addTags} from '../query/tag'
+import {queryInterfaces} from './typescript'
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
-
-const jsdocQuery = lodash.flow(simplifyWhitespace, truncate)
-
-const jsdocComment = (lines: Array<string | undefined | false>) => {
-  const middle = lines
-    .filter(line => typeof line === 'string')
-    .join('\n\n')
-    .trim()
-    .split('\n')
-    .map(line => `* ${line}`)
-    .join('\n')
-
-  return middle.includes('\n')
-    ? `/**\n${middle}\n*/` // surround multiline comments with new lines
-    : `/** ${middle} */`.replace('* *', '*')
-}
 
 export interface WriteTypeScriptFilesOptions {
   /**
@@ -51,126 +36,45 @@ export const writeTypeScriptFiles = ({
     .value()
 }
 
-interface TaggedQuery extends AnalysedQuery {
-  tag: string
+interface Edit {
+  start: number
+  end: number
+  replacement: string
 }
 
-/**
- * Find a tag (interface) name for each query. This is based on the "suggested tags" which are calculated from the tables
- * and columns referenced in the query. e.g. `select id, content from message` will have suggested tags
- * `['Message', 'Message_id_content']`. If multiple queries share the same type, they can use the same tag. If they have
- * different types they will get different tags, going through the suggestions and using `_0`, `_1` to disambiguate as a
- * last resort.
- */
-const addTags = (queries: AnalysedQuery[]): TaggedQuery[] => {
-  const withIdentifiers = queries.map(q => ({
-    ...q,
-    identifier: JSON.stringify(q.fields), // if two queries have _identical_ fields, we can give them the same tag
-  }))
+const applyEdits = (input: string, edits: Edit[]) =>
+  lodash.sortBy(edits, e => e.end).reduceRight((s, e) => s.slice(0, e.start) + e.replacement + s.slice(e.end), input)
 
-  const tagMap = lodash
-    .chain(withIdentifiers)
-    .flatMap(q =>
-      q.suggestedTags.map((tag, _i, allTags) => ({
-        ...q,
-        tag,
-        alternatives: allTags,
-      })),
-    )
-    .sortBy(q => q.alternatives.length)
-    .map((q, i, arr) => {
-      const firstWithTagIndex = lodash.findIndex(arr, o => o.tag === q.tag)
-      const matchesFirstTag = arr[firstWithTagIndex].identifier === q.identifier
-      return {
-        ...q,
-        tag: matchesFirstTag ? q.tag : q.tag + '_' + firstWithTagIndex,
-        priority: matchesFirstTag ? 0 : 1,
-      }
-    })
-    .sortBy(q => q.priority)
-    .uniqBy(q => q.identifier)
-    .keyBy(q => q.identifier)
-    .value()
-
-  return withIdentifiers.map(q => ({
-    ...q,
-    tag: tagMap[q.identifier].tag,
-  }))
-}
-
-// todo: make `comment?: string` into `comments: string[]` so that it can be tweaked, and this becomes a pure write-to-disk method.
-export const renderQueryInterface = (queryGroup: AnalysedQuery[], interfaceName: string) => {
-  const [query, ...rest] = queryGroup
-  const comments =
-    rest.length === 0
-      ? [`- query: \`${jsdocQuery(query.sql)}\``, query.comment]
-      : [`queries:\n${queryGroup.map(q => `- \`${jsdocQuery(q.sql)}\``).join('\n')}`, ...queryGroup.map(q => q.comment)]
-  const bodies = queryGroup.map(interfaceBody)
-
-  const numBodies = new Set(bodies).size
-  assert.strictEqual(numBodies, 1, `Query group ${interfaceName} produced inconsistent interface bodies: ${bodies}`)
-
-  return `
-    ${jsdocComment(comments)}
-     export interface ${interfaceName} ${bodies[0]}
-  `
-}
-
-const interfaceBody = (query: AnalysedQuery) =>
-  `{
-    ${query.fields
-      .map(f => {
-        const prop = f.name.match(/\W/) ? JSON.stringify(f.name) : f.name
-        const type =
-          f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
-            ? `${f.typescript}`
-            : `(${f.typescript}) | null`
-
-        const meta = Object.entries({column: f.column, 'not null': f.notNull, 'postgres type': f.gdesc})
-          .filter(e => e[1])
-          .map(e => `${e[0]}: \`${e[1]}\``)
-          .join(', ')
-
-        return `
-          ${jsdocComment([f.comment, meta])}
-          ${prop}: ${type}
-        `
-      })
-      .join('\n')}
-}`
-
-function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
+export function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
   return (group: TaggedQuery[], file: string) => {
     const ts: typeof import('typescript') = require('typescript')
-    let source = fs.readFileSync(file).toString()
-    const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
+    const originalSource = fs.readFileSync(file).toString()
+    const sourceFile = ts.createSourceFile(file, originalSource, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
 
-    const edits: Array<{
-      start: number
-      end: number
-      replacement: string
-    }> = []
+    const edits: Array<Edit> = []
 
     visit(sourceFile)
 
     const destPath = getQueriesModule(file)
     if (destPath === file) {
       edits.push({
-        start: source.length,
-        end: source.length,
+        start: originalSource.length,
+        end: originalSource.length,
         replacement: queriesModule(group),
       })
     } else {
+      let content = queryInterfaces(group)
       fs.mkdirSync(path.dirname(destPath), {recursive: true})
-      fs.writeFileSync(destPath, prettifyOne({filepath: destPath, content: queryInterfaces(group)}), 'utf8')
+      fs.writeFileSync(destPath, prettifyOne({filepath: destPath, content}), 'utf8')
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
       const importStatement = `import * as queries from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
 
       const importExists =
-        source.includes(importStatement) ||
-        source.includes(importStatement.replace(/'/g, `"`)) || // double quotes
-        source.includes(importStatement.replace('import * as', 'import')) // synthetic default import
+        originalSource.includes(importStatement) ||
+        originalSource.includes(importStatement.replace(/'/g, `"`)) || // double quotes
+        originalSource.includes(importStatement.replace('import * as', 'import')) || // synthetic default import
+        originalSource.includes(importStatement.replace(/'/g, `"`).replace('import * as', 'import')) // synthetic default import with double quotes
 
       if (!importExists) {
         edits.push({
@@ -181,16 +85,12 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
       }
     }
 
-    lodash
-      .sortBy(edits, e => -e.end)
-      .forEach(e => {
-        source = source.slice(0, e.start) + e.replacement + source.slice(e.end)
-      })
+    const newSource = applyEdits(originalSource, edits)
 
     if (file.endsWith('.sql')) {
       // todo: write tyepscript file which links the .sql file with the query module in destPath
     } else {
-      fs.writeFileSync(file, prettifyOne({filepath: file, content: source}), 'utf8')
+      fs.writeFileSync(file, prettifyOne({filepath: file, content: newSource}), 'utf8')
     }
 
     function visit(node: ts.Node) {
@@ -230,22 +130,4 @@ function queriesModule(group: TaggedQuery[]) {
   `
 
   return '\n' + tsPrettify(uglyContent)
-}
-
-const tsPrettify = (uglyContent: string) => {
-  const ts: typeof import('typescript') = require('typescript')
-  const sourceFile = ts.createSourceFile(__filename, uglyContent, ts.ScriptTarget.ES2015, true)
-  const prettyContent = ts.createPrinter().printNode(ts.EmitHint.SourceFile, sourceFile, sourceFile)
-  return prettyContent
-}
-
-function queryInterfaces(group: TaggedQuery[]) {
-  const uglyContent = lodash
-    .chain(group)
-    .groupBy(q => q.tag)
-    .map(renderQueryInterface)
-    .value()
-    .join('\n\n')
-
-  return tsPrettify(uglyContent)
 }
