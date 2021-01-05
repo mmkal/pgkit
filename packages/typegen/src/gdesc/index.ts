@@ -2,10 +2,11 @@ import * as lodash from 'lodash'
 import {globAsync} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
-import {GdescriberParams, QueryField, DescribedQuery} from './types'
+import {GdescriberParams, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
 import {columnInfoGetter} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
+import {parameterTypesGetter} from './query/parameters'
 
 export * from './types'
 export * from './defaults'
@@ -24,8 +25,8 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
 
-  const describeCommand = async (query: string): Promise<QueryField[]> => {
-    const rows = await psql(`${query} \\gdesc`)
+  const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
+    const rows = await psql(`${query.sql} \\gdesc`)
     const fields = await Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
         name: row.Column,
@@ -35,6 +36,22 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     )
 
     return Promise.all(fields)
+  }
+
+  const getParameterTypes = parameterTypesGetter(pool)
+  const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
+    const regtypes = await getParameterTypes(query.sql)
+    const enumTypes = await getEnumTypes()
+
+    return regtypes.map((regtype, i) => ({
+      name: `param_${i + 1}`, // todo: parse query and use heuristic to get sensible names
+      regtype,
+      typescript:
+        // todo: handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
+        defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
+        enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
+        defaultType,
+    }))
   }
 
   const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
@@ -80,7 +97,8 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
         try {
           return {
             ...query,
-            fields: await describeCommand(query.sql),
+            fields: await getFields(query),
+            parameters: await getParameters(query),
           }
         } catch (e) {
           console.error(`Describing query failed: ${e}`)

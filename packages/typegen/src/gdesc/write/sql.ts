@@ -1,4 +1,4 @@
-import {dedent, relativeUnixPath} from '../util'
+import {dedent, relativeUnixPath, typeName} from '../util'
 import * as path from 'path'
 import * as fs from 'fs'
 import {jsdocComment, jsdocQuery, queryInterfaces} from './typescript'
@@ -21,6 +21,7 @@ export const getSQLHelperWriter = (getModulePath = defaultGetModulePathFromSQLPa
 }
 
 export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
+  query = {...query, tag: typeName(path.parse(query.file).name)}
   const relPath = relativeUnixPath(query.file, path.dirname(destPath))
   const tag = query.tag
 
@@ -51,15 +52,29 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     \`\`\`
   `)
 
+  const defaults = {
+    valuesParam: 'values',
+    paramsObj: '',
+    sqlTokenValueProp: 'values',
+    interfaceValueProp: `values: [${query.parameters.map(p => p.typescript).join(', ')}]`,
+  }
+
+  if (query.parameters.length === 0) {
+    defaults.valuesParam = ''
+    defaults.paramsObj = '= {}'
+    defaults.sqlTokenValueProp = 'values: []'
+    defaults.interfaceValueProp = ''
+  }
+
   const queryHelpers = tsPrettify(`
     ${jsdocComment([comment])}
     export const get${tag}QuerySync = ({
       readFileSync = defaultReadFileSync,
-      values = []
-    }: Partial<Get${tag}QuerySyncParams> = {}): TaggedTemplateLiteralInvocationType<${tag}> => ({
+      ${defaults.valuesParam}
+    }: Get${tag}QuerySyncParams ${defaults.paramsObj}): TaggedTemplateLiteralInvocationType<${tag}> => ({
       sql: readFileSync(sqlPath).toString(),
       type: 'SLONIK_TOKEN_SQL',
-      values,
+      ${defaults.sqlTokenValueProp},
     })
 
     ${jsdocComment([comment])
@@ -69,17 +84,17 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       .replace(`get${tag}QueryAsync()`, `await get${tag}QueryAsync()`)}
     export const get${tag}QueryAync = async ({
       readFile = defaultReadFileAsync,
-      values = []
-    }: Partial<Get${tag}QueryAsyncParams> = {}): Promise<TaggedTemplateLiteralInvocationType<${tag}>> => ({
+      ${defaults.valuesParam}
+    }: Get${tag}QueryAsyncParams ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocationType<${tag}>> => ({
       sql: (await readFile(sqlPath)).toString(),
       type: 'SLONIK_TOKEN_SQL',
-      values,
+      ${defaults.sqlTokenValueProp},
     })
 
     const sqlPath = path.join(__dirname, (${JSON.stringify(relPath)}))
 
     export interface Get${tag}QueryParams {
-      values: any[]
+      ${query.parameters.length === 0 ? '' : `values: [${query.parameters.map(p => p.typescript).join(', ')}]`}
     }
 
     export interface FileContent {
@@ -87,16 +102,16 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     }
 
     export interface Get${tag}QuerySyncParams extends Get${tag}QueryParams {
-      readFileSync: (filepath: string) => FileContent
+      readFileSync?: (filepath: string) => FileContent
     }
 
     export interface Get${tag}QueryAsyncParams extends Get${tag}QueryParams {
-      readFile: (filepath: string) => Promise<FileContent>
+      readFile?: (filepath: string) => Promise<FileContent>
     }
 
     export const _queryCache = new Map<string, string>()
 
-    export const defaultReadFileSync: GetTestTableQuerySyncParams['readFileSync'] = (filepath: string) => {
+    export const defaultReadFileSync: Get${tag}QuerySyncParams['readFileSync'] = (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
         return cached
@@ -106,7 +121,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       return content
     }
     
-    export const defaultReadFileAsync: GetTestTableQueryAsyncParams['readFile'] = async (filepath: string) => {
+    export const defaultReadFileAsync: Get${tag}QueryAsyncParams['readFile'] = async (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
         return cached

@@ -16,6 +16,8 @@ export const simplifyWhitespace = (whitespaceInsensitiveString: string, newlineR
 
 export const pascalCase = lodash.flow(lodash.camelCase, lodash.upperFirst)
 
+export const typeName = lodash.flow(pascalCase, s => (s.match(/^[A-Z]/) ? s : `_${s}`))
+
 export const relativeUnixPath = (filepath: string, relativeFrom: string) => {
   return path.relative(relativeFrom, filepath).replace(/\\/g, '/')
 }

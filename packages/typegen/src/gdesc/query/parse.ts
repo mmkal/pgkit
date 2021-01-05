@@ -146,11 +146,22 @@ export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappin
 
 /* istanbul ignore if */
 if (require.main === module) {
-  console.log = (x: any) => console.dir(x, {depth: null})
+  console.log = (...x: any[]) => console.dir(x.length === 0 ? x[0] : x, {depth: null})
 
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
-  console.log(getHopefullyViewableAST(`select * from test_table where id = 1;\n--hi;\nselect 2`))
+  console.log(getSuggestedTags([`select * from gettypes('abc')`]))
   throw ''
+  console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
+  pgsqlAST
+    .astVisitor(map => ({
+      constant: t => {
+        console.log({t}, map.super())
+        return map.super().constant(t)
+      },
+    }))
+    .statement(
+      getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`),
+    )
   console.log(
     getHopefullyViewableAST(
       'SELECT "t1"."id"  FROM "test_table" AS "t1" INNER JOIN "test_table" AS "t2" ON ("t1"."id" = "t2"."n")',

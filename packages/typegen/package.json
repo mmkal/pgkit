@@ -12,7 +12,8 @@
     "slonik-typegen": "cli.js"
   },
   "scripts": {
-    "build": "tsc -p ."
+    "build": "tsc -p .",
+    "dogfood": "node dist/gdesc/cli generate"
   },
   "author": "mmkal",
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/typegen#readme",

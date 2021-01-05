@@ -137,6 +137,7 @@ export interface DescribedQuery extends ParsedQuery {
   // tag: string
   /** List of meta objects with info about field types returned by this query */
   fields: QueryField[]
+  parameters: QueryParameter[]
 }
 
 export interface QueryField {
@@ -148,10 +149,20 @@ export interface QueryField {
   typescript: string
 }
 
+export interface QueryParameter {
+  /** The name for the parameter, if any */
+  name: string
+  /** The postgres regtype for the parameter */
+  regtype: string
+  /** The generated typescript type. Based on `regtype` */
+  typescript: string
+}
+
 export interface AnalysedQuery extends ParsedQuery {
   suggestedTags: string[]
   /** List of meta objects with info about field types returned by this query */
   fields: AnalysedQueryField[]
+  parameters: QueryParameter[]
 }
 
 export interface AnalysedQueryField extends QueryField {

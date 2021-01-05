@@ -96,7 +96,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
     await createViewAnalyser()
 
-    const viewResultQuery = sql<ViewResult>`
+    const viewResultQuery = sql<queries.Anonymous>`
       select schema_name, table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
       from gettypes(${viewFriendlySql})
     `
@@ -129,6 +129,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       fields: query.fields.map(f => {
         const relatedResults = parsed.flatMap(c =>
           viewResult.filter(v => {
+            assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
             return (
               c.queryColumn === f.name &&
               c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
@@ -143,7 +144,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
           ...f,
           notNull,
           column: res && `${res.schema_name}.${res.underlying_table_name}.${res.table_column_name}`,
-          comment: res?.comment,
+          comment: res?.comment || undefined,
         }
       }),
     }
@@ -183,4 +184,27 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
 
   const matchingCountColumns = getMatchingCountColumns()
   return matchingCountColumns && matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
+}
+
+module queries {
+  /** - query: `select schema_name, table_column_name, u... [truncated] ...mment, formatted_query from gettypes($1)` */
+  export interface Anonymous {
+    /** postgres type: `text` */
+    schema_name: string | null
+
+    /** postgres type: `text` */
+    table_column_name: string | null
+
+    /** postgres type: `text` */
+    underlying_table_name: string | null
+
+    /** postgres type: `text` */
+    is_underlying_nullable: string | null
+
+    /** postgres type: `text` */
+    comment: string | null
+
+    /** postgres type: `text` */
+    formatted_query: string | null
+  }
 }
