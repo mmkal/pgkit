@@ -118,23 +118,25 @@ export const renderQueryInterface = (queryGroup: AnalysedQuery[], interfaceName:
 
 const interfaceBody = (query: AnalysedQuery) =>
   `{
-    ${query.fields.map(f => {
-      const prop = JSON.stringify(f.name) // prop key might not be a valid identifier name. JSON-ify it, and prettier will get rid of the quotes in most cases.
-      const type =
-        f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
-          ? `${f.typescript}`
-          : `(${f.typescript}) | null`
+    ${query.fields
+      .map(f => {
+        const prop = JSON.stringify(f.name) // prop key might not be a valid identifier name. JSON-ify it, and prettier will get rid of the quotes in most cases.
+        const type =
+          f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
+            ? `${f.typescript}`
+            : `(${f.typescript}) | null`
 
-      const meta = Object.entries({column: f.column, 'not null': f.notNull, 'postgres type': f.gdesc})
-        .filter(e => e[1])
-        .map(e => `${e[0]}: \`${e[1]}\``)
-        .join(', ')
+        const meta = Object.entries({column: f.column, 'not null': f.notNull, 'postgres type': f.gdesc})
+          .filter(e => e[1])
+          .map(e => `${e[0]}: \`${e[1]}\``)
+          .join(', ')
 
-      return `
+        return `
           ${jsdocComment([f.comment, meta])}
           ${prop}: ${type}
         `
-    })}
+      })
+      .join('\n')}
 }`
 
 function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
@@ -221,18 +223,29 @@ function getFileWriter(getQueriesModule: (sourceFilePath: string) => string) {
 }
 
 function queriesModule(group: TaggedQuery[]) {
-  return `
+  const uglyContent = `
     module queries {
       ${queryInterfaces(group)}
     }
   `
+
+  return '\n' + tsPrettify(uglyContent)
+}
+
+const tsPrettify = (uglyContent: string) => {
+  const ts: typeof import('typescript') = require('typescript')
+  const sourceFile = ts.createSourceFile(__filename, uglyContent, ts.ScriptTarget.ES2015, true)
+  const prettyContent = ts.createPrinter().printNode(ts.EmitHint.SourceFile, sourceFile, sourceFile)
+  return prettyContent
 }
 
 function queryInterfaces(group: TaggedQuery[]) {
-  return lodash
+  const uglyContent = lodash
     .chain(group)
     .groupBy(q => q.tag)
     .map(renderQueryInterface)
     .value()
     .join('\n\n')
+
+  return tsPrettify(uglyContent)
 }
