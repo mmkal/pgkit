@@ -98,7 +98,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
           return {
             ...query,
             fields: await getFields(query),
-            parameters: await getParameters(query),
+            parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
           }
         } catch (e) {
           console.error(`Describing query failed: ${e}`)

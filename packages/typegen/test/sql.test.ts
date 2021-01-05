@@ -19,7 +19,7 @@ beforeEach(async () => {
   `)
 })
 
-test('edit before write', async () => {
+test('types for sql files', async () => {
   const syncer = fsSyncer.jest.jestFixture({
     'test-table1.sql': `select id, n from test_table`,
     'test-table2.sql': `select n as aaa from test_table`,

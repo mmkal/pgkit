@@ -7,10 +7,13 @@ module queries {
   export interface Anonymous {
     /** postgres type: `timestamp with time zone` */
     timestamptz: Date | null
+
     /** postgres type: `bigint` */
     int8: bigint | null
+
     /** postgres type: `boolean` */
     bool: boolean | null
+
     /** postgres type: `json` */
     json: unknown
   }

@@ -58,6 +58,7 @@ test('edit before write', async () => {
           id: number & {
             _brand: 'branding_test.test_table.id'
           }
+      
           /** column: \`branding_test.test_table.n\`, postgres type: \`integer\` */
           n: number | null
         }
