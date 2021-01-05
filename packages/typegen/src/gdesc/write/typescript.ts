@@ -18,7 +18,11 @@ export const jsdocComment = (lines: Array<string | undefined | false>) => {
     : `/** ${middle} */`.replace('* *', '*')
 }
 
+const isValidIdentifier = (key: string) => !key.match(/\W/)
+
 export const quotePropKey = (key: string) => (key.match(/\W/) ? JSON.stringify(key) : key)
+
+export const getterExpression = (key: string) => (isValidIdentifier(key) ? `.${key}` : `[${JSON.stringify(key)}]`)
 
 export const interfaceBody = (query: AnalysedQuery) =>
   `{

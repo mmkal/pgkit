@@ -44,7 +44,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const enumTypes = await getEnumTypes()
 
     return regtypes.map((regtype, i) => ({
-      name: `param_${i + 1}`, // todo: parse query and use heuristic to get sensible names
+      name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
       typescript:
         // todo: handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)

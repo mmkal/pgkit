@@ -1,7 +1,7 @@
 import {dedent, relativeUnixPath, typeName} from '../util'
 import * as path from 'path'
 import * as fs from 'fs'
-import {jsdocComment, jsdocQuery, queryInterfaces} from './typescript'
+import {getterExpression, jsdocComment, jsdocQuery, queryInterfaces, quotePropKey} from './typescript'
 import {TaggedQuery} from '../types'
 import {prettifyOne, tsPrettify} from './prettify'
 
@@ -53,17 +53,21 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
   `)
 
   const defaults = {
-    valuesParam: 'values',
+    valuesParam: 'params',
     paramsObj: '',
-    sqlTokenValueProp: 'values',
-    interfaceValueProp: `values: [${query.parameters.map(p => p.typescript).join(', ')}]`,
+    sqlTokenValueProp: `values: [${query.parameters.map(p => `params${getterExpression(p.name)}`).join(', ')}]`,
+    paramsInterface: `export interface Get${tag}QueryParams {
+      ${query.parameters.map(p => `${quotePropKey(p.name)}: ${p.typescript}`).join('\n')}
+    }`,
+    paramsProp: `params: Get${tag}QueryParams`,
   }
 
   if (query.parameters.length === 0) {
     defaults.valuesParam = ''
     defaults.paramsObj = '= {}'
     defaults.sqlTokenValueProp = 'values: []'
-    defaults.interfaceValueProp = ''
+    defaults.paramsInterface = ''
+    defaults.paramsProp = ''
   }
 
   const queryHelpers = tsPrettify(`
@@ -71,7 +75,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     export const get${tag}QuerySync = ({
       readFileSync = defaultReadFileSync,
       ${defaults.valuesParam}
-    }: Get${tag}QuerySyncParams ${defaults.paramsObj}): TaggedTemplateLiteralInvocationType<${tag}> => ({
+    }: Get${tag}QuerySyncOptions ${defaults.paramsObj}): TaggedTemplateLiteralInvocationType<${tag}> => ({
       sql: readFileSync(sqlPath).toString(),
       type: 'SLONIK_TOKEN_SQL',
       ${defaults.sqlTokenValueProp},
@@ -80,12 +84,12 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     ${jsdocComment([comment])
       .replace(/readFileSync/g, 'readFile')
       .replace(/Sync/g, 'Async')
-      .replace(/sync/g, 'async')
+      .replace(/\bsync/g, 'async')
       .replace(`get${tag}QueryAsync()`, `await get${tag}QueryAsync()`)}
     export const get${tag}QueryAync = async ({
       readFile = defaultReadFileAsync,
       ${defaults.valuesParam}
-    }: Get${tag}QueryAsyncParams ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocationType<${tag}>> => ({
+    }: Get${tag}QueryAsyncOptions ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocationType<${tag}>> => ({
       sql: (await readFile(sqlPath)).toString(),
       type: 'SLONIK_TOKEN_SQL',
       ${defaults.sqlTokenValueProp},
@@ -93,25 +97,25 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
 
     const sqlPath = path.join(__dirname, (${JSON.stringify(relPath)}))
 
-    export interface Get${tag}QueryParams {
-      ${query.parameters.length === 0 ? '' : `values: [${query.parameters.map(p => p.typescript).join(', ')}]`}
-    }
-
     export interface FileContent {
       toString(): string
     }
 
-    export interface Get${tag}QuerySyncParams extends Get${tag}QueryParams {
+    ${defaults.paramsInterface}
+
+    export interface Get${tag}QuerySyncOptions {
       readFileSync?: (filepath: string) => FileContent
+      ${defaults.paramsProp}
     }
 
-    export interface Get${tag}QueryAsyncParams extends Get${tag}QueryParams {
+    export interface Get${tag}QueryAsyncOptions {
       readFile?: (filepath: string) => Promise<FileContent>
+      ${defaults.paramsProp}
     }
 
     export const _queryCache = new Map<string, string>()
 
-    export const defaultReadFileSync: Get${tag}QuerySyncParams['readFileSync'] = (filepath: string) => {
+    export const defaultReadFileSync: Get${tag}QuerySyncOptions['readFileSync'] = (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
         return cached
@@ -121,7 +125,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       return content
     }
     
-    export const defaultReadFileAsync: Get${tag}QueryAsyncParams['readFile'] = async (filepath: string) => {
+    export const defaultReadFileAsync: Get${tag}QueryAsyncOptions['readFile'] = async (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
         return cached

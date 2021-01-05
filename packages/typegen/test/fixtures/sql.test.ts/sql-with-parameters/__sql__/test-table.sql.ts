@@ -33,11 +33,11 @@ export interface TestTable {
  */
 export const getTestTableQuerySync = ({
   readFileSync = defaultReadFileSync,
-  values,
-}: GetTestTableQuerySyncParams): TaggedTemplateLiteralInvocationType<TestTable> => ({
+  params,
+}: GetTestTableQuerySyncOptions): TaggedTemplateLiteralInvocationType<TestTable> => ({
   sql: readFileSync(sqlPath).toString(),
   type: 'SLONIK_TOKEN_SQL',
-  values,
+  values: [params['$1'], params['$2']],
 })
 
 /**
@@ -49,12 +49,12 @@ export const getTestTableQuerySync = ({
  * @example
  * ```
  * import {createPool} from 'slonik'
- * import {getTestTableQueryAasync} from './path/to/test-table.sql'
+ * import {getTestTableQueryAsync} from './path/to/test-table.sql'
  *
- * aasync function () {
+ * async function () {
  *   const pool = createPool('...connection string...')
  *
- *   const result = await pool.query(getTestTableQueryAasync())
+ *   const result = await pool.query(await getTestTableQueryAsync())
  *
  *   return result.rows.map(r => [r.id, r.n])
  * }
@@ -62,33 +62,36 @@ export const getTestTableQuerySync = ({
  */
 export const getTestTableQueryAync = async ({
   readFile = defaultReadFileAsync,
-  values,
-}: GetTestTableQueryAsyncParams): Promise<TaggedTemplateLiteralInvocationType<TestTable>> => ({
+  params,
+}: GetTestTableQueryAsyncOptions): Promise<TaggedTemplateLiteralInvocationType<TestTable>> => ({
   sql: (await readFile(sqlPath)).toString(),
   type: 'SLONIK_TOKEN_SQL',
-  values,
+  values: [params['$1'], params['$2']],
 })
 const sqlPath = path.join(__dirname, '../test-table.sql')
-
-export interface GetTestTableQueryParams {
-  values: [number, number]
-}
 
 export interface FileContent {
   toString(): string
 }
 
-export interface GetTestTableQuerySyncParams extends GetTestTableQueryParams {
-  readFileSync?: (filepath: string) => FileContent
+export interface GetTestTableQueryParams {
+  $1: number
+  $2: number
 }
 
-export interface GetTestTableQueryAsyncParams extends GetTestTableQueryParams {
+export interface GetTestTableQuerySyncOptions {
+  readFileSync?: (filepath: string) => FileContent
+  params: GetTestTableQueryParams
+}
+
+export interface GetTestTableQueryAsyncOptions {
   readFile?: (filepath: string) => Promise<FileContent>
+  params: GetTestTableQueryParams
 }
 
 export const _queryCache = new Map<string, string>()
 
-export const defaultReadFileSync: GetTestTableQuerySyncParams['readFileSync'] = (filepath: string) => {
+export const defaultReadFileSync: GetTestTableQuerySyncOptions['readFileSync'] = (filepath: string) => {
   const cached = _queryCache.get(filepath)
   if (cached) {
     return cached
@@ -98,7 +101,7 @@ export const defaultReadFileSync: GetTestTableQuerySyncParams['readFileSync'] = 
   return content
 }
 
-export const defaultReadFileAsync: GetTestTableQueryAsyncParams['readFile'] = async (filepath: string) => {
+export const defaultReadFileAsync: GetTestTableQueryAsyncOptions['readFile'] = async (filepath: string) => {
   const cached = _queryCache.get(filepath)
   if (cached) {
     return cached
