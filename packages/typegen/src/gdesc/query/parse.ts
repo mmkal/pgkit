@@ -149,7 +149,7 @@ if (require.main === module) {
   console.log = (x: any) => console.dir(x, {depth: null})
 
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
-  console.log(getHopefullyViewableAST(`select * from test_table where id = null`))
+  console.log(getHopefullyViewableAST(`select * from test_table where id = 1;\n--hi;\nselect 2`))
   throw ''
   console.log(
     getHopefullyViewableAST(

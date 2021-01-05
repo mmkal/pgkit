@@ -3,7 +3,7 @@ import {globAsync} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery} from './types'
-import {columnInfoGetter} from './query-analysis'
+import {columnInfoGetter} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
 
