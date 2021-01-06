@@ -1,7 +1,7 @@
 import {randomBytes} from 'crypto'
 import {DatabasePoolType, sql} from 'slonik'
 import * as assert from 'assert'
-import {jsdocQuery} from '../write/typescript'
+import {truncateQuery} from '../util'
 
 export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: string): Promise<string[]> => {
   const statementName = `temp_statement_${randomBytes(16).join('')}`
@@ -21,7 +21,7 @@ export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: st
       `,
     )
 
-    assert.ok(regtypes, `No parameters received from: prepare ${statementName} as ${jsdocQuery(query)}`)
+    assert.ok(regtypes, `No parameters received from: prepare ${statementName} as ${truncateQuery(query)}`)
     assert.ok(regtypes.startsWith('{') && regtypes.endsWith('}'), `Unexpected parameter types format: ${regtypes}`)
 
     if (regtypes === '{}') return []

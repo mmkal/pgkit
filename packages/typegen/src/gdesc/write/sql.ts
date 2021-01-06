@@ -1,7 +1,7 @@
-import {dedent, relativeUnixPath, typeName} from '../util'
+import {dedent, relativeUnixPath, typeName, truncateQuery} from '../util'
 import * as path from 'path'
 import * as fs from 'fs'
-import {getterExpression, jsdocComment, jsdocQuery, queryInterfaces, quotePropKey} from './typescript'
+import {getterExpression, jsdocComment, queryInterfaces, quotePropKey} from './typescript'
 import {TaggedQuery} from '../types'
 import {prettifyOne, tsPrettify} from './prettify'
 
@@ -29,7 +29,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
 
   const comment = dedent(`
     Helper which reads the file system synchronously to get a query object for ${relPath}.
-    (query: \`${jsdocQuery(query.sql)}\`)
+    (query: \`${truncateQuery(query.sql)}\`)
 
     Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFileSync\` function for use-cases where disk access is not possible.
 

@@ -7,7 +7,7 @@ import {columnInfoGetter, isUntypeable} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
 import {parameterTypesGetter} from './query/parameters'
-import {jsdocQuery} from './write/typescript'
+import {truncateQuery} from './util'
 
 export * from './types'
 export * from './defaults'
@@ -110,7 +110,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
       async (query): Promise<DescribedQuery | null> => {
         try {
           if (isUntypeable(query.template)) {
-            logger.debug(`Query \`${jsdocQuery(query.sql)}\` in file ${query.file} is not typeable`)
+            logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
             return null
           }
           return {

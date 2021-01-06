@@ -2,7 +2,7 @@ import * as lodash from 'lodash'
 import {tsPrettify} from './prettify'
 import {TaggedQuery, AnalysedQuery} from '../types'
 import * as assert from 'assert'
-import {dedent, simplifyWhitespace, truncate} from '../util'
+import {dedent, truncateQuery, simplifyWhitespace, truncate} from '../util'
 
 export const jsdocComment = (lines: Array<string | undefined | false>) => {
   const middle = lines
@@ -47,16 +47,17 @@ export const interfaceBody = (query: AnalysedQuery) =>
       .join('\n')}
 }`
 
-export const jsdocQuery = lodash.flow(simplifyWhitespace, truncate)
-
 // todo: make `comment?: string` into `comments: string[]` so that it can be tweaked, and this becomes a pure write-to-disk method.
 
 export function renderQueryInterface(queryGroup: AnalysedQuery[], interfaceName: string) {
   const [query, ...rest] = queryGroup
   const comments =
     rest.length === 0
-      ? [`- query: \`${jsdocQuery(query.sql)}\``, query.comment]
-      : [`queries:\n${queryGroup.map(q => `- \`${jsdocQuery(q.sql)}\``).join('\n')}`, ...queryGroup.map(q => q.comment)]
+      ? [`- query: \`${truncateQuery(query.sql)}\``, query.comment]
+      : [
+          `queries:\n${queryGroup.map(q => `- \`${truncateQuery(q.sql)}\``).join('\n')}`,
+          ...queryGroup.map(q => q.comment),
+        ]
   const bodies = queryGroup.map(interfaceBody)
 
   const numBodies = new Set(bodies).size

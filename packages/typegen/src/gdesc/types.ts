@@ -109,8 +109,10 @@ export interface GdescriberParams {
   /**
    * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
    */
-  logger: Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>
+  logger: Logger
 }
+
+export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>
 
 export interface ExtractedQuery {
   text: string

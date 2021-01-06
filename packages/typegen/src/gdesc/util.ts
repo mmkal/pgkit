@@ -30,6 +30,8 @@ export const truncate = (str: string, maxLength = 100, truncatedMessage = '... [
   return str.slice(0, halfLength) + truncatedMessage + str.slice(-halfLength)
 }
 
+export const truncateQuery = lodash.flow(simplifyWhitespace, truncate)
+
 export const dedent = (str: string) => {
   const lines = str.split('\n').slice(1)
   const margin = lines[0].match(/^\s+/)![0]
