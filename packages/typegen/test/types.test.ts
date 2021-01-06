@@ -9,9 +9,9 @@ export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
-    create table test_table(foo int not null, bar text);
+    create table types_test_table(foo int not null, bar text);
 
-    insert into test_table(foo, bar) values (1, 'a')
+    insert into types_test_table(foo, bar) values (1, 'a')
   `)
 })
 
@@ -30,7 +30,7 @@ test('types are correct', async () => {
 
   expect(thisTestFileAfterRunning).toEqual(thisTestFileBeforeRunning)
 
-  const results = await helper.pool.query(sql<queries.TestTable>`select * from test_table`)
+  const results = await helper.pool.query(sql<queries.TypesTestTable>`select * from types_test_table`)
 
   expect(results.rows).toHaveLength(1)
   expect(results.rows).toEqual([{foo: 1, bar: 'a'}])
@@ -39,12 +39,12 @@ test('types are correct', async () => {
 })
 
 module queries {
-  /** - query: `select * from test_table` */
-  export interface TestTable {
-    /** column: `types_test.test_table.foo`, not null: `true`, postgres type: `integer` */
+  /** - query: `select * from types_test_table` */
+  export interface TypesTestTable {
+    /** column: `types_test.types_test_table.foo`, not null: `true`, postgres type: `integer` */
     foo: number
 
-    /** postgres type: `text` */
+    /** column: `types_test.types_test_table.bar`, postgres type: `text` */
     bar: string | null
   }
 }
