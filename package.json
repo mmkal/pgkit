@@ -33,7 +33,7 @@
     "lint": "yarn eslint .",
     "migrate": "lerna run migrate",
     "publish-canary": "lerna publish --canary --preid $(yarn --silent canary-preid) --dist-tag $(yarn --silent current-branch)",
-    "test": "jest"
+    "test": "jest --runInBand"
   },
   "resolutions": {
     "minimist": "^1.2.5"
