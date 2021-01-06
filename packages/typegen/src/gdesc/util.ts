@@ -2,7 +2,7 @@ import * as glob from 'glob'
 import {promisify} from 'util'
 import * as lodash from 'lodash'
 import * as path from 'path'
-import * as assert from 'assert'
+import * as child_process from 'child_process'
 
 export const globAsync = promisify(glob)
 
@@ -38,6 +38,15 @@ export const dedent = (str: string) => {
   return lines.map(line => line.replace(margin, '')).join('\n')
 }
 
+export const attempt = <T>(context: string, action: () => T): T => {
+  try {
+    return action()
+  } catch (e) {
+    e.message = `Failure ${context}: ${e}`
+    throw e
+  }
+}
+
 export const tryOr = <A extends unknown[], T>(fn: (...args: A) => T, onErr: (...args: [...A, unknown]) => T) => (
   ...args: A
 ) => {
@@ -55,3 +64,10 @@ export const tryOrNull = <T>(fn: () => T) => {
     return null
   }
 }
+
+/** Makes sure there are no git changes before performing destructive actions. Note this is only run once since changes are performed one file at a time. */
+export const checkClean = lodash.once(() =>
+  attempt('Checking git status is clean before modifying source file', () =>
+    child_process.execSync(`git diff --exit-code`),
+  ),
+)

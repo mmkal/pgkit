@@ -2,12 +2,15 @@ import * as fs from 'fs'
 import type * as ts from 'typescript'
 import * as lodash from 'lodash'
 import {Logger} from '../types'
+import {checkClean} from '../util'
 
 interface Edit {
   start: number
   end: number
   replacement: string
 }
+
+type FileChange = {type: 'delete'; file: string} | {type: 'write'; file: string; content: string}
 
 export const v080FileMarker = `
 /* eslint-disable */
@@ -27,14 +30,39 @@ export const isPreV080File = (content: string) => {
   return lines.every(line => content.match(line))
 }
 
-export const migrate080 = ({file, logger}: {file: string; logger: Logger}) => {
+export const migrate080 = ({
+  files,
+  logger,
+  skipGitCheck,
+}: {
+  files: string[]
+  logger: Logger
+  skipGitCheck?: boolean
+}) => {
+  if (!skipGitCheck) {
+    checkClean()
+  }
+
+  const changes: FileChange[] = files.flatMap(file => getChanges(file))
+
+  changes.forEach(change => {
+    if (change.type === 'delete') {
+      logger.info(`Deleting file ${change.file}`)
+      fs.unlinkSync(change.file)
+    }
+    if (change.type === 'write') {
+      logger.info(`Updating file ${change.file}`)
+      fs.writeFileSync(change.file, change.content)
+    }
+  })
+}
+
+const getChanges = (file: string): [FileChange] | [] => {
   const ts: typeof import('typescript') = require('typescript')
   const origSource = fs.readFileSync(file).toString()
 
   if (isPreV080File(origSource)) {
-    logger.info(`File ${file} was generated with an old version of this tool; removing.`)
-    fs.unlinkSync(file)
-    return
+    return [{type: 'delete', file}]
   }
 
   const sourceFile = ts.createSourceFile(file, origSource, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
@@ -45,24 +73,26 @@ export const migrate080 = ({file, logger}: {file: string; logger: Logger}) => {
 
   visitNodes(sourceFile)
 
-  if (edits.length > 0) {
-    logger.info(`File ${file} contains codegen from an old version of this tool; migrating it in place.'`)
-    const newSource = lodash
-      .sortBy(edits, e => e.end)
-      .reduceRight(
-        (source, edit) => source.slice(0, edit.start) + edit.replacement + source.slice(edit.end),
-        origSource,
-      )
+  const newContent = lodash
+    .sortBy(edits, e => e.end)
+    .reduceRight((source, edit) => source.slice(0, edit.start) + edit.replacement + source.slice(edit.end), origSource)
 
-    fs.writeFileSync(file, newSource)
-  }
+  return edits.length === 0 ? [] : [{type: 'write', file, content: newContent}]
 
   function visitNodes(node: ts.Node) {
     if (ts.isImportDeclaration(node)) {
       const importSqlFromSlonik = `import { sql } from 'slonik'`
+
       if (node.importClause?.namedBindings && ts.isNamedImports(node.importClause?.namedBindings)) {
-        const sqlImport = node.importClause.namedBindings.elements.find(e => e.name.escapedText === 'sql')
-        if (node.importClause.namedBindings.elements.length === 1 && sqlImport) {
+        const namedImports = node.importClause.namedBindings.elements
+
+        const sqlImport = namedImports.find(e => e.name.escapedText === 'sql')
+        const knownTypesImport = namedImports.find(e => e.name.escapedText === 'knownTypes')
+        const setupTypeGenImport = namedImports.find(e => e.name.escapedText === 'setupTypeGen')
+
+        const soloSqlImport = sqlImport && namedImports.length === 1
+
+        if (soloSqlImport || knownTypesImport || setupTypeGenImport) {
           edits.push({
             start: node.getStart(sourceFile),
             end: node.getEnd(),
@@ -82,6 +112,7 @@ export const migrate080 = ({file, logger}: {file: string; logger: Logger}) => {
         }
       }
     }
+
     if (ts.isTaggedTemplateExpression(node)) {
       if (ts.isPropertyAccessExpression(node.tag)) {
         if (node.tag.expression.getText() === 'sql') {
@@ -93,6 +124,17 @@ export const migrate080 = ({file, logger}: {file: string; logger: Logger}) => {
         }
       }
     }
+
+    if (ts.isCallExpression(node)) {
+      if (node.expression.getText().endsWith('setupTypeGen')) {
+        edits.push({
+          start: node.getStart(sourceFile),
+          end: node.getEnd(),
+          replacement: `{ sql, poolConfig: {} }`,
+        })
+      }
+    }
+
     ts.forEachChild(node, visitNodes)
   }
 }

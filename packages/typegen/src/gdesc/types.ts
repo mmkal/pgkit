@@ -30,6 +30,7 @@ export interface GdescriberParams {
    */
   psqlCommand: string
 
+  /** Source root that the tool will search for files in. Defaults to `src`. */
   rootDir: string
 
   /**
@@ -38,6 +39,13 @@ export interface GdescriberParams {
    * Defaults to all JavaScript and TypeScript files, ignoring node_modules.
    */
   glob: string | [string, {ignore?: string[]}?]
+
+  /**
+   * If defined, before type generation, a pass will be done over all files to migrate them from codegen produced by this
+   * tool, according to the specified semver range. e.g. if set to `<=0.8.0` files will be modified/deleted before the codegen
+   * is run.
+   */
+  migrate: '<=0.8.0' | undefined
 
   /**
    * Map from a psql type description to a TypeScript type representation.
