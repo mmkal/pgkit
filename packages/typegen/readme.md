@@ -217,6 +217,16 @@ This kind of query does not return a value when executed anyway.
 
 ___
 
+Queries using the `pg_temp` schema will usually not be typeable since the schema is ephemeral and only can be queried within a single session that `psql` doesn't have access to.
+
+```ts
+import {sql} from 'slonik'
+
+export default sql`select * from pg_temp.my_temp_table`
+```
+
+___
+
 Invalid SQL syntax will also be left untouched (they will result in an error being logged when running the CLI):
 
 ```ts
@@ -231,7 +241,7 @@ ___
 
 Finally, for some complex queries, static parsing might fail, making it not possible to determine statically if a column is nullable. If this happens, it will still receive a valid type, but the type will be `string | null` rather than `string`.
 
-If you find such a case, please [raise an issue](https://github.com/mmkal/slonik-tools/issues/new) to see if it's possible to handle - under the hood this library uses [pgsql-ast-parser](https://npmjs.com/package/pgsql-ast-parser) and you might have found an edge case which that library doesn't handle yet.
+If you find such a case, please [raise an issue](https://github.com/mmkal/slonik-tools/issues/new) to see if it's possible to handle - under the hood this library uses [pgsql-ast-parser](https://npmjs.com/package/pgsql-ast-parser) and you might have found an edge case which that library doesn't handle yet. You can set `const _sql = sql` and use the `_sql` tag in the same way as `sql` if the errors logged are erroneous and too noisy - `_sql` will not be detected by the tool and can be used as normal.
 
 ## How it works
 

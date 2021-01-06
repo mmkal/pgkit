@@ -3,6 +3,9 @@ import {DatabasePoolType, sql} from 'slonik'
 import * as assert from 'assert'
 import {truncateQuery} from '../util'
 
+// todo[pgsql-ast-parser>=3.2.0] blacklist deallocate, drop, etc. rather than rely on this.
+const _sql = sql
+
 export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: string): Promise<string[]> => {
   const statementName = `temp_statement_${randomBytes(16).join('')}`
 
@@ -28,7 +31,7 @@ export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: st
 
     return regtypes.slice(1, -1).split(',')
   } finally {
-    await pool.query(sql`deallocate ${sql.identifier([statementName])}`)
+    await pool.query(_sql`deallocate ${sql.identifier([statementName])}`)
   }
 }
 

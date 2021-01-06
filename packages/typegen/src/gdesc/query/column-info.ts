@@ -7,11 +7,12 @@ import {getHopefullyViewableAST, getSuggestedTags} from './parse'
 import * as assert from 'assert'
 import {tryOrDefault} from '../util'
 
-// todo: create a schema to put these in?
-const getTypesSql = sql`
+const _sql = sql
+
+const getTypesSql = _sql`
 drop type if exists types_type cascade;
 
-create type types_type as (
+create type pg_temp.types_type as (
   schema_name text,
   view_name text,
   table_column_name text,
@@ -26,8 +27,9 @@ create type types_type as (
 -- taken from https://dataedo.com/kb/query/postgresql/list-views-columns
 -- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
 -- nullable: https://stackoverflow.com/a/63980243
-create or replace function gettypes(text)
-returns setof types_type as
+
+create or replace function pg_temp.gettypes(text)
+returns setof pg_temp.types_type as
 $$
 declare
   v_tmp_name text;
@@ -77,17 +79,17 @@ LANGUAGE 'plpgsql';
 // todo: get table description from obj_description(oid) (like column)
 
 export const columnInfoGetter = (pool: DatabasePoolType) => {
-  const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
+  // const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
 
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const viewFriendlySql = getViewFriendlySql(query.template)
     const suggestedTags = getSuggestedTags(query.template).concat(['Anonymous'])
 
-    await createViewAnalyser()
+    // await createViewAnalyser()
 
-    const viewResultQuery = sql<queries.Anonymous>`
+    const viewResultQuery = _sql<GetTypes>`
       select schema_name, table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
-      from public.gettypes(${viewFriendlySql})
+      from pg_temp.gettypes(${viewFriendlySql})
     `
 
     const ast = getHopefullyViewableAST(viewFriendlySql)
@@ -99,7 +101,11 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       }
     }
 
-    const viewResult = await pool.any(viewResultQuery).then(results => lodash.uniqBy(results, JSON.stringify))
+    const viewResult = await pool.transaction(async t => {
+      await t.query(getTypesSql)
+      const results = await t.any(viewResultQuery)
+      return lodash.uniqBy(results, JSON.stringify)
+    })
 
     const formattedSqlStatements = [...new Set(viewResult.map(r => r.formatted_query))]
 
@@ -175,25 +181,23 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
   return matchingCountColumns && matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
 }
 
-module queries {
-  /** - query: `select schema_name, table_column_name, u... [truncated] ...formatted_query from public.gettypes($1)` */
-  export interface Anonymous {
-    /** postgres type: `text` */
-    schema_name: string | null
+// this query is for a type in a temp schema so this tool doesn't work with it
+export interface GetTypes {
+  /** postgres type: `text` */
+  schema_name: string | null
 
-    /** postgres type: `text` */
-    table_column_name: string | null
+  /** postgres type: `text` */
+  table_column_name: string | null
 
-    /** postgres type: `text` */
-    underlying_table_name: string | null
+  /** postgres type: `text` */
+  underlying_table_name: string | null
 
-    /** postgres type: `text` */
-    is_underlying_nullable: string | null
+  /** postgres type: `text` */
+  is_underlying_nullable: string | null
 
-    /** postgres type: `text` */
-    comment: string | null
+  /** postgres type: `text` */
+  comment: string | null
 
-    /** postgres type: `text` */
-    formatted_query: string | null
-  }
+  /** postgres type: `text` */
+  formatted_query: string | null
 }

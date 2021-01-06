@@ -137,7 +137,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
 
     const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
     logger.info(
-      `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles}.`,
+      `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles} .`,
     )
 
     const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
