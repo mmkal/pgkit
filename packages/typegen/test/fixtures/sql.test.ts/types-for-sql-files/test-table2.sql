@@ -1,1 +1,1 @@
-select n as aaa from test_table
+select b as aaa from test_table

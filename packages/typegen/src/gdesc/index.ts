@@ -53,7 +53,9 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
 
   const getParameterTypes = parameterTypesGetter(pool)
   const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
+    console.log('getting params for', query.sql)
     const regtypes = await getParameterTypes(query.sql)
+    console.log({regtypes})
 
     const promises = regtypes.map(async (regtype, i) => ({
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names

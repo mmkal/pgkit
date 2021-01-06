@@ -1,22 +1,24 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
 import {getHelper} from './helper'
+import {sql} from 'slonik'
+import {expectTypeOf} from 'expect-type'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
-    create table test_table(
-      id int primary key,
-      n int
-    );
+    create table test_table(a int not null, b text);
+
+    insert into test_table(a, b) values (1, 'one');
+    insert into test_table(a, b) values (2, 'two');
   `)
 })
 
 test('types for sql files', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'test-table1.sql': `select id, n from test_table`,
-    'test-table2.sql': `select n as aaa from test_table`,
+    'test-table1.sql': `select a, b from test_table`,
+    'test-table2.sql': `select b as aaa from test_table`,
   })
 
   syncer.sync()
@@ -26,10 +28,10 @@ test('types for sql files', async () => {
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
     test-table1.sql: |-
-      select id, n from test_table
+      select a, b from test_table
       
     test-table2.sql: |-
-      select n as aaa from test_table
+      select b as aaa from test_table
       
     __sql__: 
       test-table1.sql.ts: |-
@@ -37,18 +39,18 @@ test('types for sql files', async () => {
         import * as path from 'path'
         import * as fs from 'fs'
         
-        /** - query: \`select id, n from test_table\` */
+        /** - query: \`select a, b from test_table\` */
         export interface TestTable1 {
-          /** column: \`sql_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
-          id: number
+          /** column: \`sql_test.test_table.a\`, not null: \`true\`, postgres type: \`integer\` */
+          a: number
         
-          /** column: \`sql_test.test_table.n\`, postgres type: \`integer\` */
-          n: number | null
+          /** column: \`sql_test.test_table.b\`, postgres type: \`text\` */
+          b: string | null
         }
         
         /**
          * Helper which reads the file system synchronously to get a query object for ../test-table1.sql.
-         * (query: \`select id, n from test_table\`)
+         * (query: \`select a, b from test_table\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFileSync\` function for use-cases where disk access is not possible.
          *
@@ -62,7 +64,7 @@ test('types for sql files', async () => {
          *
          *   const result = await pool.query(getTestTable1QuerySync())
          *
-         *   return result.rows.map(r => [r.id, r.n])
+         *   return result.rows.map(r => [r.a, r.b])
          * }
          * \`\`\`
          */
@@ -76,7 +78,7 @@ test('types for sql files', async () => {
         
         /**
          * Helper which reads the file system asynchronously to get a query object for ../test-table1.sql.
-         * (query: \`select id, n from test_table\`)
+         * (query: \`select a, b from test_table\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFile\` function for use-cases where disk access is not possible.
          *
@@ -90,7 +92,7 @@ test('types for sql files', async () => {
          *
          *   const result = await pool.query(await getTestTable1QueryAsync())
          *
-         *   return result.rows.map(r => [r.id, r.n])
+         *   return result.rows.map(r => [r.a, r.b])
          * }
          * \`\`\`
          */
@@ -117,7 +119,7 @@ test('types for sql files', async () => {
         
         export const _queryCache = new Map<string, string>()
         
-        export const defaultReadFileSync: GetTestTable1QuerySyncOptions['readFileSync'] = (filepath: string) => {
+        export const defaultReadFileSync = (filepath: string) => {
           const cached = _queryCache.get(filepath)
           if (cached) {
             return cached
@@ -127,7 +129,7 @@ test('types for sql files', async () => {
           return content
         }
         
-        export const defaultReadFileAsync: GetTestTable1QueryAsyncOptions['readFile'] = async (filepath: string) => {
+        export const defaultReadFileAsync = async (filepath: string) => {
           const cached = _queryCache.get(filepath)
           if (cached) {
             return cached
@@ -142,15 +144,15 @@ test('types for sql files', async () => {
         import * as path from 'path'
         import * as fs from 'fs'
         
-        /** - query: \`select n as aaa from test_table\` */
+        /** - query: \`select b as aaa from test_table\` */
         export interface TestTable2 {
-          /** column: \`sql_test.test_table.n\`, postgres type: \`integer\` */
-          aaa: number | null
+          /** column: \`sql_test.test_table.b\`, postgres type: \`text\` */
+          aaa: string | null
         }
         
         /**
          * Helper which reads the file system synchronously to get a query object for ../test-table2.sql.
-         * (query: \`select n as aaa from test_table\`)
+         * (query: \`select b as aaa from test_table\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFileSync\` function for use-cases where disk access is not possible.
          *
@@ -178,7 +180,7 @@ test('types for sql files', async () => {
         
         /**
          * Helper which reads the file system asynchronously to get a query object for ../test-table2.sql.
-         * (query: \`select n as aaa from test_table\`)
+         * (query: \`select b as aaa from test_table\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFile\` function for use-cases where disk access is not possible.
          *
@@ -219,7 +221,7 @@ test('types for sql files', async () => {
         
         export const _queryCache = new Map<string, string>()
         
-        export const defaultReadFileSync: GetTestTable2QuerySyncOptions['readFileSync'] = (filepath: string) => {
+        export const defaultReadFileSync = (filepath: string) => {
           const cached = _queryCache.get(filepath)
           if (cached) {
             return cached
@@ -229,7 +231,7 @@ test('types for sql files', async () => {
           return content
         }
         
-        export const defaultReadFileAsync: GetTestTable2QueryAsyncOptions['readFile'] = async (filepath: string) => {
+        export const defaultReadFileAsync = async (filepath: string) => {
           const cached = _queryCache.get(filepath)
           if (cached) {
             return cached
@@ -244,17 +246,20 @@ test('types for sql files', async () => {
 
 test('sql with parameters', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'test-table.sql': `select id, n from test_table where id = $1 and n = $2`,
+    'test-table.sql': `select a, b from test_table where a = $1 and b = $2`,
   })
 
   syncer.sync()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await gdesc.gdescriber({
+    ...gdescParams(syncer.baseDir),
+    logger: console,
+  })
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
     test-table.sql: |-
-      select id, n from test_table where id = $1 and n = $2
+      select a, b from test_table where a = $1 and b = $2
       
     __sql__: 
       test-table.sql.ts: |-
@@ -262,18 +267,18 @@ test('sql with parameters', async () => {
         import * as path from 'path'
         import * as fs from 'fs'
         
-        /** - query: \`select id, n from test_table where id = $1 and n = $2\` */
+        /** - query: \`select a, b from test_table where a = $1 and b = $2\` */
         export interface TestTable {
           /** postgres type: \`integer\` */
-          id: number | null
+          a: number | null
         
-          /** postgres type: \`integer\` */
-          n: number | null
+          /** postgres type: \`text\` */
+          b: string | null
         }
         
         /**
          * Helper which reads the file system synchronously to get a query object for ../test-table.sql.
-         * (query: \`select id, n from test_table where id = $1 and n = $2\`)
+         * (query: \`select a, b from test_table where a = $1 and b = $2\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFileSync\` function for use-cases where disk access is not possible.
          *
@@ -287,7 +292,7 @@ test('sql with parameters', async () => {
          *
          *   const result = await pool.query(getTestTableQuerySync())
          *
-         *   return result.rows.map(r => [r.id, r.n])
+         *   return result.rows.map(r => [r.a, r.b])
          * }
          * \`\`\`
          */
@@ -302,7 +307,7 @@ test('sql with parameters', async () => {
         
         /**
          * Helper which reads the file system asynchronously to get a query object for ../test-table.sql.
-         * (query: \`select id, n from test_table where id = $1 and n = $2\`)
+         * (query: \`select a, b from test_table where a = $1 and b = $2\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFile\` function for use-cases where disk access is not possible.
          *
@@ -316,7 +321,7 @@ test('sql with parameters', async () => {
          *
          *   const result = await pool.query(await getTestTableQueryAsync())
          *
-         *   return result.rows.map(r => [r.id, r.n])
+         *   return result.rows.map(r => [r.a, r.b])
          * }
          * \`\`\`
          */
@@ -336,7 +341,7 @@ test('sql with parameters', async () => {
         
         export interface GetTestTableQueryParams {
           $1: number
-          $2: number
+          $2: string
         }
         
         export interface GetTestTableQuerySyncOptions {
@@ -351,7 +356,7 @@ test('sql with parameters', async () => {
         
         export const _queryCache = new Map<string, string>()
         
-        export const defaultReadFileSync: GetTestTableQuerySyncOptions['readFileSync'] = (filepath: string) => {
+        export const defaultReadFileSync = (filepath: string) => {
           const cached = _queryCache.get(filepath)
           if (cached) {
             return cached
@@ -361,7 +366,7 @@ test('sql with parameters', async () => {
           return content
         }
         
-        export const defaultReadFileAsync: GetTestTableQueryAsyncOptions['readFile'] = async (filepath: string) => {
+        export const defaultReadFileAsync = async (filepath: string) => {
           const cached = _queryCache.get(filepath)
           if (cached) {
             return cached
@@ -372,4 +377,20 @@ test('sql with parameters', async () => {
         }
         "
   `)
+})
+
+test('the other two tests work!', async () => {
+  // note: this test depends on the other two tests having been run already
+  const sqlWithParameters: typeof import('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql') = require('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql')
+
+  const result = await helper.pool.query(
+    sqlWithParameters.getTestTableQuerySync({
+      params: {$1: 1, $2: 'one'},
+    }),
+  )
+
+  expect(result.rows).toEqual([{a: 1, b: 'one'}])
+  const x: {a: number; b: string | null} = result.rows[0]
+  const y: typeof result.rows[0] = {a: 1, b: ''} as {a: number; b: string | null}
+  expectTypeOf(result.rows).items.toEqualTypeOf<{a: number; b: string | null}>()
 })

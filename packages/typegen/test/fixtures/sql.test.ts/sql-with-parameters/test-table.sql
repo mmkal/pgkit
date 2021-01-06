@@ -1,1 +1,1 @@
-select id, n from test_table where id = $1 and n = $2
+select a, b from test_table where a = $1 and b = $2

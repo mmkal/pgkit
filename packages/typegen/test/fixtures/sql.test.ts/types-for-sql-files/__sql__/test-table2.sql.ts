@@ -2,15 +2,15 @@ import {TaggedTemplateLiteralInvocationType} from 'slonik'
 import * as path from 'path'
 import * as fs from 'fs'
 
-/** - query: `select n as aaa from test_table` */
+/** - query: `select b as aaa from test_table` */
 export interface TestTable2 {
-  /** column: `sql_test.test_table.n`, postgres type: `integer` */
-  aaa: number | null
+  /** column: `sql_test.test_table.b`, postgres type: `text` */
+  aaa: string | null
 }
 
 /**
  * Helper which reads the file system synchronously to get a query object for ../test-table2.sql.
- * (query: `select n as aaa from test_table`)
+ * (query: `select b as aaa from test_table`)
  *
  * Uses `fs` by default and caches the result so the disk is only accessed once. You can pass in a custom `readFileSync` function for use-cases where disk access is not possible.
  *
@@ -38,7 +38,7 @@ export const getTestTable2QuerySync = ({
 
 /**
  * Helper which reads the file system asynchronously to get a query object for ../test-table2.sql.
- * (query: `select n as aaa from test_table`)
+ * (query: `select b as aaa from test_table`)
  *
  * Uses `fs` by default and caches the result so the disk is only accessed once. You can pass in a custom `readFile` function for use-cases where disk access is not possible.
  *
@@ -79,7 +79,7 @@ export interface GetTestTable2QueryAsyncOptions {
 
 export const _queryCache = new Map<string, string>()
 
-export const defaultReadFileSync: GetTestTable2QuerySyncOptions['readFileSync'] = (filepath: string) => {
+export const defaultReadFileSync = (filepath: string) => {
   const cached = _queryCache.get(filepath)
   if (cached) {
     return cached
@@ -89,7 +89,7 @@ export const defaultReadFileSync: GetTestTable2QuerySyncOptions['readFileSync'] 
   return content
 }
 
-export const defaultReadFileAsync: GetTestTable2QueryAsyncOptions['readFile'] = async (filepath: string) => {
+export const defaultReadFileAsync = async (filepath: string) => {
   const cached = _queryCache.get(filepath)
   if (cached) {
     return cached

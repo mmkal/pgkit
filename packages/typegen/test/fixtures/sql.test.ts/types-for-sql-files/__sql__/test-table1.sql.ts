@@ -2,18 +2,18 @@ import {TaggedTemplateLiteralInvocationType} from 'slonik'
 import * as path from 'path'
 import * as fs from 'fs'
 
-/** - query: `select id, n from test_table` */
+/** - query: `select a, b from test_table` */
 export interface TestTable1 {
-  /** column: `sql_test.test_table.id`, not null: `true`, postgres type: `integer` */
-  id: number
+  /** column: `sql_test.test_table.a`, not null: `true`, postgres type: `integer` */
+  a: number
 
-  /** column: `sql_test.test_table.n`, postgres type: `integer` */
-  n: number | null
+  /** column: `sql_test.test_table.b`, postgres type: `text` */
+  b: string | null
 }
 
 /**
  * Helper which reads the file system synchronously to get a query object for ../test-table1.sql.
- * (query: `select id, n from test_table`)
+ * (query: `select a, b from test_table`)
  *
  * Uses `fs` by default and caches the result so the disk is only accessed once. You can pass in a custom `readFileSync` function for use-cases where disk access is not possible.
  *
@@ -27,7 +27,7 @@ export interface TestTable1 {
  *
  *   const result = await pool.query(getTestTable1QuerySync())
  *
- *   return result.rows.map(r => [r.id, r.n])
+ *   return result.rows.map(r => [r.a, r.b])
  * }
  * ```
  */
@@ -41,7 +41,7 @@ export const getTestTable1QuerySync = ({
 
 /**
  * Helper which reads the file system asynchronously to get a query object for ../test-table1.sql.
- * (query: `select id, n from test_table`)
+ * (query: `select a, b from test_table`)
  *
  * Uses `fs` by default and caches the result so the disk is only accessed once. You can pass in a custom `readFile` function for use-cases where disk access is not possible.
  *
@@ -55,7 +55,7 @@ export const getTestTable1QuerySync = ({
  *
  *   const result = await pool.query(await getTestTable1QueryAsync())
  *
- *   return result.rows.map(r => [r.id, r.n])
+ *   return result.rows.map(r => [r.a, r.b])
  * }
  * ```
  */
@@ -82,7 +82,7 @@ export interface GetTestTable1QueryAsyncOptions {
 
 export const _queryCache = new Map<string, string>()
 
-export const defaultReadFileSync: GetTestTable1QuerySyncOptions['readFileSync'] = (filepath: string) => {
+export const defaultReadFileSync = (filepath: string) => {
   const cached = _queryCache.get(filepath)
   if (cached) {
     return cached
@@ -92,7 +92,7 @@ export const defaultReadFileSync: GetTestTable1QuerySyncOptions['readFileSync'] 
   return content
 }
 
-export const defaultReadFileAsync: GetTestTable1QueryAsyncOptions['readFile'] = async (filepath: string) => {
+export const defaultReadFileAsync = async (filepath: string) => {
   const cached = _queryCache.get(filepath)
   if (cached) {
     return cached

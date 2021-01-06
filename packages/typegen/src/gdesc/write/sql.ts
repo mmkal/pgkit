@@ -115,7 +115,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
 
     export const _queryCache = new Map<string, string>()
 
-    export const defaultReadFileSync: Get${tag}QuerySyncOptions['readFileSync'] = (filepath: string) => {
+    export const defaultReadFileSync = (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
         return cached
@@ -125,7 +125,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       return content
     }
     
-    export const defaultReadFileAsync: Get${tag}QueryAsyncOptions['readFile'] = async (filepath: string) => {
+    export const defaultReadFileAsync = async (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
         return cached
