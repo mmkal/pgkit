@@ -1,14 +1,8 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
-import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
+import {getHelper} from './params'
 
-const helper = getPoolHelper({__filename})
-
-const gdescParams = (baseDir: string): Partial<gdesc.GdescriberParams> => ({
-  rootDir: baseDir,
-  pool: helper.pool,
-  psqlCommand: `docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres?options=--search_path%3d${helper.schemaName}"`,
-})
+export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
@@ -65,4 +59,4 @@ test('edit before write', async () => {
       }
       "
   `)
-}, 20000)
+})

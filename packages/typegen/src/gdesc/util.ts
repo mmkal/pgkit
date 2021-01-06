@@ -32,8 +32,7 @@ export const truncate = (str: string, maxLength = 100, truncatedMessage = '... [
 
 export const dedent = (str: string) => {
   const lines = str.split('\n').slice(1)
-  if (lines.length === 0) return str
-  const margin = lines[0].match(/^\s+/)?.[0] || ''
+  const margin = lines[0].match(/^\s+/)![0]
   return lines.map(line => line.replace(margin, '')).join('\n')
 }
 

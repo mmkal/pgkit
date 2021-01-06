@@ -1,9 +1,30 @@
 import {SlonikTypegenCLI} from '../src/gdesc/cli'
 import * as fsSyncer from 'fs-syncer'
+import * as slonik from 'slonik'
 
 afterEach(() => {
   jest.resetAllMocks()
 })
+
+let pools: slonik.DatabasePoolType[] = []
+jest.mock('slonik', () => {
+  const actualSlonik = jest.requireActual('slonik')
+  return {
+    ...actualSlonik,
+    createPool: (...args: any[]) => {
+      const pool = actualSlonik.createPool(...args)
+      pools.push(pool)
+      return pool
+    },
+  }
+})
+
+afterAll(async () => {
+  await Promise.all(pools.map(p => p.end()))
+})
+
+jest.spyOn(console, 'info').mockReset()
+jest.spyOn(console, 'error').mockReset()
 
 test('runs typegen with sensible defaults', async () => {
   const cli = new SlonikTypegenCLI()

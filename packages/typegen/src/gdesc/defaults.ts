@@ -30,7 +30,8 @@ export const getParams = ({
   writeTypes = defaultWriteTypes(),
   pool = createPool(defaultSlonikConnectionString),
   typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
-}: Partial<GdescriberParams> = {}): GdescriberParams => ({
+  logger = console,
+}: Partial<GdescriberParams>): GdescriberParams => ({
   psqlCommand,
   gdescToTypeScript,
   rootDir,
@@ -40,4 +41,5 @@ export const getParams = ({
   writeTypes,
   pool,
   typeParsers,
+  logger,
 })

@@ -1,6 +1,6 @@
 import * as pgsqlAST from 'pgsql-ast-parser'
 import * as lodash from 'lodash'
-import {pascalCase} from '../util'
+import {pascalCase, tryOrNull} from '../util'
 import {match} from 'io-ts-extra'
 import * as assert from 'assert'
 
@@ -14,6 +14,42 @@ import * as assert from 'assert'
  * at all for those kinds of queries anyway.
  */
 export const templateToValidSql = (template: string[]) => template.join('null')
+
+/**
+ * _Tries_ to return `true` when a query is definitely not going to work with \gdesc. Will miss some cases, and those cases will cause an error to be logged to the console.
+ * It will catch:
+ * - multi statements (that pgsql-ast-parser is able to process) e.g. `insert into foo(id) values (1); insert into foo(id) values (2);`
+ * - statements that use identifiers (as opposed to param values) e.g. `select * from ${sql.identifier([tableFromVariableName])}`
+ */
+export const isUntypeable = (template: string[]) => {
+  const usesIdentifier = () =>
+    tryOrNull(() => {
+      let usesIdentifierPlaceholder = false
+
+      const fakeTableName = `t${Math.random()}`.replace('0.', '')
+      pgsqlAST
+        .astVisitor(map => ({
+          tableRef: t => {
+            if (t.name === fakeTableName) {
+              usesIdentifierPlaceholder = true
+            }
+            map.super().tableRef(t)
+          },
+        }))
+        .statement(getHopefullyViewableAST(template.join(fakeTableName)))
+
+      return usesIdentifierPlaceholder
+    })
+
+  const hasTooManyStatements = () =>
+    tryOrNull(() => {
+      const statements = pgsqlAST.parse(templateToValidSql(template))
+
+      return statements.length !== 1
+    })
+
+  return Boolean(usesIdentifier() || hasTooManyStatements())
+}
 
 // todo: return null if statement is not a select
 // and have test cases for when a view can't be created
@@ -146,10 +182,16 @@ export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappin
 
 /* istanbul ignore if */
 if (require.main === module) {
-  console.log = (...x: any[]) => console.dir(x.length === 0 ? x[0] : x, {depth: null})
+  console.log = (...x: any[]) => console.dir(x.length === 1 ? x[0] : x, {depth: null})
 
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
-  console.log(getSuggestedTags([`select * from gettypes('abc')`]))
+  // console.log(isUntypable([`select * from `, ` where b = hi`]))
+  // console.log(isUntypable([`select * from a where b = `, ``]))
+  console.log(
+    isUntypeable([
+      '\n' + '  insert into test_table(id, n) values (1, 2);\n' + '  insert into test_table(id, n) values (3, 4);\n',
+    ]),
+  )
   throw ''
   console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
   pgsqlAST

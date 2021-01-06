@@ -3,10 +3,11 @@ import {globAsync} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {GdescriberParams, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
-import {columnInfoGetter} from './query'
+import {columnInfoGetter, isUntypeable} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
 import {parameterTypesGetter} from './query/parameters'
+import {jsdocQuery} from './write/typescript'
 
 export * from './types'
 export * from './defaults'
@@ -22,6 +23,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     writeTypes,
     pool,
     typeParsers,
+    logger,
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
 
@@ -38,20 +40,27 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     return Promise.all(fields)
   }
 
+  const regTypeToTypeScript = async (regtype: string) => {
+    const enumTypes = await getEnumTypes()
+    return (
+      defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
+      enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
+      defaultType
+    )
+  }
+
   const getParameterTypes = parameterTypesGetter(pool)
   const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
     const regtypes = await getParameterTypes(query.sql)
-    const enumTypes = await getEnumTypes()
 
-    return regtypes.map((regtype, i) => ({
+    const promises = regtypes.map(async (regtype, i) => ({
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
-      typescript:
-        // todo: handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
-        defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
-        enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-        defaultType,
+      // todo: handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
+      typescript: await regTypeToTypeScript(regtype),
     }))
+
+    return Promise.all(promises)
   }
 
   const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
@@ -76,9 +85,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     return (
       lodash.findLast(typeParsers, p => p.pgtype === pgtype)?.typescript ||
       gdescToTypeScript(regtype, typeName) ||
-      defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
-      enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-      defaultType
+      (await regTypeToTypeScript(regtype))
     )
   }
 
@@ -86,22 +93,33 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     const getColumnInfo = columnInfoGetter(pool)
 
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
+
+    logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
+
     const files = await globAsync(globParams[0], {
       ...globParams[1],
       cwd: path.resolve(process.cwd(), rootDir),
       absolute: true,
     })
 
-    const promises = files.flatMap(extractQueries).map(
+    const extracted = files.flatMap(extractQueries)
+
+    logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
+
+    const promises = extracted.map(
       async (query): Promise<DescribedQuery | null> => {
         try {
+          if (isUntypeable(query.template)) {
+            logger.debug(`Query \`${jsdocQuery(query.sql)}\` in file ${query.file} is not typeable`)
+            return null
+          }
           return {
             ...query,
             fields: await getFields(query),
             parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
           }
         } catch (e) {
-          console.error(`Describing query failed: ${e}`)
+          logger.error(`Describing query failed: ${e}`)
           return null
         }
       },
@@ -109,12 +127,15 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
 
     const describedQueries = lodash.compact(await Promise.all(promises))
 
-    const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
+    const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
+    logger.info(
+      `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles}.`,
+    )
 
-    // const queries = await Promise.all(lodash.compact(await Promise.all(promises)).map(getColumnInfo))
+    const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
 
     writeTypes(analysedQueries)
   }
 
-  return findAll()
+  return findAll().catch(e => console.warn({e}))
 }

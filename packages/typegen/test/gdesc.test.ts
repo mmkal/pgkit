@@ -1,17 +1,13 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
-import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 import * as path from 'path'
+import {getHelper} from './params'
 
-const helper = getPoolHelper({__filename})
-
-const gdescParams = (baseDir: string): Partial<gdesc.GdescriberParams> => ({
-  rootDir: baseDir,
-  pool: helper.pool,
-  psqlCommand: `docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres?options=--search_path%3d${helper.schemaName}"`,
-})
+export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
+  jest.resetAllMocks()
+
   await helper.pool.query(helper.sql`
     create type test_enum as enum('aa', 'bb', 'cc');
 
@@ -262,7 +258,7 @@ test('write types', async () => {
       }
       "
   `)
-}, 20000)
+})
 
 test('can write queries to separate file', async () => {
   const syncer = fsSyncer.jest.jestFixture({
@@ -327,7 +323,7 @@ test('can write queries to separate file', async () => {
         }
         "
   `)
-}, 20000)
+})
 
 test('replaces existing queries module', async () => {
   const syncer = fsSyncer.jest.jestFixture({
@@ -362,7 +358,7 @@ test('replaces existing queries module', async () => {
       }
       "
   `)
-}, 20000)
+})
 
 test('ignore irrelevant syntax', async () => {
   const syncer = fsSyncer.jest.jestFixture({
@@ -413,7 +409,7 @@ test('ignore irrelevant syntax', async () => {
       }
       "
   `)
-}, 20000)
+})
 
 test(`queries with syntax errors don't affect others`, async () => {
   const syncer = fsSyncer.jest.jestFixture({
@@ -429,12 +425,10 @@ test(`queries with syntax errors don't affect others`, async () => {
 
   syncer.sync()
 
-  const errorMock = jest.spyOn(console, 'error').mockReset()
-
   await gdesc.gdescriber(gdescParams(syncer.baseDir))
 
-  expect(errorMock).toHaveBeenCalledTimes(1)
-  expect(errorMock.mock.calls[0]).toMatchInlineSnapshot(`
+  expect(logger.error).toHaveBeenCalledTimes(1)
+  expect(logger.error.mock.calls[0]).toMatchInlineSnapshot(`
     Array [
       "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
     Query: \\"this is a nonsense query which will cause an error \\\\\\\\gdesc\\"
@@ -524,43 +518,43 @@ test('custom glob pattern', async () => {
       }
       "
   `)
-}, 20000)
+})
 
-test('variable table name', async () => {
+test('sensible defaults', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+    src: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      const tableName = 'test_table'
-
-      export default sql\`select * from ${'${sql.identifier([tableName])}'}\`
-    `,
+        export default sql\`select 1 as a\`
+      `,
+    },
   })
 
   syncer.sync()
 
-  const errorMock = jest.spyOn(console, 'error').mockReset()
+  jest.spyOn(process, 'cwd').mockReturnValueOnce(syncer.baseDir)
+  jest.spyOn(console, 'info').mockReset()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await gdesc.gdescriber()
 
-  expect(errorMock).toHaveBeenCalledTimes(1)
-  expect(errorMock.mock.calls[0]).toMatchInlineSnapshot(`
-    Array [
-      "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
-    Query: \\"select * from $1 \\\\\\\\gdesc\\"
-    Result: \\"psql:<stdin>:1: ERROR:  syntax error at or near \\\\\\"$1\\\\\\"\\\\nLINE 1: select * from $1 \\\\n                      ^\\"
-    Error: Empty output received",
-    ]
-  `)
+  expect(console.info).toHaveBeenCalled()
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
-    index.ts: |-
-      import {sql} from 'slonik'
-      
-      const tableName = 'test_table'
-      
-      export default sql\`select * from \${sql.identifier([tableName])}\`
-      "
+    src: 
+      index.ts: |-
+        import {sql} from 'slonik'
+        
+        export default sql<queries.A>\`select 1 as a\`
+        
+        module queries {
+          /** - query: \`select 1 as a\` */
+          export interface A {
+            /** postgres type: \`integer\` */
+            a: number | null
+          }
+        }
+        "
   `)
-}, 20000)
+})

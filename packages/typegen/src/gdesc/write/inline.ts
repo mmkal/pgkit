@@ -10,8 +10,7 @@ import {queryInterfaces} from './typescript'
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
 
-export const defaultGetQueriesModule = (filepath: string) =>
-  filepath.endsWith('.ts') ? filepath : path.join(path.dirname(filepath), '__sql__', path.basename(filepath) + '.ts')
+export const defaultGetQueriesModule = (filepath: string) => filepath
 
 interface Edit {
   start: number
@@ -64,11 +63,7 @@ export function getFileWriter(getQueriesModule = defaultGetQueriesModule) {
 
     const newSource = applyEdits(originalSource, edits)
 
-    if (file.endsWith('.sql')) {
-      // todo: write tyepscript file which links the .sql file with the query module in destPath
-    } else {
-      fs.writeFileSync(file, prettifyOne({filepath: file, content: newSource}), 'utf8')
-    }
+    fs.writeFileSync(file, prettifyOne({filepath: file, content: newSource}), 'utf8')
 
     function visit(node: ts.Node) {
       if (ts.isModuleDeclaration(node) && node.name.getText() === 'queries') {

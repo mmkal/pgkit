@@ -1,15 +1,10 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
-import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 import {createTypeParserPreset} from 'slonik'
+import {getHelper} from './params'
+import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 
-const helper = getPoolHelper({__filename})
-
-const gdescParams = (baseDir: string): Partial<gdesc.GdescriberParams> => ({
-  rootDir: baseDir,
-  pool: helper.pool,
-  psqlCommand: `docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres?options=--search_path%3d${helper.schemaName}"`,
-})
+export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
 test('type parsers have types inferred', async () => {
   const syncer = fsSyncer.jest.jestFixture({
@@ -80,4 +75,4 @@ test('type parsers have types inferred', async () => {
       }
       "
   `)
-}, 20000)
+})

@@ -105,6 +105,11 @@ export interface GdescriberParams {
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
   typeParsers: Array<TypeParserInfo>
+
+  /**
+   * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
+   */
+  logger: Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>
 }
 
 export interface ExtractedQuery {

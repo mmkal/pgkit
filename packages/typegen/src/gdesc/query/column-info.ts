@@ -23,8 +23,6 @@ create type types_type as (
   formatted_query text
 );
 
-drop function if exists gettypes(text);
-
 -- taken from https://dataedo.com/kb/query/postgresql/list-views-columns
 -- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
 -- nullable: https://stackoverflow.com/a/63980243
@@ -75,15 +73,6 @@ $$
 LANGUAGE 'plpgsql';
 `
 
-interface ViewResult {
-  schema_name: string
-  table_column_name: string
-  underlying_table_name: string
-  is_underlying_nullable: string
-  comment: string
-  formatted_query: string
-}
-
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
@@ -98,7 +87,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
     const viewResultQuery = sql<queries.Anonymous>`
       select schema_name, table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
-      from gettypes(${viewFriendlySql})
+      from public.gettypes(${viewFriendlySql})
     `
 
     const ast = getHopefullyViewableAST(viewFriendlySql)
@@ -187,7 +176,7 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
 }
 
 module queries {
-  /** - query: `select schema_name, table_column_name, u... [truncated] ...mment, formatted_query from gettypes($1)` */
+  /** - query: `select schema_name, table_column_name, u... [truncated] ...formatted_query from public.gettypes($1)` */
   export interface Anonymous {
     /** postgres type: `text` */
     schema_name: string | null

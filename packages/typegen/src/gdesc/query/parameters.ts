@@ -32,6 +32,7 @@ export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: st
   }
 }
 
+/* istanbul ignore if */
 if (require.main === module) {
   console.log = (...args: any[]) => console.dir(args.length === 1 ? args[0] : args, {depth: null})
   parameterTypesGetter(require('slonik').createPool('postgresql://postgres:postgres@localhost:5433/postgres'))(
