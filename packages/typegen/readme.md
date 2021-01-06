@@ -25,6 +25,7 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+   - [CLI options](#cli-options)
 - [Examples](#examples)
 - [Migration from v0.8.0](#migration-from-v080)
 - [SQL files](#sql-files)
@@ -47,28 +48,125 @@ npx slonik-typegen generate
 
 The above command will generate types using sensible default values. It will look for code in a `src` directory, and create interfaces for all `sql`-tagged queries it finds - e.g.
 
-Before:
-```ts
-import {sql} from 'slonik'
+<!-- codegen:start {preset: custom, source: ./docgen.js, export: basicExample} -->
+For a table defined with:
 
-sql`select foo, bar from baz`
+```sql
+create table test_table(foo int not null, bar text);
+
+comment on column test_table.bar is 'Look, ma! A comment from postgres!'
 ```
 
-After:
+Source code before:
 
 ```ts
-import {sql} from 'slonik'
+import {sql, createPool} from 'slonik'
+
+export default async () => {
+  const pool = createPool('...connection string...')
+
+  const results = await pool.query(sql`select foo, bar from test_table`)
+
+  results.rows.forEach(r => {
+    console.log(r.foo)
+    console.log(r.bar)
+  })
+}
 ```
+
+Source code after:
+
+```ts
+import {sql, createPool} from 'slonik'
+
+export default async () => {
+  const pool = createPool('...connection string...')
+
+  const results = await pool.query(sql<queries.TestTable>`select foo, bar from test_table`)
+
+  results.rows.forEach(r => {
+    console.log(r.foo) // foo has type 'number'
+    console.log(r.bar) // bar has type 'string | null'
+  })
+}
+
+module queries {
+  /** - query: `select foo, bar from test_table` */
+  export interface TestTable {
+    /** column: `example_test.test_table.foo`, not null: `true`, postgres type: `integer` */
+    foo: number
+
+    /**
+     * Look, ma! A comment from postgres!
+     *
+     * column: `example_test.test_table.bar`, postgres type: `text`
+     */
+    bar: string | null
+  }
+}
+```
+<!-- codegen:end -->
 
 ## Configuration
 
-The CLI can run with zero config, but there will often be customisations needed depending on your project's setup. By default, the CLI will look for `typegen.config.js` file in the working directory. The config file can contain the following options (all are optional):
+The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup. By default, the CLI will look for `typegen.config.js` file in the working directory. The config file can contain the following options (all are optional):
 
 - `rootDir` - Source root that the tool will search for files in. Defaults to `src`. Can be overridden with the `--root-dir` CLI argument.
 - `glob` - Glob pattern of files to search for. Defaults to searching for `.ts` and `.sql` files, ignore `node_modules`. Can be overridden with the `--glob` CLI argument.
 - `pool` - Slonik database pool instance. Will be used to issue queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool instance that's configured the same way as the one used in your application.
 - `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql -h localhost -U postgres postgres`. You can test it's working with `echo 'select 123 as abc' | psql -h localhost -U postgres postgres -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!)
 - `logger` - Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.
+
+### CLI options
+
+Some of the options above can be overriden by the CLI:
+
+<!-- codegen:start {preset: custom, source: ./docgen.js, export: cliHelpText} -->
+```
+usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
+                               [--psql COMMAND] [--default-type TYPESCRIPT]
+                               [--glob PATTERN]
+                               
+
+Generates a directory containing with a 'sql' tag wrapper based on found 
+queries found in source files. By default, searches 'src' for source files 
+and generates code under 'src/generated/db'.
+
+Optional arguments:
+
+  -h, --help            Show this help message and exit.
+
+  --config PATH         Path to a module containing parameters to be passed 
+                        to 'gdescriber'. If specified, it will be required 
+                        and the default export will be used as parameters. If 
+                        not specified, defaults will be used. Note: other CLI 
+                        arguments will override values set in this module
+
+  --root-dir PATH       Path to the source directory containing SQL queries. 
+                        Defaults to 'src if no value is provided
+
+  --psql COMMAND        psql command used to query postgres via CLI client. e.
+                        g. 'psql -h localhost -U postgres postgres' if 
+                        running postgres locally, or 'docker-compose exec -T 
+                        postgres psql -h localhost -U postgres postgres' if 
+                        running with docker-compose. You can test this by 
+                        running "<<your_psql_command>> -c 'select 1 as a, 2 
+                        as b'". Note that this command will be executed 
+                        dynamically, so avoid using any escape characters in 
+                        here.
+
+  --default-type TYPESCRIPT
+                        TypeScript fallback type for when no type is found. 
+                        Most simple types (text, int etc.) are mapped to 
+                        their TypeScript equivalent automatically. This 
+                        should usually be 'unknown', or 'any' if you like to 
+                        live dangerously.
+
+  --glob PATTERN        Glob pattern of source files to search for SQL 
+                        queries in. By default searches for all ts, js, sql, 
+                        cjs and mjs files under 'rootDir'
+```
+<!-- codegen:end -->
 
 There are some more configuration options [documented in code](./src/gdesc/types.ts) but these should be considered experimental, and might change without warning. If you want to use them, please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page.
 
@@ -147,11 +245,10 @@ To determine whether query columns are nullable, the query is parsed using [pgsq
 
 ## Recommendations
 
-1. You can re-use the same type name for many queries. But you should only do this if the types represented by any single name are the same, since the resultant type will be a union of all of the outputs (meaning `A | B` - i.e. only fields common to both will be accessible).
 1. Check in the types to source control. They're generated code, but it makes it much easier to track what was happened when a query was update, and see those changes over time.
 1. After running CI, it's worth making sure that there are no working copy changes. For git, you can use [check-clean](https://npmjs.com/package/check-clean):
 
 ```sh
-yarn test:integration
+npx slonik-typegen generate
 npx check-clean
 ```

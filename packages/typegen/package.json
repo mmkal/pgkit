@@ -22,6 +22,9 @@
     "url": "git+https://github.com/mmkal/slonik-tools.git"
   },
   "license": "ISC",
+  "peerDependencies": {
+    "typescript": "*"
+  },
   "dependencies": {
     "@rushstack/ts-command-line": "^4.7.8",
     "execa": "^5.0.0",
