@@ -5,7 +5,7 @@ import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
 import {getHopefullyViewableAST, getSuggestedTags} from './parse'
 import * as assert from 'assert'
-import {tryOr, tryOrNull} from '../util'
+import {tryOrDefault} from '../util'
 
 // todo: create a schema to put these in?
 const getTypesSql = sql`
@@ -107,10 +107,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
     const parseableSql = formattedSqlStatements[0] || viewFriendlySql
 
-    const parsed = tryOr(
-      () => parse.getAliasMappings(parseableSql),
-      () => parse.getAliasMappings(viewFriendlySql), // If parsing failed for the formatted query, try the unformatted one: https://github.com/oguimbal/pgsql-ast-parser/issues/1#issuecomment-754072470
-    )()
+    const parsed = parse.getAliasMappings(parseableSql)
 
     return {
       ...query,
@@ -145,7 +142,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
       // console.error({e})
-      const suggestedTags = tryOrNull(() => getSuggestedTags(query.template)) || ['Anonymous']
+      const suggestedTags = tryOrDefault(() => getSuggestedTags(query.template), ['Anonymous'])
       return {
         ...query,
         suggestedTags,

@@ -14,9 +14,9 @@ export default [
   sql<queries.TestTable_id_t>`update test_table as tt set t = '' returning id, t`,
   sql<queries.PgAdvisoryLock>`select pg_advisory_lock(123)`,
   sql<queries.TestTable_id>`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n`,
-  sql<queries.TestTable_2>`select jb->'foo'->>'bar' from test_table`,
+  sql<queries.TestTable_1>`select jb->'foo'->>'bar' from test_table`,
   sql<queries.TestTable_n>`select n::numeric from test_table`,
-  sql<queries.Anonymous>`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)`,
+  sql<queries.Vals>`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)`,
   sql<queries.T>`select t from (select id from test_table) t`,
   sql<queries.TestTable_tAliased1_tNnAliased>`
     select t as t_aliased1, t_nn as t_nn_aliased
@@ -140,7 +140,7 @@ module queries {
   }
 
   /** - query: `select jb->'foo'->>'bar' from test_table` */
-  export interface TestTable_2 {
+  export interface TestTable_1 {
     /** postgres type: `text` */
     '?column?': string | null
   }
@@ -152,7 +152,7 @@ module queries {
   }
 
   /** - query: `select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)` */
-  export interface Anonymous {
+  export interface Vals {
     /** postgres type: `integer` */
     num: number | null
 

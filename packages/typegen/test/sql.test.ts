@@ -251,10 +251,7 @@ test('sql with parameters', async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber({
-    ...gdescParams(syncer.baseDir),
-    logger: console,
-  })
+  await gdesc.gdescriber(gdescParams(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---

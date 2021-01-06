@@ -47,21 +47,11 @@ export const attempt = <T>(context: string, action: () => T): T => {
   }
 }
 
-export const tryOr = <A extends unknown[], T>(fn: (...args: A) => T, onErr: (...args: [...A, unknown]) => T) => (
-  ...args: A
-) => {
-  try {
-    return fn(...args)
-  } catch (e: unknown) {
-    return onErr(...args, e)
-  }
-}
-
-export const tryOrNull = <T>(fn: () => T) => {
+export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {
   try {
     return fn()
   } catch {
-    return null
+    return defaultValue
   }
 }
 

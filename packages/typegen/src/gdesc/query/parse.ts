@@ -1,6 +1,6 @@
 import * as pgsqlAST from 'pgsql-ast-parser'
 import * as lodash from 'lodash'
-import {pascalCase, tryOrNull} from '../util'
+import {pascalCase, tryOrDefault} from '../util'
 import {match} from 'io-ts-extra'
 import * as assert from 'assert'
 
@@ -23,7 +23,7 @@ export const templateToValidSql = (template: string[]) => template.join('null')
  */
 export const isUntypeable = (template: string[]) => {
   const usesIdentifier = () =>
-    tryOrNull(() => {
+    tryOrDefault(() => {
       let usesIdentifierPlaceholder = false
 
       const fakeTableName = `t${Math.random()}`.replace('0.', '')
@@ -39,14 +39,14 @@ export const isUntypeable = (template: string[]) => {
         .statement(getHopefullyViewableAST(template.join(fakeTableName)))
 
       return usesIdentifierPlaceholder
-    })
+    }, null)
 
   const hasTooManyStatements = () =>
-    tryOrNull(() => {
+    tryOrDefault(() => {
       const statements = pgsqlAST.parse(templateToValidSql(template))
 
       return statements.length !== 1
-    })
+    }, null)
 
   return Boolean(usesIdentifier() || hasTooManyStatements())
 }

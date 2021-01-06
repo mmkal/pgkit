@@ -1,7 +1,7 @@
 import * as cli from '@rushstack/ts-command-line'
 import {gdescriber} from './index'
 import * as path from 'path'
-import {tryOrNull} from './util'
+import {tryOrDefault} from './util'
 import * as defaults from './defaults'
 import * as lodash from 'lodash'
 
@@ -85,7 +85,7 @@ export class GenerateAction extends cli.CommandLineAction {
   async onExecute() {
     let optionsModule = this._params.config.value
       ? require(path.resolve(process.cwd(), this._params.config.value))
-      : tryOrNull(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)))
+      : tryOrDefault(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)), null)
 
     const options = optionsModule?.default || optionsModule
 
