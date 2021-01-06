@@ -45,7 +45,7 @@ export interface GdescriberParams {
    * tool, according to the specified semver range. e.g. if set to `<=0.8.0` files will be modified/deleted before the codegen
    * is run.
    */
-  migrate: '<=0.8.0' | undefined
+  migrate: {from: '<=0.8.0'; skipGitCheck: boolean} | undefined
 
   /**
    * Map from a psql type description to a TypeScript type representation.

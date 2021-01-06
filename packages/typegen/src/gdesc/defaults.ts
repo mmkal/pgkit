@@ -24,7 +24,7 @@ export const getParams = ({
   psqlCommand = defaultPsqlCommand,
   gdescToTypeScript = () => undefined,
   rootDir = defaultRootDir,
-  glob = [`**/*.{js,ts,cjs,mjs,sql}`, {ignore: ['**/node_modules/**', '**/generated/**']}],
+  glob = [`**/*.{js,ts,cjs,mjs,sql}`, {ignore: ['**/node_modules/**']}],
   defaultType = defaultTypeScriptType,
   extractQueries = defaultExtractQueries,
   writeTypes = defaultWriteTypes(),

@@ -42,7 +42,7 @@ export const attempt = <T>(context: string, action: () => T): T => {
   try {
     return action()
   } catch (e) {
-    e.message = `Failure ${context}: ${e}`
+    e.message = `Failure: ${context}: ${e}`
     throw e
   }
 }
@@ -65,9 +65,6 @@ export const tryOrNull = <T>(fn: () => T) => {
   }
 }
 
-/** Makes sure there are no git changes before performing destructive actions. Note this is only run once since changes are performed one file at a time. */
-export const checkClean = lodash.once(() =>
-  attempt('Checking git status is clean before modifying source file', () =>
-    child_process.execSync(`git diff --exit-code`),
-  ),
-)
+/** Makes sure there are no git changes before performing destructive actions. */
+export const checkClean = () =>
+  attempt('Checking git status is clean', () => child_process.execSync(`git diff --exit-code`))

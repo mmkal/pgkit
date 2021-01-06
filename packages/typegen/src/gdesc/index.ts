@@ -8,6 +8,7 @@ import * as assert from 'assert'
 import * as path from 'path'
 import {parameterTypesGetter} from './query/parameters'
 import {truncateQuery} from './util'
+import {migrateLegacyCode} from './migrate'
 
 export * from './types'
 export * from './defaults'
@@ -24,6 +25,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     pool,
     typeParsers,
     logger,
+    migrate,
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
 
@@ -96,12 +98,18 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
 
     logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
 
-    const files = await globAsync(globParams[0], {
-      ...globParams[1],
-      cwd: path.resolve(process.cwd(), rootDir),
-      absolute: true,
-    })
+    const getFiles = () =>
+      globAsync(globParams[0], {
+        ...globParams[1],
+        cwd: path.resolve(process.cwd(), rootDir),
+        absolute: true,
+      })
 
+    if (migrate) {
+      migrateLegacyCode(migrate)({files: await getFiles(), logger})
+    }
+
+    const files = await getFiles() // Migration may have deleted some, get files from fresh.
     const extracted = files.flatMap(extractQueries)
 
     logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
@@ -137,5 +145,5 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
     writeTypes(analysedQueries)
   }
 
-  return findAll().catch(e => console.warn({e}))
+  return findAll()
 }
