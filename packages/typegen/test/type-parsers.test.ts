@@ -1,7 +1,7 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
 import {createTypeParserPreset} from 'slonik'
-import {getHelper} from './params'
+import {getHelper} from './helper'
 import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})

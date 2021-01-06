@@ -1,6 +1,6 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
-import {getHelper} from './params'
+import {getHelper} from './helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
