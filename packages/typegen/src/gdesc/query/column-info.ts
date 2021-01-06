@@ -127,6 +127,8 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
           }),
         )
         // todo: make sure schema is correct. possibly two tables in different schemas but with same names could give extra results here
+        // see here for using search path to filter by schema https://dba.stackexchange.com/a/208383
+        // will also need to take into account explicit schemas though
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
         const notNull = res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))
 
