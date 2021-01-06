@@ -13,7 +13,7 @@ beforeEach(async () => {
   `)
 })
 
-test('edit before write', async () => {
+test('branded types', async () => {
   const syncer = fsSyncer.jest.jestFixture({
     'index.ts': `
       import {sql} from 'slonik'

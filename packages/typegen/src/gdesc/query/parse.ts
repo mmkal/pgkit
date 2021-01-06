@@ -192,6 +192,7 @@ if (require.main === module) {
       '\n' + '  insert into test_table(id, n) values (1, 2);\n' + '  insert into test_table(id, n) values (3, 4);\n',
     ]),
   )
+  console.log(aliasMappings(getHopefullyViewableAST("select a, b from t1 join (select * from gettypes('')) on a = b")))
   throw ''
   console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
   pgsqlAST

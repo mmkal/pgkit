@@ -5,6 +5,8 @@ import {getHelper} from './helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
+// todo: test two tables, where sql parser can't automatically tell which table the columns are from.
+
 beforeEach(async () => {
   jest.resetAllMocks()
 
