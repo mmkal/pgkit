@@ -1,5 +1,6 @@
 import * as slonik from 'slonik'
 
+// todo: rename to `Options`
 export interface GdescriberParams {
   /**
    * How to execute `psql` from the machine running this tool.
@@ -160,6 +161,7 @@ export interface DescribedQuery extends ParsedQuery {
 export interface QueryField {
   /** Field name. e.g. for `select foo, bar from baz` this will be `foo` or `bar` */
   name: string
+  // todo: rename to regtype
   /** The description column returned by `psql ... \gdesc`. See https://www.postgresql.org/docs/11/app-psql.html  */
   gdesc: string
   /** The generated typescript type. based on `gdesc` */
@@ -188,6 +190,7 @@ export interface AnalysedQueryField extends QueryField {
    * not-null table column, or is the return value of a common function like `count(*)`.
    */
   notNull: boolean
+  // todo: make this {schema: string; table: string; name: string} | undefined
   /** table and column identifier string the field corresponds to, if any. e.g. `my_schema.my_table.my_column`. This is undefined for non-table-column fields.  */
   column: string | undefined
   /**

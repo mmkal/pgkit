@@ -14,6 +14,10 @@ export const defaultWriteFile: WriteFile = async (filepath, content) => {
   await fs.promises.writeFile(filepath, content)
 }
 
+/**
+ * @experimental
+ * These options are not yet stable and may be renamed/refactored/moved/removed.
+ */
 export interface WriteTypesOptions {
   getTSModuleFromSource?: (sourcePath: string) => string
   getTSModuleFromSQL?: (sqlPath: string) => string

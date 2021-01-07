@@ -25,7 +25,10 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+   - [Example config](#example-config)
    - [CLI options](#cli-options)
+   - [Modifying types](#modifying-types)
+   - [Modifying source files](#modifying-source-files)
 - [Examples](#examples)
 - [Migration from v0.8.0](#migration-from-v080)
 - [SQL files](#sql-files)
@@ -117,6 +120,23 @@ The CLI can run with zero config, but there will usually be customisations neede
 - `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql -h localhost -U postgres postgres`. You can test it's working with `echo 'select 123 as abc' | psql -h localhost -U postgres postgres -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!)
 - `logger` - Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.
 
+### Example config
+
+Here's a valid example config file.
+
+```js
+const yourAppDB = require('./lib/db')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  rootDir: 'source', // maybe you're sindresorhus and you don't like using `src`
+  glob: ['{queries/**.ts,sql/**.sql}', {ignore: 'legacy-queries/**.sql'}],
+  pool: yourAppDB.getPool(),
+}
+```
+
+Note that the `/** @type {import('@slonik/typegen').Options} */` comment is optional, but will ensure your IDE gives you type hints.
+
 ### CLI options
 
 Some of the options above can be overriden by the CLI:
@@ -168,7 +188,110 @@ Optional arguments:
 ```
 <!-- codegen:end -->
 
-There are some more configuration options [documented in code](./src/gdesc/types.ts) but these should be considered experimental, and might change without warning. If you want to use them, please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page.
+There are some more configuration options [documented in code](./src/gdesc/types.ts) but these should be considered experimental, and might change without warning. You can try them out as documented below, but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
+
+### Modifying types
+
+You can modify the types generated before they are written to disk by defining a custom `writeTypes` implementation:
+
+```js
+const typegen = require('@slonik/typegen')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: queries => {
+    queries.forEach(query => {
+      query.fields.forEach(field => {
+        // add a `_brand` to all string id fields:
+        if (field.typescript === 'string' && field.column && field.column.endsWith('.id')) {
+          field.typescript = `(${field.typescript} & { _brand: ${JSON.stringify(field.column)} })`
+        }
+      })
+    })
+
+    return typegen.defaultWriteTypes()(queries)
+  }
+}
+```
+
+Or you could mark all fields as non-null (but probably shouldn't!):
+
+```js
+const typegen = require('@slonik/typegen')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: queries => {
+    queries.forEach(query => {
+      query.fields.forEach(field => {
+        field.notNull = true
+      })
+    })
+
+    return typegen.defaultWriteTypes()(queries)
+  }
+}
+```
+
+Or you could use a custom type for json fields:
+
+```js
+const typegen = require('@slonik/typegen')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: queries => {
+    queries.forEach(query => {
+      query.fields.forEach(field => {
+        if (field.regtype === 'json' || field.regtype === 'jsonb') {
+          field.typescript = `import('@your-project/custom-types').YourCustomType`
+          // For more customisation, you could look up which type to use based on `field.column`.
+        }
+      })
+    })
+
+    return typegen.defaultWriteTypes()(queries)
+  }
+}
+```
+
+### Modifying source files
+
+You can also use `writeTypes` to define a hook that runs before writing to disk:
+
+```js
+const typegen = require('@slonik/typegen')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: typegen.defaultWriteTypes({
+    writeFile: async (filepath, content) => {
+      content = content.replace(/queries/g, 'querieeeez')
+      await typegen.write.writeFile(filepath, content)
+    },
+  })
+}
+```
+
+Or you could override the default formatter (which uses prettier, if found):
+
+```js
+const typegen = require('@slonik/typegen')
+const yourCustomLinter = require('@your-project/custom-linter')
+const fs = require('fs')
+const path = require('path')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: typegen.defaultWriteTypes({
+    writeFile: async (filepath, content) => {
+      content = await yourCustomLinter.fix(filepath, content)
+      await fs.promises.mkdir(path.dirname(filepath), {recursive: true}) // since you're not using the built-in `writeFile` you need to do this yourself
+      await fs.promises.writeFile(filepath, content)
+    },
+  })
+}
+```
 
 ## Examples
 
