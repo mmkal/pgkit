@@ -2,7 +2,7 @@ import {TaggedTemplateLiteralInvocationType} from 'slonik'
 import * as path from 'path'
 import * as fs from 'fs'
 
-/** - query: `select a, b from test_table` */
+/** - query: `select a, b from test_table where a = 1` */
 export interface TestTable1 {
   /** column: `sql_test.test_table.a`, not null: `true`, postgres type: `integer` */
   a: number
@@ -13,7 +13,7 @@ export interface TestTable1 {
 
 /**
  * Helper which reads the file system synchronously to get a query object for ../test-table1.sql.
- * (query: `select a, b from test_table`)
+ * (query: `select a, b from test_table where a = 1`)
  *
  * Uses `fs` by default and caches the result so the disk is only accessed once. You can pass in a custom `readFileSync` function for use-cases where disk access is not possible.
  *
@@ -41,7 +41,7 @@ export const getTestTable1QuerySync = ({
 
 /**
  * Helper which reads the file system asynchronously to get a query object for ../test-table1.sql.
- * (query: `select a, b from test_table`)
+ * (query: `select a, b from test_table where a = 1`)
  *
  * Uses `fs` by default and caches the result so the disk is only accessed once. You can pass in a custom `readFile` function for use-cases where disk access is not possible.
  *
@@ -59,7 +59,7 @@ export const getTestTable1QuerySync = ({
  * }
  * ```
  */
-export const getTestTable1QueryAync = async ({
+export const getTestTable1QueryAsync = async ({
   readFile = defaultReadFileAsync,
 }: GetTestTable1QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable1>> => ({
   sql: (await readFile(sqlPath)).toString(),

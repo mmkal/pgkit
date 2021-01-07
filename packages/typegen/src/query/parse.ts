@@ -69,13 +69,8 @@ const astToSelect = (ast: pgsqlAST.Statement): pgsqlAST.Statement => {
           name: ast.type === 'update' ? ast.table.name : ast.into.name,
         },
       ],
-      columns: ast.returning.map(r => ({
-        expr: r.expr,
-      })),
+      columns: ast.returning,
     }
-  }
-  if (ast.type === 'prepare') {
-    return astToSelect(ast.statement)
   }
 
   return ast

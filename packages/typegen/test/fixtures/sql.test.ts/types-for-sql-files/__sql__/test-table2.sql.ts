@@ -56,7 +56,7 @@ export const getTestTable2QuerySync = ({
  * }
  * ```
  */
-export const getTestTable2QueryAync = async ({
+export const getTestTable2QueryAsync = async ({
   readFile = defaultReadFileAsync,
 }: GetTestTable2QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable2>> => ({
   sql: (await readFile(sqlPath)).toString(),

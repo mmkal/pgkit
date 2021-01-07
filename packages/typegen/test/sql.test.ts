@@ -16,7 +16,7 @@ beforeEach(async () => {
 
 test('types for sql files', async () => {
   const syncer = fsSyncer.jest.jestFixture({
-    'test-table1.sql': `select a, b from test_table`,
+    'test-table1.sql': `select a, b from test_table where a = 1`,
     'test-table2.sql': `select b as aaa from test_table`,
   })
 
@@ -27,7 +27,7 @@ test('types for sql files', async () => {
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
     test-table1.sql: |-
-      select a, b from test_table
+      select a, b from test_table where a = 1
       
     test-table2.sql: |-
       select b as aaa from test_table
@@ -38,7 +38,7 @@ test('types for sql files', async () => {
         import * as path from 'path'
         import * as fs from 'fs'
         
-        /** - query: \`select a, b from test_table\` */
+        /** - query: \`select a, b from test_table where a = 1\` */
         export interface TestTable1 {
           /** column: \`sql_test.test_table.a\`, not null: \`true\`, postgres type: \`integer\` */
           a: number
@@ -49,7 +49,7 @@ test('types for sql files', async () => {
         
         /**
          * Helper which reads the file system synchronously to get a query object for ../test-table1.sql.
-         * (query: \`select a, b from test_table\`)
+         * (query: \`select a, b from test_table where a = 1\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFileSync\` function for use-cases where disk access is not possible.
          *
@@ -77,7 +77,7 @@ test('types for sql files', async () => {
         
         /**
          * Helper which reads the file system asynchronously to get a query object for ../test-table1.sql.
-         * (query: \`select a, b from test_table\`)
+         * (query: \`select a, b from test_table where a = 1\`)
          *
          * Uses \`fs\` by default and caches the result so the disk is only accessed once. You can pass in a custom \`readFile\` function for use-cases where disk access is not possible.
          *
@@ -95,7 +95,7 @@ test('types for sql files', async () => {
          * }
          * \`\`\`
          */
-        export const getTestTable1QueryAync = async ({
+        export const getTestTable1QueryAsync = async ({
           readFile = defaultReadFileAsync,
         }: GetTestTable1QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable1>> => ({
           sql: (await readFile(sqlPath)).toString(),
@@ -197,7 +197,7 @@ test('types for sql files', async () => {
          * }
          * \`\`\`
          */
-        export const getTestTable2QueryAync = async ({
+        export const getTestTable2QueryAsync = async ({
           readFile = defaultReadFileAsync,
         }: GetTestTable2QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable2>> => ({
           sql: (await readFile(sqlPath)).toString(),
@@ -241,6 +241,18 @@ test('types for sql files', async () => {
         }
         "
   `)
+
+  const sqlWithParameters: typeof import('./fixtures/sql.test.ts/types-for-sql-files/__sql__/test-table1.sql') = require('./fixtures/sql.test.ts/types-for-sql-files/__sql__/test-table1.sql')
+
+  const result1 = await helper.pool.query(sqlWithParameters.getTestTable1QuerySync())
+
+  const result2 = await helper.pool.query(await sqlWithParameters.getTestTable1QueryAsync())
+
+  expect(result2).toEqual(result1)
+
+  expect(result1.rows).toEqual([{a: 1, b: 'one'}])
+
+  expectTypeOf(result1.rows).items.toEqualTypeOf<{a: number; b: string | null}>()
 })
 
 test('sql with parameters', async () => {
@@ -324,7 +336,7 @@ test('sql with parameters', async () => {
          * }
          * \`\`\`
          */
-        export const getTestTableQueryAync = async ({
+        export const getTestTableQueryAsync = async ({
           readFile = defaultReadFileAsync,
           params,
         }: GetTestTableQueryAsyncOptions): Promise<TaggedTemplateLiteralInvocationType<TestTable>> => ({
@@ -376,20 +388,24 @@ test('sql with parameters', async () => {
         }
         "
   `)
-})
 
-test('the other two tests work!', async () => {
-  // note: this test depends on the other two tests having been run already
   const sqlWithParameters: typeof import('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql') = require('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql')
 
-  const result = await helper.pool.query(
+  const result1 = await helper.pool.query(
     sqlWithParameters.getTestTableQuerySync({
       params: {$1: 1, $2: 'one'},
     }),
   )
 
-  expect(result.rows).toEqual([{a: 1, b: 'one'}])
-  const x: {a: number; b: string | null} = result.rows[0]
-  const y: typeof result.rows[0] = {a: 1, b: ''} as {a: number; b: string | null}
-  expectTypeOf(result.rows).items.toEqualTypeOf<{a: number; b: string | null}>()
+  const result2 = await helper.pool.query(
+    await sqlWithParameters.getTestTableQueryAsync({
+      params: {$1: 1, $2: 'one'},
+    }),
+  )
+
+  expect(result2).toEqual(result1)
+
+  expect(result1.rows).toEqual([{a: 1, b: 'one'}])
+
+  expectTypeOf(result1.rows).items.toEqualTypeOf<{a: number; b: string | null}>()
 })

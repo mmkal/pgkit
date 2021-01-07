@@ -1,6 +1,5 @@
 import {dedent, relativeUnixPath, typeName, truncateQuery} from '../util'
 import * as path from 'path'
-import * as fs from 'fs'
 import {getterExpression, jsdocComment, queryInterfaces, quotePropKey} from './typescript'
 import {TaggedQuery} from '../types'
 import {prettifyOne, tsPrettify} from './prettify'
@@ -21,7 +20,6 @@ export const getSQLHelperWriter = ({
   const destPath = getModulePath(query.file)
   const newContent = getSQLHelperContent(query, destPath)
 
-  // fs.mkdirSync(path.dirname(destPath), {recursive: true})
   await writeFile(destPath, prettifyOne({content: newContent, filepath: destPath}))
 }
 
@@ -91,7 +89,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       .replace(/Sync/g, 'Async')
       .replace(/\bsync/g, 'async')
       .replace(`get${tag}QueryAsync()`, `await get${tag}QueryAsync()`)}
-    export const get${tag}QueryAync = async ({
+    export const get${tag}QueryAsync = async ({
       readFile = defaultReadFileAsync,
       ${defaults.valuesParam}
     }: Get${tag}QueryAsyncOptions ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocationType<${tag}>> => ({

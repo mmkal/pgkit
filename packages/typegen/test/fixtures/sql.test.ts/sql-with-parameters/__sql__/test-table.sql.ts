@@ -60,7 +60,7 @@ export const getTestTableQuerySync = ({
  * }
  * ```
  */
-export const getTestTableQueryAync = async ({
+export const getTestTableQueryAsync = async ({
   readFile = defaultReadFileAsync,
   params,
 }: GetTestTableQueryAsyncOptions): Promise<TaggedTemplateLiteralInvocationType<TestTable>> => ({
