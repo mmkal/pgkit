@@ -14,6 +14,7 @@ beforeEach(async () => {
 })
 
 jest.mock('child_process', () => ({
+  ...jest.requireActual<any>('child_process'),
   execSync: (command: string) => {
     if (command === 'git diff --exit-code') {
       throw new Error(`[fake git diff output]`)
@@ -180,13 +181,27 @@ test('migrate old codegen', async () => {
       
       export const slonik = createPool('...', poolConfig)
       
-      export const queryA = sql\`
+      export const queryA = sql<queries.A>\`
         select 1 as a
       \`
       
-      export const queryB = sql\`
+      export const queryB = sql<queries.B>\`
         select 1 as b
       \`
+      
+      module queries {
+        /** - query: \`select 1 as a\` */
+        export interface A {
+          /** postgres type: \`integer\` */
+          a: number | null
+        }
+      
+        /** - query: \`select 1 as b\` */
+        export interface B {
+          /** postgres type: \`integer\` */
+          b: number | null
+        }
+      }
       
     mixed-sql-import-first.ts: |-
       import {sql} from 'slonik'

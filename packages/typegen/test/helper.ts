@@ -3,7 +3,12 @@ import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 
 export const getHelper = (params: {__filename: string}) => {
   const poolHelper = getPoolHelper(params)
-  const logger = {debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn()}
+  const logger = {
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(console.warn),
+    error: jest.fn(console.error),
+  }
 
   const gdescParams = (baseDir: string): Partial<gdesc.Options> => ({
     rootDir: baseDir,

@@ -131,7 +131,7 @@ export const gdescriber = (params: Partial<Options> = {}) => {
             parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
           }
         } catch (e) {
-          logger.error(`Describing query failed: ${e}`)
+          logger.warn(`Describing query failed: ${e}`)
           return null
         }
       },
