@@ -38,7 +38,7 @@ export const gdescriber = (params: Partial<Options> = {}) => {
     const fields = await Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
         name: row.Column,
-        gdesc: row.Type,
+        regtype: row.Type,
         typescript: await getTypeScriptType(row.Type, row.Column),
       })),
     )

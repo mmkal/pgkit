@@ -153,9 +153,8 @@ export interface DescribedQuery extends ExtractedQuery {
 export interface QueryField {
   /** Field name. e.g. for `select foo, bar from baz` this will be `foo` or `bar` */
   name: string
-  // todo: rename to regtype
   /** The description column returned by `psql ... \gdesc`. See https://www.postgresql.org/docs/11/app-psql.html  */
-  gdesc: string
+  regtype: string
   /** The generated typescript type. based on `gdesc` */
   typescript: string
 }
