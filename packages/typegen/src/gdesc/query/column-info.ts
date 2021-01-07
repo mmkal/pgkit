@@ -10,14 +10,13 @@ import {tryOrDefault} from '../util'
 const _sql = sql
 
 const getTypesSql = _sql`
-drop type if exists types_type cascade;
+drop type if exists pg_temp.types_type cascade;
 
 create type pg_temp.types_type as (
   schema_name text,
   view_name text,
   table_column_name text,
   query_column_name text,
-  udt_name name,
   comment text,
   underlying_table_name text,
   is_underlying_nullable text,
@@ -35,11 +34,10 @@ declare
   v_tmp_name text;
   sql_query alias for $1;
   returnrec types_type;
-  rec types_type;
 begin
-  v_tmp_name := 'temp2_' || md5(sql_query);
+  v_tmp_name := 'temp_view_' || md5(sql_query);
   execute 'drop view if exists ' || v_tmp_name;
-  execute 'create view ' || v_tmp_name || ' as ' || sql_query;
+  execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
 
   FOR returnrec in
   select
@@ -47,7 +45,6 @@ begin
     vcu.view_name as view_name,
     c.column_name,
     vcu.column_name,
-    c.table_name,
     col_description(
       to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
       c.ordinal_position
@@ -61,6 +58,7 @@ begin
     information_schema.view_column_usage vcu
       on c.table_name = vcu.table_name
       and c.column_name = vcu.column_name
+      and c.table_schema = vcu.table_schema
   where
     c.table_name = v_tmp_name
     or vcu.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
@@ -129,9 +127,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
             )
           }),
         )
-        // todo: make sure schema is correct. possibly two tables in different schemas but with same names could give extra results here
-        // see here for using search path to filter by schema https://dba.stackexchange.com/a/208383
-        // will also need to take into account explicit schemas though
+
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
         const notNull = res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))
 
