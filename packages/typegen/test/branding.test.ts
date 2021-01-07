@@ -29,8 +29,9 @@ test('branded types', async () => {
     writeTypes: queries => {
       queries.forEach(query => {
         query.fields.forEach(field => {
-          if (field.column?.endsWith('.id')) {
-            field.typescript = `(${field.typescript} & { _brand: ${JSON.stringify(field.column)} })`
+          if (field.column?.name === 'id') {
+            const brand = Object.values(field.column).join('.')
+            field.typescript = `(${field.typescript} & { _brand: ${JSON.stringify(brand)} })`
           }
         })
       })

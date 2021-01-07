@@ -134,7 +134,11 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
         return {
           ...f,
           notNull,
-          column: res && `${res.schema_name}.${res.underlying_table_name}.${res.table_column_name}`,
+          column: res && {
+            schema: res.schema_name!,
+            table: res.underlying_table_name!,
+            name: res.table_column_name!,
+          },
           comment: res?.comment || undefined,
         }
       }),

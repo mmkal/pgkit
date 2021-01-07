@@ -34,7 +34,12 @@ export const interfaceBody = (query: AnalysedQuery) =>
             ? `${f.typescript}`
             : `(${f.typescript}) | null`
 
-        const meta = Object.entries({column: f.column, 'not null': f.notNull, 'postgres type': f.regtype})
+        const metaVals = {
+          column: f.column && Object.values(f.column).join('.'),
+          'not null': f.notNull,
+          'postgres type': f.regtype,
+        }
+        const meta = Object.entries(metaVals)
           .filter(e => e[1])
           .map(e => `${e[0]}: \`${e[1]}\``)
           .join(', ')

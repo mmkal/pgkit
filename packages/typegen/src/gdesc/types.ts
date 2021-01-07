@@ -182,9 +182,8 @@ export interface AnalysedQueryField extends QueryField {
    * not-null table column, or is the return value of a common function like `count(*)`.
    */
   notNull: boolean
-  // todo: make this {schema: string; table: string; name: string} | undefined
-  /** table and column identifier string the field corresponds to, if any. e.g. `my_schema.my_table.my_column`. This is undefined for non-table-column fields.  */
-  column: string | undefined
+  /** schema, table and column identifier string the field corresponds to, if any. e.g. `my_schema.my_table.my_column`. This is undefined for non-table-column fields.  */
+  column: {schema: string; table: string; name: string} | undefined
   /**
    * The postgres comment applied to the field, e.g. with `comment on column my_table.my_column is 'Some helpful context about the column'`.
    * This will be mapped to a jsdoc comment on generated types.

@@ -203,7 +203,7 @@ module.exports = {
     queries.forEach(query => {
       query.fields.forEach(field => {
         // add a `_brand` to all string id fields:
-        if (field.typescript === 'string' && field.column && field.column.endsWith('.id')) {
+        if (field.typescript === 'string' && field.column && field.column.name === '.id') {
           field.typescript = `(${field.typescript} & { _brand: ${JSON.stringify(field.column)} })`
         }
       })
