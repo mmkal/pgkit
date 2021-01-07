@@ -48,6 +48,20 @@ export const migrate080 = ({files, logger}: {files: string[]; logger: Logger}) =
     if (change.type === 'write') {
       logger.info(`Updating file ${change.file}`)
       fs.writeFileSync(change.file, prettifyOne({filepath: change.file, content: change.content}))
+
+      const warningPhrase = 'poolConfig'
+      const warnings = change.content
+        .split('\n')
+        .map((line, i) => ({
+          message: `"${warningPhrase}" should be removed manually`,
+          line: i + 1,
+          column: line.indexOf(warningPhrase) + 1,
+        }))
+        .filter(warning => warning.column > 0)
+
+      warnings.forEach(warn => {
+        logger.warn(`WARNING: ${warn.message} - ${change.file}:${warn.line}:${warn.column}`)
+      })
     }
   })
 }

@@ -429,8 +429,8 @@ test(`queries with syntax errors don't affect others`, async () => {
 
   await gdesc.gdescriber(gdescParams(syncer.baseDir))
 
-  expect(logger.error).toHaveBeenCalledTimes(1)
-  expect(logger.error.mock.calls[0]).toMatchInlineSnapshot(`
+  expect(logger.warn).toHaveBeenCalledTimes(1)
+  expect(logger.warn.mock.calls[0]).toMatchInlineSnapshot(`
     Array [
       "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
     Query: \\"this is a nonsense query which will cause an error \\\\\\\\gdesc\\"

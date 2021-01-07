@@ -163,12 +163,19 @@ test('migrate old codegen', async () => {
     },
   })
 
+  logger.warn.mockReset()
+
   syncer.sync()
 
   await gdesc.gdescriber({
     ...gdescParams(syncer.baseDir),
     migrate: {from: '<=0.8.0', skipGitCheck: true},
   })
+
+  expect(logger.warn).toHaveBeenCalled()
+  expect(logger.warn).toHaveBeenCalledWith(
+    expect.stringMatching(/WARNING: "poolConfig" should be removed manually - .*:\d+\d+/),
+  )
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
