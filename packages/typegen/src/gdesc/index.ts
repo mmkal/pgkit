@@ -62,7 +62,7 @@ export const gdescriber = (params: Partial<Options> = {}) => {
     const promises = regtypes.map(async (regtype, i) => ({
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
-      // todo: handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
+      // todo(one day): handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
       typescript: await regTypeToTypeScript(regtype),
     }))
 
