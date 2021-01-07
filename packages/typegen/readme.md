@@ -235,13 +235,13 @@ import {sql} from 'slonik'
 export default sql`this is not even valid SQL!`
 ```
 
-If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/slonik-tools/issues/new).
+If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/slonik-tools/issues/new). In the meantime, you can create a variable `const _sql = sql` and use the `_sql` tag in the same way as `sql`. `_sql` will not be detected by the tool and can be used as normal.
 
 ___
 
 Finally, for some complex queries, static parsing might fail, making it not possible to determine statically if a column is nullable. If this happens, it will still receive a valid type, but the type will be `string | null` rather than `string`.
 
-If you find such a case, please [raise an issue](https://github.com/mmkal/slonik-tools/issues/new) to see if it's possible to handle - under the hood this library uses [pgsql-ast-parser](https://npmjs.com/package/pgsql-ast-parser) and you might have found an edge case which that library doesn't handle yet. You can set `const _sql = sql` and use the `_sql` tag in the same way as `sql` if the errors logged are erroneous and too noisy - `_sql` will not be detected by the tool and can be used as normal.
+If you find such a case, please [raise an issue](https://github.com/mmkal/slonik-tools/issues/new) to see if it's possible to handle - under the hood this library uses [pgsql-ast-parser](https://npmjs.com/package/pgsql-ast-parser) and you might have found an edge case which that library doesn't handle yet.
 
 ## How it works
 
