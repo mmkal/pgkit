@@ -2,7 +2,7 @@ import {defaultExtractQueries} from './extract'
 import {defaultWriteTypes} from './write'
 import {defaultPGDataTypeToTypeScriptMappings} from './pg'
 import {defaultTypeParsers} from './slonik'
-import {GdescriberParams} from './types'
+import {Options} from './types'
 import {createPool} from 'slonik'
 
 // Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
@@ -32,7 +32,7 @@ export const getParams = ({
   typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
   logger = console,
   migrate = undefined,
-}: Partial<GdescriberParams>): GdescriberParams => ({
+}: Partial<Options>): Options => ({
   psqlCommand,
   gdescToTypeScript,
   rootDir,

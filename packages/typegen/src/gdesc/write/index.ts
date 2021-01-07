@@ -1,4 +1,4 @@
-import {GdescriberParams} from '../types'
+import {Options} from '../types'
 import * as inline from './inline'
 import * as sql from './sql'
 import * as lodash from 'lodash'
@@ -27,7 +27,7 @@ export interface WriteTypesOptions {
 export const defaultWriteTypes = ({
   writeFile = defaultWriteFile,
   ...options
-}: WriteTypesOptions = {}): GdescriberParams['writeTypes'] => {
+}: WriteTypesOptions = {}): Options['writeTypes'] => {
   const inlineWriter = inline.getFileWriter({getQueriesModulePath: options.getTSModuleFromSource, writeFile})
   const sqlWriter = sql.getSQLHelperWriter({getModulePath: options.getTSModuleFromSQL, writeFile})
 

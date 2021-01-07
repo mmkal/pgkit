@@ -1,7 +1,7 @@
 import * as slonik from 'slonik'
 
-// todo: rename to `Options`
-export interface GdescriberParams {
+export interface Options {
+  // todo: use a connection uri instead of leaving it up to user. Then it can be used for both pool and psql.
   /**
    * How to execute `psql` from the machine running this tool.
    *
@@ -137,20 +137,12 @@ export interface ExtractedQuery {
   comment?: string
 }
 
-export interface ParsedQuery extends ExtractedQuery {
-  // suggestedTag: string
-  // columns: ParsedColumn[]
-}
-
-// todo: use a sql ast parse to get the column name and maybe-table
-// then query the db to get the table name and not-null status
-
 export interface ParsedColumn {
   table?: string
   name: string
 }
 
-export interface DescribedQuery extends ParsedQuery {
+export interface DescribedQuery extends ExtractedQuery {
   // /** Tag for the type. Usually this corresponds to an interface name for the query type */
   // tag: string
   /** List of meta objects with info about field types returned by this query */
@@ -169,7 +161,7 @@ export interface QueryField {
 }
 
 export interface QueryParameter {
-  /** The name for the parameter, if any */
+  /** The name for the parameter. */
   name: string
   /** The postgres regtype for the parameter */
   regtype: string
@@ -177,10 +169,11 @@ export interface QueryParameter {
   typescript: string
 }
 
-export interface AnalysedQuery extends ParsedQuery {
+export interface AnalysedQuery extends ExtractedQuery {
   suggestedTags: string[]
   /** List of meta objects with info about field types returned by this query */
   fields: AnalysedQueryField[]
+  /** For `.sql` files only: List of parameters and their types */
   parameters: QueryParameter[]
 }
 

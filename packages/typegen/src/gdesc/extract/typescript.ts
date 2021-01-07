@@ -1,10 +1,10 @@
-import {ExtractedQuery, GdescriberParams} from '../types'
+import {ExtractedQuery, Options} from '../types'
 import * as lodash from 'lodash'
 import * as fs from 'fs'
 import type * as ts from 'typescript'
 import * as assert from 'assert'
 
-const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
+const rawExtractWithTypeScript: Options['extractQueries'] = file => {
   const ts: typeof import('typescript') = require('typescript')
   const source = fs.readFileSync(file).toString()
   const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
@@ -48,4 +48,4 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
   }
 }
 
-export const extractWithTypeScript: GdescriberParams['extractQueries'] = lodash.memoize(rawExtractWithTypeScript)
+export const extractWithTypeScript: Options['extractQueries'] = lodash.memoize(rawExtractWithTypeScript)

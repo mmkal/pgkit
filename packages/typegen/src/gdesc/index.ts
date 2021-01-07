@@ -2,7 +2,7 @@ import * as lodash from 'lodash'
 import {globAsync} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
-import {GdescriberParams, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
+import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
 import {columnInfoGetter, isUntypeable} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
@@ -17,7 +17,7 @@ import * as write from './write'
 
 export {write}
 
-export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
+export const gdescriber = (params: Partial<Options> = {}) => {
   const {
     psqlCommand,
     gdescToTypeScript,

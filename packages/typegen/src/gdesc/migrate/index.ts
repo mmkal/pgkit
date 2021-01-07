@@ -1,8 +1,8 @@
-import {GdescriberParams, Logger} from '../types'
+import {Options, Logger} from '../types'
 import {checkClean} from '../util'
 import {migrate080} from './lte0.8.0'
 
-export const migrateLegacyCode = ({from, skipGitCheck}: NonNullable<GdescriberParams['migrate']>) => (params: {
+export const migrateLegacyCode = ({from, skipGitCheck}: NonNullable<Options['migrate']>) => (params: {
   files: string[]
   logger: Logger
 }) => {
