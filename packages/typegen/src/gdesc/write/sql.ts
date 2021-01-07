@@ -4,20 +4,25 @@ import * as fs from 'fs'
 import {getterExpression, jsdocComment, queryInterfaces, quotePropKey} from './typescript'
 import {TaggedQuery} from '../types'
 import {prettifyOne, tsPrettify} from './prettify'
+import {WriteFile} from '.'
 
 export interface WriteSQLFileOptions {
   getModulePath?: (sqlPath: string) => string
+  writeFile: WriteFile
 }
 
 export const defaultGetModulePathFromSQLPath: WriteSQLFileOptions['getModulePath'] = sqlPath =>
   path.join(path.dirname(sqlPath), '__sql__', path.basename(sqlPath) + '.ts')
 
-export const getSQLHelperWriter = (getModulePath = defaultGetModulePathFromSQLPath) => (query: TaggedQuery) => {
+export const getSQLHelperWriter = ({
+  getModulePath = defaultGetModulePathFromSQLPath,
+  writeFile,
+}: WriteSQLFileOptions) => async (query: TaggedQuery) => {
   const destPath = getModulePath(query.file)
   const newContent = getSQLHelperContent(query, destPath)
 
-  fs.mkdirSync(path.dirname(destPath), {recursive: true})
-  fs.writeFileSync(destPath, prettifyOne({content: newContent, filepath: destPath}))
+  // fs.mkdirSync(path.dirname(destPath), {recursive: true})
+  await writeFile(destPath, prettifyOne({content: newContent, filepath: destPath}))
 }
 
 export function getSQLHelperContent(query: TaggedQuery, destPath: string) {

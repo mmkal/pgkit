@@ -89,7 +89,7 @@ export interface GdescriberParams {
    * to write some code in another language instead.
    * @default @see defaultWriteTypes
    */
-  writeTypes: (queries: AnalysedQuery[]) => void
+  writeTypes: (queries: AnalysedQuery[]) => Promise<void>
 
   /**
    * Slonik pool instance. By default uses localhost.
@@ -126,6 +126,8 @@ export interface ExtractedQuery {
   text: string
   /** Path to file containing the query, relative to cwd */
   file: string
+  /** Full source code of file containing query */
+  source: string
   /** Query SQL */
   sql: string
   /** Query SQL template parts. e.g. `['select * from users where name = ', ' and dob < ', '']` */

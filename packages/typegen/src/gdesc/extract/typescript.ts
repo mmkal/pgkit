@@ -6,12 +6,8 @@ import * as assert from 'assert'
 
 const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
   const ts: typeof import('typescript') = require('typescript')
-  const sourceFile = ts.createSourceFile(
-    file,
-    fs.readFileSync(file).toString(),
-    ts.ScriptTarget.ES2015,
-    /*setParentNodes */ true,
-  )
+  const source = fs.readFileSync(file).toString()
+  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
 
   // adapted from https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter
   const queries: ExtractedQuery[] = []
@@ -35,8 +31,8 @@ const rawExtractWithTypeScript: GdescriberParams['extractQueries'] = file => {
           assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
 
           queries.push({
-            // tag: 'unknown',
             text: node.getFullText(),
+            source,
             file,
             sql: template
               // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.

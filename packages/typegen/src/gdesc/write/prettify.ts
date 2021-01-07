@@ -14,6 +14,10 @@ export function prettifyOne({filepath, content}: {filepath: string; content: str
   return content
 }
 
+/**
+ * Uses typescript to prettify some code by parsing it into an AST then re-printing it. This will look OK but probably
+ * won't conform to your lint rules. It also may or may not work if there are syntax errors.
+ */
 export const tsPrettify = (uglyContent: string) => {
   const ts: typeof import('typescript') = require('typescript')
   const sourceFile = ts.createSourceFile(__filename, uglyContent, ts.ScriptTarget.ES2015, true)

@@ -13,6 +13,10 @@ import {migrateLegacyCode} from './migrate'
 export * from './types'
 export * from './defaults'
 
+import * as write from './write'
+
+export {write}
+
 export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
   const {
     psqlCommand,
@@ -142,7 +146,7 @@ export const gdescriber = (params: Partial<GdescriberParams> = {}) => {
 
     const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
 
-    writeTypes(analysedQueries)
+    await writeTypes(analysedQueries)
   }
 
   return findAll()

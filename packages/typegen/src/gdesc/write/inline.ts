@@ -3,14 +3,19 @@ import {TaggedQuery} from '../types'
 import {relativeUnixPath} from '../util'
 import {prettifyOne, tsPrettify} from './prettify'
 import type * as ts from 'typescript'
-import * as fs from 'fs'
 import * as path from 'path'
 import {queryInterfaces} from './typescript'
+import {WriteFile} from '.'
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
 
 export const defaultGetQueriesModule = (filepath: string) => filepath
+
+export interface WriteTSFileOptions {
+  getQueriesModulePath?: (sqlPath: string) => string
+  writeFile: WriteFile
+}
 
 interface Edit {
   start: number
@@ -21,17 +26,17 @@ interface Edit {
 const applyEdits = (input: string, edits: Edit[]) =>
   lodash.sortBy(edits, e => e.end).reduceRight((s, e) => s.slice(0, e.start) + e.replacement + s.slice(e.end), input)
 
-export function getFileWriter(getQueriesModule = defaultGetQueriesModule) {
-  return (group: TaggedQuery[], file: string) => {
+export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, writeFile}: WriteTSFileOptions) {
+  return async (group: TaggedQuery[], file: string) => {
     const ts: typeof import('typescript') = require('typescript')
-    const originalSource = fs.readFileSync(file).toString()
+    const originalSource = group[0].source
     const sourceFile = ts.createSourceFile(file, originalSource, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
 
     const edits: Array<Edit> = []
 
     visit(sourceFile)
 
-    const destPath = getQueriesModule(file)
+    const destPath = getQueriesModulePath(file)
     if (destPath === file) {
       edits.push({
         start: originalSource.length,
@@ -40,8 +45,7 @@ export function getFileWriter(getQueriesModule = defaultGetQueriesModule) {
       })
     } else {
       let content = queryInterfaces(group)
-      fs.mkdirSync(path.dirname(destPath), {recursive: true})
-      fs.writeFileSync(destPath, prettifyOne({filepath: destPath, content}), 'utf8')
+      await writeFile(destPath, prettifyOne({filepath: destPath, content}))
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
       const importStatement = `import * as queries from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
@@ -63,7 +67,7 @@ export function getFileWriter(getQueriesModule = defaultGetQueriesModule) {
 
     const newSource = applyEdits(originalSource, edits)
 
-    fs.writeFileSync(file, prettifyOne({filepath: file, content: newSource}), 'utf8')
+    await writeFile(file, prettifyOne({filepath: file, content: newSource}))
 
     function visit(node: ts.Node) {
       if (ts.isModuleDeclaration(node) && node.name.getText() === 'queries') {

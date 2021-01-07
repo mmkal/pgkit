@@ -13,6 +13,7 @@ export const extractSQLFile: GdescriberParams['extractQueries'] = file => {
     {
       text: sql,
       file,
+      source: sql,
       sql,
       tag: pascalCase(path.parse(file).name),
       template: [sql], // todo: split based on `$1` or something?
