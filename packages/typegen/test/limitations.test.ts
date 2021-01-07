@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {getHelper} from './helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
@@ -29,7 +29,7 @@ test(`multi statements don't get types`, async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
 
@@ -60,7 +60,7 @@ test(`multi statements don't get types`, async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
   expect(logger.debug).toHaveBeenCalledWith(
@@ -95,7 +95,7 @@ test('variable table name', async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
   expect(logger.debug).toHaveBeenCalledWith(

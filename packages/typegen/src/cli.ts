@@ -1,5 +1,5 @@
 import * as cli from '@rushstack/ts-command-line'
-import {gdescriber} from './index'
+import {generate} from './index'
 import * as path from 'path'
 import {tryOrDefault} from './util'
 import * as defaults from './defaults'
@@ -89,7 +89,7 @@ export class GenerateAction extends cli.CommandLineAction {
 
     const options = optionsModule?.default || optionsModule
 
-    return gdescriber(
+    return generate(
       lodash.merge({}, options, {
         rootDir: this._params.rootDir.value,
         psqlCommand: this._params.psql.value,

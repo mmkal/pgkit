@@ -1,5 +1,5 @@
-import {typeName} from '../src/gdesc/util'
-import {getterExpression} from '../src/gdesc/write/typescript'
+import {typeName} from '../src/util'
+import {getterExpression} from '../src/write/typescript'
 
 test('typeName', () => {
   expect(typeName('foo')).toEqual('Foo')

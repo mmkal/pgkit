@@ -1,4 +1,4 @@
-import {SlonikTypegenCLI} from '../src/gdesc/cli'
+import {SlonikTypegenCLI} from '../src/cli'
 import * as fsSyncer from 'fs-syncer'
 import * as slonik from 'slonik'
 

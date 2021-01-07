@@ -196,18 +196,82 @@ if (require.main === module) {
   //     '\n' + '  insert into test_table(id, n) values (1, 2);\n' + '  insert into test_table(id, n) values (3, 4);\n',
   //   ]),
   // )
-  console.log(
-    pgsqlAST.toSql.statement(
-      pgsqlAST
-        .astMapper(map => ({
-          // expr: e => {
-          //   return e.type === 'parameter' ? ({type: 'constant', value: 'SPLITTABLE'} as any) : e
-          // },
-          parameter: e => ({type: 'ref', name: 'SPLITTABLE'}),
-        }))
-        .statement(getHopefullyViewableAST('select id from messages where id = $1'))!,
-    ),
-  )
+  const exprName = (e: pgsqlAST.Expr) => {
+    if ('name' in e && typeof e.name === 'string') {
+      return e.name
+    }
+    return null
+  }
+  const opNames: Record<pgsqlAST.BinaryOperator, string | null> = {
+    '!=': 'ne',
+    '#-': null,
+    '%': 'modulo',
+    '&&': null,
+    '*': 'times',
+    '+': 'plus',
+    '-': 'minus',
+    '/': 'divided_by',
+    '<': 'less_than',
+    '<=': 'lte',
+    '<@': null,
+    '=': 'equals',
+    '>': 'greater_than',
+    '>=': 'gte',
+    '?': null,
+    '?&': null,
+    '?|': null,
+    '@>': null,
+    'NOT ILIKE': 'not_ilike',
+    'NOT IN': 'not_in',
+    'NOT LIKE': 'not_like',
+    '^': 'to_the_power_of',
+    '||': 'concat',
+    AND: 'and',
+    ILIKE: 'ilike',
+    IN: 'in',
+    LIKE: 'like',
+    OR: 'or',
+  }
+  pgsqlAST
+    .astVisitor(map => ({
+      expr: e => {
+        const grandChildren =
+          // Object.values(e) ||
+          Object.values(e).flatMap(child =>
+            // [child] || //
+            child && typeof child === 'object' ? Object.values(child) : [],
+          )
+        console.log({e, grandChildren})
+        if (grandChildren.some(e => JSON.stringify(e).startsWith('{"type":"parameter'))) {
+        }
+        console.log(pgsqlAST.toSql.statement(getHopefullyViewableAST('select id from messages where id <= $1')), 444555)
+        // console.log({e})
+
+        // if (Object.values(e).some(v => JSON.stringify(v).startsWith(`{"type":"parameter"`))) {
+        //   console.log(112)
+
+        //   if (e.type === 'binary') {
+        //     const params = [e.left, e.right].filter(
+        //       (side): side is pgsqlAST.ExprParameter => side.type === 'parameter',
+        //     )
+        //     params.forEach(p => {
+        //       const names = [e.left, e.right].map(exprName)
+        //       console.log(112, {names})
+        //       if (names.every(Boolean) && opNames[e.op]) {
+        //         console.log({
+        //           param: p.name,
+        //           readable: names.join(`_${opNames[e.op]}_`),
+        //           orig: pgsqlAST.toSql.expr(e),
+        //         })
+        //       }
+        //     })
+        // }
+        // }
+        return map.super().expr(e)
+      },
+      // parameter: e => ({type: 'ref', name: 'SPLITTABLE'}),
+    }))
+    .statement(getHopefullyViewableAST('select id from messages where id <= $1'))!
   throw ''
   console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
   pgsqlAST

@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {getHelper} from './helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
@@ -32,7 +32,7 @@ test('example typegen', async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---

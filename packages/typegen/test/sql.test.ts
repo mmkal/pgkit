@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {getHelper} from './helper'
 import {expectTypeOf} from 'expect-type'
 
@@ -22,7 +22,7 @@ test('types for sql files', async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -253,7 +253,7 @@ test('sql with parameters', async () => {
   logger.warn.mockImplementation(console.warn)
   logger.error.mockImplementation(console.error)
 
-  await gdesc.gdescriber(gdescParams(syncer.baseDir))
+  await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---

@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {getHelper} from './helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
@@ -24,7 +24,7 @@ test('branded types', async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber({
+  await typegen.generate({
     ...gdescParams(syncer.baseDir),
     writeTypes: queries => {
       queries.forEach(query => {
@@ -35,7 +35,7 @@ test('branded types', async () => {
           }
         })
       })
-      return gdesc.defaultWriteTypes()(queries)
+      return typegen.defaultWriteTypes()(queries)
     },
   })
 

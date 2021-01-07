@@ -1,6 +1,6 @@
 import * as fs from 'fs'
 import * as path from 'path'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {getHelper} from './helper'
 import {sql} from 'slonik'
 import {expectTypeOf} from 'expect-type'
@@ -21,7 +21,7 @@ test('types are correct', async () => {
   // codegen has no effect. This means it necesssarily has to fail the very first time it's run.
   const thisTestFileBeforeRunning = fs.readFileSync(__filename).toString()
 
-  await gdesc.gdescriber({
+  await typegen.generate({
     ...gdescParams(__dirname),
     glob: path.basename(__filename), // match only this file
   })

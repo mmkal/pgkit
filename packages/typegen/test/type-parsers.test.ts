@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {createTypeParserPreset} from 'slonik'
 import {getHelper} from './helper'
 import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
@@ -45,7 +45,7 @@ test('type parsers have types inferred', async () => {
     },
   })
 
-  await gdesc.gdescriber({
+  await typegen.generate({
     ...baseParams,
     pool,
   })

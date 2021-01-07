@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import * as gdesc from '../src/gdesc'
+import * as typegen from '../src'
 import {getHelper} from './helper'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
@@ -30,7 +30,7 @@ test('checks git diff before running', async () => {
   syncer.sync()
 
   await expect(
-    gdesc.gdescriber({
+    typegen.generate({
       ...gdescParams(syncer.baseDir),
       migrate: {from: '<=0.8.0', skipGitCheck: false},
     }),
@@ -167,7 +167,7 @@ test('migrate old codegen', async () => {
 
   syncer.sync()
 
-  await gdesc.gdescriber({
+  await typegen.generate({
     ...gdescParams(syncer.baseDir),
     migrate: {from: '<=0.8.0', skipGitCheck: true},
   })
