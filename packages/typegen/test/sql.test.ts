@@ -1,7 +1,6 @@
 import * as fsSyncer from 'fs-syncer'
 import * as gdesc from '../src/gdesc'
 import {getHelper} from './helper'
-import {sql} from 'slonik'
 import {expectTypeOf} from 'expect-type'
 
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
@@ -251,6 +250,9 @@ test('sql with parameters', async () => {
 
   syncer.sync()
 
+  logger.warn.mockImplementation(console.warn)
+  logger.error.mockImplementation(console.error)
+
   await gdesc.gdescriber(gdescParams(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
@@ -266,10 +268,10 @@ test('sql with parameters', async () => {
         
         /** - query: \`select a, b from test_table where a = $1 and b = $2\` */
         export interface TestTable {
-          /** postgres type: \`integer\` */
-          a: number | null
+          /** column: \`sql_test.test_table.a\`, not null: \`true\`, postgres type: \`integer\` */
+          a: number
         
-          /** postgres type: \`text\` */
+          /** column: \`sql_test.test_table.b\`, postgres type: \`text\` */
           b: string | null
         }
         

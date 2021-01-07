@@ -9,9 +9,11 @@ const _sql = sql
 export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: string): Promise<string[]> => {
   const statementName = `temp_statement_${randomBytes(16).join('')}`
 
+  const prepareSql = `prepare ${statementName} as ${query}`
+
   await pool.query({
     type: 'SLONIK_TOKEN_SQL',
-    sql: `prepare ${statementName} as ${query}`,
+    sql: prepareSql,
     values: [],
   })
 
@@ -25,6 +27,8 @@ export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: st
     )
 
     assert.ok(regtypes, `No parameters received from: prepare ${statementName} as ${truncateQuery(query)}`)
+    // parameter_types is an array, but to make sure we aren't tripped over by any custom type parsers, it was cast to text.
+    // so it should look like `{int,boolean,text}`
     assert.ok(regtypes.startsWith('{') && regtypes.endsWith('}'), `Unexpected parameter types format: ${regtypes}`)
 
     if (regtypes === '{}') return []

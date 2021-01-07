@@ -56,9 +56,10 @@ export const isUntypeable = (template: string[]) => {
 export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
   const statements = pgsqlAST.parse(sql)
   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
+  return astToSelect(statements[0])
+}
 
-  const ast = statements[0]
-
+const astToSelect = (ast: pgsqlAST.Statement): pgsqlAST.Statement => {
   if ((ast.type === 'update' || ast.type === 'insert') && ast.returning) {
     return {
       type: 'select',
@@ -72,6 +73,9 @@ export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
         expr: r.expr,
       })),
     }
+  }
+  if (ast.type === 'prepare') {
+    return astToSelect(ast.statement)
   }
 
   return ast
@@ -187,12 +191,23 @@ if (require.main === module) {
   // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
   // console.log(isUntypable([`select * from `, ` where b = hi`]))
   // console.log(isUntypable([`select * from a where b = `, ``]))
+  // console.log(
+  //   isUntypeable([
+  //     '\n' + '  insert into test_table(id, n) values (1, 2);\n' + '  insert into test_table(id, n) values (3, 4);\n',
+  //   ]),
+  // )
   console.log(
-    isUntypeable([
-      '\n' + '  insert into test_table(id, n) values (1, 2);\n' + '  insert into test_table(id, n) values (3, 4);\n',
-    ]),
+    pgsqlAST.toSql.statement(
+      pgsqlAST
+        .astMapper(map => ({
+          // expr: e => {
+          //   return e.type === 'parameter' ? ({type: 'constant', value: 'SPLITTABLE'} as any) : e
+          // },
+          parameter: e => ({type: 'ref', name: 'SPLITTABLE'}),
+        }))
+        .statement(getHopefullyViewableAST('select id from messages where id = $1'))!,
+    ),
   )
-  console.log(aliasMappings(getHopefullyViewableAST("select a, b from t1 join (select * from gettypes('')) on a = b")))
   throw ''
   console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
   pgsqlAST

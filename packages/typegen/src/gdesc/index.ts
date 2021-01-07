@@ -72,7 +72,6 @@ export const gdescriber = (params: Partial<Options> = {}) => {
   const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
     assert.ok(regtype, `No regtype found!`)
 
-    const enumTypes = await getEnumTypes()
     const regtypeToPGType = await getRegtypeToPGType()
 
     if (regtype.endsWith('[]')) {
