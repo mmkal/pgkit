@@ -19,6 +19,7 @@ export const getHelper = (params: {__filename: string}) => {
     pool: poolHelper.pool,
     psqlCommand,
     logger,
+    checkClean: [],
   })
 
   jest.setTimeout(30000)

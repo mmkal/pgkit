@@ -32,9 +32,12 @@ test('checks git diff before running', async () => {
   await expect(
     typegen.generate({
       ...gdescParams(syncer.baseDir),
-      migrate: {from: '<=0.8.0', skipGitCheck: false},
+      migrate: '<=0.8.0',
+      checkClean: ['before-migrate'],
     }),
-  ).rejects.toThrowErrorMatchingInlineSnapshot(`"Failure: Checking git status is clean: Error: [fake git diff output]"`)
+  ).rejects.toThrowErrorMatchingInlineSnapshot(
+    `"Failure: git status should be clean - stage or commit your changes before re-running.: Error: [fake git diff output]"`,
+  )
 })
 
 test('migrate old codegen', async () => {
@@ -169,7 +172,7 @@ test('migrate old codegen', async () => {
 
   await typegen.generate({
     ...gdescParams(syncer.baseDir),
-    migrate: {from: '<=0.8.0', skipGitCheck: true},
+    migrate: '<=0.8.0',
   })
 
   expect(logger.warn).toHaveBeenCalled()

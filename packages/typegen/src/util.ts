@@ -47,6 +47,13 @@ export const attempt = <T>(context: string, action: () => T): T => {
   }
 }
 
+export const maybeDo = <T>(shouldDo: boolean, action: () => T) => {
+  if (shouldDo) {
+    return action()
+  }
+  return null
+}
+
 export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {
   try {
     return fn()
@@ -57,4 +64,6 @@ export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {
 
 /** Makes sure there are no git changes before performing destructive actions. */
 export const checkClean = () =>
-  attempt('Checking git status is clean', () => child_process.execSync(`git diff --exit-code`))
+  attempt('git status should be clean - stage or commit your changes before re-running.', () =>
+    child_process.execSync(`git diff --exit-code`),
+  )

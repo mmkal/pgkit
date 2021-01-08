@@ -106,7 +106,7 @@ export class GenerateAction extends cli.CommandLineAction {
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
         glob: this._params.glob.value,
-        migrate: this._params.migrate.value && {from: this._params.migrate.value as '<=0.8.0'},
+        migrate: this._params.migrate.value as Options['migrate'],
       } as Options),
     )
   }

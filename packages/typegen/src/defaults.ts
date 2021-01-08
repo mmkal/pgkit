@@ -35,6 +35,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
     logger = console,
     migrate = undefined,
+    checkClean = ['before-migrate', 'after'],
   } = partial
 
   assert.ok(!connectionURI.match(/ '"/), `Connection URI should not contain spaces or quotes`)
@@ -57,5 +58,6 @@ export const getParams = (partial: Partial<Options>): Options => {
     typeParsers,
     logger,
     migrate,
+    checkClean,
   }
 }

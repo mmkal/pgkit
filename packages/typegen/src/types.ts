@@ -49,7 +49,7 @@ export interface Options {
    * tool, according to the specified semver range. e.g. if set to `<=0.8.0` files will be modified/deleted before the codegen
    * is run.
    */
-  migrate: {from: '<=0.8.0'; skipGitCheck: boolean} | undefined
+  migrate: '<=0.8.0' | undefined
 
   /**
    * Map from a psql type description to a TypeScript type representation.
@@ -122,6 +122,7 @@ export interface Options {
    * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
    */
   logger: Logger
+  checkClean: Array<'before' | 'after' | 'before-migrate' | 'after-migrate'>
 }
 
 export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>

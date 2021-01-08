@@ -7,7 +7,7 @@ import {columnInfoGetter, isUntypeable} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
 import {parameterTypesGetter} from './query/parameters'
-import {truncateQuery} from './util'
+import {truncateQuery, checkClean, maybeDo} from './util'
 import {migrateLegacyCode} from './migrate'
 
 export * from './types'
@@ -17,7 +17,7 @@ import * as write from './write'
 
 export {write}
 
-export const generate = (params: Partial<Options> = {}) => {
+export const generate = (params: Partial<Options>) => {
   const {
     psqlCommand,
     connectionURI,
@@ -31,6 +31,7 @@ export const generate = (params: Partial<Options> = {}) => {
     typeParsers,
     logger,
     migrate,
+    checkClean: checkCleanWhen,
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
@@ -96,6 +97,7 @@ export const generate = (params: Partial<Options> = {}) => {
   }
 
   const findAll = async () => {
+    await maybeDo(checkCleanWhen.includes('before'), checkClean)
     const getColumnInfo = columnInfoGetter(pool)
 
     const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
@@ -110,7 +112,9 @@ export const generate = (params: Partial<Options> = {}) => {
       })
 
     if (migrate) {
+      await maybeDo(checkCleanWhen.includes('before-migrate'), checkClean)
       migrateLegacyCode(migrate)({files: await getFiles(), logger})
+      await maybeDo(checkCleanWhen.includes('after-migrate'), checkClean)
     }
 
     const files = await getFiles() // Migration may have deleted some, get files from fresh.
@@ -147,6 +151,7 @@ export const generate = (params: Partial<Options> = {}) => {
     const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
 
     await writeTypes(analysedQueries)
+    await maybeDo(checkCleanWhen.includes('after'), checkClean)
   }
 
   return findAll()
