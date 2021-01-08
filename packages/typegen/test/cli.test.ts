@@ -40,7 +40,7 @@ test('runs typegen with sensible defaults', async () => {
 
   syncer.sync()
 
-  await cli.execute(['generate', '--root-dir', syncer.baseDir, '--psql', psqlCommand])
+  await cli.executeWithoutErrorHandling(['generate', '--root-dir', syncer.baseDir, '--psql', psqlCommand])
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -93,7 +93,7 @@ test('typegen.config.js is used by default', async () => {
 
   syncer.sync()
 
-  await cli.execute(['generate'])
+  await cli.executeWithoutErrorHandling(['generate'])
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -178,7 +178,7 @@ test('config flag overrides typegen.config.js', async () => {
 
   syncer.sync()
 
-  await cli.execute(['generate', '--config', 'otherconfig.js'])
+  await cli.executeWithoutErrorHandling(['generate', '--config', 'otherconfig.js'])
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---

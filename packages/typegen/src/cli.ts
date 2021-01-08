@@ -45,12 +45,12 @@ export class GenerateAction extends cli.CommandLineAction {
       rootDir: action.defineStringParameter({
         parameterLongName: '--root-dir',
         argumentName: 'PATH',
-        description: `Path to the source directory containing SQL queries. Defaults to 'src if no value is provided`,
+        description: `Path to the source directory containing SQL queries. Defaults to "src" if no value is provided`,
       }),
       connectionURI: action.defineStringParameter({
         parameterLongName: '--connection-uri',
         argumentName: 'URI',
-        description: `URI for connecting to postgres. Defaults to "postgresql://postgres:postgres@localhost:5432/postgres"`,
+        description: `URI for connecting to postgres. Defaults to 'postgresql://postgres:postgres@localhost:5432/postgres'`,
       }),
       psql: action.defineStringParameter({
         parameterLongName: '--psql',
@@ -80,6 +80,11 @@ export class GenerateAction extends cli.CommandLineAction {
           sql, cjs and mjs files under 'rootDir'
         `,
       }),
+      migrate: action.defineChoiceParameter({
+        parameterLongName: '--migrate',
+        alternatives: ['<=0.8.0'],
+        description: `Before generating types, attempt to migrate a codebase which has used a prior version of this tool`,
+      }),
     }
   }
 
@@ -101,6 +106,7 @@ export class GenerateAction extends cli.CommandLineAction {
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
         glob: this._params.glob.value,
+        migrate: this._params.migrate.value && {from: this._params.migrate.value as '<=0.8.0'},
       } as Options),
     )
   }

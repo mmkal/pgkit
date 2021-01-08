@@ -96,13 +96,13 @@ export default async () => {
 export module queries {
   /** - query: `select foo, bar from test_table` */
   export interface TestTable {
-    /** column: `example_test.test_table.foo`, not null: `true`, postgres type: `integer` */
+    /** column: `example_test.test_table.foo`, not null: `true`, regtype: `integer` */
     foo: number
 
     /**
      * Look, ma! A comment from postgres!
      *
-     * column: `example_test.test_table.bar`, postgres type: `text`
+     * column: `example_test.test_table.bar`, regtype: `text`
      */
     bar: string | null
   }
@@ -144,8 +144,8 @@ Some of the options above can be overriden by the CLI:
 <!-- codegen:start {preset: custom, source: ./docgen.js, export: cliHelpText} -->
 ```
 usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
-                               [--psql COMMAND] [--default-type TYPESCRIPT]
-                               [--glob PATTERN]
+                               [--connection-uri URI] [--psql COMMAND]
+                               [--default-type TYPESCRIPT] [--glob PATTERN]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
@@ -156,13 +156,16 @@ Optional arguments:
   -h, --help            Show this help message and exit.
 
   --config PATH         Path to a module containing parameters to be passed 
-                        to 'gdescriber'. If specified, it will be required 
-                        and the default export will be used as parameters. If 
-                        not specified, defaults will be used. Note: other CLI 
+                        to 'generate'. If specified, it will be required and 
+                        the export will be used as parameters. If not 
+                        specified, defaults will be used. Note: other CLI 
                         arguments will override values set in this module
 
   --root-dir PATH       Path to the source directory containing SQL queries. 
                         Defaults to 'src if no value is provided
+
+  --connection-uri URI  URI for connecting to postgres. Defaults to 
+                        URI for connecting to postgres. Defaults to 
 
   --psql COMMAND        psql command used to query postgres via CLI client. e.
                         g. 'psql -h localhost -U postgres postgres' if 

@@ -47,10 +47,10 @@ if (require.main === module) {
   ).then(console.log, console.error)
 }
 
-module queries {
+export module queries {
   /** - query: `select parameter_types::text from pg_prepared_statements where name = $1` */
   export interface PgPreparedStatements {
-    /** postgres type: `text` */
+    /** regtype: `text` */
     parameter_types: string | null
   }
 }

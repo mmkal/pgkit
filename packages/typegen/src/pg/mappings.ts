@@ -39,7 +39,7 @@ export function regTypeToPGTypeGetter(pool: DatabasePoolType) {
       from pg_type
     `)
 
-    return lodash.keyBy(types, t => t.regtype)
+    return lodash.keyBy(types, t => t.regtype as string)
   })
 }
 
@@ -53,6 +53,7 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
   oid: 'number',
   boolean: 'boolean',
   name: 'string',
+  regtype: 'string',
   'double precision': 'number',
   'character varying': 'string',
   'timestamp with time zone': 'string',
@@ -65,37 +66,37 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
 export module queries {
   /** - query: `select distinct e.enumtypid, t.typname, ... [truncated] ...espace::text, t.typname, e.enumsortorder` */
   export interface PgEnum_PgType {
-    /** postgres type: `oid` */
+    /** regtype: `oid` */
     enumtypid: number | null
 
-    /** postgres type: `name` */
+    /** regtype: `name` */
     typname: string | null
 
-    /** postgres type: `name` */
+    /** regtype: `name` */
     enumlabel: string | null
 
-    /** postgres type: `text` */
+    /** regtype: `text` */
     schema_name: string | null
 
-    /** postgres type: `real` */
+    /** regtype: `real` */
     enumsortorder: number | null
 
-    /** postgres type: `boolean` */
+    /** regtype: `boolean` */
     in_search_path: boolean | null
 
-    /** postgres type: `text` */
+    /** regtype: `text` */
     searchable_type_name: string | null
   }
 
   /** - query: `select oid, typname, oid::regtype as regtype from pg_type` */
   export interface PgType {
-    /** postgres type: `oid` */
+    /** regtype: `oid` */
     oid: number | null
 
-    /** postgres type: `name` */
+    /** regtype: `name` */
     typname: string | null
 
-    /** postgres type: `regtype` */
-    regtype: unknown
+    /** regtype: `regtype` */
+    regtype: string | null
   }
 }
