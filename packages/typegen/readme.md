@@ -27,9 +27,10 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 - [Configuration](#configuration)
    - [Example config](#example-config)
    - [CLI options](#cli-options)
-   - [Controlling write destination](#controlling-write-destination)
-   - [Modifying types](#modifying-types)
-   - [Modifying source files](#modifying-source-files)
+   - [writeTypes](#writetypes)
+      - [Controlling write destination](#controlling-write-destination)
+      - [Modifying types](#modifying-types)
+      - [Modifying source files](#modifying-source-files)
 - [Examples](#examples)
 - [Migration from v0.8.0](#migration-from-v080)
 - [SQL files](#sql-files)
@@ -41,7 +42,7 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 ## Installation
 
 ```bash
-npm install @slonik/typegen
+npm install @slonik/typegen --save-dev
 ```
 
 ## Usage
@@ -120,6 +121,7 @@ The CLI can run with zero config, but there will usually be customisations neede
 - `pool` - Slonik database pool instance. Will be used to issue queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool instance that's configured the same way as the one used in your application.
 - `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql -h localhost -U postgres postgres`. You can test it's working with `echo 'select 123 as abc' | psql -h localhost -U postgres postgres -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!)
 - `logger` - Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.
+- `writeTypes` (advanced/experimental) - Control how files are written to disk. See the [writeTypes](#writetypes) section.
 
 ### Example config
 
@@ -130,7 +132,7 @@ const yourAppDB = require('./lib/db')
 
 /** @type {import('@slonik/typegen').Options} */
 module.exports = {
-  rootDir: 'source', // maybe you're sindresorhus and you don't like using `src`
+  rootDir: 'source', // maybe you don't like using `src`
   glob: ['{queries/**.ts,sql/**.sql}', {ignore: 'legacy-queries/**.sql'}],
   pool: yourAppDB.getPool(),
 }
@@ -193,7 +195,11 @@ Optional arguments:
 
 There are some more configuration options [documented in code](./src/types.ts) but these should be considered experimental, and might change without warning. You can try them out as documented below, but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
 
-### Controlling write destination
+### writeTypes
+
+The `writeTypes` option allows you to tweak what's written to disk. Note that the usage style isn't finalised and might change slightly in future. If you use it, please create a discussion about it in https://github.com/mmkal/slonik-tools/discussions.
+
+#### Controlling write destination
 
 By default, interfaces for SQL queries are added to a module at the end of the typescript file they're found in. You can tell the CLI to write the interfaces to a separate file instead using `writeTypes`:
 
@@ -211,7 +217,7 @@ module.exports = {
 
 The itnerfaces will be written to a separate file under a `__sql__` folder next to the source, and will be imported via `import * as queries from './__sql__/file-name'`.
 
-### Modifying types
+#### Modifying types
 
 You can modify the types generated before they are written to disk by defining a custom `writeTypes` implementation.
 
@@ -278,7 +284,7 @@ module.exports = {
 }
 ```
 
-### Modifying source files
+#### Modifying source files
 
 You can also use `writeTypes` to define a hook that runs before writing to disk:
 
@@ -353,7 +359,7 @@ Queries with multiple statements will also not receive a type:
 ```ts
 import {sql} from 'slonik'
 
-export default sql`
+sql`
   insert into foo(a, b) values (1, 2);
   insert into foo(a, b) values (3, 4);
 `
@@ -368,7 +374,7 @@ Queries using the `pg_temp` schema will usually not be typeable since the schema
 ```ts
 import {sql} from 'slonik'
 
-export default sql`select * from pg_temp.my_temp_table`
+sql`select * from pg_temp.my_temp_table`
 ```
 
 ___
@@ -378,7 +384,7 @@ Invalid SQL syntax will also be left untouched (they will result in an error bei
 ```ts
 import {sql} from 'slonik'
 
-export default sql`this is not even valid SQL!`
+sql`this is not even valid SQL!`
 ```
 
 If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/slonik-tools/issues/new). In the meantime, you can create a variable `const _sql = sql` and use the `_sql` tag in the same way as `sql`. `_sql` will not be detected by the tool and can be used as normal.
@@ -393,7 +399,7 @@ If you find such a case, please [raise an issue](https://github.com/mmkal/slonik
 
 When you run `slonik-typegen generate`, the tool will scan your source files, and traverse their ASTs using the TypeScript compiler API. Note that typescript is a peer dependency for this reason.
 
-On finding a sql query, it will issue a `psql` command using the flag `\gdesc`, which responds with a table of the columns and their corresponding types contained in the query. The query itself is never actually run.
+On finding [a](https://oracle-base.com/blog/2015/01/02/a-sql-or-an-sql/#:~:text=According%20to%20the%20Oracle%20docs,%2Dlevel%20declarative%20computer%20language%E2%80%A6%E2%80%9D) sql query, it will issue a `psql` command using the [flag `\gdesc`](https://www.postgresql.org/docs/11/app-psql.html), which responds with a table of the columns and their corresponding types contained in the query. The query itself is never actually run.
 
 The postgres type is then converted into typescript using an in-built mapping. Any slonik `typeParsers` configured (see [slonik docs](https://github.com/gajus/slonik/#api) for more info) are inspected to infer the type of the value that will be returned by the query.
 

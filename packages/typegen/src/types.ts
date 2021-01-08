@@ -45,7 +45,7 @@ export interface Options {
   /**
    * Files to look for SQL queries in. e.g. `source/queries/*.ts`
    * Also allows passing `cwd` and `ignore` strings e.g. `['source/*.ts', {ignore: ['source/*.test.ts']}]`
-   * Defaults to all JavaScript and TypeScript files, ignoring node_modules.
+   * Defaults to all '.ts' and '.sql' files, ignoring node_modules.
    */
   glob: string | [string, {ignore?: string[]}?]
 
@@ -57,13 +57,13 @@ export interface Options {
   /**
    * If defined, before type generation, a pass will be done over all files to migrate them from codegen produced by this
    * tool, according to the specified semver range. e.g. if set to `<=0.8.0` files will be modified/deleted before the codegen
-   * is run.
+   * is run. Defaults to undefined (i.e. no migration).
    */
   migrate: '<=0.8.0' | undefined
 
   /**
-   * Slonik pool instance. Uses `connectionURI` if specified. If both are passed, the original pool's configuration will be used to
-   * create a new pool using `connectionURI`.
+   * Slonik pool instance. Defaults to a new pool using `connectionURI`. The specified pool won't be used directly, its
+   * configuration will be used to create a new pool with the same settings, connecting to `connectionURI`.
    */
   pool: slonik.DatabasePoolType
 
