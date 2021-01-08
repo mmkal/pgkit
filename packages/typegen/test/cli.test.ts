@@ -1,6 +1,7 @@
 import {SlonikTypegenCLI} from '../src/cli'
 import * as fsSyncer from 'fs-syncer'
 import * as slonik from 'slonik'
+import {psqlCommand} from './helper'
 
 afterEach(() => {
   jest.resetAllMocks()
@@ -39,7 +40,7 @@ test('runs typegen with sensible defaults', async () => {
 
   syncer.sync()
 
-  await cli.execute(['generate', '--root-dir', syncer.baseDir])
+  await cli.execute(['generate', '--root-dir', syncer.baseDir, '--psql', psqlCommand])
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -66,6 +67,7 @@ test('typegen.config.js is used by default', async () => {
     'typegen.config.js': `
       module.exports = {
         glob: 'b*.ts',
+        psqlCommand: ${JSON.stringify(psqlCommand)},
       }
     `,
     src: {
@@ -98,6 +100,7 @@ test('typegen.config.js is used by default', async () => {
     typegen.config.js: |-
       module.exports = {
         glob: 'b*.ts',
+        psqlCommand: \\"docker-compose exec -T postgres psql\\",
       }
       
     src: 
@@ -142,12 +145,14 @@ test('config flag overrides typegen.config.js', async () => {
     'typegen.config.js': `
       module.exports = {
         glob: 'b*.ts',
+        psqlCommand: ${JSON.stringify(psqlCommand)},
       }
     `,
     // note that this config uses a default export to make sure that works too
     'otherconfig.js': `
       module.exports.default = {
         glob: 'a.ts',
+        psqlCommand: ${JSON.stringify(psqlCommand)},
       }
     `,
     src: {
@@ -180,11 +185,13 @@ test('config flag overrides typegen.config.js', async () => {
     otherconfig.js: |-
       module.exports.default = {
         glob: 'a.ts',
+        psqlCommand: \\"docker-compose exec -T postgres psql\\",
       }
       
     typegen.config.js: |-
       module.exports = {
         glob: 'b*.ts',
+        psqlCommand: \\"docker-compose exec -T postgres psql\\",
       }
       
     src: 

@@ -2,6 +2,7 @@ import * as slonik from 'slonik'
 
 export interface Options {
   // todo: use a connection uri instead of leaving it up to user. Then it can be used for both pool and psql.
+  connectionURI: string
   /**
    * How to execute `psql` from the machine running this tool.
    *

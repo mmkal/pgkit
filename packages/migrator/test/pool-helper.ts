@@ -5,11 +5,16 @@ import {createPool, sql, ClientConfigurationInputType} from 'slonik'
  * Gets a pool suitable for use in tests. Creates a schema based on the passed-in test file name,
  * which is wiped before every test. Adds an afterAll listener which makes sure jest exits cleanly.
  */
-export const getPoolHelper = (params: {__filename: string; config?: ClientConfigurationInputType}) => {
+export const getPoolHelper = (params: {
+  __filename: string
+  baseConnectionURI: string
+  config?: ClientConfigurationInputType
+}) => {
   const schemaName = path.parse(params.__filename).name.replace(/\W/g, '_')
   const schemaIdentifier = sql.identifier([schemaName])
 
-  const connectionString = 'postgresql://postgres:postgres@localhost:5433/postgres'
+  // todo: add search path to connection string
+  const connectionString = params.baseConnectionURI || 'postgresql://postgres:postgres@localhost:5433/postgres'
   const pool = createPool(connectionString, {
     idleTimeout: 1,
     ...params?.config,

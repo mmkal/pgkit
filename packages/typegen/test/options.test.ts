@@ -39,7 +39,7 @@ test('write types', async () => {
       import {sql} from 'slonik'
 
       export default [
-        sql\`select * from gdesc_test.test_table\`,
+        sql\`select * from options_test.test_table\`,
         sql\`select id, t from test_table\`,
         sql\`select count(*) from test_table\`,
         sql\`select id as idalias, t as talias from test_table\`,
@@ -80,7 +80,7 @@ test('write types', async () => {
       import {sql} from 'slonik'
       
       export default [
-        sql<queries.TestTable>\`select * from gdesc_test.test_table\`,
+        sql<queries.TestTable>\`select * from options_test.test_table\`,
         sql<queries.TestTable_id_t>\`select id, t from test_table\`,
         sql<queries.TestTable_count>\`select count(*) from test_table\`,
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
@@ -110,49 +110,49 @@ test('write types', async () => {
       ]
       
       module queries {
-        /** - query: \`select * from gdesc_test.test_table\` */
+        /** - query: \`select * from options_test.test_table\` */
         export interface TestTable {
-          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`options_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
       
-          /** column: \`gdesc_test.test_table.n\`, postgres type: \`integer\` */
+          /** column: \`options_test.test_table.n\`, postgres type: \`integer\` */
           n: number | null
       
           /**
            * Some custom comment on \\"t\\"
            *
-           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
+           * column: \`options_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
       
-          /** column: \`gdesc_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
+          /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
           t_nn: string
       
-          /** column: \`gdesc_test.test_table.cv\`, postgres type: \`character varying(1)\` */
+          /** column: \`options_test.test_table.cv\`, postgres type: \`character varying(1)\` */
           cv: string | null
       
-          /** column: \`gdesc_test.test_table.arr\`, postgres type: \`text[]\` */
+          /** column: \`options_test.test_table.arr\`, postgres type: \`text[]\` */
           arr: Array<string> | null
       
-          /** column: \`gdesc_test.test_table.e\`, postgres type: \`test_enum\` */
+          /** column: \`options_test.test_table.e\`, postgres type: \`test_enum\` */
           e: ('aa' | 'bb' | 'cc') | null
       
-          /** column: \`gdesc_test.test_table.tz\`, postgres type: \`timestamp with time zone\` */
+          /** column: \`options_test.test_table.tz\`, postgres type: \`timestamp with time zone\` */
           tz: number | null
       
-          /** column: \`gdesc_test.test_table.tz_nn\`, not null: \`true\`, postgres type: \`timestamp with time zone\` */
+          /** column: \`options_test.test_table.tz_nn\`, not null: \`true\`, postgres type: \`timestamp with time zone\` */
           tz_nn: number
       
-          /** column: \`gdesc_test.test_table.j\`, postgres type: \`json\` */
+          /** column: \`options_test.test_table.j\`, postgres type: \`json\` */
           j: unknown
       
-          /** column: \`gdesc_test.test_table.jb\`, postgres type: \`jsonb\` */
+          /** column: \`options_test.test_table.jb\`, postgres type: \`jsonb\` */
           jb: unknown
       
-          /** column: \`gdesc_test.test_table.j_nn\`, not null: \`true\`, postgres type: \`json\` */
+          /** column: \`options_test.test_table.j_nn\`, not null: \`true\`, postgres type: \`json\` */
           j_nn: unknown
       
-          /** column: \`gdesc_test.test_table.jb_nn\`, not null: \`true\`, postgres type: \`jsonb\` */
+          /** column: \`options_test.test_table.jb_nn\`, not null: \`true\`, postgres type: \`jsonb\` */
           jb_nn: unknown
         }
       
@@ -165,13 +165,13 @@ test('write types', async () => {
          * - \`update test_table as tt set t = '' returning id, t\`
          */
         export interface TestTable_id_t {
-          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`options_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
       
           /**
            * Some custom comment on \\"t\\"
            *
-           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
+           * column: \`options_test.test_table.t\`, postgres type: \`text\`
            */
           t: string | null
         }
@@ -184,13 +184,13 @@ test('write types', async () => {
       
         /** - query: \`select id as idalias, t as talias from test_table\` */
         export interface TestTable_idalias_talias {
-          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`options_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           idalias: number
       
           /**
            * Some custom comment on \\"t\\"
            *
-           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
+           * column: \`options_test.test_table.t\`, postgres type: \`text\`
            */
           talias: string | null
         }
@@ -201,7 +201,7 @@ test('write types', async () => {
          * - \`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`
          */
         export interface TestTable_id {
-          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`options_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
         }
       
@@ -250,11 +250,11 @@ test('write types', async () => {
           /**
            * Some custom comment on \\"t\\"
            *
-           * column: \`gdesc_test.test_table.t\`, postgres type: \`text\`
+           * column: \`options_test.test_table.t\`, postgres type: \`text\`
            */
           t_aliased1: string | null
       
-          /** column: \`gdesc_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
+          /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, postgres type: \`text\` */
           t_nn_aliased: string
         }
       }
@@ -419,7 +419,7 @@ test(`queries with syntax errors don't affect others`, async () => {
       import {sql} from 'slonik'
 
       export default [
-        sql\`select id from gdesc_test.test_table\`, // this should get a valid type
+        sql\`select id from options_test.test_table\`, // this should get a valid type
         sql\`this is a nonsense query which will cause an error\`
       ]
     `,
@@ -445,14 +445,14 @@ test(`queries with syntax errors don't affect others`, async () => {
       import {sql} from 'slonik'
       
       export default [
-        sql<queries.TestTable>\`select id from gdesc_test.test_table\`, // this should get a valid type
+        sql<queries.TestTable>\`select id from options_test.test_table\`, // this should get a valid type
         sql\`this is a nonsense query which will cause an error\`,
       ]
       
       module queries {
-        /** - query: \`select id from gdesc_test.test_table\` */
+        /** - query: \`select id from options_test.test_table\` */
         export interface TestTable {
-          /** column: \`gdesc_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`options_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
           id: number
         }
       }
@@ -519,44 +519,5 @@ test('custom glob pattern', async () => {
         }
       }
       "
-  `)
-})
-
-test('sensible defaults', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    src: {
-      'index.ts': `
-        import {sql} from 'slonik'
-
-        export default sql\`select 1 as a\`
-      `,
-    },
-  })
-
-  syncer.sync()
-
-  jest.spyOn(process, 'cwd').mockReturnValueOnce(syncer.baseDir)
-  jest.spyOn(console, 'info').mockReset()
-
-  await typegen.generate()
-
-  expect(console.info).toHaveBeenCalled()
-
-  expect(syncer.yaml()).toMatchInlineSnapshot(`
-    "---
-    src: 
-      index.ts: |-
-        import {sql} from 'slonik'
-        
-        export default sql<queries.A>\`select 1 as a\`
-        
-        module queries {
-          /** - query: \`select 1 as a\` */
-          export interface A {
-            /** postgres type: \`integer\` */
-            a: number | null
-          }
-        }
-        "
   `)
 })

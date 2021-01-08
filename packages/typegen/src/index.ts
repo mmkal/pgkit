@@ -20,6 +20,7 @@ export {write}
 export const generate = (params: Partial<Options> = {}) => {
   const {
     psqlCommand,
+    connectionURI,
     gdescToTypeScript,
     rootDir,
     glob,
@@ -31,7 +32,7 @@ export const generate = (params: Partial<Options> = {}) => {
     logger,
     migrate,
   } = defaults.getParams(params)
-  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(psqlCommand)
+  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`)
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await psql(`${query.sql} \\gdesc`)

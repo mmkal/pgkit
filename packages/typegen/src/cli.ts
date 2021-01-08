@@ -26,7 +26,7 @@ export class GenerateAction extends cli.CommandLineAction {
       summary: `Scans source files for SQL queries and generates TypeScript interfaces for them.`,
       documentation: `
         Generates a directory containing with a 'sql' tag wrapper based on found queries found in source files.
-        By default, searches 'src' for source files and generates code under 'src/generated/db'.
+        By default, searches 'src' for source files.
       `,
     })
   }
