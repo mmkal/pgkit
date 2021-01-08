@@ -3,6 +3,7 @@ import * as lodash from 'lodash'
 import {pascalCase, tryOrDefault} from '../util'
 import {match} from 'io-ts-extra'
 import * as assert from 'assert'
+import * as pluralize from 'pluralize'
 
 // function return types:
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
@@ -162,7 +163,7 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
     return ['_void']
   }
 
-  const tablesInvolved = (tables || []).map(pascalCase).join('_')
+  const tablesInvolved = (tables || []).map(pascalCase).map(pluralize.singular).join('_')
 
   return lodash
     .uniq([
