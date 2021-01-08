@@ -23,7 +23,8 @@
   },
   "license": "ISC",
   "peerDependencies": {
-    "typescript": "*"
+    "typescript": "*",
+    "slonik": ">=23.4.0"
   },
   "dependencies": {
     "@rushstack/ts-command-line": "^4.7.8",
