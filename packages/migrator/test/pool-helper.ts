@@ -7,7 +7,7 @@ import {createPool, sql, ClientConfigurationInputType} from 'slonik'
  */
 export const getPoolHelper = (params: {
   __filename: string
-  baseConnectionURI: string
+  baseConnectionURI: string | undefined
   config?: ClientConfigurationInputType
 }) => {
   const schemaName = path.parse(params.__filename).name.replace(/\W/g, '_')

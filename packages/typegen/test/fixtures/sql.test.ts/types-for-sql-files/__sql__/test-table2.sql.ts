@@ -4,7 +4,7 @@ import * as fs from 'fs'
 
 /** - query: `select b as aaa from test_table` */
 export interface TestTable2 {
-  /** column: `sql_test.test_table.b`, postgres type: `text` */
+  /** column: `sql_test.test_table.b`, regtype: `text` */
   aaa: string | null
 }
 

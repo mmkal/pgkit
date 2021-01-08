@@ -11,16 +11,16 @@ export default async () => {
   })
 }
 
-module queries {
+export module queries {
   /** - query: `select foo, bar from test_table` */
   export interface TestTable {
-    /** column: `example_test.test_table.foo`, not null: `true`, postgres type: `integer` */
+    /** column: `example_test.test_table.foo`, not null: `true`, regtype: `integer` */
     foo: number
 
     /**
      * Look, ma! A comment from postgres!
      *
-     * column: `example_test.test_table.bar`, postgres type: `text`
+     * column: `example_test.test_table.bar`, regtype: `text`
      */
     bar: string | null
   }

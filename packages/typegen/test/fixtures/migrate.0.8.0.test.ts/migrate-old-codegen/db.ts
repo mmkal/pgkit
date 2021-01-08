@@ -14,16 +14,16 @@ export const queryB = sql<queries.B>`
   select 1 as b
 `
 
-module queries {
+export module queries {
   /** - query: `select 1 as a` */
   export interface A {
-    /** postgres type: `integer` */
+    /** regtype: `integer` */
     a: number | null
   }
 
   /** - query: `select 1 as b` */
   export interface B {
-    /** postgres type: `integer` */
+    /** regtype: `integer` */
     b: number | null
   }
 }

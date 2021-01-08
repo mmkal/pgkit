@@ -4,10 +4,10 @@ import * as fs from 'fs'
 
 /** - query: `select a, b from test_table where a = $1 and b = $2` */
 export interface TestTable {
-  /** column: `sql_test.test_table.a`, not null: `true`, postgres type: `integer` */
+  /** column: `sql_test.test_table.a`, not null: `true`, regtype: `integer` */
   a: number
 
-  /** column: `sql_test.test_table.b`, postgres type: `text` */
+  /** column: `sql_test.test_table.b`, regtype: `text` */
   b: string | null
 }
 

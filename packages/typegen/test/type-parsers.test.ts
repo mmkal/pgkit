@@ -22,6 +22,7 @@ test('type parsers have types inferred', async () => {
   const baseParams = gdescParams(syncer.baseDir)
   const {pool} = getPoolHelper({
     __filename,
+    baseConnectionURI: baseParams.connectionURI,
     config: {
       typeParsers: [
         ...createTypeParserPreset(),
@@ -57,19 +58,19 @@ test('type parsers have types inferred', async () => {
       
       export default [sql<queries.Anonymous>\`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json\`]
       
-      module queries {
+      export module queries {
         /** - query: \`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json\` */
         export interface Anonymous {
-          /** postgres type: \`timestamp with time zone\` */
+          /** regtype: \`timestamp with time zone\` */
           timestamptz: Date | null
       
-          /** postgres type: \`bigint\` */
+          /** regtype: \`bigint\` */
           int8: bigint | null
       
-          /** postgres type: \`boolean\` */
+          /** regtype: \`boolean\` */
           bool: boolean | null
       
-          /** postgres type: \`json\` */
+          /** regtype: \`json\` */
           json: unknown
         }
       }

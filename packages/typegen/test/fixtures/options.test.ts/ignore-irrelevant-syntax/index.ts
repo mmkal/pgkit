@@ -12,10 +12,10 @@ export default () => {
   return sql<queries.Anonymous>`select 1`
 }
 
-module queries {
+export module queries {
   /** - query: `select 1` */
   export interface Anonymous {
-    /** postgres type: `integer` */
+    /** regtype: `integer` */
     '?column?': number | null
   }
 }

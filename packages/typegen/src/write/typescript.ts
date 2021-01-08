@@ -37,7 +37,7 @@ export const interfaceBody = (query: AnalysedQuery) =>
         const metaVals = {
           column: f.column && Object.values(f.column).join('.'),
           'not null': f.notNull,
-          'postgres type': f.regtype,
+          regtype: f.regtype,
         }
         const meta = Object.entries(metaVals)
           .filter(e => e[1])

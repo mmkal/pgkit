@@ -49,15 +49,15 @@ test('prettier is optional', async () => {
       
       export default sql<queries.TestTable>\`select id, n from test_table\`
       
-      module queries {
+      export module queries {
       
           /** - query: \`select id, n from test_table\` */
           export interface TestTable {
       
-              /** column: \`ugly_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+              /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
               id: number;
       
-              /** column: \`ugly_test.test_table.n\`, postgres type: \`integer\` */
+              /** column: \`ugly_test.test_table.n\`, regtype: \`integer\` */
               n: (number) | null;
           }
       }
@@ -98,15 +98,15 @@ test('prettier can fail', async () => {
       
       export default sql<queries.TestTable>\`select id, n from test_table\`
       
-      module queries {
+      export module queries {
       
           /** - query: \`select id, n from test_table\` */
           export interface TestTable {
       
-              /** column: \`ugly_test.test_table.id\`, not null: \`true\`, postgres type: \`integer\` */
+              /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
               id: number;
       
-              /** column: \`ugly_test.test_table.n\`, postgres type: \`integer\` */
+              /** column: \`ugly_test.test_table.n\`, regtype: \`integer\` */
               n: (number) | null;
           }
       }

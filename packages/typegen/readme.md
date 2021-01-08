@@ -93,7 +93,7 @@ export default async () => {
   })
 }
 
-module queries {
+export module queries {
   /** - query: `select foo, bar from test_table` */
   export interface TestTable {
     /** column: `example_test.test_table.foo`, not null: `true`, postgres type: `integer` */
@@ -187,7 +187,7 @@ Optional arguments:
 ```
 <!-- codegen:end -->
 
-There are some more configuration options [documented in code](./src/gdesc/types.ts) but these should be considered experimental, and might change without warning. You can try them out as documented below, but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
+There are some more configuration options [documented in code](./src/types.ts) but these should be considered experimental, and might change without warning. You can try them out as documented below, but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
 
 ### Modifying types
 

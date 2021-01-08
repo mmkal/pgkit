@@ -5,10 +5,10 @@ export default [
   sql`this is a nonsense query which will cause an error`,
 ]
 
-module queries {
+export module queries {
   /** - query: `select id from options_test.test_table` */
   export interface TestTable {
-    /** column: `options_test.test_table.id`, not null: `true`, postgres type: `integer` */
+    /** column: `options_test.test_table.id`, not null: `true`, regtype: `integer` */
     id: number
   }
 }

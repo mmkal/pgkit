@@ -40,10 +40,10 @@ test('types for sql files', async () => {
         
         /** - query: \`select a, b from test_table where a = 1\` */
         export interface TestTable1 {
-          /** column: \`sql_test.test_table.a\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
           a: number
         
-          /** column: \`sql_test.test_table.b\`, postgres type: \`text\` */
+          /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
           b: string | null
         }
         
@@ -145,7 +145,7 @@ test('types for sql files', async () => {
         
         /** - query: \`select b as aaa from test_table\` */
         export interface TestTable2 {
-          /** column: \`sql_test.test_table.b\`, postgres type: \`text\` */
+          /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
           aaa: string | null
         }
         
@@ -280,10 +280,10 @@ test('sql with parameters', async () => {
         
         /** - query: \`select a, b from test_table where a = $1 and b = $2\` */
         export interface TestTable {
-          /** column: \`sql_test.test_table.a\`, not null: \`true\`, postgres type: \`integer\` */
+          /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
           a: number
         
-          /** column: \`sql_test.test_table.b\`, postgres type: \`text\` */
+          /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
           b: string | null
         }
         

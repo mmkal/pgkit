@@ -30,50 +30,50 @@ export default [
   `,
 ]
 
-module queries {
+export module queries {
   /** - query: `select * from options_test.test_table` */
   export interface TestTable {
-    /** column: `options_test.test_table.id`, not null: `true`, postgres type: `integer` */
+    /** column: `options_test.test_table.id`, not null: `true`, regtype: `integer` */
     id: number
 
-    /** column: `options_test.test_table.n`, postgres type: `integer` */
+    /** column: `options_test.test_table.n`, regtype: `integer` */
     n: number | null
 
     /**
      * Some custom comment on "t"
      *
-     * column: `options_test.test_table.t`, postgres type: `text`
+     * column: `options_test.test_table.t`, regtype: `text`
      */
     t: string | null
 
-    /** column: `options_test.test_table.t_nn`, not null: `true`, postgres type: `text` */
+    /** column: `options_test.test_table.t_nn`, not null: `true`, regtype: `text` */
     t_nn: string
 
-    /** column: `options_test.test_table.cv`, postgres type: `character varying(1)` */
+    /** column: `options_test.test_table.cv`, regtype: `character varying(1)` */
     cv: string | null
 
-    /** column: `options_test.test_table.arr`, postgres type: `text[]` */
+    /** column: `options_test.test_table.arr`, regtype: `text[]` */
     arr: Array<string> | null
 
-    /** column: `options_test.test_table.e`, postgres type: `test_enum` */
+    /** column: `options_test.test_table.e`, regtype: `test_enum` */
     e: ('aa' | 'bb' | 'cc') | null
 
-    /** column: `options_test.test_table.tz`, postgres type: `timestamp with time zone` */
+    /** column: `options_test.test_table.tz`, regtype: `timestamp with time zone` */
     tz: number | null
 
-    /** column: `options_test.test_table.tz_nn`, not null: `true`, postgres type: `timestamp with time zone` */
+    /** column: `options_test.test_table.tz_nn`, not null: `true`, regtype: `timestamp with time zone` */
     tz_nn: number
 
-    /** column: `options_test.test_table.j`, postgres type: `json` */
+    /** column: `options_test.test_table.j`, regtype: `json` */
     j: unknown
 
-    /** column: `options_test.test_table.jb`, postgres type: `jsonb` */
+    /** column: `options_test.test_table.jb`, regtype: `jsonb` */
     jb: unknown
 
-    /** column: `options_test.test_table.j_nn`, not null: `true`, postgres type: `json` */
+    /** column: `options_test.test_table.j_nn`, not null: `true`, regtype: `json` */
     j_nn: unknown
 
-    /** column: `options_test.test_table.jb_nn`, not null: `true`, postgres type: `jsonb` */
+    /** column: `options_test.test_table.jb_nn`, not null: `true`, regtype: `jsonb` */
     jb_nn: unknown
   }
 
@@ -86,32 +86,32 @@ module queries {
    * - `update test_table as tt set t = '' returning id, t`
    */
   export interface TestTable_id_t {
-    /** column: `options_test.test_table.id`, not null: `true`, postgres type: `integer` */
+    /** column: `options_test.test_table.id`, not null: `true`, regtype: `integer` */
     id: number
 
     /**
      * Some custom comment on "t"
      *
-     * column: `options_test.test_table.t`, postgres type: `text`
+     * column: `options_test.test_table.t`, regtype: `text`
      */
     t: string | null
   }
 
   /** - query: `select count(*) from test_table` */
   export interface TestTable_count {
-    /** not null: `true`, postgres type: `bigint` */
+    /** not null: `true`, regtype: `bigint` */
     count: number
   }
 
   /** - query: `select id as idalias, t as talias from test_table` */
   export interface TestTable_idalias_talias {
-    /** column: `options_test.test_table.id`, not null: `true`, postgres type: `integer` */
+    /** column: `options_test.test_table.id`, not null: `true`, regtype: `integer` */
     idalias: number
 
     /**
      * Some custom comment on "t"
      *
-     * column: `options_test.test_table.t`, postgres type: `text`
+     * column: `options_test.test_table.t`, regtype: `text`
      */
     talias: string | null
   }
@@ -122,7 +122,7 @@ module queries {
    * - `select t1.id from test_table t1 join test_table t2 on t1.id = t2.n`
    */
   export interface TestTable_id {
-    /** column: `options_test.test_table.id`, not null: `true`, postgres type: `integer` */
+    /** column: `options_test.test_table.id`, not null: `true`, regtype: `integer` */
     id: number
   }
 
@@ -135,34 +135,34 @@ module queries {
 
   /** - query: `select pg_advisory_lock(123)` */
   export interface PgAdvisoryLock {
-    /** postgres type: `void` */
+    /** regtype: `void` */
     pg_advisory_lock: unknown
   }
 
   /** - query: `select jb->'foo'->>'bar' from test_table` */
   export interface TestTable_1 {
-    /** postgres type: `text` */
+    /** regtype: `text` */
     '?column?': string | null
   }
 
   /** - query: `select n::numeric from test_table` */
   export interface TestTable_n {
-    /** postgres type: `numeric` */
+    /** regtype: `numeric` */
     n: number | null
   }
 
   /** - query: `select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)` */
   export interface Vals {
-    /** postgres type: `integer` */
+    /** regtype: `integer` */
     num: number | null
 
-    /** postgres type: `text` */
+    /** regtype: `text` */
     letter: string | null
   }
 
   /** - query: `select t from (select id from test_table) t` */
   export interface T {
-    /** postgres type: `record` */
+    /** regtype: `record` */
     t: unknown
   }
 
@@ -171,11 +171,11 @@ module queries {
     /**
      * Some custom comment on "t"
      *
-     * column: `options_test.test_table.t`, postgres type: `text`
+     * column: `options_test.test_table.t`, regtype: `text`
      */
     t_aliased1: string | null
 
-    /** column: `options_test.test_table.t_nn`, not null: `true`, postgres type: `text` */
+    /** column: `options_test.test_table.t_nn`, not null: `true`, regtype: `text` */
     t_nn_aliased: string
   }
 }

@@ -2,10 +2,10 @@ import {sql} from 'slonik'
 
 export default sql<queries.A>`select 0 as a`
 
-module queries {
+export module queries {
   /** - query: `select 0 as a` */
   export interface A {
-    /** postgres type: `integer` */
+    /** regtype: `integer` */
     a: number | null
   }
 }

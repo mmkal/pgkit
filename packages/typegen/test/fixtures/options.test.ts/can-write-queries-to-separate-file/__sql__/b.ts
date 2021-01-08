@@ -1,5 +1,5 @@
 /** - query: `select 1 as a` */
 export interface A {
-  /** postgres type: `integer` */
+  /** regtype: `integer` */
   a: number | null
 }

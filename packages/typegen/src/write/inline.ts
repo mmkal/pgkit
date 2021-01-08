@@ -100,7 +100,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
 
 function queriesModule(group: TaggedQuery[]) {
   const uglyContent = `
-    module queries {
+    export module queries {
       ${queryInterfaces(group)}
     }
   `
