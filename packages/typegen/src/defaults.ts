@@ -21,11 +21,13 @@ export const defaultRootDir = 'src'
 
 export const defaultTypeScriptType = 'unknown'
 
+export const defaultCheckClean: Options['checkClean'] = ['before-migrate', 'after']
+
 export const getParams = (partial: Partial<Options>): Options => {
   let {
     connectionURI = defaultConnectionURI,
     psqlCommand = defaultPsqlCommand,
-    gdescToTypeScript = () => undefined,
+    pgTypeToTypeScript: gdescToTypeScript = () => undefined,
     rootDir = defaultRootDir,
     glob = [`**/*.{js,ts,cjs,mjs,sql}`, {ignore: ['**/node_modules/**']}],
     defaultType = defaultTypeScriptType,
@@ -35,7 +37,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
     logger = console,
     migrate = undefined,
-    checkClean = ['before-migrate', 'after'],
+    checkClean = defaultCheckClean,
   } = partial
 
   assert.ok(!connectionURI.match(/ '"/), `Connection URI should not contain spaces or quotes`)
@@ -48,7 +50,7 @@ export const getParams = (partial: Partial<Options>): Options => {
   return {
     connectionURI,
     psqlCommand,
-    gdescToTypeScript,
+    pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
     glob,
     defaultType,

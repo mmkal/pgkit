@@ -85,6 +85,10 @@ export class GenerateAction extends cli.CommandLineAction {
         alternatives: ['<=0.8.0'],
         description: `Before generating types, attempt to migrate a codebase which has used a prior version of this tool`,
       }),
+      skipCheckClean: action.defineFlagParameter({
+        parameterLongName: '--skip-check-clean',
+        description: `If enabled, the tool will not check the git status to ensure changes are checked in.`,
+      }),
     }
   }
 
@@ -107,7 +111,8 @@ export class GenerateAction extends cli.CommandLineAction {
         defaultType: this._params.defaultType.value,
         glob: this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
-      } as Options),
+        checkClean: this._params.skipCheckClean.value ? [] : undefined,
+      } as Partial<Options>),
     )
   }
 }

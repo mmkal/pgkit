@@ -21,7 +21,7 @@ export const generate = (params: Partial<Options>) => {
   const {
     psqlCommand,
     connectionURI,
-    gdescToTypeScript,
+    pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
     glob,
     defaultType,

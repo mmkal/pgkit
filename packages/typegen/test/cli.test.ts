@@ -2,6 +2,7 @@ import {SlonikTypegenCLI} from '../src/cli'
 import * as fsSyncer from 'fs-syncer'
 import * as slonik from 'slonik'
 import {psqlCommand} from './helper'
+import * as child_process from 'child_process'
 
 afterEach(() => {
   jest.resetAllMocks()
@@ -19,6 +20,11 @@ jest.mock('slonik', () => {
     },
   }
 })
+
+jest.mock('child_process', () => ({
+  ...jest.requireActual<any>('child_process'),
+  execSync: jest.fn(),
+}))
 
 afterAll(async () => {
   await Promise.all(pools.map(p => p.end()))
@@ -58,6 +64,31 @@ test('runs typegen with sensible defaults', async () => {
       }
       "
   `)
+}, 20000)
+
+test('checks git status is clean', async () => {
+  const cli = new SlonikTypegenCLI()
+
+  const syncer = fsSyncer.jest.jestFixture({})
+
+  syncer.sync()
+
+  await cli.executeWithoutErrorHandling(['generate', '--root-dir', syncer.baseDir])
+
+  expect(child_process.execSync).toHaveBeenCalled()
+  expect(child_process.execSync).toHaveBeenLastCalledWith('git diff --exit-code')
+}, 20000)
+
+test('can skip checking git status', async () => {
+  const cli = new SlonikTypegenCLI()
+
+  const syncer = fsSyncer.jest.jestFixture({})
+
+  syncer.sync()
+
+  await cli.executeWithoutErrorHandling(['generate', '--root-dir', syncer.baseDir, '--skip-check-clean'])
+
+  expect(child_process.execSync).not.toHaveBeenCalled()
 }, 20000)
 
 test('typegen.config.js is used by default', async () => {

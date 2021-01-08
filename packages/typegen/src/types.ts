@@ -52,10 +52,11 @@ export interface Options {
   migrate: '<=0.8.0' | undefined
 
   /**
-   * Map from a psql type description to a TypeScript type representation.
+   * @experimental
+   * How to map from a psql type description to a TypeScript type representation.
    * @default @see defaultPGDataTypeToTypeScriptMappings
    */
-  gdescToTypeScript: (gdesc: string, typeName: string) => string | undefined
+  pgTypeToTypeScript: (regtype: string, typeName: string) => string | undefined
 
   /**
    * TypeScript type when no mapping is found. This should usually be `unknown` (or `any` if you like to live dangerously).
@@ -63,6 +64,7 @@ export interface Options {
   defaultType: string
 
   /**
+   * @experimental
    * How to parse a file to get a list of SQL queries. By default, reads the file and uses naive regexes to
    * search for blocks looking like
    * @example
@@ -88,6 +90,7 @@ export interface Options {
   extractQueries: (file: string) => Array<ExtractedQuery>
 
   /**
+   * @experimental
    * How to write types which have been collected by psql. Usually you'll want to write to disk, but this can be any side-effect.
    * You could write to stdout instead, or throw an error if any new types are detected in CI. In theory you could event use this
    * to write some code in another language instead.
@@ -96,7 +99,8 @@ export interface Options {
   writeTypes: (queries: AnalysedQuery[]) => Promise<void>
 
   /**
-   * Slonik pool instance. By default uses localhost.
+   * Slonik pool instance. Uses `connectionURI` if specified. If both are passed, the original pool's configuration will be used to
+   * create a new pool using `connectionURI`.
    */
   pool: slonik.DatabasePoolType
 
@@ -122,6 +126,13 @@ export interface Options {
    * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
    */
   logger: Logger
+
+  /**
+   * List of strings indicating when the git status should be checked to make sure it's clean, before modifying source code.
+   * `['before-migrate', 'after']` by default - meaning the tool will ensure there are no unstaged changes before running any
+   * legacy code migrations, and will also run after the tool has finished generating code. This ensures that when run in CI,
+   * the job will fail if there are any changes that weren't included in the branch.
+   */
   checkClean: Array<'before' | 'after' | 'before-migrate' | 'after-migrate'>
 }
 
