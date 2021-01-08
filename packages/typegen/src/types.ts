@@ -1,14 +1,19 @@
 import * as slonik from 'slonik'
 
+/**
+ * Options that can be specified in `typegen.config.js`. Each is optional (has a default value).
+ * Those marked with @experimental are subject to change. If you want to use one of them, please post your use case
+ * in https://github.com/mmkal/slonik-tools/discussions so it doesn't get broken/removed without a replacement.
+ */
 export interface Options {
   /**
    * URI for connecting to psql. Defaults to "postgresql://postgres:postgres@localhost:5432/postgres".
+   *
+   * Note: It's not recommended to run this tool against a production database, even though it doesn't perform any dynamic queries.
    */
   connectionURI: string
   /**
    * How to execute `psql` from the machine running this tool.
-   *
-   * Note: It's not recommended to run this tool against a production database, even though it doesn't perform any dynamic queries.
    *
    * Some example values:
    *
@@ -21,7 +26,7 @@ export interface Options {
    *
    * You can test this by running `echo 'select 123' | ${your_psqlCommand} -f -`
    *
-   * e.g. `echo 'select 1 as a, 2 as b' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -`
+   * e.g. `echo 'select 1 as a, 2 as b' | docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -`
    *
    * You should see something like this printed:
    *
@@ -45,6 +50,11 @@ export interface Options {
   glob: string | [string, {ignore?: string[]}?]
 
   /**
+   * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
+   */
+  logger: Logger
+
+  /**
    * If defined, before type generation, a pass will be done over all files to migrate them from codegen produced by this
    * tool, according to the specified semver range. e.g. if set to `<=0.8.0` files will be modified/deleted before the codegen
    * is run.
@@ -52,16 +62,41 @@ export interface Options {
   migrate: '<=0.8.0' | undefined
 
   /**
+   * Slonik pool instance. Uses `connectionURI` if specified. If both are passed, the original pool's configuration will be used to
+   * create a new pool using `connectionURI`.
+   */
+  pool: slonik.DatabasePoolType
+
+  /**
+   * @experimental
+   * List of strings indicating when the git status should be checked to make sure it's clean, before modifying source code.
+   * `['before-migrate', 'after']` by default - meaning the tool will ensure there are no unstaged changes before running any
+   * legacy code migrations, and will also run after the tool has finished generating code. This ensures that when run in CI,
+   * the job will fail if there are any changes that weren't included in the branch.
+   */
+  checkClean: Array<'before' | 'after' | 'before-migrate' | 'after-migrate'>
+
+  /**
+   * @experimental
+   * TypeScript type when no mapping is found. This should usually be `unknown` (or `any` if you like to live dangerously).
+   */
+  defaultType: string
+
+  /**
+   * @experimental
+   * How to write types which have been collected by psql. Usually you'll want to write to disk, but this can be any side-effect.
+   * You could write to stdout instead, or throw an error if any new types are detected in CI. In theory you could event use this
+   * to write some code in another language instead.
+   * @default @see defaultWriteTypes
+   */
+  writeTypes: (queries: AnalysedQuery[]) => Promise<void>
+
+  /**
    * @experimental
    * How to map from a psql type description to a TypeScript type representation.
    * @default @see defaultPGDataTypeToTypeScriptMappings
    */
   pgTypeToTypeScript: (regtype: string, typeName: string) => string | undefined
-
-  /**
-   * TypeScript type when no mapping is found. This should usually be `unknown` (or `any` if you like to live dangerously).
-   */
-  defaultType: string
 
   /**
    * @experimental
@@ -91,20 +126,7 @@ export interface Options {
 
   /**
    * @experimental
-   * How to write types which have been collected by psql. Usually you'll want to write to disk, but this can be any side-effect.
-   * You could write to stdout instead, or throw an error if any new types are detected in CI. In theory you could event use this
-   * to write some code in another language instead.
-   * @default @see defaultWriteTypes
-   */
-  writeTypes: (queries: AnalysedQuery[]) => Promise<void>
-
-  /**
-   * Slonik pool instance. Uses `connectionURI` if specified. If both are passed, the original pool's configuration will be used to
-   * create a new pool using `connectionURI`.
-   */
-  pool: slonik.DatabasePoolType
-
-  /**
+   *
    * List of `slonik.TypeParserType` objects, as passed into slonik. These should each have an extra `typescript` string property,
    * which indicates what type the parse into.
    *
@@ -121,19 +143,6 @@ export interface Options {
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
   typeParsers: Array<TypeParserInfo>
-
-  /**
-   * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
-   */
-  logger: Logger
-
-  /**
-   * List of strings indicating when the git status should be checked to make sure it's clean, before modifying source code.
-   * `['before-migrate', 'after']` by default - meaning the tool will ensure there are no unstaged changes before running any
-   * legacy code migrations, and will also run after the tool has finished generating code. This ensures that when run in CI,
-   * the job will fail if there are any changes that weren't included in the branch.
-   */
-  checkClean: Array<'before' | 'after' | 'before-migrate' | 'after-migrate'>
 }
 
 export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>
