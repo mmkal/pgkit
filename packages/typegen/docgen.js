@@ -1,7 +1,7 @@
 const fs = require('fs')
 const path = require('path')
 const os = require('os')
-const {dedent} = require('./dist/gdesc/util')
+const {dedent} = require('./dist/util')
 
 exports.basicExample = () => {
   const testFile = path.join(__dirname, 'test/example.test.ts')
@@ -51,7 +51,7 @@ exports.basicExample = () => {
 }
 
 exports.cliHelpText = () => {
-  const {SlonikTypegenCLI} = require('./dist/gdesc/cli')
+  const {SlonikTypegenCLI} = require('./dist/cli')
   return (
     '```' +
     os.EOL +

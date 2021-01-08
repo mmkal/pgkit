@@ -149,8 +149,7 @@ usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
-queries found in source files. By default, searches 'src' for source files 
-and generates code under 'src/generated/db'.
+queries found in source files. By default, searches 'src' for source files.
 
 Optional arguments:
 

@@ -1,5 +1,5 @@
 import * as cli from '@rushstack/ts-command-line'
-import {generate} from './index'
+import {generate, Options} from './index'
 import * as path from 'path'
 import {tryOrDefault} from './util'
 import * as defaults from './defaults'
@@ -37,8 +37,8 @@ export class GenerateAction extends cli.CommandLineAction {
         parameterLongName: '--config',
         argumentName: 'PATH',
         description: `
-          Path to a module containing parameters to be passed to 'gdescriber'. If specified, it will be required
-          and the default export will be used as parameters. If not specified, defaults will be used.
+          Path to a module containing parameters to be passed to 'generate'. If specified, it will be required
+          and the export will be used as parameters. If not specified, defaults will be used.
           Note: other CLI arguments will override values set in this module
         `,
       }),
@@ -46,6 +46,11 @@ export class GenerateAction extends cli.CommandLineAction {
         parameterLongName: '--root-dir',
         argumentName: 'PATH',
         description: `Path to the source directory containing SQL queries. Defaults to 'src if no value is provided`,
+      }),
+      connectionURI: action.defineStringParameter({
+        parameterLongName: '--connection-uri',
+        argumentName: 'URI',
+        description: `URI for connecting to postgres. Defaults to "postgresql://postgres:postgres@localhost:5432/postgres"`,
       }),
       psql: action.defineStringParameter({
         parameterLongName: '--psql',
@@ -92,10 +97,11 @@ export class GenerateAction extends cli.CommandLineAction {
     return generate(
       lodash.merge({}, options, {
         rootDir: this._params.rootDir.value,
+        connectionURI: this._params.connectionURI.value,
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
         glob: this._params.glob.value,
-      }),
+      } as Options),
     )
   }
 }

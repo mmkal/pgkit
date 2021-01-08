@@ -1,7 +1,9 @@
 import * as slonik from 'slonik'
 
 export interface Options {
-  // todo: use a connection uri instead of leaving it up to user. Then it can be used for both pool and psql.
+  /**
+   * URI for connecting to psql. Defaults to "postgresql://postgres:postgres@localhost:5432/postgres".
+   */
   connectionURI: string
   /**
    * How to execute `psql` from the machine running this tool.
@@ -12,8 +14,8 @@ export interface Options {
    *
    * Scenario                             | Command
    * -------------------------------------|-------------------------------------------------------------------------
-   * running postgres directly            | `psql -h localhost -U postgres postgres`
-   * running postgres with docker-compose | `docker-compose exec -T postgres psql -h localhost -U postgres postgres`
+   * running postgres directly            | `psql`
+   * running postgres with docker-compose | `docker-compose exec -T postgres psql`
    *
    * ___
    *
