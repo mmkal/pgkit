@@ -4,6 +4,8 @@
 export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
   text: 'string',
   integer: 'number',
+  real: 'number',
+  oid: 'number',
   boolean: 'boolean',
   name: 'string',
   'double precision': 'number',

@@ -32,7 +32,7 @@ export const generate = (params: Partial<Options> = {}) => {
     logger,
     migrate,
   } = defaults.getParams(params)
-  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`)
+  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await psql(`${query.sql} \\gdesc`)

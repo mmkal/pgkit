@@ -2,6 +2,7 @@ import * as execa from 'execa'
 import * as lodash from 'lodash'
 import {simplifyWhitespace} from '../util'
 import * as assert from 'assert'
+import {DatabasePoolType, sql} from 'slonik'
 
 export type PSQLClient = ReturnType<typeof psqlClient>
 
@@ -9,7 +10,7 @@ export type PSQLClient = ReturnType<typeof psqlClient>
  * Get a basic postgres client. which can execute simple queries and return row results.
  * This parses `psql` output and no type parsing is done. Everything is a string.
  */
-export const psqlClient = (psqlCommand: string) => {
+export const psqlClient = (psqlCommand: string, pool: DatabasePoolType) => {
   assert.ok(
     !psqlCommand.includes(`'`),
     `Can't run psql command "${psqlCommand}"; with single quotes in it. Try using double quotes or a bash alias.`,
@@ -34,13 +35,32 @@ export const psqlClient = (psqlCommand: string) => {
   }
 
   const getEnumTypes = lodash.once(async () => {
-    const types = await psql(`
-      select distinct t.typname, e.enumlabel
-      from pg_enum as e
-      join pg_type as t
-      on t.oid = e.enumtypid
+    const types = await pool.any(sql<queries.PgEnum_PgType>`
+      select distinct
+        e.enumtypid,
+        t.typname,
+        e.enumlabel,
+        t.typnamespace::regnamespace::text as schema_name,
+        e.enumsortorder,
+        t.typnamespace::regnamespace::text = any(current_schemas(true)) as in_search_path,
+        case
+          when t.typnamespace::regnamespace::text = any(current_schemas(false))
+            then quote_ident(t.typname)
+          else
+            quote_ident(t.typnamespace::regnamespace::text) || '.' || quote_ident(t.typname)
+        end as searchable_type_name
+      from
+        pg_enum as e
+      join
+        pg_type as t
+      on
+        t.oid = e.enumtypid
+      order by
+        t.typnamespace::regnamespace::text,
+        t.typname,
+        e.enumsortorder
     `)
-    return lodash.groupBy(types, t => t.typname)
+    return lodash.groupBy(types, t => t.searchable_type_name)
   })
 
   const getRegtypeToPGType = lodash.once(async () => {
@@ -94,3 +114,32 @@ export const psqlRows = (output: string): Record<string, string>[] => {
 }
 
 const parseRow = (r: string) => r.split('|').map(cell => cell.trim())
+
+module queries {
+  /** - query: `select distinct e.enumtypid, t.typname, ... [truncated] ...espace::text, t.typname, e.enumsortorder` */
+  export interface PgEnum_PgType {
+    /** postgres type: `oid` */
+    enumtypid: number | null
+
+    /** postgres type: `name` */
+    typname: string | null
+
+    /** postgres type: `name` */
+    enumlabel: string | null
+
+    /** postgres type: `text` */
+    schema_name: string | null
+
+    /** postgres type: `real` */
+    enumsortorder: number | null
+
+    /** postgres type: `boolean` */
+    in_search_path: boolean | null
+
+    /** postgres type: `text` */
+    searchable_type_name: string | null
+
+    /** postgres type: `timestamp with time zone` */
+    foo: number | null
+  }
+}
