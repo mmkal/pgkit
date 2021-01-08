@@ -27,6 +27,7 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 - [Configuration](#configuration)
    - [Example config](#example-config)
    - [CLI options](#cli-options)
+   - [Controlling write destination](#controlling-write-destination)
    - [Modifying types](#modifying-types)
    - [Modifying source files](#modifying-source-files)
 - [Examples](#examples)
@@ -192,9 +193,29 @@ Optional arguments:
 
 There are some more configuration options [documented in code](./src/types.ts) but these should be considered experimental, and might change without warning. You can try them out as documented below, but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
 
+### Controlling write destination
+
+By default, interfaces for SQL queries are added to a module at the end of the typescript file they're found in. You can tell the CLI to write the interfaces to a separate file instead using `writeTypes`:
+
+```js
+const path = require('path')
+const typegen = require('@slonik/typegen')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: typegen.defaultWriteTypes({
+    getTSModuleFromSource: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
+  }),
+}
+```
+
+The itnerfaces will be written to a separate file under a `__sql__` folder next to the source, and will be imported via `import * as queries from './__sql__/file-name'`.
+
 ### Modifying types
 
-You can modify the types generated before they are written to disk by defining a custom `writeTypes` implementation:
+You can modify the types generated before they are written to disk by defining a custom `writeTypes` implementation.
+
+For example, you can create [branded types](https://michalzalecki.com/nominal-typing-in-typescript):
 
 ```js
 const typegen = require('@slonik/typegen')
@@ -288,7 +309,7 @@ module.exports = {
   writeTypes: typegen.defaultWriteTypes({
     writeFile: async (filepath, content) => {
       content = await yourCustomLinter.fix(filepath, content)
-      await fs.promises.mkdir(path.dirname(filepath), {recursive: true}) // since you're not using the built-in `writeFile` you need to do this yourself
+      await fs.promises.mkdir(path.dirname(filepath), {recursive: true}) // since you're not using the built-in `writeFile` you should explicitly call mkdir with {recursive: true}
       await fs.promises.writeFile(filepath, content)
     },
   })
@@ -297,7 +318,7 @@ module.exports = {
 
 ## Examples
 
-[The test fixtures](./test/fixtures) are a good starting point to see what the code-generator will do.
+[The tests](./test) and [corresponding fixtures](./test/fixtures) are a good starting point to see what the code-generator will do.
 
 ## Migration from v0.8.0
 
