@@ -20,7 +20,23 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 ## Contents
 
 <!-- codegen:start {preset: markdownTOC, sort: package.name, minDepth: 2} -->
-
+- [The idea](#the-idea)
+- [Contents](#contents)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+   - [Example config](#example-config)
+   - [CLI options](#cli-options)
+   - [writeTypes](#writetypes)
+      - [Controlling write destination](#controlling-write-destination)
+      - [Modifying types](#modifying-types)
+      - [Modifying source files](#modifying-source-files)
+- [Examples](#examples)
+- [Migration from v0.8.0](#migration-from-v080)
+- [SQL files](#sql-files)
+- [Limitations](#limitations)
+- [How it works](#how-it-works)
+- [Recommendations](#recommendations)
 <!-- codegen:end -->
 
 ## Installation
