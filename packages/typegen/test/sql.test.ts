@@ -15,9 +15,11 @@ beforeEach(async () => {
 })
 
 test('types for sql files', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'test-table1.sql': `select a, b from test_table where a = 1`,
-    'test-table2.sql': `select b as aaa from test_table`,
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'test-table1.sql': `select a, b from test_table where a = 1`,
+      'test-table2.sql': `select b as aaa from test_table`,
+    },
   })
 
   syncer.sync()
@@ -256,8 +258,10 @@ test('types for sql files', async () => {
 })
 
 test('sql with parameters', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'test-table.sql': `select a, b from test_table where a = $1 and b = $2`,
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'test-table.sql': `select a, b from test_table where a = $1 and b = $2`,
+    },
   })
 
   syncer.sync()

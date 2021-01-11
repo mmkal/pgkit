@@ -16,15 +16,17 @@ beforeEach(async () => {
 })
 
 test(`multi statements don't get types`, async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`
-        insert into test_table(id, n) values (1, 2);
-        insert into test_table(id, n) values (3, 4);
-      \`
-    `,
+        export default sql\`
+          insert into test_table(id, n) values (1, 2);
+          insert into test_table(id, n) values (3, 4);
+        \`
+      `,
+    },
   })
 
   syncer.sync()
@@ -32,42 +34,6 @@ test(`multi statements don't get types`, async () => {
   await typegen.generate(gdescParams(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
-
-  expect(syncer.yaml()).toMatchInlineSnapshot(`
-    "---
-    index.ts: |-
-      import {sql} from 'slonik'
-      
-      export default sql\`
-        insert into test_table(id, n) values (1, 2);
-        insert into test_table(id, n) values (3, 4);
-      \`
-      "
-  `)
-})
-
-test(`multi statements don't get types`, async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
-
-      export default sql\`
-        insert into test_table(id, n) values (1, 2);
-        insert into test_table(id, n) values (3, 4);
-      \`
-    `,
-  })
-
-  syncer.sync()
-
-  await typegen.generate(gdescParams(syncer.baseDir))
-
-  expect(logger.error).not.toHaveBeenCalled()
-  expect(logger.debug).toHaveBeenCalledWith(
-    expect.stringMatching(
-      /Query `insert into test_table\(id, n\) values \(1, 2\); insert into test_table\(id, n\) values \(3, 4\);` in file .*index.ts is not typeable/,
-    ),
-  )
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -83,14 +49,16 @@ test(`multi statements don't get types`, async () => {
 })
 
 test('variable table name', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      const tableName = 'test_table'
+        const tableName = 'test_table'
 
-      export default sql\`select * from ${'${sql.identifier([tableName])}'}\`
-    `,
+        export default sql\`select * from ${'${sql.identifier([tableName])}'}\`
+      `,
+    },
   })
 
   syncer.sync()

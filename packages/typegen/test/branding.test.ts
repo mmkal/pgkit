@@ -14,12 +14,14 @@ beforeEach(async () => {
 })
 
 test('branded types', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select id, n from test_table\`
-    `,
+        export default sql\`select id, n from test_table\`
+      `,
+    },
   })
 
   syncer.sync()

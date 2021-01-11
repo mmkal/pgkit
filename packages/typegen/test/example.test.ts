@@ -13,21 +13,23 @@ beforeEach(async () => {
 })
 
 test('example typegen', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql, createPool} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql, createPool} from 'slonik'
 
-      export default async () => {
-        const pool = createPool('...connection string...')
+        export default async () => {
+          const pool = createPool('...connection string...')
 
-        const results = await pool.query(sql\`select foo, bar from test_table\`)
+          const results = await pool.query(sql\`select foo, bar from test_table\`)
 
-        results.rows.forEach(r => {
-          console.log(r.foo) // foo has type 'number'
-          console.log(r.bar) // bar has type 'string | null'
-        })
-      }
-    `,
+          results.rows.forEach(r => {
+            console.log(r.foo) // foo has type 'number'
+            console.log(r.bar) // bar has type 'string | null'
+          })
+        }
+      `,
+    },
   })
 
   syncer.sync()

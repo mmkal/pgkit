@@ -7,14 +7,16 @@ import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
 
 test('type parsers have types inferred', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default [
-        sql\`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json\`,
-      ]
-    `,
+        export default [
+          sql\`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json\`,
+        ]
+      `,
+    },
   })
 
   syncer.sync()

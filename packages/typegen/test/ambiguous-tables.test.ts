@@ -28,15 +28,17 @@ beforeEach(async () => {
 })
 
 test('disambiguate between same-named tables', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default [
-        sql\`select * from test_schema_1.test_table\`,
-        sql\`select * from test_schema_2.test_table\`,
-      ]
-    `,
+        export default [
+          sql\`select * from test_schema_1.test_table\`,
+          sql\`select * from test_schema_2.test_table\`,
+        ]
+      `,
+    },
   })
 
   syncer.sync()

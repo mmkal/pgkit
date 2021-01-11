@@ -36,12 +36,14 @@ jest.spyOn(console, 'error').mockReset()
 test('runs typegen with sensible defaults', async () => {
   const cli = new SlonikTypegenCLI()
 
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select 1 as a\`
-    `,
+        export default sql\`select 1 as a\`
+      `,
+    },
   })
 
   syncer.sync()
@@ -69,7 +71,9 @@ test('runs typegen with sensible defaults', async () => {
 test('checks git status is clean', async () => {
   const cli = new SlonikTypegenCLI()
 
-  const syncer = fsSyncer.jest.jestFixture({})
+  const syncer = fsSyncer.jestFixture({
+    targetState: {},
+  })
 
   syncer.sync()
 
@@ -82,7 +86,9 @@ test('checks git status is clean', async () => {
 test('can skip checking git status', async () => {
   const cli = new SlonikTypegenCLI()
 
-  const syncer = fsSyncer.jest.jestFixture({})
+  const syncer = fsSyncer.jestFixture({
+    targetState: {},
+  })
 
   syncer.sync()
 
@@ -94,29 +100,31 @@ test('can skip checking git status', async () => {
 test('typegen.config.js is used by default', async () => {
   const cli = new SlonikTypegenCLI()
 
-  const syncer = fsSyncer.jest.jestFixture({
-    'typegen.config.js': `
-      module.exports = {
-        glob: 'b*.ts',
-        psqlCommand: ${JSON.stringify(psqlCommand)},
-      }
-    `,
-    src: {
-      'a.ts': `
-        import {sql} from 'slonik'
-
-        export default sql\`select 0 as a\`
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'typegen.config.js': `
+        module.exports = {
+          glob: 'b*.ts',
+          psqlCommand: ${JSON.stringify(psqlCommand)},
+        }
       `,
-      'b1.ts': `
-        import {sql} from 'slonik'
+      src: {
+        'a.ts': `
+          import {sql} from 'slonik'
 
-        export default sql\`select 1 as a\`
-      `,
-      'b2.ts': `
-        import {sql} from 'slonik'
+          export default sql\`select 0 as a\`
+        `,
+        'b1.ts': `
+          import {sql} from 'slonik'
 
-        export default sql\`select 2 as a\`
-      `,
+          export default sql\`select 1 as a\`
+        `,
+        'b2.ts': `
+          import {sql} from 'slonik'
+
+          export default sql\`select 2 as a\`
+        `,
+      },
     },
   })
 
@@ -172,36 +180,38 @@ test('typegen.config.js is used by default', async () => {
 test('config flag overrides typegen.config.js', async () => {
   const cli = new SlonikTypegenCLI()
 
-  const syncer = fsSyncer.jest.jestFixture({
-    'typegen.config.js': `
-      module.exports = {
-        glob: 'b*.ts',
-        psqlCommand: ${JSON.stringify(psqlCommand)},
-      }
-    `,
-    // note that this config uses a default export to make sure that works too
-    'otherconfig.js': `
-      module.exports.default = {
-        glob: 'a.ts',
-        psqlCommand: ${JSON.stringify(psqlCommand)},
-      }
-    `,
-    src: {
-      'a.ts': `
-        import {sql} from 'slonik'
-
-        export default sql\`select 0 as a\`
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'typegen.config.js': `
+        module.exports = {
+          glob: 'b*.ts',
+          psqlCommand: ${JSON.stringify(psqlCommand)},
+        }
       `,
-      'b1.ts': `
-        import {sql} from 'slonik'
-
-        export default sql\`select 1 as a\`
+      // note that this config uses a default export to make sure that works too
+      'otherconfig.js': `
+        module.exports.default = {
+          glob: 'a.ts',
+          psqlCommand: ${JSON.stringify(psqlCommand)},
+        }
       `,
-      'b2.ts': `
-        import {sql} from 'slonik'
+      src: {
+        'a.ts': `
+          import {sql} from 'slonik'
 
-        export default sql\`select 2 as a\`
-      `,
+          export default sql\`select 0 as a\`
+        `,
+        'b1.ts': `
+          import {sql} from 'slonik'
+
+          export default sql\`select 1 as a\`
+        `,
+        'b2.ts': `
+          import {sql} from 'slonik'
+
+          export default sql\`select 2 as a\`
+        `,
+      },
     },
   })
 

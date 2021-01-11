@@ -34,40 +34,42 @@ beforeEach(async () => {
 })
 
 test('write types', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default [
-        sql\`select * from options_test.test_table\`,
-        sql\`select id, t from test_table\`,
-        sql\`select count(*) from test_table\`,
-        sql\`select id as idalias, t as talias from test_table\`,
-        sql\`select id from test_table where id = ${'${1}'} and n = ${'${2}'}\`,
-        sql\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
-        sql\`update test_table set t = ''\`,
-        sql\`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\`,
-        sql\`update test_table set t = '' returning id, t\`,
-        sql\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
-        sql\`update test_table as tt set t = '' returning id, t\`,
-        sql\`select pg_advisory_lock(123)\`,
-        sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
-        sql\`select jb->'foo'->>'bar' from test_table\`,
-        sql\`select n::numeric from test_table\`,
-        sql\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
-        sql\`select t from (select id from test_table) t\`,
-        sql\`
-          select t as t_aliased1, t_nn as t_nn_aliased
-          from test_table as tt1
-          where
-            t_nn in (
-              select t_nn as t_aliased2
-              from test_table as tt2
-              where n = 1
-            )
-        \`,
-      ]
-    `,
+        export default [
+          sql\`select * from options_test.test_table\`,
+          sql\`select id, t from test_table\`,
+          sql\`select count(*) from test_table\`,
+          sql\`select id as idalias, t as talias from test_table\`,
+          sql\`select id from test_table where id = ${'${1}'} and n = ${'${2}'}\`,
+          sql\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
+          sql\`update test_table set t = ''\`,
+          sql\`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\`,
+          sql\`update test_table set t = '' returning id, t\`,
+          sql\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
+          sql\`update test_table as tt set t = '' returning id, t\`,
+          sql\`select pg_advisory_lock(123)\`,
+          sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
+          sql\`select jb->'foo'->>'bar' from test_table\`,
+          sql\`select n::numeric from test_table\`,
+          sql\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
+          sql\`select t from (select id from test_table) t\`,
+          sql\`
+            select t as t_aliased1, t_nn as t_nn_aliased
+            from test_table as tt1
+            where
+              t_nn in (
+                select t_nn as t_aliased2
+                from test_table as tt2
+                where n = 1
+              )
+          \`,
+        ]
+      `,
+    },
   })
 
   syncer.sync()
@@ -263,27 +265,29 @@ test('write types', async () => {
 })
 
 test('can write queries to separate file', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'a.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'a.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select 1 as a\`
+        export default sql\`select 1 as a\`
 
-      module queries {
-        // this should be removed!
-      }
-    `,
-    // this file has already imported its queries - need to make sure we don't end up with a double import statement
-    'b.ts': `
-      import {sql} from 'slonik'
-      import * as queries from "./__sql__/b";
+        module queries {
+          // this should be removed!
+        }
+      `,
+      // this file has already imported its queries - need to make sure we don't end up with a double import statement
+      'b.ts': `
+        import {sql} from 'slonik'
+        import * as queries from "./__sql__/b";
 
-      export default sql\`select 1 as a\`
+        export default sql\`select 1 as a\`
 
-      module queries {
-        // this should be removed!
-      }
-    `,
+        module queries {
+          // this should be removed!
+        }
+      `,
+    },
   })
 
   syncer.sync()
@@ -328,16 +332,18 @@ test('can write queries to separate file', async () => {
 })
 
 test('replaces existing queries module', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select 1 as a\`
+        export default sql\`select 1 as a\`
 
-      module queries {
-        // this should be removed!
-      }
-    `,
+        module queries {
+          // this should be removed!
+        }
+      `,
+    },
   })
 
   syncer.sync()
@@ -363,22 +369,24 @@ test('replaces existing queries module', async () => {
 })
 
 test('ignore irrelevant syntax', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default () => {
-        if (Math.random() > 0.5) {
-          const otherTag: any = (val: any) => val
-          return otherTag\`foo\`
+        export default () => {
+          if (Math.random() > 0.5) {
+            const otherTag: any = (val: any) => val
+            return otherTag\`foo\`
+          }
+          if (Math.random() > 0.5) {
+            const otherTag: any = {foo: (val: any) => val}
+            return otherTag.foo\`bar\`
+          }
+          return sql\`select 1\`
         }
-        if (Math.random() > 0.5) {
-          const otherTag: any = {foo: (val: any) => val}
-          return otherTag.foo\`bar\`
-        }
-        return sql\`select 1\`
-      }
-    `,
+      `,
+    },
   })
 
   syncer.sync()
@@ -414,15 +422,17 @@ test('ignore irrelevant syntax', async () => {
 })
 
 test(`queries with syntax errors don't affect others`, async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'index.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
 
-      export default [
-        sql\`select id from options_test.test_table\`, // this should get a valid type
-        sql\`this is a nonsense query which will cause an error\`
-      ]
-    `,
+        export default [
+          sql\`select id from options_test.test_table\`, // this should get a valid type
+          sql\`this is a nonsense query which will cause an error\`
+        ]
+      `,
+    },
   })
 
   syncer.sync()
@@ -461,22 +471,24 @@ test(`queries with syntax errors don't affect others`, async () => {
 })
 
 test('custom glob pattern', async () => {
-  const syncer = fsSyncer.jest.jestFixture({
-    'excluded.ts': `
-      import {sql} from 'slonik'
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'excluded.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select 0 as a\`
-    `,
-    'included1.ts': `
-      import {sql} from 'slonik'
+        export default sql\`select 0 as a\`
+      `,
+      'included1.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select 1 as a\`
-    `,
-    'included2.ts': `
-      import {sql} from 'slonik'
+        export default sql\`select 1 as a\`
+      `,
+      'included2.ts': `
+        import {sql} from 'slonik'
 
-      export default sql\`select 2 as a\`
-    `,
+        export default sql\`select 2 as a\`
+      `,
+    },
   })
 
   syncer.sync()
