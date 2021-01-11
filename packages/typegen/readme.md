@@ -20,23 +20,7 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 ## Contents
 
 <!-- codegen:start {preset: markdownTOC, sort: package.name, minDepth: 2} -->
-- [The idea](#the-idea)
-- [Contents](#contents)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Configuration](#configuration)
-   - [Example config](#example-config)
-   - [CLI options](#cli-options)
-   - [writeTypes](#writetypes)
-      - [Controlling write destination](#controlling-write-destination)
-      - [Modifying types](#modifying-types)
-      - [Modifying source files](#modifying-source-files)
-- [Examples](#examples)
-- [Migration from v0.8.0](#migration-from-v080)
-- [SQL files](#sql-files)
-- [Limitations](#limitations)
-- [How it works](#how-it-works)
-- [Recommendations](#recommendations)
+
 <!-- codegen:end -->
 
 ## Installation
@@ -149,6 +133,7 @@ Some of the options above can be overriden by the CLI:
 usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
                                [--connection-uri URI] [--psql COMMAND]
                                [--default-type TYPESCRIPT] [--glob PATTERN]
+                               [--migrate {<=0.8.0}] [--skip-check-clean]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
@@ -165,7 +150,7 @@ Optional arguments:
                         arguments will override values set in this module
 
   --root-dir PATH       Path to the source directory containing SQL queries. 
-                        Defaults to 'src if no value is provided
+                        Defaults to "src" if no value is provided
 
   --connection-uri URI  URI for connecting to postgres. Defaults to 
                         URI for connecting to postgres. Defaults to 
@@ -190,6 +175,12 @@ Optional arguments:
   --glob PATTERN        Glob pattern of source files to search for SQL 
                         queries in. By default searches for all ts, js, sql, 
                         cjs and mjs files under 'rootDir'
+
+  --migrate {<=0.8.0}   Before generating types, attempt to migrate a 
+                        codebase which has used a prior version of this tool
+
+  --skip-check-clean    If enabled, the tool will not check the git status to 
+                        ensure changes are checked in.
 ```
 <!-- codegen:end -->
 
@@ -388,6 +379,10 @@ sql`this is not even valid SQL!`
 ```
 
 If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/slonik-tools/issues/new). In the meantime, you can create a variable `const _sql = sql` and use the `_sql` tag in the same way as `sql`. `_sql` will not be detected by the tool and can be used as normal.
+
+___
+
+Custom interceptors. Some interceptors, such as [slonik-interceptor-field-name-transformation](https://npmjs.com/package/slonik-interceptor-field-name-transformation) change the runtime shape of query results. You could try to match its behaviour with a custom `writeTypes` implementation, but I'd suggest just not using the interceptor in the first place. All it does is transform from snake-case to camel-case.
 
 ___
 
