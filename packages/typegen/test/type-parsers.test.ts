@@ -2,7 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {createTypeParserPreset} from 'slonik'
 import {getHelper} from './helper'
-import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
+import {getPoolHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
@@ -24,7 +24,7 @@ test('type parsers have types inferred', async () => {
   const baseParams = typegenOptions(syncer.baseDir)
   const {pool} = getPoolHelper({
     __filename,
-    baseConnectionURI: baseParams.connectionURI,
+    baseConnectionURI: baseParams.connectionURI!.slice(),
     config: {
       typeParsers: [
         ...createTypeParserPreset(),
