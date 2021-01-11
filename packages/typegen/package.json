@@ -11,6 +11,10 @@
   "bin": {
     "slonik-typegen": "cli.js"
   },
+  "scripts": {
+    "build": "tsc -p .",
+    "dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\""
+  },
   "author": "mmkal",
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/typegen#readme",
   "repository": {
@@ -19,6 +23,19 @@
   },
   "license": "ISC",
   "peerDependencies": {
-    "slonik": ">= 21.0.0 < 24"
+    "slonik": ">=23.4.0",
+    "typescript": "*"
+  },
+  "dependencies": {
+    "@rushstack/ts-command-line": "^4.7.8",
+    "execa": "^5.0.0",
+    "find-up": "^5.0.0",
+    "io-ts-extra": "^0.11.4",
+    "pgsql-ast-parser": "^3.1.0",
+    "pluralize": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/pluralize": "^0.0.29",
+    "fs-syncer": "^0.3.4-next.2"
   }
 }
