@@ -3,7 +3,7 @@ import * as typegen from '../src'
 import * as path from 'path'
 import {getHelper} from './helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 // todo: test two tables, where sql parser can't automatically tell which table the columns are from.
 
@@ -74,7 +74,7 @@ test('write types', async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -293,7 +293,7 @@ test('can write queries to separate file', async () => {
   syncer.sync()
 
   await typegen.generate({
-    ...gdescParams(syncer.baseDir),
+    ...typegenOptions(syncer.baseDir),
     writeTypes: typegen.defaultWriteTypes({
       getTSModuleFromSource: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
     }),
@@ -348,7 +348,7 @@ test('replaces existing queries module', async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -391,7 +391,7 @@ test('ignore irrelevant syntax', async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -437,7 +437,7 @@ test(`queries with syntax errors don't affect others`, async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.warn).toHaveBeenCalledTimes(1)
   expect(logger.warn.mock.calls[0]).toMatchInlineSnapshot(`
@@ -494,7 +494,7 @@ test('custom glob pattern', async () => {
   syncer.sync()
 
   await typegen.generate({
-    ...gdescParams(syncer.baseDir),
+    ...typegenOptions(syncer.baseDir),
     glob: 'included*.ts',
   })
 

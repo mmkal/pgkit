@@ -2,7 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {getHelper} from './helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
@@ -27,7 +27,7 @@ test('branded types', async () => {
   syncer.sync()
 
   await typegen.generate({
-    ...gdescParams(syncer.baseDir),
+    ...typegenOptions(syncer.baseDir),
     writeTypes: queries => {
       queries.forEach(query => {
         query.fields.forEach(field => {

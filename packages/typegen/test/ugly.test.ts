@@ -2,7 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {getHelper} from './helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 jest.mock('prettier')
 
@@ -35,7 +35,7 @@ test('prettier is optional', async () => {
   })
   const mockWarn = jest.spyOn(console, 'warn').mockReset()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(mockWarn).toBeCalledTimes(1)
   expect(mockWarn.mock.calls[0]).toMatchInlineSnapshot(`
@@ -85,7 +85,7 @@ test('prettier can fail', async () => {
   })
   const mockWarn = jest.spyOn(console, 'warn').mockReset()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(mockWarn).toBeCalledTimes(1)
   expect(mockWarn.mock.calls[0]).toMatchInlineSnapshot(`

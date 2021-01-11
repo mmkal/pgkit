@@ -4,7 +4,7 @@ import {createTypeParserPreset} from 'slonik'
 import {getHelper} from './helper'
 import {getPoolHelper} from '@slonik/migrator/test/pool-helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 test('type parsers have types inferred', async () => {
   const syncer = fsSyncer.jestFixture({
@@ -21,7 +21,7 @@ test('type parsers have types inferred', async () => {
 
   syncer.sync()
 
-  const baseParams = gdescParams(syncer.baseDir)
+  const baseParams = typegenOptions(syncer.baseDir)
   const {pool} = getPoolHelper({
     __filename,
     baseConnectionURI: baseParams.connectionURI,

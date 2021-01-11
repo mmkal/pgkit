@@ -3,7 +3,7 @@ import * as typegen from '../src'
 import {getHelper} from './helper'
 import {expectTypeOf} from 'expect-type'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
@@ -24,7 +24,7 @@ test('types for sql files', async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -269,7 +269,7 @@ test('sql with parameters', async () => {
   logger.warn.mockImplementation(console.warn)
   logger.error.mockImplementation(console.error)
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---

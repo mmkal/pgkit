@@ -2,7 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {getHelper} from './helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
@@ -43,7 +43,7 @@ test('disambiguate between same-named tables', async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   const result = syncer.read()
 

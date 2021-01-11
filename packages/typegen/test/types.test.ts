@@ -5,7 +5,7 @@ import {getHelper} from './helper'
 import {sql} from 'slonik'
 import {expectTypeOf} from 'expect-type'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
@@ -22,7 +22,7 @@ test('types are correct', async () => {
   const thisTestFileBeforeRunning = fs.readFileSync(__filename).toString()
 
   await typegen.generate({
-    ...gdescParams(__dirname),
+    ...typegenOptions(__dirname),
     glob: path.basename(__filename), // match only this file
   })
 

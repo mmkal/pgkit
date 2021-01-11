@@ -2,7 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {getHelper} from './helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   jest.resetAllMocks()
@@ -31,7 +31,7 @@ test(`multi statements don't get types`, async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
 
@@ -63,7 +63,7 @@ test('variable table name', async () => {
 
   syncer.sync()
 
-  await typegen.generate(gdescParams(syncer.baseDir))
+  await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
   expect(logger.debug).toHaveBeenCalledWith(

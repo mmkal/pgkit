@@ -2,7 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {getHelper} from './helper'
 
-export const {gdescParams, logger, poolHelper: helper} = getHelper({__filename})
+export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
   await helper.pool.query(helper.sql`
@@ -33,7 +33,7 @@ test('checks git diff before running', async () => {
 
   await expect(
     typegen.generate({
-      ...gdescParams(syncer.baseDir),
+      ...typegenOptions(syncer.baseDir),
       migrate: '<=0.8.0',
       checkClean: ['before-migrate'],
     }),
@@ -175,7 +175,7 @@ test('migrate old codegen', async () => {
   syncer.sync()
 
   await typegen.generate({
-    ...gdescParams(syncer.baseDir),
+    ...typegenOptions(syncer.baseDir),
     migrate: '<=0.8.0',
   })
 

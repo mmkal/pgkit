@@ -14,7 +14,7 @@ export const getHelper = (params: {__filename: string}) => {
     error: jest.fn(console.error),
   }
 
-  const gdescParams = (baseDir: string): Partial<typegen.Options> => ({
+  const typegenOptions = (baseDir: string): Partial<typegen.Options> => ({
     rootDir: baseDir,
     connectionURI: `${baseConnectionURI}?options=--search_path%3d${poolHelper.schemaName}`,
     pool: poolHelper.pool,
@@ -25,7 +25,7 @@ export const getHelper = (params: {__filename: string}) => {
 
   jest.setTimeout(30000)
 
-  return {gdescParams, poolHelper, logger}
+  return {typegenOptions, poolHelper, logger}
 }
 
 export const getPoolHelper = (params: {
