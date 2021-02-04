@@ -2,10 +2,8 @@ import {Options} from '../types'
 import {extractWithTypeScript} from './typescript'
 import {extractSQLFile} from './sql'
 
-// codegen:start {preset: barrel}
-export * from './sql'
-export * from './typescript'
-// codegen:end
+export {extractSQLFile} from './sql'
+export {extractWithTypeScript} from './typescript'
 
 export const defaultExtractQueries: Options['extractQueries'] = file => {
   if (file.endsWith('.sql')) {

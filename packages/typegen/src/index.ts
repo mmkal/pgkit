@@ -9,11 +9,11 @@ import * as path from 'path'
 import {parameterTypesGetter} from './query/parameters'
 import {truncateQuery, checkClean, maybeDo} from './util'
 import {migrateLegacyCode} from './migrate'
-
-export * from './types'
-export * from './defaults'
-
 import * as write from './write'
+
+export {Options} from './types'
+
+export {defaults}
 
 export {write}
 
