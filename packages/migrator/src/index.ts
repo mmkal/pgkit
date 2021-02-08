@@ -212,14 +212,14 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     return results
   }
 
-  protected async logMigration(name: string, {context}: {context: SlonikMigratorContext}) {
+  protected async logMigration({name, context}: {name: string; context: SlonikMigratorContext}) {
     await context.connection.query(sql`
       insert into ${this.migrationTableNameIdentifier()}(name, hash)
       values (${name}, ${this.hash(name)})
     `)
   }
 
-  protected async unlogMigration(name: string, {context}: {context: SlonikMigratorContext}) {
+  protected async unlogMigration({name, context}: {name: string; context: SlonikMigratorContext}) {
     await context.connection.query(sql`
       delete from ${this.migrationTableNameIdentifier()}
       where name = ${name}

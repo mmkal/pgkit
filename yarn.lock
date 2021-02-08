@@ -3395,10 +3395,10 @@ emittery@^0.7.1:
   resolved "https://registry.yarnpkg.com/emittery/-/emittery-0.7.1.tgz#c02375a927a40948c0345cc903072597f5270451"
   integrity sha512-d34LN4L6h18Bzz9xpoku2nPwKxCPlPMr3EEKTkoEBi+1/+b0lcRkRJ1UVyyZaKNeqGR3swcGl6s390DNO4YVgQ==
 
-emittery@^0.7.2:
-  version "0.7.2"
-  resolved "https://registry.yarnpkg.com/emittery/-/emittery-0.7.2.tgz#25595908e13af0f5674ab419396e2fb394cdfa82"
-  integrity sha512-A8OG5SR/ij3SsJdWDJdkkSYUjQdCUx6APQXem0SaEePBSRg4eymGYwBkKo1Y6DU+af/Jn2dBQqDBvjnr9Vi8nQ==
+emittery@^0.8.1:
+  version "0.8.1"
+  resolved "https://registry.yarnpkg.com/emittery/-/emittery-0.8.1.tgz#bb23cc86d03b30aa75a7f734819dee2e1ba70860"
+  integrity sha512-uDfvUjVrfGJJhymx/kz6prltenw1u7WrCg1oa94zYY8xxVpLLUu045LAT0dhDZdXG58/EpPL/5kA180fQ/qudg==
 
 emoji-regex@^7.0.1:
   version "7.0.3"
@@ -8780,14 +8780,14 @@ umask@^1.1.0:
   resolved "https://registry.yarnpkg.com/umask/-/umask-1.1.0.tgz#f29cebf01df517912bb58ff9c4e50fde8e33320d"
   integrity sha1-8pzr8B31F5ErtY/5xOUP3o4zMg0=
 
-umzug@^3.0.0-beta.14:
-  version "3.0.0-beta.14"
-  resolved "https://registry.yarnpkg.com/umzug/-/umzug-3.0.0-beta.14.tgz#e7d25f6a25e77b6d6ec0cc1ad08a80ff291bc576"
-  integrity sha512-5FcSwsxgnRcSj/puTYLKhK0JFhiWM6+AjtyX8NtSogM8ykoi5/C0dUw97GLQEZ9VGx9YI4fupY9uA7jHc1pMaw==
+umzug@^3.0.0-beta.15:
+  version "3.0.0-beta.15"
+  resolved "https://registry.yarnpkg.com/umzug/-/umzug-3.0.0-beta.15.tgz#56f9223f1b480bbfc6fe73b7cf3581256907229f"
+  integrity sha512-8u3SoFP8CPvzoVHptSpF38wTu0nxTjW8XYD8VI5WvFHA3hYwZsXZoquSIpY6HZo8tF2WHF+aRhb6lqfIpnRdow==
   dependencies:
     "@rushstack/ts-command-line" "^4.7.7"
     "@types/verror" "^1.10.4"
-    emittery "^0.7.2"
+    emittery "^0.8.1"
     fs-jetpack "^4.1.0"
     glob "^7.1.6"
     type-fest "^0.20.0"
