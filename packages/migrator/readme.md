@@ -66,7 +66,7 @@ Note: `node migrate create xyz` will try to detect the type of pre-existing migr
 <details>
   <summary>JavaScript and TypeScript migrations</summary>
   
-  These are expected to be modules with a required `up` export and an optional `down` export. Each of these functions will have an object passed to them with a `slonik` instance, and a `sql` tag function. You can see a [javascript](./test/migrations/2000-01-03T00-00.three.js) and a [typescript]([javascript](./test/migrations/2000-01-04T00-00.four.ts)) example in the tests.
+  These are expected to be modules with a required `up` export and an optional `down` export. Each of these functions will have an object passed to them with a `slonik` instance, and a `sql` tag function. You can see a [javascript](./test/generated/run/migrations/03.three.js) and a [typescript](./test/generated/run/migrations/04.four.ts) example in the tests.
  
   Note: if writing migrations in typescript, you will likely want to use a tool like [ts-node](https://npmjs.com/package/ts-node) to enable loading typescript modules. You can either add `require('ts-node/register/transpile-only')` at the top of your `migrate.js` file, or run `node -r ts-node/register/transpile-only migrate ...` instead of `node migrate ...`.
 
