@@ -122,15 +122,27 @@ const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
  */
 export const aliasMappings = (
   statement: pgsqlAST.Statement,
-): Array<{queryColumn: string; aliasFor: string; tablesColumnCouldBeFrom: string[]}> => {
+): Array<{queryColumn: string; aliasFor: string; tablesColumnCouldBeFrom: string[]; hasNullableJoin: boolean}> => {
   assert.strictEqual(statement.type, 'select' as const)
   assert.ok(statement.columns, `Can't get alias mappings from query with no columns`)
 
-  const allTableReferences: Array<{table: string; referredToAs: string}> = []
+  interface QueryTableReference {
+    table: string
+    referredToAs: string
+    /** even if a column is non-null, if its table is joined via `LEFT JOIN` or `FULL OUTER JOIN`, the value can be null in the resultant query */
+    nullableJoin: boolean
+  }
+
+  const allTableReferences: QueryTableReference[] = []
 
   pgsqlAST
     .astVisitor(map => ({
-      tableRef: t => allTableReferences.push({table: t.name, referredToAs: t.alias || t.name}),
+      tableRef: t =>
+        allTableReferences.push({
+          table: t.name,
+          referredToAs: t.alias || t.name,
+          nullableJoin: ['LEFT JOIN', 'FULL JOIN'].includes((t as any)?.join?.type),
+        }),
       join: t => map.super().join(t),
     }))
     .statement(statement)
@@ -145,13 +157,17 @@ export const aliasMappings = (
   )
 
   const mappings = statement.columns
-    .map(c => ({
-      queryColumn: c.alias,
-      aliasFor: c.expr.type === 'ref' ? c.expr.name : '',
-      tablesColumnCouldBeFrom: availableTables
-        .filter(t => (c.expr.type === 'ref' && c.expr.table ? c.expr.table === t.referredToAs : true))
-        .map(t => t.table),
-    }))
+    .map(c => {
+      const tableReferences = availableTables.filter(t =>
+        c.expr.type === 'ref' && c.expr.table ? c.expr.table === t.referredToAs : true,
+      )
+      return {
+        queryColumn: c.alias,
+        aliasFor: c.expr.type === 'ref' ? c.expr.name : '',
+        tablesColumnCouldBeFrom: tableReferences.map(t => t.table),
+        hasNullableJoin: tableReferences.some(t => t.nullableJoin),
+      }
+    })
     .map(c => ({...c, queryColumn: c.queryColumn || c.aliasFor}))
     .filter(c => c.queryColumn && c.aliasFor)
 

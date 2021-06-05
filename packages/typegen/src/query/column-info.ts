@@ -86,8 +86,15 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
     // await createViewAnalyser()
 
     const viewResultQuery = _sql<GetTypes>`
-      select schema_name, table_column_name, underlying_table_name, is_underlying_nullable, comment, formatted_query
-      from pg_temp.gettypes(${viewFriendlySql})
+      select
+        schema_name,
+        table_column_name,
+        underlying_table_name,
+        is_underlying_nullable,
+        comment,
+        formatted_query
+      from
+        pg_temp.gettypes(${viewFriendlySql})
     `
 
     const ast = getHopefullyViewableAST(viewFriendlySql)
@@ -118,14 +125,19 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       suggestedTags,
       fields: query.fields.map(f => {
         const relatedResults = parsed.flatMap(c =>
-          viewResult.filter(v => {
-            assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
-            return (
-              c.queryColumn === f.name &&
-              c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
-              c.aliasFor === v.table_column_name
-            )
-          }),
+          viewResult
+            .map(v => ({
+              ...v,
+              is_underlying_nullable: c.hasNullableJoin ? 'YES' : v.is_underlying_nullable,
+            }))
+            .filter(v => {
+              assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
+              return (
+                c.queryColumn === f.name &&
+                c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
+                c.aliasFor === v.table_column_name
+              )
+            }),
         )
 
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
