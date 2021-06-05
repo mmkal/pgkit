@@ -21,7 +21,9 @@ exports.basicExample = () => {
     .map(dedent)
 
   const setup = testTemplates[0].trim()
-  const input = testTemplates[1].replace(/ \/\/.*/gm, '').trim()
+  const input = testTemplates[1]
+    .replace(/ \/\/.*/gm, '') // remove comments
+    .trim()
   const output = dedent(testTemplates[2].split(`|-`)[1].split(`"`)[0]).trim()
 
   // const output = fs.readFileSync(outputFile).toString()

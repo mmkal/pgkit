@@ -205,7 +205,7 @@ There are some more configuration options [documented in code](./src/types.ts) b
 
 ### writeTypes
 
-The `writeTypes` option allows you to tweak what's written to disk. Note that the usage style isn't finalised and might change slightly in future. If you use it, please create a discussion about it in https://github.com/mmkal/slonik-tools/discussions.
+The `writeTypes` option allows you to tweak what's written to disk. Note that the usage style isn't finalised and might change in future. If you use it, please create a discussion about it in https://github.com/mmkal/slonik-tools/discussions so that your use-case doesn't get taken away unexpectedly.
 
 #### Controlling write destination
 
@@ -223,7 +223,7 @@ module.exports = {
 }
 ```
 
-The itnerfaces will be written to a separate file under a `__sql__` folder next to the source, and will be imported via `import * as queries from './__sql__/file-name'`.
+The interfaces will be written to a separate file under a `__sql__` folder next to the source, and will be imported via `import * as queries from './__sql__/file-name'`.
 
 #### Modifying types
 
@@ -303,7 +303,7 @@ const typegen = require('@slonik/typegen')
 module.exports = {
   writeTypes: typegen.defaultWriteTypes({
     writeFile: async (filepath, content) => {
-      content = content.replace(/queries/g, 'querieeeez')
+      content = content.replace(/declare module queries/g, 'declare module some_other_naming_convention')
       await typegen.write.writeFile(filepath, content)
     },
   })
