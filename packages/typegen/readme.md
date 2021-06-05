@@ -344,7 +344,7 @@ If you previously used the old version of the tool, you can run it once with the
 
 ## SQL files
 
-The tool will also search for `.sql` files, and generate some typescript helpers for running the queries contained in them. Any parameters (`$1`, `$2` etc.) will also be strongly typed, and become required inputs for running the query. See the [SQL file fixtures](./test/fixtures/sql.test.ts) for some examples.
+The tool will also search for `.sql` files, and generate some typescript helpers for running the queries contained in them. Any parameters (`$1`, `$2` etc.) will also be strongly typed, and become required inputs for running the query. See the [SQL file fixtures](./test/fixtures/sql.test.ts) for some examples, and [the generated SQL usage test to see how it can be used](./test/sql-usage.test.ts).
 
 ## Usage with `@typescript-eslint`
 
