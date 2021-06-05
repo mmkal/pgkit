@@ -18,30 +18,31 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
 
   function visitNodeGenerics(node: ts.Node) {
     if (ts.isTaggedTemplateExpression(node)) {
-      if (ts.isIdentifier(node.tag)) {
-        if (node.tag.getText() === 'sql') {
-          let template: string[] = []
-          if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
-            template = [node.template.text]
-          }
-          if (ts.isTemplateExpression(node.template)) {
-            template = [node.template.head.text, ...node.template.templateSpans.map(s => s.literal.text)]
-          }
-
-          assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
-
-          queries.push({
-            text: node.getFullText(),
-            source,
-            file,
-            sql: template
-              // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
-              .map((t, i) => `$${i}${t}`)
-              .join('')
-              .slice(2), // slice off $0 at the start
-            template,
-          })
+      const isSqlIdentifier = (n: ts.Node) => ts.isIdentifier(n) && n.getText() === 'sql'
+      const sqlPropertyAccessor = ts.isPropertyAccessExpression(node.tag) && isSqlIdentifier(node.tag.name)
+      if (isSqlIdentifier(node.tag) || sqlPropertyAccessor) {
+        let template: string[] = []
+        if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
+          template = [node.template.text]
         }
+        if (ts.isTemplateExpression(node.template)) {
+          template = [node.template.head.text, ...node.template.templateSpans.map(s => s.literal.text)]
+        }
+
+        assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
+
+        queries.push({
+          text: node.getFullText(),
+          source,
+          file,
+          sql: template
+            // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
+            .map((t, i) => `$${i}${t}`)
+            .join('')
+            .slice(2), // slice off $0 at the start
+          template,
+        })
+        console.log(queries[queries.length - 1])
       }
     }
     ts.forEachChild(node, visitNodeGenerics)

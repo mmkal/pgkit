@@ -16,7 +16,7 @@ beforeEach(async () => {
 })
 
 test('types are correct', async () => {
-  // This test is terrifyingly meta. It modifies its own source code, then verifies the modified code is correct.
+  // This test is stupidly meta. It modifies its own source code, then verifies the modified code is correct.
   // To be sure it's verifying the right thing, it ensures that the modification has already been done. - i.e. running
   // codegen has no effect. This means it necesssarily has to fail the very first time it's run.
   const thisTestFileBeforeRunning = fs.readFileSync(__filename).toString()

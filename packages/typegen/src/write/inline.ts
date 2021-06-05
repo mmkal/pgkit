@@ -79,16 +79,16 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
       }
 
       if (ts.isTaggedTemplateExpression(node)) {
-        if (ts.isIdentifier(node.tag)) {
-          if (node.tag.getText() === 'sql') {
-            const match = group.find(q => q.text === node.getFullText())
-            if (match) {
-              edits.push({
-                start: node.tag.getStart(sourceFile),
-                end: node.template.getStart(sourceFile),
-                replacement: `sql<queries.${match.tag}>`,
-              })
-            }
+        const isSqlIdentifier = (n: ts.Node) => ts.isIdentifier(n) && n.getText() === 'sql'
+        const sqlPropertyAccessor = ts.isPropertyAccessExpression(node.tag) && isSqlIdentifier(node.tag.name)
+        if (isSqlIdentifier(node.tag) || sqlPropertyAccessor) {
+          const match = group.find(q => q.text === node.getFullText())
+          if (match) {
+            edits.push({
+              start: node.tag.getStart(sourceFile),
+              end: node.template.getStart(sourceFile),
+              replacement: `${node.tag.getText()}<queries.${match.tag}>`,
+            })
           }
         }
       }
@@ -99,6 +99,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
 }
 
 function queriesModule(group: TaggedQuery[]) {
+  // todo: change to export declare namespace
   const uglyContent = `
     export module queries {
       ${queryInterfaces(group)}

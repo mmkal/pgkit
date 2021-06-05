@@ -5,6 +5,8 @@ module.exports = {
   rules: {
     'prettier/prettier': ['warn', require('./.prettierrc')],
     'codegen/codegen': 'error',
+    '@typescript-eslint/prefer-namespace-keyword': 'warn',
+    '@typescript-eslint/no-namespace': ['warn', {allowDeclarations: true}],
   },
   overrides: [
     {
