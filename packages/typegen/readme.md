@@ -34,6 +34,7 @@ Select statements, joins, and updates/inserts using `returning` are all supporte
 - [Examples](#examples)
 - [Migration from v0.8.0](#migration-from-v080)
 - [SQL files](#sql-files)
+- [Usage with `@typescript-eslint`](#usage-with-typescript-eslint)
 - [Limitations](#limitations)
 - [How it works](#how-it-works)
 - [Recommendations](#recommendations)
@@ -95,7 +96,7 @@ export default async () => {
   })
 }
 
-export module queries {
+export declare namespace queries {
   /** - query: `select foo, bar from test_table` */
   export interface TestTable {
     /** column: `example_test.test_table.foo`, not null: `true`, regtype: `integer` */
@@ -344,6 +345,14 @@ If you previously used the old version of the tool, you can run it once with the
 ## SQL files
 
 The tool will also search for `.sql` files, and generate some typescript helpers for running the queries contained in them. Any parameters (`$1`, `$2` etc.) will also be strongly typed, and become required inputs for running the query. See the [SQL file fixtures](./test/fixtures/sql.test.ts) for some examples.
+
+## Usage with `@typescript-eslint`
+
+The default ruleset for [`@typescript-eslint/eslint-plugin`](https://npmjs.com/package/@typescript-eslint/eslint-plugin) prevents usage of [typescript namespaces](https://github.com/typescript-eslint/typescript-eslint/blob/HEAD/packages/eslint-plugin/docs/rules/no-namespace.md). To avoid lint errors for inline type declarations (which are perfectly valid!), add this to your eslint config:
+
+```
+"@typescript-eslint/no-namespace": ["warn", {"allowDeclarations": true}],
+```
 
 ## Limitations
 

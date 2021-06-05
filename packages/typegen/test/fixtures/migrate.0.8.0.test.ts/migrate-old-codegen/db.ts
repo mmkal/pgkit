@@ -14,7 +14,7 @@ export const queryB = sql<queries.B>`
   select 1 as b
 `
 
-export module queries {
+export declare namespace queries {
   /** - query: `select 1 as a` */
   export interface A {
     /** regtype: `integer` */

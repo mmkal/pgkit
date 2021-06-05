@@ -12,7 +12,7 @@ export default () => {
   return sql<queries.Anonymous>`select 1`
 }
 
-export module queries {
+export declare namespace queries {
   /** - query: `select 1` */
   export interface Anonymous {
     /** regtype: `integer` */

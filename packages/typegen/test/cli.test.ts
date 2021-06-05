@@ -57,7 +57,7 @@ test('runs typegen with sensible defaults', async () => {
       
       export default sql<queries.A>\`select 1 as a\`
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select 1 as a\` */
         export interface A {
           /** regtype: \`integer\` */
@@ -153,7 +153,7 @@ test('typegen.config.js is used by default', async () => {
         
         export default sql<queries.A>\`select 1 as a\`
         
-        export module queries {
+        export declare namespace queries {
           /** - query: \`select 1 as a\` */
           export interface A {
             /** regtype: \`integer\` */
@@ -166,7 +166,7 @@ test('typegen.config.js is used by default', async () => {
         
         export default sql<queries.A>\`select 2 as a\`
         
-        export module queries {
+        export declare namespace queries {
           /** - query: \`select 2 as a\` */
           export interface A {
             /** regtype: \`integer\` */
@@ -241,7 +241,7 @@ test('config flag overrides typegen.config.js', async () => {
         
         export default sql<queries.A>\`select 0 as a\`
         
-        export module queries {
+        export declare namespace queries {
           /** - query: \`select 0 as a\` */
           export interface A {
             /** regtype: \`integer\` */

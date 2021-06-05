@@ -5,7 +5,7 @@ export default [
   sql<queries.TestTable_0>`select * from test_schema_2.test_table`,
 ]
 
-export module queries {
+export declare namespace queries {
   /** - query: `select * from test_schema_1.test_table` */
   export interface TestTable {
     /**

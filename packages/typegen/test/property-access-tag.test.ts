@@ -52,7 +52,7 @@ test('example typegen', async () => {
         })
       }
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select foo, bar from test_table\` */
         export interface TestTable {
           /** column: \`property_access_tag_test.test_table.foo\`, not null: \`true\`, regtype: \`integer\` */

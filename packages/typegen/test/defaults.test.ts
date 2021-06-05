@@ -1,4 +1,6 @@
-import {getParams} from '../src'
+import {defaults} from '../src'
+
+const {getParams} = defaults
 
 test('default values are correct', () => {
   // some of the default values aren't used in tests (e.g. psqlCommand, which always uses docker)

@@ -42,7 +42,6 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
             .slice(2), // slice off $0 at the start
           template,
         })
-        console.log(queries[queries.length - 1])
       }
     }
     ts.forEachChild(node, visitNodeGenerics)

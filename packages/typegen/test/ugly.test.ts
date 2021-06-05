@@ -51,7 +51,7 @@ test('prettier is optional', async () => {
       
       export default sql<queries.TestTable>\`select id, n from test_table\`
       
-      export module queries {
+      export declare namespace queries {
       
           /** - query: \`select id, n from test_table\` */
           export interface TestTable {
@@ -102,7 +102,7 @@ test('prettier can fail', async () => {
       
       export default sql<queries.TestTable>\`select id, n from test_table\`
       
-      export module queries {
+      export declare namespace queries {
       
           /** - query: \`select id, n from test_table\` */
           export interface TestTable {

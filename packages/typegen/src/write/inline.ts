@@ -99,9 +99,8 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
 }
 
 function queriesModule(group: TaggedQuery[]) {
-  // todo: change to export declare namespace
   const uglyContent = `
-    export module queries {
+    export declare namespace queries {
       ${queryInterfaces(group)}
     }
   `

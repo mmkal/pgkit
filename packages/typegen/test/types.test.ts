@@ -38,7 +38,7 @@ test('types are correct', async () => {
   expectTypeOf(results.rows).items.toEqualTypeOf<{foo: number; bar: string | null}>()
 })
 
-export module queries {
+export declare namespace queries {
   /** - query: `select * from types_test_table` */
   export interface TypesTestTable {
     /** column: `types_test.types_test_table.foo`, not null: `true`, regtype: `integer` */

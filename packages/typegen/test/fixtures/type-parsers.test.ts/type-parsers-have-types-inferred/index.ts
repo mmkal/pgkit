@@ -2,7 +2,7 @@ import {sql} from 'slonik'
 
 export default [sql<queries.Anonymous>`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json`]
 
-export module queries {
+export declare namespace queries {
   /** - query: `select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json` */
   export interface Anonymous {
     /** regtype: `timestamp with time zone` */

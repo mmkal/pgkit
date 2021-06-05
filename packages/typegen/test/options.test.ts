@@ -111,7 +111,7 @@ test('write types', async () => {
         \`,
       ]
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select * from options_test.test_table\` */
         export interface TestTable {
           /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
@@ -294,7 +294,7 @@ test('can write queries to separate file', async () => {
 
   await typegen.generate({
     ...typegenOptions(syncer.baseDir),
-    writeTypes: typegen.defaultWriteTypes({
+    writeTypes: typegen.defaults.defaultWriteTypes({
       getTSModuleFromSource: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
     }),
   })
@@ -357,7 +357,7 @@ test('replaces existing queries module', async () => {
       
       export default sql<queries.A>\`select 1 as a\`
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select 1 as a\` */
         export interface A {
           /** regtype: \`integer\` */
@@ -410,7 +410,7 @@ test('ignore irrelevant syntax', async () => {
         return sql<queries.Anonymous>\`select 1\`
       }
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select 1\` */
         export interface Anonymous {
           /** regtype: \`integer\` */
@@ -459,7 +459,7 @@ test(`queries with syntax errors don't affect others`, async () => {
         sql\`this is a nonsense query which will cause an error\`,
       ]
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select id from options_test.test_table\` */
         export interface TestTable {
           /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
@@ -510,7 +510,7 @@ test('custom glob pattern', async () => {
       
       export default sql<queries.A>\`select 1 as a\`
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select 1 as a\` */
         export interface A {
           /** regtype: \`integer\` */
@@ -523,7 +523,7 @@ test('custom glob pattern', async () => {
       
       export default sql<queries.A>\`select 2 as a\`
       
-      export module queries {
+      export declare namespace queries {
         /** - query: \`select 2 as a\` */
         export interface A {
           /** regtype: \`integer\` */
