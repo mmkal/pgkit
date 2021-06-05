@@ -63,7 +63,7 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
 // todo: map from alias and/or oid to "regtype" which is what the above are
 // https://www.postgresql-archive.org/OID-of-type-by-name-td3297240.html
 
-export module queries {
+export declare namespace queries {
   /** - query: `select distinct e.enumtypid, t.typname, ... [truncated] ...espace::text, t.typname, e.enumsortorder` */
   export interface PgEnum_PgType {
     /** regtype: `oid` */

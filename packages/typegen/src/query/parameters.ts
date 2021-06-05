@@ -19,7 +19,7 @@ export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: st
 
   try {
     const regtypes = await pool.oneFirst(
-      sql<queries.PgPreparedStatements>`
+      sql<queries.PgPreparedStatement>`
         select parameter_types::text
         from pg_prepared_statements
         where name = ${statementName}
@@ -47,9 +47,9 @@ if (require.main === module) {
   ).then(console.log, console.error)
 }
 
-export module queries {
+export declare namespace queries {
   /** - query: `select parameter_types::text from pg_prepared_statements where name = $1` */
-  export interface PgPreparedStatements {
+  export interface PgPreparedStatement {
     /** regtype: `text` */
     parameter_types: string | null
   }
