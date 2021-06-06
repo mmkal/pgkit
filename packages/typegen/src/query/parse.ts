@@ -105,8 +105,6 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
         sql,
       )
 
-      console.log({newSql, replacements})
-
       return parseWithWorkarounds(newSql, attemptsLeft - 1)
     }
     throw e
