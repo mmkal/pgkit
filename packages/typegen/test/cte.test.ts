@@ -4,6 +4,15 @@ import {getHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
+beforeEach(async () => {
+  jest.resetAllMocks()
+
+  await helper.pool.query(helper.sql`
+    create table test_table1(a int not null);
+    create table test_table2(b int);
+  `)
+})
+
 test(`statement with CTE`, async () => {
   const syncer = fsSyncer.jestFixture({
     targetState: {
@@ -45,6 +54,92 @@ test(`statement with CTE`, async () => {
       
           /** regtype: \`name\` */
           s: string | null
+        }
+      }
+      "
+  `)
+})
+
+test(`statement with complex CTE`, async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`
+          with abc as (select table_name from information_schema.tables),
+          def as (select table_schema from information_schema.tables, abc)
+          select * from def
+        \`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(logger.warn).not.toHaveBeenCalled()
+  expect(logger.error).not.toHaveBeenCalled()
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.Def>\`
+        with abc as (select table_name from information_schema.tables),
+        def as (select table_schema from information_schema.tables, abc)
+        select * from def
+      \`
+      
+      export declare namespace queries {
+        /** - query: \`with abc as (select table_name from info... [truncated] ...on_schema.tables, abc) select * from def\` */
+        export interface Def {
+          /** regtype: \`name\` */
+          table_schema: string | null
+        }
+      }
+      "
+  `)
+})
+
+test(`statement with confusingly-named CTE`, async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`
+          with test_table1 as (select b as a from test_table2)
+          select a from test_table1
+        \`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(logger.warn).not.toHaveBeenCalled()
+  expect(logger.error).not.toHaveBeenCalled()
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.TestTable1>\`
+        with test_table1 as (select b as a from test_table2)
+        select a from test_table1
+      \`
+      
+      export declare namespace queries {
+        /** - query: \`with test_table1 as (select b as a from test_table2) select a from test_table1\` */
+        export interface TestTable1 {
+          /** regtype: \`integer\` */
+          a: number | null
         }
       }
       "

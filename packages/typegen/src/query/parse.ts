@@ -54,31 +54,95 @@ export const isUntypeable = (template: string[]) => {
 
 // todo: return null if statement is not a select
 // and have test cases for when a view can't be created
-export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
-  const statements = pgsqlAST.parse(sql)
+// export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
+//   const statements = parseWithWorkarounds(sql)
+//   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
+//   return astToSelect({modifications: [], ast: statements[0]}).ast
+// }
+
+const getModifiedAST = (sql: string): ModifiedAST => {
+  const statements = parseWithWorkarounds(sql)
   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
-  return astToSelect(statements[0])
+  return astToSelect({modifications: [], ast: statements[0]})
 }
 
-const astToSelect = (ast: pgsqlAST.Statement): pgsqlAST.Statement => {
+export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.Statement[] => {
+  try {
+    return pgsqlAST.parse(sql)
+  } catch (e) {
+    if (attemptsLeft <= 1) {
+      throw e
+    }
+    if (sql.trim().startsWith('with ')) {
+      // handle (some) CTEs. Can fail if comments trip up the parsing. You'll end up with queries called `Anonymous` if that happens
+      const state = {
+        parenLevel: 0,
+        cteStart: -1,
+      }
+      const replacements: Array<{start: number; end: number; text: string}> = []
+
+      for (let i = 0; i < sql.length; i++) {
+        const prev = sql.slice(0, i).replace(/\s+/, ' ').trim()
+        if (sql[i] === '(') {
+          state.parenLevel++
+          if (prev.endsWith(' as')) {
+            if (state.parenLevel === 1) {
+              state.cteStart = i
+            }
+          }
+        }
+        if (sql[i] === ')') {
+          state.parenLevel--
+          if (state.parenLevel === 0 && state.cteStart > -1) {
+            replacements.push({start: state.cteStart + 1, end: i, text: 'select 1'})
+            state.cteStart = -1
+          }
+        }
+      }
+
+      const newSql = replacements.reduceRight(
+        (acc, rep) => acc.slice(0, rep.start) + rep.text + acc.slice(rep.end),
+        sql,
+      )
+
+      console.log({newSql, replacements})
+
+      return parseWithWorkarounds(newSql, attemptsLeft - 1)
+    }
+    throw e
+  }
+}
+
+interface ModifiedAST {
+  modifications: ('cte' | 'returning')[]
+  ast: pgsqlAST.Statement
+}
+
+const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
   if ((ast.type === 'update' || ast.type === 'insert') && ast.returning) {
     return {
-      type: 'select',
-      from: [
-        {
-          type: 'table',
-          name: ast.type === 'update' ? ast.table.name : ast.into.name,
-        },
-      ],
-      columns: ast.returning,
+      modifications: [...modifications, 'returning'],
+      ast: {
+        type: 'select',
+        from: [
+          {
+            type: 'table',
+            name: ast.type === 'update' ? ast.table.name : ast.into.name,
+          },
+        ],
+        columns: ast.returning,
+      },
     }
   }
 
   if (ast.type === 'with') {
-    return ast.in
+    return astToSelect({
+      modifications: [...modifications, 'cte'],
+      ast: ast.in,
+    })
   }
 
-  return ast
+  return {modifications, ast}
 }
 
 /**
@@ -194,6 +258,10 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
     .filter(Boolean)
 }
 
+export const getHopefullyViewableAST = lodash.flow(getModifiedAST, m => m.ast)
+
+export const isCTE = lodash.flow(templateToValidSql, getModifiedAST, m => m.modifications.includes('cte'))
+
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
 export const getViewFriendlySql = lodash.flow(templateToValidSql, getHopefullyViewableAST, pgsqlAST.toSql.statement)
@@ -248,17 +316,13 @@ if (require.main === module) {
     LIKE: 'like',
     OR: 'or',
   }
-  console.log(
-    getHopefullyViewableAST(`
-    with abc as (
-      select * from foo
-    ),
-    def as (
-      select * from bar
-    )
-    select a, b, c from foo join bar on a = b
-  `),
-  )
+  // console.log(`
+  //   select *
+  //   from a
+  //   join top_x(1, 2) as p on b = c
+  // `)
+  // throw 'end'
+  console.log(getHopefullyViewableAST(require('./testquery.ignoreme').default))
   throw 'end'
   pgsqlAST
     .astVisitor(map => ({

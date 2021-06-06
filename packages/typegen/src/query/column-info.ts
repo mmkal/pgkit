@@ -3,7 +3,7 @@ import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../
 import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
-import {getHopefullyViewableAST, getSuggestedTags} from './parse'
+import {getHopefullyViewableAST, getSuggestedTags, isCTE} from './parse'
 import * as assert from 'assert'
 import {tryOrDefault} from '../util'
 
@@ -80,6 +80,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
   // const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
 
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
+    const cte = isCTE(query.template)
     const viewFriendlySql = getViewFriendlySql(query.template)
     const suggestedTags = getSuggestedTags(query.template).concat(['Anonymous'])
 
@@ -106,11 +107,13 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       }
     }
 
-    const viewResult = await pool.transaction(async t => {
-      await t.query(getTypesSql)
-      const results = await t.any(viewResultQuery)
-      return lodash.uniqBy(results, JSON.stringify)
-    })
+    const viewResult = cte
+      ? [] // not smart enough to figure out what types are referenced via a CTE
+      : await pool.transaction(async t => {
+          await t.query(getTypesSql)
+          const results = await t.any(viewResultQuery)
+          return lodash.uniqBy(results, JSON.stringify)
+        })
 
     const formattedSqlStatements = [...new Set(viewResult.map(r => r.formatted_query))]
 

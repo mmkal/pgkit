@@ -32,10 +32,12 @@ export const interfaceBody = (query: AnalysedQuery) =>
       .values()
       .map(fields => {
         const prop = quotePropKey(fields[0].name)
-        const types = fields.map(f =>
-          f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
-            ? `${f.typescript}`
-            : `(${f.typescript}) | null`,
+        const types = lodash.uniq(
+          fields.map(f =>
+            f.notNull || f.typescript === 'any' || f.typescript === 'unknown'
+              ? `${f.typescript}`
+              : `(${f.typescript}) | null`,
+          ),
         )
         const comments = lodash.flatMap(fields, f => {
           const metaVals = {

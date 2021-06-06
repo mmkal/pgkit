@@ -2,7 +2,7 @@ import {createPool, sql, ClientConfigurationInputType} from 'slonik'
 import * as typegen from '../src'
 import * as path from 'path'
 
-export const baseConnectionURI = `postgresql://postgres:postgres@localhost:5432/postgres`
+export const baseConnectionURI = `postgresql://postgres:postgres@localhost:5433/postgres`
 export const psqlCommand = `docker-compose exec -T postgres psql`
 
 export const getHelper = (params: {__filename: string}) => {
