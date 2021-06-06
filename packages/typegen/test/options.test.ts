@@ -212,7 +212,7 @@ test('write types', async () => {
          * - \`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`
          * - \`update test_table set t = ''\`
          */
-        export interface _void {}
+        export type _void = void
       
         /** - query: \`select pg_advisory_lock(123)\` */
         export interface PgAdvisoryLock {

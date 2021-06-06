@@ -74,6 +74,10 @@ const astToSelect = (ast: pgsqlAST.Statement): pgsqlAST.Statement => {
     }
   }
 
+  if (ast.type === 'with') {
+    return ast.in
+  }
+
   return ast
 }
 
@@ -244,6 +248,18 @@ if (require.main === module) {
     LIKE: 'like',
     OR: 'or',
   }
+  console.log(
+    getHopefullyViewableAST(`
+    with abc as (
+      select * from foo
+    ),
+    def as (
+      select * from bar
+    )
+    select a, b, c from foo join bar on a = b
+  `),
+  )
+  throw 'end'
   pgsqlAST
     .astVisitor(map => ({
       expr: e => {
@@ -284,7 +300,6 @@ if (require.main === module) {
       // parameter: e => ({type: 'ref', name: 'SPLITTABLE'}),
     }))
     .statement(getHopefullyViewableAST('select id from messages where id <= $1'))!
-  throw ''
   console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
   pgsqlAST
     .astVisitor(map => ({

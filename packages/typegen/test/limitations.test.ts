@@ -81,3 +81,85 @@ test('variable table name', async () => {
       "
   `)
 })
+
+test('duplicate columns', async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`select 1 as a, 'two' as a\`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.A_a>\`select 1 as a, 'two' as a\`
+      
+      export declare namespace queries {
+        /** - query: \`select 1 as a, 'two' as a\` */
+        export interface A_a {
+          /**
+           * Warning: 2 columns detected for field a!
+           *
+           * regtype: \`integer\`
+           *
+           * regtype: \`text\`
+           */
+          a: (number | null) | (string | null)
+        }
+      }
+      "
+  `)
+})
+
+test('void queries', async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default [
+          sql\`update test_table set n = 0\`,
+          sql\`insert into test_table values (0, 0)\`,
+          sql\`create table x (y int)\`,
+        ]
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default [
+        sql<queries._void>\`update test_table set n = 0\`,
+        sql<queries._void>\`insert into test_table values (0, 0)\`,
+        sql<queries._void>\`create table x (y int)\`,
+      ]
+      
+      export declare namespace queries {
+        /**
+         * queries:
+         * - \`update test_table set n = 0\`
+         * - \`insert into test_table values (0, 0)\`
+         * - \`create table x (y int)\`
+         */
+        export type _void = void
+      }
+      "
+  `)
+})
