@@ -70,7 +70,7 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
   try {
     return pgsqlAST.parse(sql)
   } catch (e) {
-    if (attemptsLeft <= 10) {
+    if (attemptsLeft <= 1) {
       throw e
     }
     if (sql.trim().startsWith('with ')) {
@@ -330,15 +330,9 @@ if (require.main === module) {
   // throw 'end'
   console.log(
     lodash.flow(
-      getHopefullyViewableAST,
-      pgsqlAST.toSql.statement,
-    )(`
-    select
-      a, -- com
-      b -- com
-    from
-      t
-  `),
+      //
+      getSuggestedTags,
+    )([require('./testquery.ignoreme').default]),
   )
   throw 'end'
   pgsqlAST
