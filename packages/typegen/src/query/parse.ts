@@ -70,7 +70,7 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
   try {
     return pgsqlAST.parse(sql)
   } catch (e) {
-    if (attemptsLeft <= 1) {
+    if (attemptsLeft <= 10) {
       throw e
     }
     if (sql.trim().startsWith('with ')) {
@@ -266,6 +266,14 @@ export const getViewFriendlySql = lodash.flow(templateToValidSql, getHopefullyVi
 
 export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappings)
 
+export const removeSimpleComments = (sql: string) =>
+  sql
+    .split('\n')
+    .map(line => (line.trim().startsWith('--') ? '' : line))
+    .join('\n')
+
+export const simplifySql = lodash.flow(pgsqlAST.parseFirst, pgsqlAST.toSql.statement)
+
 /* istanbul ignore if */
 if (require.main === module) {
   console.log = (...x: any[]) => console.dir(x.length === 1 ? x[0] : x, {depth: null})
@@ -320,7 +328,18 @@ if (require.main === module) {
   //   join top_x(1, 2) as p on b = c
   // `)
   // throw 'end'
-  console.log(getHopefullyViewableAST(require('./testquery.ignoreme').default))
+  console.log(
+    lodash.flow(
+      getHopefullyViewableAST,
+      pgsqlAST.toSql.statement,
+    )(`
+    select
+      a, -- com
+      b -- com
+    from
+      t
+  `),
+  )
   throw 'end'
   pgsqlAST
     .astVisitor(map => ({

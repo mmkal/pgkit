@@ -1,9 +1,9 @@
 import * as lodash from 'lodash'
-import {globAsync} from './util'
+import {globAsync, tryOrDefault} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
-import {columnInfoGetter, isUntypeable} from './query'
+import {columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
 import {parameterTypesGetter} from './query/parameters'
@@ -35,8 +35,26 @@ export const generate = (params: Partial<Options>) => {
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
+  const commentHint = `Failed to describe query, and couldn't simplify it. It might help to move comments in complicated expressions to lines`
+
+  const gdesc = async (sql: string) => {
+    try {
+      return await psql(`${sql} \\gdesc`)
+    } catch (e) {
+      const simplified = tryOrDefault(
+        () => removeSimpleComments(sql),
+        tryOrDefault(() => simplifySql(sql), ''),
+      )
+
+      if (!simplified) {
+        throw new Error(`Couldn't simplify query. Original query description failure: ${e}`)
+      }
+      return await psql(`${simplified} \\gdesc`)
+    }
+  }
+
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
-    const rows = await psql(`${query.sql} \\gdesc`)
+    const rows = await gdesc(query.sql)
     const fields = await Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
         name: row.Column,
@@ -135,7 +153,7 @@ export const generate = (params: Partial<Options>) => {
             parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
           }
         } catch (e) {
-          logger.warn(`Describing query failed: ${e}`)
+          logger.warn(`Describing query failed: ${e}. Try moving comments to dedicated lines.`)
           return null
         }
       },

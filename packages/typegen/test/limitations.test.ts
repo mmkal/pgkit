@@ -163,3 +163,157 @@ test('void queries', async () => {
       "
   `)
 })
+
+test('simple', async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`
+          select 1 as a, 'two' as b
+        \`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(logger.warn).not.toHaveBeenCalled()
+  expect(logger.error).not.toHaveBeenCalled()
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.A_b>\`
+        select 1 as a, 'two' as b
+      \`
+      
+      export declare namespace queries {
+        /** - query: \`select 1 as a, 'two' as b\` */
+        export interface A_b {
+          /** regtype: \`integer\` */
+          a: number | null
+      
+          /** regtype: \`text\` */
+          b: string | null
+        }
+      }
+      "
+  `)
+})
+
+test('queries with comments are modified', async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`
+          select
+            1 as a, -- comment
+            -- comment
+            2 as b,
+            '--' as c, -- comment
+            id
+          from
+            -- comment
+            test_table -- comment
+        \`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(logger.warn).not.toHaveBeenCalled()
+  expect(logger.error).not.toHaveBeenCalled()
+
+  expect(syncer.yaml()).toMatchInlineSnapshot(`
+    "---
+    index.ts: |-
+      import {sql} from 'slonik'
+      
+      export default sql<queries.TestTable>\`
+        select
+          1 as a, -- comment
+          -- comment
+          2 as b,
+          '--' as c, -- comment
+          id
+        from
+          -- comment
+          test_table -- comment
+      \`
+      
+      export declare namespace queries {
+        /** - query: \`select 1 as a, -- comment -- comment 2 as b, '--' as c, -- comment id from -- comment test_table -- comment\` */
+        export interface TestTable {
+          /** regtype: \`integer\` */
+          a: number | null
+      
+          /** regtype: \`integer\` */
+          b: number | null
+      
+          /** regtype: \`text\` */
+          c: string | null
+      
+          /** column: \`limitations_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+          id: number
+        }
+      }
+      "
+  `)
+})
+
+test('queries with complex CTEs and comments fail with helpful warning', async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`
+          with abc as (
+            select table_name -- comment
+            from information_schema.tables
+          ),
+          def as (
+            select table_schema
+            from information_schema.tables, abc
+          )
+          select * from def
+        \`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  expect(logger.warn).toHaveBeenCalled()
+  expect(logger.warn).toMatchInlineSnapshot(`
+    [MockFunction] {
+      "calls": Array [
+        Array [
+          "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
+    Query: \\"with abc as ( select table_name -- comment from information_schema.tables ), def as ( select table_schema from information_schema.tables, abc ) select * from def \\\\\\\\gdesc\\"
+    Result: \\"psql:<stdin>:1: ERROR:  syntax error at end of input\\\\nLINE 1: with abc as ( select table_name \\\\n                                        ^\\"
+    Error: Empty output received. Try moving comments to dedicated lines.",
+        ],
+      ],
+      "results": Array [
+        Object {
+          "type": "return",
+          "value": undefined,
+        },
+      ],
+    }
+  `)
+})

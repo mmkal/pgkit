@@ -6,6 +6,7 @@ import * as parse from './index'
 import {getHopefullyViewableAST, getSuggestedTags, isCTE} from './parse'
 import * as assert from 'assert'
 import {tryOrDefault} from '../util'
+import {createHash} from 'crypto'
 
 const _sql = sql
 
@@ -162,8 +163,9 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
 
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
-      // console.error({e})
-      const suggestedTags = tryOrDefault(() => getSuggestedTags(query.template), ['Anonymous'])
+      const suggestedTags = tryOrDefault(() => getSuggestedTags(query.template), [
+        'Anonymous' + shortHexHash(query.sql), // add hash to avoid `Anonymous` clashes
+      ])
       return {
         ...query,
         suggestedTags,
@@ -171,6 +173,8 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
       }
     })
 }
+
+const shortHexHash = (str: string) => createHash('md5').update(str).digest('hex').slice(0, 6)
 
 export const defaultAnalysedQueryField = (f: QueryField): AnalysedQueryField => ({
   ...f,
