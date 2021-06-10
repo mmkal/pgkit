@@ -3,7 +3,7 @@ import {sql, createPool} from 'slonik'
 export default async () => {
   const pool = createPool('...connection string...')
 
-  const results = await pool.query(sql<queries.TestTable>`select foo, bar from test_table`)
+  const results = await pool.query(sql<queries.results>`select foo, bar from test_table`)
 
   results.rows.forEach(r => {
     console.log(r.foo) // foo has type 'number'
@@ -13,7 +13,7 @@ export default async () => {
 
 export declare namespace queries {
   /** - query: `select foo, bar from test_table` */
-  export interface TestTable {
+  export interface results {
     /** column: `example_test.test_table.foo`, not null: `true`, regtype: `integer` */
     foo: number
 

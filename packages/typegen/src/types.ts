@@ -151,6 +151,10 @@ export interface ExtractedQuery {
   text: string
   /** Path to file containing the query, relative to cwd */
   file: string
+  /** Line number within file, 1-indexed */
+  line: number
+  /** Context of variables that this query appears inside. Used for naming */
+  context: string[]
   /** Full source code of file containing query */
   source: string
   /** Query SQL */

@@ -3,10 +3,11 @@ import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../
 import {getViewFriendlySql} from '.'
 import {sql, DatabasePoolType} from 'slonik'
 import * as parse from './index'
-import {getHopefullyViewableAST, getSuggestedTags, isCTE} from './parse'
+import {getHopefullyViewableAST, getSuggestedTags, isCTE, suggestedTags} from './parse'
 import * as assert from 'assert'
 import {tryOrDefault} from '../util'
 import {createHash} from 'crypto'
+import {singular} from 'pluralize'
 
 const _sql = sql
 
@@ -83,7 +84,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const cte = isCTE(query.template)
     const viewFriendlySql = getViewFriendlySql(query.template)
-    const suggestedTags = getSuggestedTags(query.template).concat(['Anonymous'])
+    const suggestedTags = tagsFromDescribedQuery(query)
 
     // await createViewAnalyser()
 
@@ -161,14 +162,42 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
     }
   }
 
+  const tagsFromDescribedQuery = (query: DescribedQuery) => {
+    const tags = tryOrDefault(() => getSuggestedTags(query.template), [])
+
+    tags.splice(
+      tags[0]?.slice(1).includes('_') ? 0 : 1,
+      0,
+      ...query.context
+        .slice()
+        .reverse()
+        .map(item =>
+          lodash
+            .kebabCase(item)
+            .split('-')
+            .filter(part => !['query', 'result'].includes(singular(part)))
+            .join('-'),
+        )
+        .map(lodash.flow(lodash.camelCase, lodash.upperFirst))
+        .map((_, i, arr) => arr.slice(0, i + 1).join(' '))
+        .filter(Boolean),
+    )
+
+    tags.push(...suggestedTags({tables: [], columns: query.fields.map(f => f.name)}))
+
+    tags.push(
+      'Anonymous' + shortHexHash(query.sql), // add hash to avoid `Anonymous` clashes
+    )
+    return tags
+  }
+
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
-      const suggestedTags = tryOrDefault(() => getSuggestedTags(query.template), [
-        'Anonymous' + shortHexHash(query.sql), // add hash to avoid `Anonymous` clashes
-      ])
+      const tags = tagsFromDescribedQuery(query)
+
       return {
         ...query,
-        suggestedTags,
+        suggestedTags: tags,
         fields: query.fields.map(defaultAnalysedQueryField),
       }
     })

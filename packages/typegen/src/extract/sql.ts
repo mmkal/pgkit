@@ -13,6 +13,8 @@ export const extractSQLFile: Options['extractQueries'] = file => {
     {
       text: sql,
       file,
+      line: 1,
+      context: [],
       source: sql,
       sql,
       tag: pascalCase(path.parse(file).name),

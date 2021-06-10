@@ -12,39 +12,43 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
   // adapted from https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter
   const queries: ExtractedQuery[] = []
 
-  visitNodeGenerics(sourceFile)
+  visitNodeGenerics(sourceFile, [])
 
   return queries
 
-  function visitNodeGenerics(node: ts.Node) {
-    if (ts.isTaggedTemplateExpression(node)) {
-      const isSqlIdentifier = (n: ts.Node) => ts.isIdentifier(n) && n.getText() === 'sql'
-      const sqlPropertyAccessor = ts.isPropertyAccessExpression(node.tag) && isSqlIdentifier(node.tag.name)
-      if (isSqlIdentifier(node.tag) || sqlPropertyAccessor) {
-        let template: string[] = []
-        if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
-          template = [node.template.text]
-        }
-        if (ts.isTemplateExpression(node.template)) {
-          template = [node.template.head.text, ...node.template.templateSpans.map(s => s.literal.text)]
-        }
-
-        assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
-
-        queries.push({
-          text: node.getFullText(),
-          source,
-          file,
-          sql: template
-            // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
-            .map((t, i) => `$${i}${t}`)
-            .join('')
-            .slice(2), // slice off $0 at the start
-          template,
-        })
-      }
+  function visitNodeGenerics(node: ts.Node, context: string[]) {
+    if (!ts.isTaggedTemplateExpression(node)) {
+      const newContext = ts.isVariableDeclaration(node) ? [...context, node.name.getText()] : context
+      ts.forEachChild(node, n => visitNodeGenerics(n, newContext))
+      return
     }
-    ts.forEachChild(node, visitNodeGenerics)
+    const isSqlIdentifier = (n: ts.Node) => ts.isIdentifier(n) && n.getText() === 'sql'
+    const sqlPropertyAccessor = ts.isPropertyAccessExpression(node.tag) && isSqlIdentifier(node.tag.name)
+    if (isSqlIdentifier(node.tag) || sqlPropertyAccessor) {
+      let template: string[] = []
+      if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
+        template = [node.template.text]
+      }
+      if (ts.isTemplateExpression(node.template)) {
+        template = [node.template.head.text, ...node.template.templateSpans.map(s => s.literal.text)]
+      }
+
+      assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
+
+      queries.push({
+        text: node.getFullText(),
+        source,
+        file,
+        context,
+        line: node.getSourceFile().getLineAndCharacterOfPosition(node.pos).line + 1,
+        sql: template
+          // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
+          .map((t, i) => `$${i}${t}`)
+          .join('')
+          .slice(2), // slice off $0 at the start
+        template,
+      })
+    }
   }
 }
 
