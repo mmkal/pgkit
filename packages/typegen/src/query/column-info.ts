@@ -133,7 +133,7 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
           viewResult
             .map(v => ({
               ...v,
-              is_underlying_nullable: c.hasNullableJoin ? 'YES' : v.is_underlying_nullable,
+              hasNullableJoin: c.hasNullableJoin,
             }))
             .filter(v => {
               assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
@@ -146,11 +146,21 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
         )
 
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
-        const notNull = res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))
+
+        let nullability: AnalysedQueryField['nullability'] = 'unknown'
+        if (res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))) {
+          nullability = 'not_null'
+        } else if (res?.is_underlying_nullable === 'YES') {
+          nullability = 'nullable'
+        } else if (res?.hasNullableJoin) {
+          nullability = 'nullable_via_join'
+        } else {
+          nullability = 'unknown'
+        }
 
         return {
           ...f,
-          notNull,
+          nullability,
           column: res && {
             schema: res.schema_name!,
             table: res.underlying_table_name!,
@@ -207,7 +217,7 @@ const shortHexHash = (str: string) => createHash('md5').update(str).digest('hex'
 
 export const defaultAnalysedQueryField = (f: QueryField): AnalysedQueryField => ({
   ...f,
-  notNull: false,
+  nullability: 'unknown',
   comment: undefined,
   column: undefined,
 })

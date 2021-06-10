@@ -95,7 +95,8 @@ export const generate = (params: Partial<Options>) => {
     const regtypeToPGType = await getRegtypeToPGType()
 
     if (regtype.endsWith('[]')) {
-      return `Array<${await getTypeScriptType(regtype.slice(0, -2), typeName)}>`
+      const itemType = await getTypeScriptType(regtype.slice(0, -2), typeName)
+      return itemType.match(/^\w+$/) ? `${itemType}[]` : `Array<${itemType}>`
     }
 
     if (regtype.match(/\(\d+\)/)) {

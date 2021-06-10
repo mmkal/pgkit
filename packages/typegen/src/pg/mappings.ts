@@ -59,6 +59,7 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
   'timestamp with time zone': 'string',
   'timestamp without time zone': 'string',
   uuid: 'string',
+  void: 'void',
 }
 
 // todo: map from alias and/or oid to "regtype" which is what the above are

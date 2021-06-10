@@ -261,11 +261,39 @@ module.exports = {
   writeTypes: queries => {
     queries.forEach(query => {
       query.fields.forEach(field => {
-        field.notNull = true
+        field.nullability = 'not_null'
       })
     })
 
-    return typegen.defaultWriteTypes()(queries)
+    return typegen.defaults.defaultWriteTypes()(queries)
+  }
+}
+```
+
+Or you could be more granular. If, for example, there's a particular file with a lot of nullable types that you can't (yet) add full strict typing to:
+
+```js
+const typegen = require('@slonik/typegen')
+const path = require('path')
+
+/** @type {import('@slonik/typegen').Options} */
+module.exports = {
+  writeTypes: queries => {
+    queries.forEach(query => {
+      const filesWithLegacyNullableFields = [
+        path.resolve(__dirname, 'path/to/file1.ts'),
+        path.resolve(__dirname, 'path/to/file2.ts'),
+      ]
+      if (filesWithLegacyNullableFields.includes(query.file)) {
+        query.fields.forEach(field => {
+          if (field.nullability === 'unknown') {
+            field.nullability = 'not_null'
+          }
+        })
+      }
+    })
+
+    return typegen.defaults.defaultWriteTypes()(queries)
   }
 }
 ```
@@ -287,7 +315,7 @@ module.exports = {
       })
     })
 
-    return typegen.defaultWriteTypes()(queries)
+    return typegen.defaults.defaultWriteTypes()(queries)
   }
 }
 ```

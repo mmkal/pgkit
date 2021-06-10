@@ -111,7 +111,7 @@ export class GenerateAction extends cli.CommandLineAction {
         defaultType: this._params.defaultType.value,
         glob: this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
-        checkClean: this._params.skipCheckClean.value ? [] : undefined,
+        checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
       } as Partial<Options>),
     )
   }
