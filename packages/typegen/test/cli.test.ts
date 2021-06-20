@@ -55,15 +55,7 @@ test('runs typegen with sensible defaults', async () => {
     index.ts: |-
       import {sql} from 'slonik'
       
-      export default sql<queries.A>\`select 1 as a\`
-      
-      export declare namespace queries {
-        /** - query: \`select 1 as a\` */
-        export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
-        }
-      }
+      export default sql\`select 1 as a\`
       "
   `)
 }, 20000)
@@ -151,28 +143,12 @@ test('typegen.config.js is used by default', async () => {
       b1.ts: |-
         import {sql} from 'slonik'
         
-        export default sql<queries.A>\`select 1 as a\`
-        
-        export declare namespace queries {
-          /** - query: \`select 1 as a\` */
-          export interface A {
-            /** regtype: \`integer\` */
-            a: number | null
-          }
-        }
+        export default sql\`select 1 as a\`
         
       b2.ts: |-
         import {sql} from 'slonik'
         
-        export default sql<queries.A>\`select 2 as a\`
-        
-        export declare namespace queries {
-          /** - query: \`select 2 as a\` */
-          export interface A {
-            /** regtype: \`integer\` */
-            a: number | null
-          }
-        }
+        export default sql\`select 2 as a\`
         "
   `)
 }, 20000)
@@ -239,15 +215,7 @@ test('config flag overrides typegen.config.js', async () => {
       a.ts: |-
         import {sql} from 'slonik'
         
-        export default sql<queries.A>\`select 0 as a\`
-        
-        export declare namespace queries {
-          /** - query: \`select 0 as a\` */
-          export interface A {
-            /** regtype: \`integer\` */
-            a: number | null
-          }
-        }
+        export default sql\`select 0 as a\`
         
       b1.ts: |-
         import {sql} from 'slonik'

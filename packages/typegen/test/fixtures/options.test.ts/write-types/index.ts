@@ -14,7 +14,7 @@ export default [
   sql<queries.TestTable_id_t>`update test_table as tt set t = '' returning id, t`,
   sql<queries.PgAdvisoryLock>`select pg_advisory_lock(123)`,
   sql<queries.TestTable_id>`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n`,
-  sql<queries.TestTable_1>`select jb->'foo'->>'bar' from test_table`,
+  sql<queries.Column>`select jb->'foo'->>'bar' from test_table`,
   sql<queries.TestTable_n>`select n::numeric from test_table`,
   sql<queries.Val>`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)`,
   sql<queries.T>`select t from (select id from test_table) t`,
@@ -53,7 +53,7 @@ export declare namespace queries {
     cv: string | null
 
     /** column: `options_test.test_table.arr`, regtype: `text[]` */
-    arr: Array<string> | null
+    arr: string[] | null
 
     /** column: `options_test.test_table.e`, regtype: `test_enum` */
     e: ('aa' | 'bb' | 'cc') | null
@@ -136,11 +136,11 @@ export declare namespace queries {
   /** - query: `select pg_advisory_lock(123)` */
   export interface PgAdvisoryLock {
     /** regtype: `void` */
-    pg_advisory_lock: unknown
+    pg_advisory_lock: void
   }
 
   /** - query: `select jb->'foo'->>'bar' from test_table` */
-  export interface TestTable_1 {
+  export interface Column {
     /** regtype: `text` */
     '?column?': string | null
   }

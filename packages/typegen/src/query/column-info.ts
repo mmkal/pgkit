@@ -201,7 +201,10 @@ const tagOptions = (query: DescribedQuery) => {
     .map((_, i, arr) => arr.slice(0, i + 1).join(' '))
     .filter(Boolean)
 
-  const fieldTags = suggestedTags({tables: [], columns: query.fields.map(f => f.name)})
+  const fieldTags = suggestedTags({
+    tables: [],
+    columns: query.fields.map(f => f.name),
+  })
 
   const anonymousTags = ['Anonymous' + shortHexHash(query.sql)] // add hash to avoid `Anonymous` clashes
 

@@ -59,7 +59,7 @@ test('disambiguate between same-named tables', async () => {
       
       export default [
         sql<queries.TestTable>\`select * from test_schema_1.test_table\`,
-        sql<queries.TestTable_0>\`select * from test_schema_2.test_table\`,
+        sql<queries.Id_e>\`select * from test_schema_2.test_table\`,
       ]
       
       export declare namespace queries {
@@ -80,7 +80,7 @@ test('disambiguate between same-named tables', async () => {
         }
       
         /** - query: \`select * from test_schema_2.test_table\` */
-        export interface TestTable_0 {
+        export interface Id_e {
           /**
            * This is a comment for test_schema_2.test_table.id
            *

@@ -1,6 +1,7 @@
 import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {getHelper} from './helper'
+import './register-mock-serializer'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
@@ -299,21 +300,19 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
 
   expect(logger.warn).toHaveBeenCalled()
   expect(logger.warn).toMatchInlineSnapshot(`
-    [MockFunction] {
-      "calls": Array [
-        Array [
-          "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
-    Query: \\"with abc as ( select table_name -- comment from information_schema.tables ), def as ( select table_schema from information_schema.tables, abc ) select * from def \\\\\\\\gdesc\\"
-    Result: \\"psql:<stdin>:1: ERROR:  syntax error at end of input\\\\nLINE 1: with abc as ( select table_name \\\\n                                        ^\\"
-    Error: Empty output received. Try moving comments to dedicated lines.",
-        ],
-      ],
-      "results": Array [
-        Object {
-          "type": "return",
-          "value": undefined,
-        },
-      ],
-    }
+    - - >-
+        [cwd]/packages/typegen/test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
+        Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql
+        query.
+
+        Query: "with abc as ( select table_name -- comment from
+        information_schema.tables ), def as ( select table_schema from
+        information_schema.tables, abc ) select * from def \\\\gdesc"
+
+        Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: with
+        abc as ( select table_name \\n                                        ^"
+
+        Error: Empty output received. Try moving comments to dedicated lines.
+
   `)
 })

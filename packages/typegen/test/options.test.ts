@@ -2,6 +2,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import * as path from 'path'
 import {getHelper} from './helper'
+import './register-mock-serializer'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
@@ -95,7 +96,7 @@ test('write types', async () => {
         sql<queries.TestTable_id_t>\`update test_table as tt set t = '' returning id, t\`,
         sql<queries.PgAdvisoryLock>\`select pg_advisory_lock(123)\`,
         sql<queries.TestTable_id>\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
-        sql<queries.TestTable_1>\`select jb->'foo'->>'bar' from test_table\`,
+        sql<queries.Column>\`select jb->'foo'->>'bar' from test_table\`,
         sql<queries.TestTable_n>\`select n::numeric from test_table\`,
         sql<queries.Val>\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
         sql<queries.T>\`select t from (select id from test_table) t\`,
@@ -134,7 +135,7 @@ test('write types', async () => {
           cv: string | null
       
           /** column: \`options_test.test_table.arr\`, regtype: \`text[]\` */
-          arr: Array<string> | null
+          arr: string[] | null
       
           /** column: \`options_test.test_table.e\`, regtype: \`test_enum\` */
           e: ('aa' | 'bb' | 'cc') | null
@@ -217,11 +218,11 @@ test('write types', async () => {
         /** - query: \`select pg_advisory_lock(123)\` */
         export interface PgAdvisoryLock {
           /** regtype: \`void\` */
-          pg_advisory_lock: unknown
+          pg_advisory_lock: void
         }
       
         /** - query: \`select jb->'foo'->>'bar' from test_table\` */
-        export interface TestTable_1 {
+        export interface Column {
           /** regtype: \`text\` */
           '?column?': string | null
         }
@@ -407,12 +408,12 @@ test('ignore irrelevant syntax', async () => {
           const otherTag: any = {foo: (val: any) => val}
           return otherTag.foo\`bar\`
         }
-        return sql<queries.Anonymous>\`select 1\`
+        return sql<queries.Column>\`select 1\`
       }
       
       export declare namespace queries {
         /** - query: \`select 1\` */
-        export interface Anonymous {
+        export interface Column {
           /** regtype: \`integer\` */
           '?column?': number | null
         }
@@ -440,13 +441,19 @@ test(`queries with syntax errors don't affect others`, async () => {
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.warn).toHaveBeenCalledTimes(1)
-  expect(logger.warn.mock.calls[0]).toMatchInlineSnapshot(`
-    Array [
-      "Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql query.
-    Query: \\"this is a nonsense query which will cause an error \\\\\\\\gdesc\\"
-    Result: \\"psql:<stdin>:1: ERROR:  syntax error at or near \\\\\\"this\\\\\\"\\\\nLINE 1: this is a nonsense query which will cause an error \\\\n        ^\\"
-    Error: Empty output received",
-    ]
+  expect(logger.warn).toMatchInlineSnapshot(`
+    - - >-
+        [cwd]/packages/typegen/test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
+        Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql
+        query.
+
+        Query: "this is a nonsense query which will cause an error \\\\gdesc"
+
+        Result: "psql:<stdin>:1: ERROR:  syntax error at or near \\"this\\"\\nLINE 1:
+        this is a nonsense query which will cause an error \\n        ^"
+
+        Error: Empty output received. Try moving comments to dedicated lines.
+
   `)
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`

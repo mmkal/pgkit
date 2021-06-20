@@ -9,12 +9,12 @@ export default () => {
     const otherTag: any = {foo: (val: any) => val}
     return otherTag.foo`bar`
   }
-  return sql<queries.Anonymous>`select 1`
+  return sql<queries.Column>`select 1`
 }
 
 export declare namespace queries {
   /** - query: `select 1` */
-  export interface Anonymous {
+  export interface Column {
     /** regtype: `integer` */
     '?column?': number | null
   }
