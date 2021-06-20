@@ -198,7 +198,7 @@ const tagOptions = (query: DescribedQuery) => {
         .join('-'),
     )
     .map(lodash.flow(lodash.camelCase, lodash.upperFirst))
-    .map((_, i, arr) => arr.slice(0, i + 1).join(' '))
+    .map((_, i, arr) => arr.slice(0, i + 1).join('_'))
     .filter(Boolean)
 
   const fieldTags = suggestedTags({
