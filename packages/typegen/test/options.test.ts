@@ -52,6 +52,7 @@ test('write types', async () => {
           sql\`update test_table set t = '' returning id, t\`,
           sql\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
           sql\`update test_table as tt set t = '' returning id, t\`,
+          sql\`delete from test_table where t = '' returning id, t\`,
           sql\`select pg_advisory_lock(123)\`,
           sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
           sql\`select jb->'foo'->>'bar' from test_table\`,
@@ -94,6 +95,7 @@ test('write types', async () => {
         sql<queries.TestTable_id_t>\`update test_table set t = '' returning id, t\`,
         sql<queries.TestTable_id_t>\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
         sql<queries.TestTable_id_t>\`update test_table as tt set t = '' returning id, t\`,
+        sql<queries.TestTable_id_t>\`delete from test_table where t = '' returning id, t\`,
         sql<queries.PgAdvisoryLock>\`select pg_advisory_lock(123)\`,
         sql<queries.TestTable_id>\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
         sql<queries.Column>\`select jb->'foo'->>'bar' from test_table\`,
@@ -166,6 +168,7 @@ test('write types', async () => {
          * - \`update test_table set t = '' returning id, t\`
          * - \`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`
          * - \`update test_table as tt set t = '' returning id, t\`
+         * - \`delete from test_table where t = '' returning id, t\`
          */
         export interface TestTable_id_t {
           /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */

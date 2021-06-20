@@ -117,7 +117,7 @@ interface ModifiedAST {
 }
 
 const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
-  if ((ast.type === 'update' || ast.type === 'insert') && ast.returning) {
+  if ((ast.type === 'update' || ast.type === 'insert' || ast.type === 'delete') && ast.returning) {
     return {
       modifications: [...modifications, 'returning'],
       ast: {
@@ -125,7 +125,7 @@ const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
         from: [
           {
             type: 'table',
-            name: ast.type === 'update' ? ast.table.name : ast.into.name,
+            name: ast.type === 'update' ? ast.table.name : ast.type === 'insert' ? ast.into.name : ast.from.name,
           },
         ],
         columns: ast.returning,
