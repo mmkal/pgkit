@@ -233,43 +233,21 @@ test('queries with comments are modified', async () => {
 
   await typegen.generate(typegenOptions(syncer.baseDir))
 
-  expect(logger.warn).not.toHaveBeenCalled()
-  expect(logger.error).not.toHaveBeenCalled()
+  expect(logger.warn).toHaveBeenCalled()
+  expect(logger.warn).toMatchInlineSnapshot(`
+    - - >-
+        [cwd]/packages/typegen/test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
+        Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql
+        query.
 
-  expect(syncer.yaml()).toMatchInlineSnapshot(`
-    "---
-    index.ts: |-
-      import {sql} from 'slonik'
-      
-      export default sql<queries.TestTable>\`
-        select
-          1 as a, -- comment
-          -- comment
-          2 as b,
-          '--' as c, -- comment
-          id
-        from
-          -- comment
-          test_table -- comment
-      \`
-      
-      export declare namespace queries {
-        /** - query: \`select 1 as a, -- comment -- comment 2 as b, '--' as c, -- comment id from -- comment test_table -- comment\` */
-        export interface TestTable {
-          /** regtype: \`integer\` */
-          a: number | null
-      
-          /** regtype: \`integer\` */
-          b: number | null
-      
-          /** regtype: \`text\` */
-          c: string | null
-      
-          /** column: \`limitations_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-          id: number
-        }
-      }
-      "
+        Query: "select 1 as a, -- comment 2 as b, '--' as c, -- comment id from
+        test_table -- comment \\\\gdesc"
+
+        Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+        select 1 as a, \\n                       ^"
+
+        Error: Empty output received. Try moving comments to dedicated lines.
+
   `)
 })
 
