@@ -172,35 +172,6 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
     }
   }
 
-  const tagsFromDescribedQuery = (query: DescribedQuery) => {
-    const tags = tryOrDefault(() => getSuggestedTags(query.template), [])
-
-    tags.splice(
-      tags[0]?.slice(1).includes('_') ? 0 : 1,
-      0,
-      ...query.context
-        .slice()
-        .reverse()
-        .map(item =>
-          lodash
-            .kebabCase(item)
-            .split('-')
-            .filter(part => !['query', 'result'].includes(singular(part)))
-            .join('-'),
-        )
-        .map(lodash.flow(lodash.camelCase, lodash.upperFirst))
-        .map((_, i, arr) => arr.slice(0, i + 1).join(' '))
-        .filter(Boolean),
-    )
-
-    tags.push(...suggestedTags({tables: [], columns: query.fields.map(f => f.name)}))
-
-    tags.push(
-      'Anonymous' + shortHexHash(query.sql), // add hash to avoid `Anonymous` clashes
-    )
-    return tags
-  }
-
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
       const tags = tagsFromDescribedQuery(query)
@@ -211,6 +182,41 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
         fields: query.fields.map(defaultAnalysedQueryField),
       }
     })
+}
+
+const tagOptions = (query: DescribedQuery) => {
+  const sqlTags = tryOrDefault(() => getSuggestedTags(query.template), [])
+
+  const codeContextTags = query.context
+    .slice()
+    .reverse()
+    .map(item =>
+      lodash
+        .kebabCase(item)
+        .split('-')
+        .filter(part => !['query', 'result'].includes(singular(part)))
+        .join('-'),
+    )
+    .map(lodash.flow(lodash.camelCase, lodash.upperFirst))
+    .map((_, i, arr) => arr.slice(0, i + 1).join(' '))
+    .filter(Boolean)
+
+  const fieldTags = suggestedTags({tables: [], columns: query.fields.map(f => f.name)})
+
+  const anonymousTags = ['Anonymous' + shortHexHash(query.sql)] // add hash to avoid `Anonymous` clashes
+
+  return {sqlTags, codeContextTags, fieldTags, anonymousTags}
+}
+
+const tagsFromDescribedQuery = (query: DescribedQuery) => {
+  const options = tagOptions(query)
+
+  const tags = options.sqlTags.slice()
+  tags.splice(tags[0]?.slice(1).includes('_') ? 0 : 1, 0, ...options.codeContextTags)
+  tags.push(...options.fieldTags)
+  tags.push(...options.codeContextTags)
+
+  return tags
 }
 
 const shortHexHash = (str: string) => createHash('md5').update(str).digest('hex').slice(0, 6)
