@@ -154,9 +154,11 @@ export const generate = (params: Partial<Options>) => {
             parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
           }
         } catch (e) {
-          logger.warn(
-            `${query.file}:${query.line} Describing query failed: ${e}. Try moving comments to dedicated lines.`,
-          )
+          let message = `${query.file}:${query.line} Describing query failed: ${e}.`
+          if (query.sql.includes('--')) {
+            message += ' Try moving comments to dedicated lines.'
+          }
+          logger.warn(message)
           return null
         }
       },

@@ -452,7 +452,7 @@ test(`queries with syntax errors don't affect others`, async () => {
         Result: "psql:<stdin>:1: ERROR:  syntax error at or near \\"this\\"\\nLINE 1:
         this is a nonsense query which will cause an error \\n        ^"
 
-        Error: Empty output received. Try moving comments to dedicated lines.
+        Error: Empty output received.
 
   `)
 
