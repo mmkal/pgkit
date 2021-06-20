@@ -148,12 +148,12 @@ export const columnInfoGetter = (pool: DatabasePoolType) => {
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
 
         let nullability: AnalysedQueryField['nullability'] = 'unknown'
-        if (res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))) {
-          nullability = 'not_null'
-        } else if (res?.is_underlying_nullable === 'YES') {
+        if (res?.is_underlying_nullable === 'YES') {
           nullability = 'nullable'
         } else if (res?.hasNullableJoin) {
           nullability = 'nullable_via_join'
+        } else if (res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))) {
+          nullability = 'not_null'
         } else {
           nullability = 'unknown'
         }
