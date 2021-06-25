@@ -1,11 +1,17 @@
 const path = require('path')
 const fs = require('fs')
 const os = require('os')
-const {SlonikMigrator} = require('.')
 const stripAnsi = require('strip-ansi')
 
 /** @type {import('eslint-plugin-codegen').Preset<{}>} */
-module.exports = () => {
+module.exports = params => {
+  let SlonikMigrator
+  try {
+    SlonikMigrator = require('./dist').SlonikMigrator
+  } catch {
+    require('ts-node/register/transpile-only')
+    SlonikMigrator = require('./src').SlonikMigrator
+  }
   const migrator = new SlonikMigrator({
     migrationTableName: 'not_a_real_table',
     migrationsPath: __dirname + '/not/a/real/path',
