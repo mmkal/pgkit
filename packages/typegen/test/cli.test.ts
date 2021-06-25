@@ -31,6 +31,7 @@ afterAll(async () => {
 })
 
 jest.spyOn(console, 'info').mockReset()
+jest.spyOn(console, 'warn').mockReset()
 jest.spyOn(console, 'error').mockReset()
 
 test('runs typegen with sensible defaults', async () => {

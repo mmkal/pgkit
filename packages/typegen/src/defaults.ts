@@ -38,8 +38,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     psqlCommand = defaultPsqlCommand,
     pgTypeToTypeScript: gdescToTypeScript = () => undefined,
     rootDir = defaultRootDir,
-    // todo: remove js, maybe sql
-    glob = [`**/*.{js,ts,cjs,mjs,sql}`, {ignore: ['**/node_modules/**']}],
+    glob = [`**/*.{ts,sql}`, {ignore: ['**/node_modules/**']}],
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),

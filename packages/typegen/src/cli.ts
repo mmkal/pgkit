@@ -76,8 +76,7 @@ export class GenerateAction extends cli.CommandLineAction {
         parameterLongName: '--glob',
         argumentName: 'PATTERN',
         description: `
-          Glob pattern of source files to search for SQL queries in. By default searches for all ts, js,
-          sql, cjs and mjs files under 'rootDir'
+          Glob pattern of source files to search for SQL queries in. By default searches for all ts and sql files under 'rootDir'
         `,
       }),
       migrate: action.defineChoiceParameter({

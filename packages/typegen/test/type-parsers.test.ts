@@ -50,7 +50,7 @@ test('type parsers have types inferred', async () => {
 
   await typegen.generate({
     ...baseParams,
-    pool,
+    poolConfig: pool.configuration,
   })
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
