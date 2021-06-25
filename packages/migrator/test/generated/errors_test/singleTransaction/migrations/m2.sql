@@ -1,0 +1,1 @@
+insert into errors_table1(id) values (1)
