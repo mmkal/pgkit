@@ -35,7 +35,7 @@ jobs:
     steps:
       - name: check psql
         run: |
-          echo 'select 123 as test_column \gdesc' | docker exec -it postgres_github_actions psql "postgresql://postgres:postgres@localhost:5433/postgres" -f - | grep 'test_column | integer'
+          echo 'select 123 as test_column \gdesc' | docker exec -i postgres_github_actions psql "postgresql://postgres:postgres@localhost:5433/postgres" -f - | grep 'test_column | integer'
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
