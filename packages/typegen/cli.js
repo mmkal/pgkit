@@ -1,2 +1,4 @@
 #!/usr/bin/env node
-require('./dist/index').main(process.argv)
+const {SlonikTypegenCLI} = require('./dist/cli')
+
+new SlonikTypegenCLI().execute()
