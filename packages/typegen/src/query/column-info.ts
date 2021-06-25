@@ -194,7 +194,8 @@ const tagOptions = (query: DescribedQuery) => {
       lodash
         .kebabCase(item)
         .split('-')
-        .filter(part => !['query', 'result'].includes(singular(part)))
+        .map(singular)
+        .filter(part => !['query', 'result'].includes(part))
         .join('-'),
     )
     .map(lodash.flow(lodash.camelCase, lodash.upperFirst))
