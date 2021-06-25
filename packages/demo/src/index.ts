@@ -39,7 +39,7 @@ export const getApp = () => {
           messages.map(m => ({
             id: m.id,
             text: m.content,
-            secondsAgo: Math.floor((Date.now() - (m.created_at as any).getTime()) / 1000),
+            secondsAgo: Math.floor((Date.now() - m.created_at.getTime()) / 1000),
           })),
         )
       })
@@ -73,7 +73,7 @@ export declare namespace queries {
     content: string | null
 
     /** column: `public.messages.created_at`, not null: `true`, regtype: `timestamp with time zone` */
-    created_at: number
+    created_at: Date
 
     /** column: `public.messages.priority`, regtype: `message_priority` */
     priority: ('low' | 'medium' | 'high') | null
