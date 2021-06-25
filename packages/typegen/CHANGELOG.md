@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.9.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.8.1...@slonik/typegen@0.9.0) (2021-06-25)
+
+
+### Features
+
+* make @slonik/typegen a dev dependency - BREAKING/MUCH BETTER ([#293](https://github.com/mmkal/slonik-tools/issues/293)) ([0a6a4ca](https://github.com/mmkal/slonik-tools/commit/0a6a4cacbf01a6f47f1de08fa2253fd41b1c18ee))
+
+
+
+
+
 ## [0.8.1](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.8.0...@slonik/typegen@0.8.1) (2021-06-25)
 
 **Note:** Version bump only for package @slonik/typegen
