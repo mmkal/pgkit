@@ -61,6 +61,6 @@
     "typescript": "4.1.2"
   },
   "dependencies": {
-    "eslint-plugin-codegen": "..\\ts\\packages\\eslint-plugin-codegen\\eslint-plugin-codegen-v0.14.3.tgz"
+    "eslint-plugin-codegen": "^0.15.0"
   }
 }
