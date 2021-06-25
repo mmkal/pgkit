@@ -8,9 +8,10 @@ jobs:
     if: github.event_name == 'push' || github.event.pull_request.base.repo.url != github.event.pull_request.head.repo.url
     runs-on: ubuntu-latest
     services:
-      redis:
+      postgres:
         image: postgres:12
         env:
+          PGPORT: '5433'
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
@@ -20,13 +21,16 @@ jobs:
           --health-timeout 5s
           --health-retries 5
         ports:
-          - 5433:5432
+          - 5433:5433
 
     strategy:
       matrix:
         node-version: [14.x, 12.x]
 
     steps:
+      - name: check psql
+        run: |
+          echo 'select 123 as test_column \gdesc' | docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
