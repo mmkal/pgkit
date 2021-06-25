@@ -35,8 +35,6 @@ export const generate = (params: Partial<Options>) => {
   } = defaults.getParams(params)
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
-  const commentHint = `Failed to describe query, and couldn't simplify it. It might help to move comments in complicated expressions to lines`
-
   const gdesc = async (sql: string) => {
     try {
       return await psql(`${sql} \\gdesc`)
@@ -46,9 +44,6 @@ export const generate = (params: Partial<Options>) => {
         tryOrDefault(() => simplifySql(sql), ''),
       )
 
-      if (!simplified) {
-        throw new Error(`Couldn't simplify query. Original query description failure: ${e}`)
-      }
       return await psql(`${simplified} \\gdesc`)
     }
   }

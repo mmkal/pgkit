@@ -18,7 +18,10 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
 
   function visitNodeGenerics(node: ts.Node, context: string[]) {
     if (!ts.isTaggedTemplateExpression(node)) {
-      const newContext = ts.isVariableDeclaration(node) ? [...context, node.name.getText()] : context
+      const newContext =
+        (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node) || ts.isFunctionDeclaration(node)) && node.name
+          ? [...context, node.name.getText()]
+          : context
       ts.forEachChild(node, n => visitNodeGenerics(n, newContext))
       return
     }
