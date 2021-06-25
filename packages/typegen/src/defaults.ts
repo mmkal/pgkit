@@ -3,7 +3,6 @@ import {defaultWriteTypes} from './write'
 import {defaultPGDataTypeToTypeScriptMappings} from './pg'
 import {defaultTypeParsers} from './slonik'
 import {Options} from './types'
-import {createPool} from 'slonik'
 import * as assert from 'assert'
 
 // Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
@@ -29,7 +28,7 @@ const getWithWarning = <T>(logger: Options['logger'], message: string, value: T)
 }
 
 export const getParams = (partial: Partial<Options>): Options => {
-  let {
+  const {
     logger = console,
     connectionURI = getWithWarning(
       logger,
@@ -44,22 +43,20 @@ export const getParams = (partial: Partial<Options>): Options => {
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
-    pool = getWithWarning(
+    poolConfig = getWithWarning<Options['poolConfig']>(
       logger,
       `Using default pool config - type parsers will not be respected.`,
-      createPool(connectionURI),
+      {},
     ),
-    typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
+    typeParsers = defaultTypeParsers(poolConfig.typeParsers || []),
     migrate = undefined,
     checkClean = defaultCheckClean,
+    ...rest
   } = partial
 
-  assert.ok(!connectionURI.match(/ '"/), `Connection URI should not contain spaces or quotes`)
+  assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest)}`)
 
-  // if pool and connectionURI are passed, create a new pool with same config and the supplied connectionURI
-  if (partial.pool && partial.connectionURI) {
-    pool = createPool(connectionURI, pool.configuration)
-  }
+  assert.ok(!connectionURI.match(/ '"/), `Connection URI should not contain spaces or quotes`)
 
   return {
     connectionURI,
@@ -70,7 +67,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     defaultType,
     extractQueries,
     writeTypes,
-    pool,
+    poolConfig,
     typeParsers,
     logger,
     migrate,

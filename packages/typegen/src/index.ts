@@ -10,6 +10,7 @@ import {parameterTypesGetter} from './query/parameters'
 import {truncateQuery, checkClean, maybeDo} from './util'
 import {migrateLegacyCode} from './migrate'
 import * as write from './write'
+import {createPool} from 'slonik'
 
 export {Options} from './types'
 
@@ -27,12 +28,15 @@ export const generate = (params: Partial<Options>) => {
     defaultType,
     extractQueries,
     writeTypes,
-    pool,
+    poolConfig,
     typeParsers,
     logger,
     migrate,
     checkClean: checkCleanWhen,
   } = defaults.getParams(params)
+
+  const pool = createPool(connectionURI, poolConfig)
+
   const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
   const gdesc = async (sql: string) => {

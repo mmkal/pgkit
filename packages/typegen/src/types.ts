@@ -62,10 +62,9 @@ export interface Options {
   migrate: '<=0.8.0' | undefined
 
   /**
-   * Slonik pool instance. Defaults to a new pool using `connectionURI`. The specified pool won't be used directly, its
-   * configuration will be used to create a new pool with the same settings, connecting to `connectionURI`.
+   * Slonik pool configuration. Defaults to empty. The configuration will be used to create a new pool, connecting to `connectionURI`.
    */
-  pool: slonik.DatabasePoolType
+  poolConfig: slonik.ClientConfigurationInputType
 
   /**
    * @experimental

@@ -119,7 +119,7 @@ The CLI can run with zero config, but there will usually be customisations neede
 
 - `rootDir` - Source root that the tool will search for files in. Defaults to `src`. Can be overridden with the `--root-dir` CLI argument.
 - `glob` - Glob pattern of files to search for. Defaults to searching for `.ts` and `.sql` files, ignore `node_modules`. Can be overridden with the `--glob` CLI argument.
-- `pool` - Slonik database pool instance. Will be used to issue queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool instance that's configured the same way as the one used in your application.
+- `poolConfig` - Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.
 - `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql -h localhost -U postgres postgres`. You can test it's working with `echo 'select 123 as abc' | psql -h localhost -U postgres postgres -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!)
 - `logger` - Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.
 - `writeTypes` (advanced/experimental) - Control how files are written to disk. See the [writeTypes](#writetypes) section.
@@ -132,10 +132,11 @@ Here's a valid example config file.
 const yourAppDB = require('./lib/db')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   rootDir: 'source', // maybe you don't like using `src`
   glob: ['{queries/**.ts,sql/**.sql}', {ignore: 'legacy-queries/**.sql'}],
-  pool: yourAppDB.getPool(),
+  connectionURI: 'postgresql://postgres:postgres@localhost:5432/postgres',
+  poolConfig: yourAppDB.getPool().configuration,
 }
 ```
 
@@ -216,7 +217,7 @@ const path = require('path')
 const typegen = require('@slonik/typegen')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: typegen.defaultWriteTypes({
     getTSModuleFromSource: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
   }),
@@ -229,13 +230,13 @@ The interfaces will be written to a separate file under a `__sql__` folder next 
 
 You can modify the types generated before they are written to disk by defining a custom `writeTypes` implementation.
 
-For example, you can create [branded types](https://michalzalecki.com/nominal-typing-in-typescript):
+For example, you can create [branded types](https://michalzalecki.com/nominal-typing-in-typescript) (see what this outputs in [tests](./test/branding.test.ts)):
 
 ```js
 const typegen = require('@slonik/typegen')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: queries => {
     queries.forEach(query => {
       query.fields.forEach(field => {
@@ -257,7 +258,7 @@ Or you could mark all fields as non-null (but probably shouldn't!):
 const typegen = require('@slonik/typegen')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: queries => {
     queries.forEach(query => {
       query.fields.forEach(field => {
@@ -277,7 +278,7 @@ const typegen = require('@slonik/typegen')
 const path = require('path')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: queries => {
     queries.forEach(query => {
       const filesWithLegacyNullableFields = [
@@ -304,7 +305,7 @@ Or you could use a custom type for json fields:
 const typegen = require('@slonik/typegen')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: queries => {
     queries.forEach(query => {
       query.fields.forEach(field => {
@@ -328,7 +329,7 @@ You can also use `writeTypes` to define a hook that runs before writing to disk:
 const typegen = require('@slonik/typegen')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: typegen.defaultWriteTypes({
     writeFile: async (filepath, content) => {
       content = content
@@ -349,7 +350,7 @@ const fs = require('fs')
 const path = require('path')
 
 /** @type {import('@slonik/typegen').Options} */
-module.exports = {
+module.exports.default = {
   writeTypes: typegen.defaultWriteTypes({
     writeFile: async (filepath, content) => {
       content = await yourCustomLinter.fix(filepath, content)
@@ -437,7 +438,7 @@ If you see errors being logged for SQL that you think is valid, feel free to [ra
 
 ___
 
-Custom interceptors. Some interceptors, such as [slonik-interceptor-field-name-transformation](https://npmjs.com/package/slonik-interceptor-field-name-transformation) change the runtime shape of query results. You could try to match its behaviour with a custom `writeTypes` implementation, but I'd suggest just not using the interceptor in the first place. All it does is transform from snake-case to camel-case.
+Custom interceptors. Some interceptors, such as [slonik-interceptor-field-name-transformation](https://npmjs.com/package/slonik-interceptor-field-name-transformation) change the runtime shape of query results. You could try to match its behaviour with a custom `writeTypes` implementation, but it's recommended to just not using the interceptor in the first place. All it does is transform from snake-case to camel-case.
 
 ___
 
@@ -458,9 +459,9 @@ To determine whether query columns are nullable, the query is parsed using [pgsq
 ## Recommendations
 
 1. Check in the types to source control. They're generated code, but it makes it much easier to track what was happened when a query was update, and see those changes over time.
-1. After running CI, it's worth making sure that there are no working copy changes. For git, you can use [check-clean](https://npmjs.com/package/check-clean):
+1. After running CI, it's worth making sure that there are no working copy changes. For git, you can use `git diff --exit-code`:
 
 ```sh
 npx slonik-typegen generate
-npx check-clean
+git diff --exit-code
 ```

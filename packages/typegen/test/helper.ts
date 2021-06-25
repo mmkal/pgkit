@@ -17,7 +17,7 @@ export const getHelper = (params: {__filename: string}) => {
   const typegenOptions = (baseDir: string): Partial<typegen.Options> => ({
     rootDir: baseDir,
     connectionURI: `${baseConnectionURI}?options=--search_path%3d${poolHelper.schemaName}`,
-    pool: poolHelper.pool,
+    poolConfig: poolHelper.pool.configuration,
     psqlCommand,
     logger,
     checkClean: [],
