@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc -p .",
-    "dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\""
+    "dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5433/postgres\""
   },
   "author": "mmkal",
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/typegen#readme",
