@@ -30,7 +30,9 @@ jobs:
     steps:
       - name: check psql
         run: |
-          echo 'select 123 as test_column \gdesc' | docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
+          docker ps
+          echo 'select 123 as test_column \gdesc' | docker exec -i slonik-tools_postgres_1 psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
+          exit 123
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
