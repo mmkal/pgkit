@@ -1,0 +1,1 @@
+drop table lock_timeout_test_table;

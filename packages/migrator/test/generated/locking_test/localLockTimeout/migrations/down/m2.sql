@@ -1,0 +1,1 @@
+delete from lock_timeout_test_table where id = 1;

@@ -1,0 +1,1 @@
+select pg_sleep(3); insert into lock_timeout_test_table(id) values (1);

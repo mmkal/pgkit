@@ -1,0 +1,1 @@
+create table errors_table1(id int primary key)

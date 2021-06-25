@@ -1,6 +1,6 @@
 {
   "name": "@slonik/migrator",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "database migration tool using slonik",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -21,16 +21,16 @@
   },
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/migrator#readme",
   "dependencies": {
-    "dedent": "^0.7.0",
-    "lodash": "^4.17.15",
-    "umzug": "^2.3.0"
-  },
-  "devDependencies": {
-    "@types/dedent": "0.7.0",
-    "@types/lodash": "4.14.165",
-    "@types/umzug": "2.2.2"
+    "umzug": "^3.0.0-beta.15"
   },
   "peerDependencies": {
     "slonik": ">= 23.0.0 < 24"
+  },
+  "devDependencies": {
+    "@types/dedent": "^0.7.0",
+    "@types/lodash": "^4.14.165",
+    "dedent": "^0.7.0",
+    "lodash": "^4.17.20",
+    "strip-ansi": "^6.0.0"
   }
 }
