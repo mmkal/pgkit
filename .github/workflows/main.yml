@@ -20,6 +20,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --name postgres_github_actions
         ports:
           - 5433:5433
 
@@ -31,7 +32,7 @@ jobs:
       - name: check psql
         run: |
           docker ps
-          echo 'select 123 as test_column \gdesc' | docker exec -i slonik-tools_postgres_1 psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
+          echo 'select 123 as test_column \gdesc' | docker exec -i postgres_github_actions psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
           exit 123
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
