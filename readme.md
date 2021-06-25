@@ -41,4 +41,4 @@ While developing, it can be useful to run `yarn build -w` to compile continuousl
 
 ### Publishing
 
-Run [this workflow](https://github.com/mmkal/slonik-tools/actions?query=workflow%3APublish). To make sure the correct packages are actually published, it requires a hash of the publish command's dry-run output. You can get this by running the workflow with no parameters, and copying the expected value from the failure logs, or run `yarn changes:hash` locally.
+Run [this workflow](https://github.com/mmkal/slonik-tools/actions/workflows/publish.yml). To make sure the correct packages are actually published, it requires a hash of the publish command's dry-run output. You can get this by running the workflow with no parameters, and copying the expected value from the failure logs, or run `yarn changes:hash` locally.
