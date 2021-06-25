@@ -35,9 +35,7 @@ jobs:
     steps:
       - name: check psql
         run: |
-          sh -c '
-            echo "select 123 as test_column \gdesc" | $POSTGRES_PSQL_COMMAND "$postgresql://postgres:postgres@localhost:5433/postgres" -f - | grep "test_column | integer"
-          '
+          sh -c 'echo "select 123 as test_column \gdesc" | $POSTGRES_PSQL_COMMAND "postgresql://postgres:postgres@localhost:5433/postgres" -f - | grep "test_column | integer"'
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
