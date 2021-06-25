@@ -4,7 +4,7 @@ module.exports = {
   plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'codegen'],
   rules: {
     'prettier/prettier': ['warn', require('./.prettierrc')],
-    'codegen/codegen': 'error',
+    'codegen/codegen': 'warn',
   },
   overrides: [
     {
