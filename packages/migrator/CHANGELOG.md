@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.8.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.7.0...@slonik/migrator@0.8.0) (2021-06-25)
+
+
+### Features
+
+* new CLI using umzug v3 ([#291](https://github.com/mmkal/slonik-tools/issues/291)) ([9076eea](https://github.com/mmkal/slonik-tools/commit/9076eea686665b51d5e06362b99e1d1fb48a778f))
+
+
+
+
+
 # [0.7.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.6.0...@slonik/migrator@0.7.0) (2020-10-30)
 
 
