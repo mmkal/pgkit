@@ -24,7 +24,7 @@ module.exports = params => {
 
   return helpTexts
     .map(([title, text]) => {
-      text = stripAnsi(text.trim().replace(/\r?\n-h$/g, '-h'))
+      text = stripAnsi(text.trim())
       text = '```' + os.EOL + text + os.EOL + '```'
       title = `##${title}`.replace(/(\w)/, ' $1')
       return `${title}${os.EOL}${os.EOL}${text}`.trim()
