@@ -24,7 +24,7 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [12.x, 10.x]
+        node-version: [14.x, 12.x]
 
     steps:
       - uses: actions/checkout@v2
@@ -34,4 +34,4 @@ jobs:
       - run: yarn
       - run: yarn ci
       - uses: codecov/codecov-action@v1
-        if: matrix.node-version == '12.x'
+        if: matrix.node-version == '14.x'
