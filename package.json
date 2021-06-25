@@ -22,7 +22,7 @@
   "scripts": {
     "build": "tsc -b .",
     "canary-preid": "echo \"$(yarn --silent current-branch)-$(yarn --silent commit-date)\"",
-    "ci": "run-s lint build migrate coverage build",
+    "ci": "run-s build lint migrate coverage build",
     "commit-date": "git log -n 1 --date=format:'%Y-%m-%d-%H-%M-%S' --pretty=format:'%ad'",
     "coverage": "yarn test --coverage",
     "current-branch": "echo \"${CURRENT_BRANCH-$(git rev-parse --abbrev-ref HEAD)}\" | sed -E 's/refs\\/heads\\///' | sed -E 's/\\W|_/-/g'",
