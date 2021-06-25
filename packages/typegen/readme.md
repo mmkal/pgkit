@@ -331,7 +331,9 @@ const typegen = require('@slonik/typegen')
 module.exports = {
   writeTypes: typegen.defaultWriteTypes({
     writeFile: async (filepath, content) => {
-      content = content.replace(/declare module queries/g, 'declare module some_other_naming_convention')
+      content = content
+        .replace(/declare module queries/g, 'declare module some_other_naming_convention')
+        .replace(/queries\./g, 'some_other_naming_convention.')
       await typegen.write.writeFile(filepath, content)
     },
   })
