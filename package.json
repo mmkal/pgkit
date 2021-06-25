@@ -33,7 +33,7 @@
     "lint": "yarn eslint .",
     "migrate": "lerna run migrate",
     "publish-canary": "lerna publish --canary --preid $(yarn --silent canary-preid) --dist-tag $(yarn --silent current-branch)",
-    "test": "jest --runInBand"
+    "test": "jest branding --runInBand"
   },
   "resolutions": {
     "minimist": "^1.2.5"
@@ -47,7 +47,7 @@
     "check-clean": "0.3.0",
     "coveralls": "3.1.0",
     "eslint": "7.13.0",
-    "eslint-plugin-codegen": "0.14.4",
+    "eslint-plugin-codegen": "0.15.0",
     "eslint-plugin-prettier": "3.1.4",
     "expect-type": "0.9.0",
     "fs-syncer": "0.3.0",
@@ -60,8 +60,5 @@
     "ts-jest": "26.4.4",
     "ts-node": "9.0.0",
     "typescript": "4.1.2"
-  },
-  "dependencies": {
-    "eslint-plugin-codegen": "^0.15.0"
   }
 }

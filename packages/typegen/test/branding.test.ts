@@ -28,6 +28,7 @@ test('branded types', async () => {
 
   await typegen.generate({
     ...typegenOptions(syncer.baseDir),
+    logger: console,
     writeTypes: queries => {
       queries.forEach(query => {
         query.fields.forEach(field => {
