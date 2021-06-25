@@ -90,6 +90,8 @@ test('can skip checking git status', async () => {
   expect(child_process.execSync).not.toHaveBeenCalled()
 }, 20000)
 
+const fixPsqlCommand = (content: string) => content.split(process.env.POSTGRES_PSQL_COMMAND!).join('<<psql>>')
+
 test('typegen.config.js is used by default', async () => {
   const cli = new SlonikTypegenCLI()
 
@@ -127,12 +129,12 @@ test('typegen.config.js is used by default', async () => {
 
   await cli.executeWithoutErrorHandling(['generate'])
 
-  expect(syncer.yaml()).toMatchInlineSnapshot(`
+  expect(fixPsqlCommand(syncer.yaml())).toMatchInlineSnapshot(`
     "---
     typegen.config.js: |-
       module.exports = {
         glob: 'b*.ts',
-        psqlCommand: \\"docker-compose exec -T postgres psql\\",
+        psqlCommand: \\"<<psql>>\\",
       }
       
     src: 
@@ -198,18 +200,18 @@ test('config flag overrides typegen.config.js', async () => {
 
   await cli.executeWithoutErrorHandling(['generate', '--config', 'otherconfig.js'])
 
-  expect(syncer.yaml()).toMatchInlineSnapshot(`
+  expect(fixPsqlCommand(syncer.yaml())).toMatchInlineSnapshot(`
     "---
     otherconfig.js: |-
       module.exports.default = {
         glob: 'a.ts',
-        psqlCommand: \\"docker-compose exec -T postgres psql\\",
+        psqlCommand: \\"<<psql>>\\",
       }
       
     typegen.config.js: |-
       module.exports = {
         glob: 'b*.ts',
-        psqlCommand: \\"docker-compose exec -T postgres psql\\",
+        psqlCommand: \\"<<psql>>\\",
       }
       
     src: 
