@@ -9,13 +9,13 @@ A library that uses [slonik](https://npmjs.com/package/slonik) to generate types
 
 This library gives you the type-safety of an ORM (in some cases, even more), while maintaining the flexibility of sql. Read [@gajus](https://github.com/gajus)'s excellent blog post on why it's a good idea to use sql rather than ORMs or query-builders: [Stop using Knex.js](https://medium.com/@gajus/bf410349856c).
 
-The library will make sure that return values from all your SQL queries have strict, accurate TypeScript interfaces.
+It will make sure that return values from all your SQL queries have strict, accurate TypeScript interfaces.
 
 It works by scanning your source code, so you don't have to spend any time manually syncing interfaces. Write queries using the `sql` tag as normal, then run the CLI to apply strong types to them automatically. The compiler will then tell you if you got something wrong.
 
 This method avoids the [inner-platform effect](https://en.wikipedia.org/wiki/Inner-platform_effect) that tends to come with ORMs. You can rename columns, call functions, use sub-select statements, do any kinds of join you want, and the types generated will be based on the _query_, not the _table_, so you won't be limited by ORM feature-sets.
 
-Select statements, joins, and updates/inserts using `returning` are all supported - any sql query that returns a tabular value will have an interface generated for the row type. The interface will be automatically applied to the appropriate query result.
+Select statements, joins, and updates/inserts/deletes using `returning` are all supported - any sql query that returns a tabular value will have an interface generated for the row type. The interface will be automatically applied to the appropriate query result.
 
 ## Contents
 
@@ -221,7 +221,7 @@ const typegen = require('@slonik/typegen')
 /** @type {import('@slonik/typegen').Options} */
 module.exports.default = {
   writeTypes: typegen.defaultWriteTypes({
-    getTSModuleFromSource: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
+    queriesPathFromTS: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
   }),
 }
 ```

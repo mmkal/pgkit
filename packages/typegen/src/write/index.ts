@@ -19,8 +19,8 @@ export const defaultWriteFile: WriteFile = async (filepath, content) => {
  * These options are not yet stable and may be renamed/refactored/moved/removed.
  */
 export interface WriteTypesOptions {
-  getTSModuleFromSource?: (sourcePath: string) => string
-  getTSModuleFromSQL?: (sqlPath: string) => string
+  queriesPathFromTS?: (sourcePath: string) => string
+  queriesPathFromSQL?: (sqlPath: string) => string
   writeFile?: WriteFile
 }
 
@@ -28,8 +28,8 @@ export const defaultWriteTypes = ({
   writeFile = defaultWriteFile,
   ...options
 }: WriteTypesOptions = {}): Options['writeTypes'] => {
-  const inlineWriter = inline.getFileWriter({getQueriesModulePath: options.getTSModuleFromSource, writeFile})
-  const sqlWriter = sql.getSQLHelperWriter({getModulePath: options.getTSModuleFromSQL, writeFile})
+  const inlineWriter = inline.getFileWriter({getQueriesModulePath: options.queriesPathFromTS, writeFile})
+  const sqlWriter = sql.getSQLHelperWriter({getModulePath: options.queriesPathFromSQL, writeFile})
 
   return async queries => {
     const promises = lodash

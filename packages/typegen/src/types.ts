@@ -93,6 +93,7 @@ export interface Options {
   /**
    * @experimental
    * How to map from a psql type description to a TypeScript type representation.
+   * Return undefined to fall back on the default behaviour.
    * @default @see defaultPGDataTypeToTypeScriptMappings
    */
   pgTypeToTypeScript: (regtype: string, typeName: string) => string | undefined

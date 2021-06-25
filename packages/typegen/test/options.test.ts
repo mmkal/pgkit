@@ -301,7 +301,7 @@ test('can write queries to separate file', async () => {
   await typegen.generate({
     ...typegenOptions(syncer.baseDir),
     writeTypes: typegen.defaults.defaultWriteTypes({
-      getTSModuleFromSource: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
+      queriesPathFromTS: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
     }),
   })
 
