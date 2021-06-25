@@ -191,8 +191,8 @@ Optional arguments:
                         live dangerously.
 
   --glob PATTERN        Glob pattern of source files to search for SQL 
-                        queries in. By default searches for all ts, js, sql, 
-                        cjs and mjs files under 'rootDir'
+                        queries in. By default searches for all ts and sql 
+                        files under 'rootDir'
 
   --migrate {<=0.8.0}   Before generating types, attempt to migrate a 
                         codebase which has used a prior version of this tool
