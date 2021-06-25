@@ -23,9 +23,19 @@ export const defaultTypeScriptType = 'unknown'
 
 export const defaultCheckClean: Options['checkClean'] = ['before-migrate', 'after']
 
+const getWithWarning = <T>(logger: Options['logger'], message: string, value: T) => {
+  logger.warn(message)
+  return value
+}
+
 export const getParams = (partial: Partial<Options>): Options => {
   let {
-    connectionURI = defaultConnectionURI,
+    logger = console,
+    connectionURI = getWithWarning(
+      logger,
+      `Using default connection URI of ${defaultConnectionURI}`,
+      defaultConnectionURI,
+    ),
     psqlCommand = defaultPsqlCommand,
     pgTypeToTypeScript: gdescToTypeScript = () => undefined,
     rootDir = defaultRootDir,
@@ -34,9 +44,12 @@ export const getParams = (partial: Partial<Options>): Options => {
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
-    pool = createPool(connectionURI),
+    pool = getWithWarning(
+      logger,
+      `Using default pool config - type parsers will not be respected.`,
+      createPool(connectionURI),
+    ),
     typeParsers = defaultTypeParsers(pool.configuration.typeParsers),
-    logger = console,
     migrate = undefined,
     checkClean = defaultCheckClean,
   } = partial
