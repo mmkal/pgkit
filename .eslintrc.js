@@ -3,6 +3,7 @@ module.exports = {
   parserOptions: {ecmaVersion: 2018, sourceType: 'module'},
   plugins: ['@typescript-eslint/eslint-plugin', 'prettier', 'codegen', 'import'],
   extends: ['plugin:import/recommended', 'plugin:import/typescript'],
+  ignorePatterns: ['**/fixtures/**', '**/dist/**'],
   rules: {
     'prettier/prettier': ['warn', require('./.prettierrc')],
     '@typescript-eslint/prefer-namespace-keyword': 'warn',
@@ -11,6 +12,13 @@ module.exports = {
     'import/no-extraneous-dependencies': 'error',
   },
   overrides: [
+    {
+      files: ['*/*/test/**', '**/*.test.ts'],
+      rules: {
+        // allow using root package dependencies in tests
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
     {
       files: ['**/*.md', '*.md'],
       rules: {
