@@ -15,7 +15,7 @@ toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 
 expect.addSnapshotSerializer({
   test: val => val && typeof val === 'object',
-  print: val => jsYaml.safeDump(val),
+  print: val => jsYaml.dump(val),
 })
 
 describe('create', () => {

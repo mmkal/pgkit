@@ -5,12 +5,38 @@ import {getHelper, getPoolHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
+const {pool} = getPoolHelper({
+  __filename,
+  baseConnectionURI: typegenOptions(__dirname).connectionURI!.slice(),
+  config: {
+    typeParsers: [
+      ...createTypeParserPreset(),
+      {
+        name: 'timestamptz',
+        parse: str => new Date(str),
+      },
+      {
+        name: 'int8',
+        parse: str => BigInt(str),
+      },
+      {
+        name: 'bool',
+        parse: str => Boolean(str),
+      },
+      {
+        name: 'json',
+        parse: () => Symbol(`this won't be matched by anything so should result in an 'unknown' type`),
+      },
+    ],
+  },
+})
+
 test('type parsers have types inferred', async () => {
   const syncer = fsSyncer.jestFixture({
     targetState: {
       'index.ts': `
         import {sql} from 'slonik'
-
+  
         export default [
           sql\`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json\`,
         ]
@@ -18,34 +44,9 @@ test('type parsers have types inferred', async () => {
     },
   })
 
-  syncer.sync()
-
   const baseParams = typegenOptions(syncer.baseDir)
-  const {pool} = getPoolHelper({
-    __filename,
-    baseConnectionURI: baseParams.connectionURI!.slice(),
-    config: {
-      typeParsers: [
-        ...createTypeParserPreset(),
-        {
-          name: 'timestamptz',
-          parse: str => new Date(str),
-        },
-        {
-          name: 'int8',
-          parse: str => BigInt(str),
-        },
-        {
-          name: 'bool',
-          parse: str => Boolean(str),
-        },
-        {
-          name: 'json',
-          parse: () => Symbol(`this won't be matched by anything so should result in an 'unknown' type`),
-        },
-      ],
-    },
-  })
+
+  syncer.sync()
 
   await typegen.generate({
     ...baseParams,

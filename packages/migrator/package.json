@@ -31,6 +31,6 @@
     "@types/lodash": "4.14.165",
     "dedent": "0.7.0",
     "lodash": "4.17.21",
-    "strip-ansi": "6.0.0"
+    "strip-ansi": "7.0.0"
   }
 }
