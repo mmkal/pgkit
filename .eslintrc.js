@@ -22,6 +22,13 @@ module.exports = {
       },
     },
     {
+      files: ['**/*.js'],
+      rules: {
+        // js files are usually build scripts etc., not published. No problem if they use hoisting.
+        'import/no-extraneous-dependencies': 'off',
+      },
+    },
+    {
       files: ['**/*.md', '*.md'],
       rules: {
         'prettier/prettier': 'off',
