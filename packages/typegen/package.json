@@ -35,7 +35,7 @@
     "pluralize": "^8.0.0"
   },
   "devDependencies": {
-    "@types/pluralize": "^0.0.29",
-    "fs-syncer": "^0.3.4-next.2"
+    "@types/pluralize": "0.0.29",
+    "fs-syncer": "0.3.4-next.2"
   }
 }
