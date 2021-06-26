@@ -10,6 +10,8 @@ module.exports = {
     '@typescript-eslint/no-namespace': ['warn', {allowDeclarations: true}],
     'codegen/codegen': 'warn',
     'import/no-extraneous-dependencies': 'error',
+    // seems to do the wrong thing with find-up
+    'import/namespace': 'off',
   },
   overrides: [
     {
