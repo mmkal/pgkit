@@ -1,8 +1,7 @@
 import * as fsSyncer from 'fs-syncer'
 import * as typegen from '../src'
 import {createTypeParserPreset} from 'slonik'
-import {getHelper} from './helper'
-import {getPoolHelper} from './helper'
+import {getHelper, getPoolHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 

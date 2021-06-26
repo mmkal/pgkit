@@ -2,6 +2,7 @@ import * as findUp from 'find-up'
 
 export function prettifyOne({filepath, content}: {filepath: string; content: string}) {
   try {
+    // eslint-disable-next-line import/no-extraneous-dependencies
     const prettier: typeof import('prettier') = require('prettier')
     const rcFile = findUp.sync('.prettierrc.js')
     const rc = rcFile && require(rcFile)
