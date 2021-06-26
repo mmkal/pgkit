@@ -30,7 +30,7 @@
     "@types/dedent": "0.7.0",
     "@types/lodash": "4.14.165",
     "dedent": "0.7.0",
-    "lodash": "4.17.20",
+    "lodash": "4.17.21",
     "strip-ansi": "6.0.0"
   }
 }
