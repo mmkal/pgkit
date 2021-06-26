@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.9.2](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.9.1...slonik-tools-demo@0.9.2) (2021-06-26)
+
+
+### Bug Fixes
+
+* **typegen:** add missing dependencies ([#301](https://github.com/mmkal/slonik-tools/issues/301)) ([8538430](https://github.com/mmkal/slonik-tools/commit/85384308680c14a8d74e5e89ecd8a2c7aaf65572))
+
+
+
+
+
 ## [0.9.1](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.9.0...slonik-tools-demo@0.9.1) (2021-06-26)
 
 **Note:** Version bump only for package slonik-tools-demo
