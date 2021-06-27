@@ -88,12 +88,8 @@ export function renderQueryInterface(queryGroup: AnalysedQuery[], interfaceName:
   const numBodies = new Set(bodies).size
   assert.strictEqual(numBodies, 1, `Query group ${interfaceName} produced inconsistent interface bodies: ${bodies}`)
 
-  // This relies on src/query/parse.ts returning '_void' when there are no columns.
   // Might be worth finding a better way to determine void-ness if there are cases of 0 fields but non-void responses possible.
-  const typeDef =
-    interfaceName === '_void' && !bodies[0].match(/\w/g)
-      ? `export type ${interfaceName} = void`
-      : `export interface ${interfaceName} ${bodies[0]}`
+  const typeDef = `export interface ${interfaceName} ${bodies[0]}`
 
   return `
     ${jsdocComment(comments)}
