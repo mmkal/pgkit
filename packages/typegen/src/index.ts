@@ -149,7 +149,7 @@ export const generate = (params: Partial<Options>) => {
           return {
             ...query,
             fields: await getFields(query),
-            parameters: await getParameters(query), // query.file.endsWith('.sql') ? await getParameters(query) : [],
+            parameters: await getParameters(query),
           }
         } catch (e) {
           let message = `${query.file}:${query.line} Describing query failed: ${e}.`
