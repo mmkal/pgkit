@@ -1,0 +1,25 @@
+diff --git a/node_modules/slonik/dist/src/types.d.ts b/node_modules/slonik/dist/src/types.d.ts
+index ba5dfc2..67574b7 100644
+--- a/node_modules/slonik/dist/src/types.d.ts
++++ b/node_modules/slonik/dist/src/types.d.ts
+@@ -205,9 +205,17 @@ export declare type ValueExpressionType = PrimitiveValueExpressionType | SqlToke
+ export declare type NamedAssignmentType = {
+     readonly [key: string]: ValueExpressionType;
+ };
+-declare type UserQueryResultRowType = Record<string, any>;
+-export declare type SqlTaggedTemplateType<T extends UserQueryResultRowType = QueryResultRowType> = {
+-    <U extends UserQueryResultRowType = T>(template: TemplateStringsArray, ...values: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>;
++
++declare type UserQueryResultRowType = Record<string, any> & {'@params'?: never};
++
++export type QueryParameters<T> = T extends {'@params': any[], } ? T['@params'] : ValueExpressionType[];
++export type QueryResult<T> = Omit<T, '@params'>;
++
++export type SqlTaggedTemplateType<T = QueryResultRowType> = {
++    <U extends {'@params': any[]; '@result': any}>(template: TemplateStringsArray, ...values: U['@params']): TaggedTemplateLiteralInvocationType<U['@result']>
++    <U extends UserQueryResultRowType = T>(template: TemplateStringsArray, ...values: QueryParameters<U>): TaggedTemplateLiteralInvocationType<QueryResult<U>>,
++// export declare type SqlTaggedTemplateType<T extends UserQueryResultRowType = QueryResultRowType> = {
++//     <U extends UserQueryResultRowType = T>(template: TemplateStringsArray, ...values: ValueExpressionType[]): TaggedTemplateLiteralInvocationType<U>;
+     array: (values: readonly PrimitiveValueExpressionType[], memberType: SqlTokenType | TypeNameIdentifierType) => ArraySqlTokenType;
+     binary: (data: Buffer) => BinarySqlTokenType;
+     identifier: (names: readonly string[]) => IdentifierSqlTokenType;
