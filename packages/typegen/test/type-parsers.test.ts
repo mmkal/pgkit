@@ -68,18 +68,19 @@ test('type parsers have types inferred', async () => {
         /** - query: \`select '2000-01-01'::timestamptz, 1::int8, true::bool, '{}'::json\` */
         export interface Timestamptz_int8_bool_json {
           '@params': []
+          '@result': {
+            /** regtype: \`timestamp with time zone\` */
+            timestamptz: Date | null
       
-          /** regtype: \`timestamp with time zone\` */
-          timestamptz: Date | null
+            /** regtype: \`bigint\` */
+            int8: bigint | null
       
-          /** regtype: \`bigint\` */
-          int8: bigint | null
+            /** regtype: \`boolean\` */
+            bool: boolean | null
       
-          /** regtype: \`boolean\` */
-          bool: boolean | null
-      
-          /** regtype: \`json\` */
-          json: unknown
+            /** regtype: \`json\` */
+            json: unknown
+          }
         }
       }
       "

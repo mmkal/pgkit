@@ -40,6 +40,6 @@ export function addTags(queries: AnalysedQuery[]): TaggedQuery[] {
 
   return withIdentifiers.map(q => ({
     ...q,
-    tag: tagMap[q.identifier].tag,
+    tag: tagMap[q.identifier].tag + (q.parameters.length ? `_${q.parameters.length}` : ''),
   }))
 }

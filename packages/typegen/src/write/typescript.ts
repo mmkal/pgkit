@@ -27,48 +27,50 @@ export const getterExpression = (key: string) => (isValidIdentifier(key) ? `.${k
 export const interfaceBody = (query: AnalysedQuery) =>
   `{
     '@params': [${query.parameters.map(p => p.typescript).join(', ')}] 
-    ${lodash
-      .chain(query.fields)
-      .groupBy(f => f.name)
-      .values()
-      .map(fields => {
-        const prop = quotePropKey(fields[0].name)
-        const types = lodash.uniq(
-          fields.map(f =>
-            f.nullability === 'not_null' ||
-            f.typescript === 'any' ||
-            f.typescript === 'unknown' ||
-            f.typescript === 'void'
-              ? `${f.typescript}`
-              : `(${f.typescript}) | null`,
-          ),
-        )
-        const comments = lodash.flatMap(fields, f => {
-          const metaVals = {
-            column: f.column && Object.values(f.column).join('.'),
-            'not null': f.nullability === 'not_null',
-            regtype: f.regtype,
+    '@result': {
+      ${lodash
+        .chain(query.fields)
+        .groupBy(f => f.name)
+        .values()
+        .map(fields => {
+          const prop = quotePropKey(fields[0].name)
+          const types = lodash.uniq(
+            fields.map(f =>
+              f.nullability === 'not_null' ||
+              f.typescript === 'any' ||
+              f.typescript === 'unknown' ||
+              f.typescript === 'void'
+                ? `${f.typescript}`
+                : `(${f.typescript}) | null`,
+            ),
+          )
+          const comments = lodash.flatMap(fields, f => {
+            const metaVals = {
+              column: f.column && Object.values(f.column).join('.'),
+              'not null': f.nullability === 'not_null',
+              regtype: f.regtype,
+            }
+            const meta = Object.entries(metaVals)
+              .filter(e => e[1])
+              .map(e => `${e[0]}: \`${e[1]}\``)
+              .join(', ')
+
+            return lodash.compact([f.comment, meta])
+          })
+
+          let type = types[0]
+          if (fields.length > 1) {
+            type = types.map(t => `(${t})`).join(' | ')
+            comments.unshift(`Warning: ${fields.length} columns detected for field ${prop}!`)
           }
-          const meta = Object.entries(metaVals)
-            .filter(e => e[1])
-            .map(e => `${e[0]}: \`${e[1]}\``)
-            .join(', ')
-
-          return lodash.compact([f.comment, meta])
-        })
-
-        let type = types[0]
-        if (fields.length > 1) {
-          type = types.map(t => `(${t})`).join(' | ')
-          comments.unshift(`Warning: ${fields.length} columns detected for field ${prop}!`)
-        }
-        return `
+          return `
           ${jsdocComment(comments)}
           ${prop}: ${type}
         `
-      })
-      .join('\n')}
-}`
+        })
+        .join('\n')}
+    }
+  }`
 
 // todo: make `comment?: string` into `comments: string[]` so that it can be tweaked, and this becomes a pure write-to-disk method.
 

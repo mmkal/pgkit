@@ -44,12 +44,13 @@ test('types for sql files', async () => {
         /** - query: \`select a, b from test_table where a = 1\` */
         export interface TestTable1 {
           '@params': []
+          '@result': {
+            /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
+            a: number
         
-          /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
-          a: number
-        
-          /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
-          b: string | null
+            /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
+            b: string | null
+          }
         }
         
         /**
@@ -74,7 +75,7 @@ test('types for sql files', async () => {
          */
         export const getTestTable1QuerySync = ({
           readFileSync = defaultReadFileSync,
-        }: GetTestTable1QuerySyncOptions = {}): TaggedTemplateLiteralInvocationType<TestTable1> => ({
+        }: GetTestTable1QuerySyncOptions = {}): TaggedTemplateLiteralInvocationType<TestTable1['@result']> => ({
           sql: readFileSync(sqlPath).toString(),
           type: 'SLONIK_TOKEN_SQL',
           values: [],
@@ -102,7 +103,7 @@ test('types for sql files', async () => {
          */
         export const getTestTable1QueryAsync = async ({
           readFile = defaultReadFileAsync,
-        }: GetTestTable1QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable1>> => ({
+        }: GetTestTable1QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable1['@result']>> => ({
           sql: (await readFile(sqlPath)).toString(),
           type: 'SLONIK_TOKEN_SQL',
           values: [],
@@ -152,9 +153,10 @@ test('types for sql files', async () => {
         /** - query: \`select b as aaa from test_table\` */
         export interface TestTable2 {
           '@params': []
-        
-          /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
-          aaa: string | null
+          '@result': {
+            /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
+            aaa: string | null
+          }
         }
         
         /**
@@ -179,7 +181,7 @@ test('types for sql files', async () => {
          */
         export const getTestTable2QuerySync = ({
           readFileSync = defaultReadFileSync,
-        }: GetTestTable2QuerySyncOptions = {}): TaggedTemplateLiteralInvocationType<TestTable2> => ({
+        }: GetTestTable2QuerySyncOptions = {}): TaggedTemplateLiteralInvocationType<TestTable2['@result']> => ({
           sql: readFileSync(sqlPath).toString(),
           type: 'SLONIK_TOKEN_SQL',
           values: [],
@@ -207,7 +209,7 @@ test('types for sql files', async () => {
          */
         export const getTestTable2QueryAsync = async ({
           readFile = defaultReadFileAsync,
-        }: GetTestTable2QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable2>> => ({
+        }: GetTestTable2QueryAsyncOptions = {}): Promise<TaggedTemplateLiteralInvocationType<TestTable2['@result']>> => ({
           sql: (await readFile(sqlPath)).toString(),
           type: 'SLONIK_TOKEN_SQL',
           values: [],
@@ -292,12 +294,13 @@ test('sql with parameters', async () => {
         /** - query: \`select a, b from test_table where a = $1 and b = $2\` */
         export interface TestTable {
           '@params': [number, string]
+          '@result': {
+            /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
+            a: number
         
-          /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
-          a: number
-        
-          /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
-          b: string | null
+            /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
+            b: string | null
+          }
         }
         
         /**
@@ -323,7 +326,7 @@ test('sql with parameters', async () => {
         export const getTestTableQuerySync = ({
           readFileSync = defaultReadFileSync,
           params,
-        }: GetTestTableQuerySyncOptions): TaggedTemplateLiteralInvocationType<TestTable> => ({
+        }: GetTestTableQuerySyncOptions): TaggedTemplateLiteralInvocationType<TestTable['@result']> => ({
           sql: readFileSync(sqlPath).toString(),
           type: 'SLONIK_TOKEN_SQL',
           values: [params['$1'], params['$2']],
@@ -352,7 +355,7 @@ test('sql with parameters', async () => {
         export const getTestTableQueryAsync = async ({
           readFile = defaultReadFileAsync,
           params,
-        }: GetTestTableQueryAsyncOptions): Promise<TaggedTemplateLiteralInvocationType<TestTable>> => ({
+        }: GetTestTableQueryAsyncOptions): Promise<TaggedTemplateLiteralInvocationType<TestTable['@result']>> => ({
           sql: (await readFile(sqlPath)).toString(),
           type: 'SLONIK_TOKEN_SQL',
           values: [params['$1'], params['$2']],

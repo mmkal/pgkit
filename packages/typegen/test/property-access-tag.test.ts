@@ -58,16 +58,17 @@ test('example typegen', async () => {
         /** - query: \`select foo, bar from test_table\` */
         export interface TestTable {
           '@params': []
+          '@result': {
+            /** column: \`property_access_tag_test.test_table.foo\`, not null: \`true\`, regtype: \`integer\` */
+            foo: number
       
-          /** column: \`property_access_tag_test.test_table.foo\`, not null: \`true\`, regtype: \`integer\` */
-          foo: number
-      
-          /**
-           * Look, ma! A comment from postgres!
-           *
-           * column: \`property_access_tag_test.test_table.bar\`, regtype: \`text\`
-           */
-          bar: string | null
+            /**
+             * Look, ma! A comment from postgres!
+             *
+             * column: \`property_access_tag_test.test_table.bar\`, regtype: \`text\`
+             */
+            bar: string | null
+          }
         }
       }
       "

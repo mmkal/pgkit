@@ -58,12 +58,13 @@ test('left join', async () => {
         /** - query: \`select a, b from table1 left join table2 on table1.a = table2.b\` */
         export interface Table1_Table2 {
           '@params': []
+          '@result': {
+            /** column: \`left_join_test.table1.a\`, not null: \`true\`, regtype: \`integer\` */
+            a: number
       
-          /** column: \`left_join_test.table1.a\`, not null: \`true\`, regtype: \`integer\` */
-          a: number
-      
-          /** column: \`left_join_test.table2.b\`, regtype: \`integer\` */
-          b: number | null
+            /** column: \`left_join_test.table2.b\`, regtype: \`integer\` */
+            b: number | null
+          }
         }
       }
       "
@@ -114,12 +115,13 @@ test('full outer join', async () => {
         /** - query: \`select a, b from table1 full outer join table2 on table1.a = table2.b\` */
         export interface Table1_Table2 {
           '@params': []
+          '@result': {
+            /** column: \`left_join_test.table1.a\`, not null: \`true\`, regtype: \`integer\` */
+            a: number
       
-          /** column: \`left_join_test.table1.a\`, not null: \`true\`, regtype: \`integer\` */
-          a: number
-      
-          /** column: \`left_join_test.table2.b\`, regtype: \`integer\` */
-          b: number | null
+            /** column: \`left_join_test.table2.b\`, regtype: \`integer\` */
+            b: number | null
+          }
         }
       }
       "

@@ -58,12 +58,14 @@ test('prettier is optional', async () => {
           export interface TestTable {
               '@params': [
               ];
+              '@result': {
       
-              /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-              id: number;
+                  /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+                  id: number;
       
-              /** column: \`ugly_test.test_table.n\`, regtype: \`integer\` */
-              n: (number) | null;
+                  /** column: \`ugly_test.test_table.n\`, regtype: \`integer\` */
+                  n: (number) | null;
+              };
           }
       }
       "
@@ -112,12 +114,14 @@ test('prettier can fail', async () => {
           export interface TestTable {
               '@params': [
               ];
+              '@result': {
       
-              /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-              id: number;
+                  /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+                  id: number;
       
-              /** column: \`ugly_test.test_table.n\`, regtype: \`integer\` */
-              n: (number) | null;
+                  /** column: \`ugly_test.test_table.n\`, regtype: \`integer\` */
+                  n: (number) | null;
+              };
           }
       }
       "

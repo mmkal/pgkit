@@ -88,7 +88,7 @@ test('write types', async () => {
         sql<queries.TestTable_id_t>\`select id, t from test_table\`,
         sql<queries.TestTable_count>\`select count(*) from test_table\`,
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
-        sql<queries.TestTable_id>\`select id from test_table where id = \${1} and n = \${2}\`,
+        sql<queries.TestTable_id_2>\`select id from test_table where id = \${1} and n = \${2}\`,
         sql<queries._void>\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
         sql<queries._void>\`update test_table set t = ''\`,
         sql<queries.TestTable_id_t>\`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\`,
@@ -119,48 +119,51 @@ test('write types', async () => {
       
         /** - query: \`select * from options_test.test_table\` */
         export interface TestTable {
-          /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-          id: number
+          '@params': []
+          '@result': {
+            /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+            id: number
       
-          /** column: \`options_test.test_table.n\`, regtype: \`integer\` */
-          n: number | null
+            /** column: \`options_test.test_table.n\`, regtype: \`integer\` */
+            n: number | null
       
-          /**
-           * Some custom comment on \\"t\\"
-           *
-           * column: \`options_test.test_table.t\`, regtype: \`text\`
-           */
-          t: string | null
+            /**
+             * Some custom comment on \\"t\\"
+             *
+             * column: \`options_test.test_table.t\`, regtype: \`text\`
+             */
+            t: string | null
       
-          /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
-          t_nn: string
+            /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
+            t_nn: string
       
-          /** column: \`options_test.test_table.cv\`, regtype: \`character varying(1)\` */
-          cv: string | null
+            /** column: \`options_test.test_table.cv\`, regtype: \`character varying(1)\` */
+            cv: string | null
       
-          /** column: \`options_test.test_table.arr\`, regtype: \`text[]\` */
-          arr: string[] | null
+            /** column: \`options_test.test_table.arr\`, regtype: \`text[]\` */
+            arr: string[] | null
       
-          /** column: \`options_test.test_table.e\`, regtype: \`test_enum\` */
-          e: ('aa' | 'bb' | 'cc') | null
+            /** column: \`options_test.test_table.e\`, regtype: \`test_enum\` */
+            e: ('aa' | 'bb' | 'cc') | null
       
-          /** column: \`options_test.test_table.tz\`, regtype: \`timestamp with time zone\` */
-          tz: number | null
+            /** column: \`options_test.test_table.tz\`, regtype: \`timestamp with time zone\` */
+            tz: number | null
       
-          /** column: \`options_test.test_table.tz_nn\`, not null: \`true\`, regtype: \`timestamp with time zone\` */
-          tz_nn: number
+            /** column: \`options_test.test_table.tz_nn\`, not null: \`true\`, regtype: \`timestamp with time zone\` */
+            tz_nn: number
       
-          /** column: \`options_test.test_table.j\`, regtype: \`json\` */
-          j: unknown
+            /** column: \`options_test.test_table.j\`, regtype: \`json\` */
+            j: unknown
       
-          /** column: \`options_test.test_table.jb\`, regtype: \`jsonb\` */
-          jb: unknown
+            /** column: \`options_test.test_table.jb\`, regtype: \`jsonb\` */
+            jb: unknown
       
-          /** column: \`options_test.test_table.j_nn\`, not null: \`true\`, regtype: \`json\` */
-          j_nn: unknown
+            /** column: \`options_test.test_table.j_nn\`, not null: \`true\`, regtype: \`json\` */
+            j_nn: unknown
       
-          /** column: \`options_test.test_table.jb_nn\`, not null: \`true\`, regtype: \`jsonb\` */
-          jb_nn: unknown
+            /** column: \`options_test.test_table.jb_nn\`, not null: \`true\`, regtype: \`jsonb\` */
+            jb_nn: unknown
+          }
         }
       
         /**
@@ -173,44 +176,52 @@ test('write types', async () => {
          * - \`delete from test_table where t = '' returning id, t\`
          */
         export interface TestTable_id_t {
-          /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-          id: number
+          '@params': []
+          '@result': {
+            /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+            id: number
       
-          /**
-           * Some custom comment on \\"t\\"
-           *
-           * column: \`options_test.test_table.t\`, regtype: \`text\`
-           */
-          t: string | null
+            /**
+             * Some custom comment on \\"t\\"
+             *
+             * column: \`options_test.test_table.t\`, regtype: \`text\`
+             */
+            t: string | null
+          }
         }
       
         /** - query: \`select count(*) from test_table\` */
         export interface TestTable_count {
-          /** not null: \`true\`, regtype: \`bigint\` */
-          count: number
+          '@params': []
+          '@result': {
+            /** not null: \`true\`, regtype: \`bigint\` */
+            count: number
+          }
         }
       
         /** - query: \`select id as idalias, t as talias from test_table\` */
         export interface TestTable_idalias_talias {
-          /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-          idalias: number
+          '@params': []
+          '@result': {
+            /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+            idalias: number
       
-          /**
-           * Some custom comment on \\"t\\"
-           *
-           * column: \`options_test.test_table.t\`, regtype: \`text\`
-           */
-          talias: string | null
+            /**
+             * Some custom comment on \\"t\\"
+             *
+             * column: \`options_test.test_table.t\`, regtype: \`text\`
+             */
+            talias: string | null
+          }
         }
       
-        /**
-         * queries:
-         * - \`select id from test_table where id = $1 and n = $2\`
-         * - \`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`
-         */
-        export interface TestTable_id {
-          /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-          id: number
+        /** - query: \`select id from test_table where id = $1 and n = $2\` */
+        export interface TestTable_id_2 {
+          '@params': [number, number]
+          '@result': {
+            /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+            id: number
+          }
         }
       
         /**
@@ -218,52 +229,82 @@ test('write types', async () => {
          * - \`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`
          * - \`update test_table set t = ''\`
          */
-        export type _void = void
+        export interface _void {
+          '@params': []
+          '@result': {}
+        }
       
         /** - query: \`select pg_advisory_lock(123)\` */
         export interface PgAdvisoryLock {
-          /** regtype: \`void\` */
-          pg_advisory_lock: void
+          '@params': []
+          '@result': {
+            /** regtype: \`void\` */
+            pg_advisory_lock: void
+          }
+        }
+      
+        /** - query: \`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\` */
+        export interface TestTable_id {
+          '@params': []
+          '@result': {
+            /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+            id: number
+          }
         }
       
         /** - query: \`select jb->'foo'->>'bar' from test_table\` */
         export interface Column {
-          /** regtype: \`text\` */
-          '?column?': string | null
+          '@params': []
+          '@result': {
+            /** regtype: \`text\` */
+            '?column?': string | null
+          }
         }
       
         /** - query: \`select n::numeric from test_table\` */
         export interface TestTable_n {
-          /** regtype: \`numeric\` */
-          n: number | null
+          '@params': []
+          '@result': {
+            /** regtype: \`numeric\` */
+            n: number | null
+          }
         }
       
         /** - query: \`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\` */
         export interface Val {
-          /** regtype: \`integer\` */
-          num: number | null
+          '@params': []
+          '@result': {
+            /** regtype: \`integer\` */
+            num: number | null
       
-          /** regtype: \`text\` */
-          letter: string | null
+            /** regtype: \`text\` */
+            letter: string | null
+          }
         }
       
         /** - query: \`select t from (select id from test_table) t\` */
         export interface T {
-          /** regtype: \`record\` */
-          t: unknown
+          '@params': []
+          '@result': {
+            /** regtype: \`record\` */
+            t: unknown
+          }
         }
       
         /** - query: \`select t as t_aliased1, t_nn as t_nn_ali... [truncated] ...ed2 from test_table as tt2 where n = 1 )\` */
         export interface TestTable_tAliased1_tNnAliased {
-          /**
-           * Some custom comment on \\"t\\"
-           *
-           * column: \`options_test.test_table.t\`, regtype: \`text\`
-           */
-          t_aliased1: string | null
+          '@params': []
+          '@result': {
+            /**
+             * Some custom comment on \\"t\\"
+             *
+             * column: \`options_test.test_table.t\`, regtype: \`text\`
+             */
+            t_aliased1: string | null
       
-          /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
-          t_nn_aliased: string
+            /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
+            t_nn_aliased: string
+          }
         }
       }
       "
@@ -326,9 +367,10 @@ test('can write queries to separate file', async () => {
         /** - query: \`select 1 as a\` */
         export interface A {
           '@params': []
-        
-          /** regtype: \`integer\` */
-          a: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
+          }
         }
         
       b.ts: |-
@@ -337,9 +379,10 @@ test('can write queries to separate file', async () => {
         /** - query: \`select 1 as a\` */
         export interface A {
           '@params': []
-        
-          /** regtype: \`integer\` */
-          a: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
+          }
         }
         "
   `)
@@ -377,9 +420,10 @@ test('replaces existing queries module', async () => {
         /** - query: \`select 1 as a\` */
         export interface A {
           '@params': []
-      
-          /** regtype: \`integer\` */
-          a: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
+          }
         }
       }
       "
@@ -434,9 +478,10 @@ test('ignore irrelevant syntax', async () => {
         /** - query: \`select 1\` */
         export interface Column {
           '@params': []
-      
-          /** regtype: \`integer\` */
-          '?column?': number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            '?column?': number | null
+          }
         }
       }
       "
@@ -493,9 +538,10 @@ test(`queries with syntax errors don't affect others`, async () => {
         /** - query: \`select id from options_test.test_table\` */
         export interface TestTable {
           '@params': []
-      
-          /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
-          id: number
+          '@result': {
+            /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+            id: number
+          }
         }
       }
       "
@@ -548,9 +594,10 @@ test('custom glob pattern', async () => {
         /** - query: \`select 1 as a\` */
         export interface A {
           '@params': []
-      
-          /** regtype: \`integer\` */
-          a: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
+          }
         }
       }
       
@@ -565,9 +612,10 @@ test('custom glob pattern', async () => {
         /** - query: \`select 2 as a\` */
         export interface A {
           '@params': []
-      
-          /** regtype: \`integer\` */
-          a: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
+          }
         }
       }
       "

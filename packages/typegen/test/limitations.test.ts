@@ -111,15 +111,16 @@ test('duplicate columns', async () => {
         /** - query: \`select 1 as a, 'two' as a\` */
         export interface A_a {
           '@params': []
-      
-          /**
-           * Warning: 2 columns detected for field a!
-           *
-           * regtype: \`integer\`
-           *
-           * regtype: \`text\`
-           */
-          a: (number | null) | (string | null)
+          '@result': {
+            /**
+             * Warning: 2 columns detected for field a!
+             *
+             * regtype: \`integer\`
+             *
+             * regtype: \`text\`
+             */
+            a: (number | null) | (string | null)
+          }
         }
       }
       "
@@ -166,6 +167,7 @@ test('void queries', async () => {
          */
         export interface _void {
           '@params': []
+          '@result': {}
         }
       }
       "
@@ -207,12 +209,13 @@ test('simple', async () => {
         /** - query: \`select 1 as a, 'two' as b\` */
         export interface A_b {
           '@params': []
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
       
-          /** regtype: \`integer\` */
-          a: number | null
-      
-          /** regtype: \`text\` */
-          b: string | null
+            /** regtype: \`text\` */
+            b: string | null
+          }
         }
       }
       "

@@ -209,17 +209,19 @@ test('migrate old codegen', async () => {
         /** - query: \`select 1 as a\` */
         export interface A {
           '@params': []
-      
-          /** regtype: \`integer\` */
-          a: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            a: number | null
+          }
         }
       
         /** - query: \`select 1 as b\` */
         export interface B {
           '@params': []
-      
-          /** regtype: \`integer\` */
-          b: number | null
+          '@result': {
+            /** regtype: \`integer\` */
+            b: number | null
+          }
         }
       }
       
