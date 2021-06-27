@@ -27,7 +27,7 @@
     {
       "depTypeList": ["devDependencies"],
       "excludePackagePatterns": ["slonik"],
-      "excludePackageNames": ["@types/node"],
+      "excludePackageNames": ["@types/node", "fs-syncer"],
       "automerge": true,
       "groupName": "devDependencies",
       "updateTypes": ["patch", "minor", "major", "lockFileMaintenance"]
