@@ -4136,15 +4136,10 @@ fs-minipass@^2.0.0, fs-minipass@^2.1.0:
   dependencies:
     minipass "^3.0.0"
 
-fs-syncer@0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.0.tgz#a94df551685d388033f27ef0d984215aef0afeb4"
-  integrity sha512-2/sSLnms2gTMDyAZH2KKI0L+Rw+ysX7FkzG3GWiqT/3cBJ0WsJpZOr7s2QAm7t2trpROwW6YOEdZkq4WmvnNKg==
-
-fs-syncer@0.3.4-next.2:
-  version "0.3.4-next.2"
-  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.4-next.2.tgz#b43b22aaffb722b43cef50f9f70631ebbedb303c"
-  integrity sha512-KXAUO/kc9Rr2JvL6wSxfzpzh3qioL4cXMwcc1ce/hab2wKw89FT1WrJCy2FGaZA90xomcnzPotgQCn/Lny01uQ==
+fs-syncer@0.3.4:
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.4.tgz#f936b911b8d7cf964d30bce987edc000f60a93e8"
+  integrity sha512-asbPmY/9PCKM8bOBas2W73RYeYOC5qUSno8+HXtT4+Pwxsl7VjKL6rk1V1pGgvoCMFV3qb6tPdWoFm8oDyyPCQ==
 
 fs.realpath@^1.0.0:
   version "1.0.0"
@@ -6056,12 +6051,7 @@ minimist-options@4.1.0:
     is-plain-obj "^1.1.0"
     kind-of "^6.0.3"
 
-minimist@0.0.8:
-  version "0.0.8"
-  resolved "https://registry.yarnpkg.com/minimist/-/minimist-0.0.8.tgz#857fcabfc3397d2625b8228262e86aa7a011b05d"
-  integrity sha1-hX/Kv8M5fSYluCKCYuhqp6ARsF0=
-
-minimist@^1.1.3, minimist@^1.2.0, minimist@^1.2.5:
+minimist@0.0.8, minimist@^1.1.3, minimist@^1.2.0, minimist@^1.2.5:
   version "1.2.5"
   resolved "https://registry.yarnpkg.com/minimist/-/minimist-1.2.5.tgz#67d66014b66a6a8aaa0c083c5fd58df4e4e97602"
   integrity sha512-FM9nNUYrRBAELZQT3xeZQ7fmMOBg6nWNmJKTcgsJeaLstP/UODVpGsr5OhXhhXg6f+qtJ8uiZ+PUxkDWcgIXLw==
