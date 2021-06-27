@@ -56,6 +56,8 @@ test('prettier is optional', async () => {
       
           /** - query: \`select id, n from test_table\` */
           export interface TestTable {
+              '@params': [
+              ];
       
               /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
               id: number;
@@ -108,6 +110,8 @@ test('prettier can fail', async () => {
       
           /** - query: \`select id, n from test_table\` */
           export interface TestTable {
+              '@params': [
+              ];
       
               /** column: \`ugly_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
               id: number;

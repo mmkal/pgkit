@@ -325,6 +325,8 @@ test('can write queries to separate file', async () => {
         
         /** - query: \`select 1 as a\` */
         export interface A {
+          '@params': []
+        
           /** regtype: \`integer\` */
           a: number | null
         }
@@ -334,6 +336,8 @@ test('can write queries to separate file', async () => {
         
         /** - query: \`select 1 as a\` */
         export interface A {
+          '@params': []
+        
           /** regtype: \`integer\` */
           a: number | null
         }
@@ -372,6 +376,8 @@ test('replaces existing queries module', async () => {
       
         /** - query: \`select 1 as a\` */
         export interface A {
+          '@params': []
+      
           /** regtype: \`integer\` */
           a: number | null
         }
@@ -427,6 +433,8 @@ test('ignore irrelevant syntax', async () => {
       
         /** - query: \`select 1\` */
         export interface Column {
+          '@params': []
+      
           /** regtype: \`integer\` */
           '?column?': number | null
         }
@@ -484,6 +492,8 @@ test(`queries with syntax errors don't affect others`, async () => {
       
         /** - query: \`select id from options_test.test_table\` */
         export interface TestTable {
+          '@params': []
+      
           /** column: \`options_test.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
           id: number
         }
@@ -537,6 +547,8 @@ test('custom glob pattern', async () => {
       
         /** - query: \`select 1 as a\` */
         export interface A {
+          '@params': []
+      
           /** regtype: \`integer\` */
           a: number | null
         }
@@ -552,6 +564,8 @@ test('custom glob pattern', async () => {
       
         /** - query: \`select 2 as a\` */
         export interface A {
+          '@params': []
+      
           /** regtype: \`integer\` */
           a: number | null
         }

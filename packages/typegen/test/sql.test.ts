@@ -43,6 +43,8 @@ test('types for sql files', async () => {
         
         /** - query: \`select a, b from test_table where a = 1\` */
         export interface TestTable1 {
+          '@params': []
+        
           /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
           a: number
         
@@ -149,6 +151,8 @@ test('types for sql files', async () => {
         
         /** - query: \`select b as aaa from test_table\` */
         export interface TestTable2 {
+          '@params': []
+        
           /** column: \`sql_test.test_table.b\`, regtype: \`text\` */
           aaa: string | null
         }
@@ -287,6 +291,8 @@ test('sql with parameters', async () => {
         
         /** - query: \`select a, b from test_table where a = $1 and b = $2\` */
         export interface TestTable {
+          '@params': [number, string]
+        
           /** column: \`sql_test.test_table.a\`, not null: \`true\`, regtype: \`integer\` */
           a: number
         

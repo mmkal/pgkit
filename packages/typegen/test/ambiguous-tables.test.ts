@@ -67,6 +67,8 @@ test('disambiguate between same-named tables', async () => {
       
         /** - query: \`select * from test_schema_1.test_table\` */
         export interface TestTable {
+          '@params': []
+      
           /**
            * This is a comment for test_schema_1.test_table.id
            *
@@ -83,6 +85,8 @@ test('disambiguate between same-named tables', async () => {
       
         /** - query: \`select * from test_schema_2.test_table\` */
         export interface Id_e {
+          '@params': []
+      
           /**
            * This is a comment for test_schema_2.test_table.id
            *

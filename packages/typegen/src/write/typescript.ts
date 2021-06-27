@@ -26,6 +26,7 @@ export const getterExpression = (key: string) => (isValidIdentifier(key) ? `.${k
 
 export const interfaceBody = (query: AnalysedQuery) =>
   `{
+    '@params': [${query.parameters.map(p => p.typescript).join(', ')}] 
     ${lodash
       .chain(query.fields)
       .groupBy(f => f.name)
