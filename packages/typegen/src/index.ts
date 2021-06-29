@@ -121,7 +121,7 @@ export const generate = (params: Partial<Options>) => {
       typeof glob === 'string'
         ? [glob, {}]
         : 'since' in glob
-        ? [`{${changedFiles({since: glob.since, cwd: path.join(process.cwd(), rootDir)})}}`, {}]
+        ? [`{${changedFiles({since: glob.since, cwd: path.join(process.cwd(), rootDir || '')})}}`, {}]
         : glob
 
     logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
