@@ -23,33 +23,29 @@ export const templateToValidSql = (template: string[]) => template.join('null')
  * - statements that use identifiers (as opposed to param values) e.g. `select * from ${sql.identifier([tableFromVariableName])}`
  */
 export const isUntypeable = (template: string[]) => {
-  const usesIdentifier = () =>
-    tryOrDefault(() => {
-      let usesIdentifierPlaceholder = false
+  let untypeable = false
+  try {
+    const delimiter = `t${Math.random()}`.replace('0.', '')
+    pgsqlAST
+      .astVisitor(map => ({
+        tableRef: t => {
+          if (t.name === delimiter) {
+            untypeable = true // can only get type when delimiter is used as a parameter, not an identifier
+          }
+          map.super().tableRef(t)
+        },
+      }))
+      .statement(getHopefullyViewableAST(template.join(delimiter)))
+  } catch {}
 
-      const fakeTableName = `t${Math.random()}`.replace('0.', '')
-      pgsqlAST
-        .astVisitor(map => ({
-          tableRef: t => {
-            if (t.name === fakeTableName) {
-              usesIdentifierPlaceholder = true
-            }
-            map.super().tableRef(t)
-          },
-        }))
-        .statement(getHopefullyViewableAST(template.join(fakeTableName)))
+  // too many statements
+  try {
+    untypeable ||= pgsqlAST.parse(templateToValidSql(template)).length !== 1
+  } catch {
+    untypeable ||= templateToValidSql(template).trim().replace(/\n/g, ' ').replace(/;$/, '').includes(';')
+  }
 
-      return usesIdentifierPlaceholder
-    }, null)
-
-  const hasTooManyStatements = () =>
-    tryOrDefault(() => {
-      const statements = pgsqlAST.parse(templateToValidSql(template))
-
-      return statements.length !== 1
-    }, null)
-
-  return Boolean(usesIdentifier() || hasTooManyStatements())
+  return untypeable
 }
 
 // todo: return null if statement is not a select

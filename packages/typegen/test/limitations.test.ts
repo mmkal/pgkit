@@ -27,6 +27,11 @@ test(`multi statements don't get types`, async () => {
           insert into test_table(id, n) values (3, 4);
         \`
       `,
+      'test.sql': `
+        drop table test_table;
+        -- make sure multi statements in .sql files are handled properly
+        select now();
+      `,
     },
   })
 
@@ -35,6 +40,8 @@ test(`multi statements don't get types`, async () => {
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
+
+  await expect(helper.pool.one(helper.sql`select count(*) from test_table`)).resolves.toEqual({count: 0})
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -45,6 +52,11 @@ test(`multi statements don't get types`, async () => {
         insert into test_table(id, n) values (1, 2);
         insert into test_table(id, n) values (3, 4);
       \`
+      
+    test.sql: |-
+      drop table test_table;
+      -- make sure multi statements in .sql files are handled properly
+      select now();
       "
   `)
 })
