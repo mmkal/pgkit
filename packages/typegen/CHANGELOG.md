@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.9.3](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.2...@slonik/typegen@0.9.3) (2021-06-29)
+
+
+### Bug Fixes
+
+* **typegen:** anonymous tag fallback ([9fac523](https://github.com/mmkal/slonik-tools/commit/9fac5231d17a77add424ce130cc196c48b04f34d))
+* **typegen:** multi statements in sql files ([246db67](https://github.com/mmkal/slonik-tools/commit/246db670f20351c8ed78edb1cbd59e5b4dcf9f6a))
+
+
+
+
+
 ## [0.9.2](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.1...@slonik/typegen@0.9.2) (2021-06-26)
 
 
