@@ -242,7 +242,14 @@ test('use git to get changed files', async () => {
 
   syncer.sync()
 
-  await cli.executeWithoutErrorHandling(['generate', '--skip-check-clean', '--since', 'main'])
+  await cli.executeWithoutErrorHandling([
+    'generate',
+    '--root-dir',
+    syncer.baseDir,
+    '--skip-check-clean',
+    '--since',
+    'main',
+  ])
 
   expect(child_process.execSync).toHaveBeenCalledWith(`git diff --relative --name-only main`, {cwd: expect.any(String)})
 }, 20000)
