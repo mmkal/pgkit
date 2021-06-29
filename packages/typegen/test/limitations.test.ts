@@ -175,7 +175,7 @@ test('void queries', async () => {
          * - \`insert into test_table values (0, 0)\`
          * - \`create table x (y int)\`
          */
-        export type _void = void
+        export type _void = never
       }
       "
   `)
