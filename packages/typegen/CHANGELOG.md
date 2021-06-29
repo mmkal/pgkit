@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.9.4](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.3...@slonik/typegen@0.9.4) (2021-06-29)
+
+
+### Bug Fixes
+
+* **typegen:** use `never` for no return value ([63f7904](https://github.com/mmkal/slonik-tools/commit/63f79042044c4674f4c8c57af220a5ce28bd7e3f))
+
+
+
+
+
 ## [0.9.3](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.2...@slonik/typegen@0.9.3) (2021-06-29)
 
 

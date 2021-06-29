@@ -1,6 +1,6 @@
 {
   "name": "@slonik/typegen",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "description": "Automatically generates typescript types from slonik queries",
   "files": [
     "dist",
