@@ -4,8 +4,8 @@ import * as slonik from 'slonik'
 import {psqlCommand} from './helper'
 import * as child_process from 'child_process'
 
-afterEach(() => {
-  jest.resetAllMocks()
+beforeEach(() => {
+  jest.clearAllMocks()
 })
 
 let pools: slonik.DatabasePoolType[] = []
@@ -23,7 +23,7 @@ jest.mock('slonik', () => {
 
 jest.mock('child_process', () => ({
   ...jest.requireActual<any>('child_process'),
-  execSync: jest.fn().mockReturnValue(''),
+  execSync: jest.fn().mockImplementation(() => ''),
 }))
 
 afterAll(async () => {
