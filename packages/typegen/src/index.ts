@@ -1,5 +1,5 @@
 import * as lodash from 'lodash'
-import {globAsync, tryOrDefault, truncateQuery, checkClean, maybeDo} from './util'
+import {globAsync, tryOrDefault, truncateQuery, checkClean, maybeDo, changedFiles} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
@@ -117,7 +117,12 @@ export const generate = (params: Partial<Options>) => {
     await maybeDo(checkCleanWhen.includes('before'), checkClean)
     const getColumnInfo = columnInfoGetter(pool)
 
-    const globParams: Parameters<typeof globAsync> = typeof glob === 'string' ? [glob, {}] : glob
+    const globParams: Parameters<typeof globAsync> =
+      typeof glob === 'string'
+        ? [glob, {}]
+        : 'since' in glob
+        ? [`{${changedFiles({since: glob.since, cwd: path.resolve(rootDir)})}}`, {}]
+        : glob
 
     logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
 
@@ -139,28 +144,26 @@ export const generate = (params: Partial<Options>) => {
 
     logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
 
-    const promises = extracted.map(
-      async (query): Promise<DescribedQuery | null> => {
-        try {
-          if (isUntypeable(query.template)) {
-            logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
-            return null
-          }
-          return {
-            ...query,
-            fields: await getFields(query),
-            parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-          }
-        } catch (e) {
-          let message = `${query.file}:${query.line} Describing query failed: ${e}.`
-          if (query.sql.includes('--')) {
-            message += ' Try moving comments to dedicated lines.'
-          }
-          logger.warn(message)
+    const promises = extracted.map(async (query): Promise<DescribedQuery | null> => {
+      try {
+        if (isUntypeable(query.template)) {
+          logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
           return null
         }
-      },
-    )
+        return {
+          ...query,
+          fields: await getFields(query),
+          parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+        }
+      } catch (e) {
+        let message = `${query.file}:${query.line} Describing query failed: ${e}.`
+        if (query.sql.includes('--')) {
+          message += ' Try moving comments to dedicated lines.'
+        }
+        logger.warn(message)
+        return null
+      }
+    })
 
     const describedQueries = lodash.compact(await Promise.all(promises))
 

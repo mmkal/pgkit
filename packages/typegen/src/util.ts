@@ -67,3 +67,11 @@ export const checkClean = () =>
   attempt('git status should be clean - stage or commit your changes before re-running.', () =>
     child_process.execSync(`git diff --exit-code`),
   )
+
+export const changedFiles = (params: {since: string; cwd: string}) =>
+  child_process
+    .execSync(`git diff --relative --name-only ${params.since}`, {cwd: params.cwd})
+    .toString()
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)

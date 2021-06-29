@@ -154,7 +154,8 @@ Some of the options above can be overriden by the CLI:
 usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
                                [--connection-uri URI] [--psql COMMAND]
                                [--default-type TYPESCRIPT] [--glob PATTERN]
-                               [--migrate {<=0.8.0}] [--skip-check-clean]
+                               [--since REF] [--migrate {<=0.8.0}]
+                               [--skip-check-clean]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
@@ -196,6 +197,11 @@ Optional arguments:
   --glob PATTERN        Glob pattern of source files to search for SQL 
                         queries in. By default searches for all ts and sql 
                         files under 'rootDir'
+
+  --since REF           Limit affected files to those which have been changed 
+                        since the given git ref. Use "--since HEAD" for files 
+                        changed since the last commit, "--since main" for 
+                        files changed in a branch, etc.
 
   --migrate {<=0.8.0}   Before generating types, attempt to migrate a 
                         codebase which has used a prior version of this tool

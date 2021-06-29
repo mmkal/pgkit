@@ -4,8 +4,8 @@ import * as slonik from 'slonik'
 import {psqlCommand} from './helper'
 import * as child_process from 'child_process'
 
-afterEach(() => {
-  jest.resetAllMocks()
+beforeEach(() => {
+  jest.clearAllMocks()
 })
 
 let pools: slonik.DatabasePoolType[] = []
@@ -23,7 +23,7 @@ jest.mock('slonik', () => {
 
 jest.mock('child_process', () => ({
   ...jest.requireActual<any>('child_process'),
-  execSync: jest.fn(),
+  execSync: jest.fn().mockImplementation(() => ''),
 }))
 
 afterAll(async () => {
@@ -231,4 +231,25 @@ test('config flag overrides typegen.config.js', async () => {
         export default sql\`select 2 as a\`
         "
   `)
+}, 20000)
+
+test('use git to get changed files', async () => {
+  const cli = new SlonikTypegenCLI()
+
+  const syncer = fsSyncer.jestFixture({
+    targetState: {},
+  })
+
+  syncer.sync()
+
+  await cli.executeWithoutErrorHandling([
+    'generate',
+    '--root-dir',
+    syncer.baseDir,
+    '--skip-check-clean',
+    '--since',
+    'main',
+  ])
+
+  expect(child_process.execSync).toHaveBeenCalledWith(`git diff --relative --name-only main`, {cwd: expect.any(String)})
 }, 20000)
