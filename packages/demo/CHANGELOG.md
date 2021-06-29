@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.9.5](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.9.4...slonik-tools-demo@0.9.5) (2021-06-29)
+
+
+### Bug Fixes
+
+* empty obj instead of void ([#318](https://github.com/mmkal/slonik-tools/issues/318)) ([4ca191c](https://github.com/mmkal/slonik-tools/commit/4ca191cf892ef882080aa6761da8bc19ff0c33bd))
+
+
+
+
+
 ## [0.9.4](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.9.3...slonik-tools-demo@0.9.4) (2021-06-29)
 
 **Note:** Version bump only for package slonik-tools-demo
