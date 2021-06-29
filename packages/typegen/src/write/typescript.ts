@@ -90,7 +90,7 @@ export function renderQueryInterface(queryGroup: AnalysedQuery[], interfaceName:
   // Might be worth finding a better way to determine void-ness if there are cases of 0 fields but non-void responses possible.
   const typeDef =
     interfaceName === '_void' && !bodies[0].match(/\w/g)
-      ? `export type ${interfaceName} = never`
+      ? `export type ${interfaceName} = {}`
       : `export interface ${interfaceName} ${bodies[0]}`
 
   return `

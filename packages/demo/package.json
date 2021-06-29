@@ -7,7 +7,7 @@
   "private": true,
   "scripts": {
     "build": "cd ../.. && yarn build",
-    "typegen": "slonik-typegen src/generated/db",
+    "typegen": "slonik-typegen generate",
     "migrate": "node migrate up",
     "migrate:down": "node migrate down",
     "start": "node dist/index.js"
