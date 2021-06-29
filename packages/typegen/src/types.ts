@@ -209,7 +209,7 @@ export interface AnalysedQueryField extends QueryField {
    * true if the query field is *known* not to be null. This is only the case when the field comes directly from a
    * not-null table column, or is the return value of a common function like `count(*)`.
    */
-  nullability: 'not_null' | 'nullable' | 'nullable_via_join' | 'unknown'
+  nullability: 'not_null' | 'assumed_not_null' | 'nullable' | 'nullable_via_join' | 'unknown'
   /** schema, table and column identifier string the field corresponds to, if any. e.g. `my_schema.my_table.my_column`. This is undefined for non-table-column fields.  */
   column: {schema: string; table: string; name: string} | undefined
   /**

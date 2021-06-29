@@ -35,6 +35,7 @@ export const interfaceBody = (query: AnalysedQuery) =>
         const types = lodash.uniq(
           fields.map(f =>
             f.nullability === 'not_null' ||
+            f.nullability === 'assumed_not_null' ||
             f.typescript === 'any' ||
             f.typescript === 'unknown' ||
             f.typescript === 'void'

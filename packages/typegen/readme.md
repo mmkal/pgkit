@@ -265,7 +265,7 @@ module.exports.default = {
   writeTypes: queries => {
     queries.forEach(query => {
       query.fields.forEach(field => {
-        field.nullability = 'not_null'
+        field.nullability = 'assumed_not_null'
       })
     })
 
@@ -291,7 +291,7 @@ module.exports.default = {
       if (filesWithLegacyNullableFields.includes(query.file)) {
         query.fields.forEach(field => {
           if (field.nullability === 'unknown') {
-            field.nullability = 'not_null'
+            field.nullability = 'assumed_not_null'
           }
         })
       }
