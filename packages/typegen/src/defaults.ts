@@ -1,5 +1,5 @@
 import {defaultExtractQueries} from './extract'
-import {defaultWriteTypes} from './write'
+import {defaultWriteTypes, defaultWriteFile} from './write'
 import {defaultPGDataTypeToTypeScriptMappings} from './pg'
 import {defaultTypeParsers} from './slonik'
 import {Options} from './types'
@@ -10,7 +10,13 @@ import * as assert from 'assert'
 
 export const typegenConfigFile = 'typegen.config.js'
 
-export {defaultWriteTypes, defaultTypeParsers, defaultExtractQueries, defaultPGDataTypeToTypeScriptMappings}
+export {
+  defaultWriteTypes,
+  defaultWriteFile,
+  defaultTypeParsers,
+  defaultExtractQueries,
+  defaultPGDataTypeToTypeScriptMappings,
+}
 
 export const defaultConnectionURI = 'postgresql://postgres:postgres@localhost:5432/postgres'
 

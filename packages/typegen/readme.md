@@ -338,7 +338,7 @@ module.exports.default = {
       content = content
         .replace(/declare module queries/g, 'declare module some_other_naming_convention')
         .replace(/queries\./g, 'some_other_naming_convention.')
-      await typegen.write.writeFile(filepath, content)
+      await typegen.defaults.defaultWriteFile(filepath, content)
     },
   })
 }
@@ -354,7 +354,7 @@ const path = require('path')
 
 /** @type {import('@slonik/typegen').Options} */
 module.exports.default = {
-  writeTypes: typegen.defaultWriteTypes({
+  writeTypes: typegen.defaults.defaultWriteTypes({
     writeFile: async (filepath, content) => {
       content = await yourCustomLinter.fix(filepath, content)
       await fs.promises.mkdir(path.dirname(filepath), {recursive: true}) // since you're not using the built-in `writeFile` you should explicitly call mkdir with {recursive: true}
