@@ -1,5 +1,5 @@
 import * as lodash from 'lodash'
-import {globAsync, tryOrDefault, truncateQuery, checkClean, maybeDo, changedFiles} from './util'
+import {globAsync, tryOrDefault, truncateQuery, checkClean, maybeDo, changedFiles, globList} from './util'
 import {psqlClient} from './pg'
 import * as defaults from './defaults'
 import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
@@ -121,7 +121,7 @@ export const generate = (params: Partial<Options>) => {
       typeof glob === 'string'
         ? [glob, {}]
         : 'since' in glob
-        ? [`{${changedFiles({since: glob.since, cwd: path.resolve(rootDir)})}}`, {}]
+        ? [globList(changedFiles({since: glob.since, cwd: path.resolve(rootDir)})), {}]
         : glob
 
     logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
