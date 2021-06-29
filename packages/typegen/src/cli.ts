@@ -79,6 +79,14 @@ export class GenerateAction extends cli.CommandLineAction {
           Glob pattern of source files to search for SQL queries in. By default searches for all ts and sql files under 'rootDir'
         `,
       }),
+      since: action.defineStringParameter({
+        parameterLongName: '--since',
+        argumentName: 'REF',
+        description: `
+          Limit affected files to those which have been changed since the given git ref. Use "--since HEAD" for files changed
+          since the last commit, "--since main" for files changed in a branch, etc.
+        `,
+      }),
       migrate: action.defineChoiceParameter({
         parameterLongName: '--migrate',
         alternatives: ['<=0.8.0'],
@@ -108,7 +116,7 @@ export class GenerateAction extends cli.CommandLineAction {
         connectionURI: this._params.connectionURI.value,
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
-        glob: this._params.glob.value,
+        glob: this._params.since.value ? {since: this._params.since.value} : this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
         checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
       } as Partial<Options>),

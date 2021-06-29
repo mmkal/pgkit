@@ -23,7 +23,7 @@ jest.mock('slonik', () => {
 
 jest.mock('child_process', () => ({
   ...jest.requireActual<any>('child_process'),
-  execSync: jest.fn(),
+  execSync: jest.fn().mockReturnValue(''),
 }))
 
 afterAll(async () => {
@@ -231,4 +231,18 @@ test('config flag overrides typegen.config.js', async () => {
         export default sql\`select 2 as a\`
         "
   `)
+}, 20000)
+
+test('use git to get changed files', async () => {
+  const cli = new SlonikTypegenCLI()
+
+  const syncer = fsSyncer.jestFixture({
+    targetState: {},
+  })
+
+  syncer.sync()
+
+  await cli.executeWithoutErrorHandling(['generate', '--skip-check-clean', '--since', 'main'])
+
+  expect(child_process.execSync).toHaveBeenCalledWith(`git diff --relative --name-only main`, {cwd: expect.any(String)})
 }, 20000)
