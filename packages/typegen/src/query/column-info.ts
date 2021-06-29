@@ -219,6 +219,7 @@ const tagsFromDescribedQuery = (query: DescribedQuery) => {
   tags.splice(tags[0]?.slice(1).includes('_') ? 0 : 1, 0, ...options.codeContextTags)
   tags.push(...options.fieldTags)
   tags.push(...options.codeContextTags)
+  tags.push(...options.anonymousTags)
 
   return tags
 }
