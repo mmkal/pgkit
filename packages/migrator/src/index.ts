@@ -127,8 +127,8 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     }
   }
 
-  protected getOrCreateMigrationsTable(context: SlonikMigratorContext) {
-    return context.parent.query(sql`
+  protected async getOrCreateMigrationsTable(context: SlonikMigratorContext) {
+    await context.parent.query(sql`
       create table if not exists ${this.migrationTableNameIdentifier()}(
         name text primary key,
         hash text not null,
