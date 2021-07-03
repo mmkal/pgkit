@@ -2808,10 +2808,10 @@ chardet@^0.7.0:
   resolved "https://registry.yarnpkg.com/chardet/-/chardet-0.7.0.tgz#90094849f0937f2eedc2425d0d28a9e5f0cbad9e"
   integrity sha512-mT8iDcrh03qDGRRmoA2hmBJnxpllMR+0/0qlzjqZES6NdiWDcZkCNAk4rPFZ9Q85r27unkiNNg8ZOiwZXBHwcA==
 
-check-clean@0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/check-clean/-/check-clean-0.3.0.tgz#5ef266124807cc06dbabdc085ea31fdaa448087c"
-  integrity sha512-ltyxoKsAp2QXXqZDjXO6U1FBH6NOYN8J3aWxl92o/yUsePp7mAn5NR4ney9363LiYTh9rnnjaFDgJxsTgmX+yw==
+check-clean@0.3.1:
+  version "0.3.1"
+  resolved "https://registry.yarnpkg.com/check-clean/-/check-clean-0.3.1.tgz#2a80cf0aa95f1c971fbf80ef36ae17fa336b495e"
+  integrity sha512-2g3QAu6zVaPrYfxieSZCKoxz3SRaknmVlKJSFYEpnGojmZQ/9ZqjUP80pP9/CsIHOe+5orKqLf6fKn4csf1fTg==
 
 chownr@^1.1.1:
   version "1.1.3"
@@ -3639,10 +3639,10 @@ eslint-module-utils@^2.6.1:
     debug "^3.2.7"
     pkg-dir "^2.0.0"
 
-eslint-plugin-codegen@0.15.0:
-  version "0.15.0"
-  resolved "https://registry.yarnpkg.com/eslint-plugin-codegen/-/eslint-plugin-codegen-0.15.0.tgz#8cceb820661d13638a32a4743d18c16f57e4d04a"
-  integrity sha512-hUNmNrOxY/+p5/YTgvylxM35dieSUROWmJxyHlHDHttDfr4JZ0AOFcaU5vSobG5dLv3P/vZIaA8Ybsceki7V0w==
+eslint-plugin-codegen@0.16.0:
+  version "0.16.0"
+  resolved "https://registry.yarnpkg.com/eslint-plugin-codegen/-/eslint-plugin-codegen-0.16.0.tgz#9f8acce792c610eaac1aa7211b7134094a8a1cd0"
+  integrity sha512-HKwJ25zFKB/Qsy4VDL49sb8mmSU3mHJql31/lruWVdwgA50PoUmG5YpcYXMpxw/sS++S2UyMcbp64hjxiz6KLA==
   dependencies:
     "@babel/core" "^7.11.6"
     "@babel/generator" "~7.12.0"
@@ -3652,7 +3652,7 @@ eslint-plugin-codegen@0.15.0:
     fp-ts "^2.1.0"
     glob "^7.1.4"
     io-ts "^2.2.4"
-    io-ts-extra "0.11.4"
+    io-ts-extra "0.11.5"
     js-yaml "^3.14.0"
     lodash "^4.17.15"
     string.prototype.matchall "^4.0.2"
@@ -3850,10 +3850,10 @@ exit@^0.1.2:
   resolved "https://registry.yarnpkg.com/exit/-/exit-0.1.2.tgz#0632638f8d877cc82107d30a0fff1a17cba1cd0c"
   integrity sha1-BjJjj42HfMghB9MKD/8aF8uhzQw=
 
-expect-type@0.11.0:
-  version "0.11.0"
-  resolved "https://registry.yarnpkg.com/expect-type/-/expect-type-0.11.0.tgz#bce1a3e283f0334eedb39699b57dd27be7009cc1"
-  integrity sha512-hkObxepDKhTYloH/UZoxYTT2uUzdhvDEwAi0oqdk29XEkHF8p+5ZRpX/BZES2PtGN9YgyEqutIjXfnL9iMflMw==
+expect-type@0.12.0:
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/expect-type/-/expect-type-0.12.0.tgz#133534b5e2561158c371e74af63fd8f18a9f3d42"
+  integrity sha512-IHwziEOjpjXqxQhtOAD5zMiQpGztaEKM4Q8wnwoRN9NIFlnyNHNjRxKWv+18UqRfsqi6vVnZIYFU16ePf+HaqA==
 
 expect@^26.0.0:
   version "26.6.2"
@@ -4736,7 +4736,15 @@ interpret@^1.0.0:
   resolved "https://registry.yarnpkg.com/interpret/-/interpret-1.4.0.tgz#665ab8bc4da27a774a40584e812e3e0fa45b1a1e"
   integrity sha512-agE4QfB2Lkp9uICn7BAqoscw4SZP9kTE2hxiFI3jBPmXJfdqiahTbUuKGsMoN2GtqL9AxhYioAcVvgsb1HvRbA==
 
-io-ts-extra@0.11.4, io-ts-extra@^0.11.4:
+io-ts-extra@0.11.5:
+  version "0.11.5"
+  resolved "https://registry.yarnpkg.com/io-ts-extra/-/io-ts-extra-0.11.5.tgz#3ad8a23658ced9d67e408a4322368b07076edd8d"
+  integrity sha512-n9z5dTmqcUXb0Pk0zFK4/xq9CU6Rxxvyta9Sl3bhaZ58I6sm19EVlNV7jL3jGTbUYoRCKB7Lmw04d+YMlwfF/Q==
+  dependencies:
+    fp-ts "^2.1.0"
+    io-ts "^2.2.4"
+
+io-ts-extra@^0.11.4:
   version "0.11.4"
   resolved "https://registry.yarnpkg.com/io-ts-extra/-/io-ts-extra-0.11.4.tgz#4885fb646017dd619fa5dfc799fcd0e44599aaf0"
   integrity sha512-XrvZluS4RPnj0/w8i0Vl9L9m7ajF1Spx039b8exDybF6z9speQJleBP0ujmJ3uu3eelpredYywlec2ZF9ZtH7g==
