@@ -4165,15 +4165,10 @@ fs-minipass@^2.0.0, fs-minipass@^2.1.0:
   dependencies:
     minipass "^3.0.0"
 
-fs-syncer@0.3.0:
-  version "0.3.0"
-  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.0.tgz#a94df551685d388033f27ef0d984215aef0afeb4"
-  integrity sha512-2/sSLnms2gTMDyAZH2KKI0L+Rw+ysX7FkzG3GWiqT/3cBJ0WsJpZOr7s2QAm7t2trpROwW6YOEdZkq4WmvnNKg==
-
-fs-syncer@0.3.4-next.2:
-  version "0.3.4-next.2"
-  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.4-next.2.tgz#b43b22aaffb722b43cef50f9f70631ebbedb303c"
-  integrity sha512-KXAUO/kc9Rr2JvL6wSxfzpzh3qioL4cXMwcc1ce/hab2wKw89FT1WrJCy2FGaZA90xomcnzPotgQCn/Lny01uQ==
+fs-syncer@0.3.5:
+  version "0.3.5"
+  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.3.5.tgz#6195ece574e662a44a47a857b3f7c7002a589a7f"
+  integrity sha512-OKHGbMRYaIVGr2aRv2BD8MxDAQ4/uKHPxF/hPJwRb1iqkbobrqVbXriurbopIUq/e1fquS5Pk9geolJczxldOQ==
 
 fs.realpath@^1.0.0:
   version "1.0.0"
