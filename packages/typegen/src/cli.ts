@@ -96,6 +96,14 @@ export class GenerateAction extends cli.CommandLineAction {
         parameterLongName: '--skip-check-clean',
         description: `If enabled, the tool will not check the git status to ensure changes are checked in.`,
       }),
+      watch: action.defineFlagParameter({
+        parameterLongName: '--watch',
+        description: `Run the type checker in watch mode. Files will be run through the code generator when changed or added.`,
+      }),
+      lazy: action.defineFlagParameter({
+        parameterLongName: '--lazy',
+        description: `Skip initial processing of input files. Only useful with '--watch'.`,
+      }),
     }
   }
 
@@ -119,6 +127,7 @@ export class GenerateAction extends cli.CommandLineAction {
         glob: this._params.since.value ? {since: this._params.since.value} : this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
         checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
+        watch: this._params.watch.value,
       } as Partial<Options>),
     )
   }

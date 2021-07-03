@@ -55,4 +55,4 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
   }
 }
 
-export const extractWithTypeScript: Options['extractQueries'] = lodash.memoize(rawExtractWithTypeScript)
+export const extractWithTypeScript: Options['extractQueries'] = rawExtractWithTypeScript

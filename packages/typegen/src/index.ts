@@ -6,10 +6,13 @@ import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} fro
 import {columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
+import * as fs from 'fs'
 import {parameterTypesGetter} from './query/parameters'
 import {migrateLegacyCode} from './migrate'
 import * as write from './write'
 import {createPool} from 'slonik'
+import memoizee = require('memoizee')
+import chokidar = require('chokidar')
 
 export {Options} from './types'
 
@@ -17,7 +20,7 @@ export {defaults}
 
 export {write}
 
-export const generate = (params: Partial<Options>) => {
+export const generate = async (params: Partial<Options>) => {
   const {
     psqlCommand,
     connectionURI,
@@ -32,13 +35,14 @@ export const generate = (params: Partial<Options>) => {
     logger,
     migrate,
     checkClean: checkCleanWhen,
+    lazy,
   } = defaults.getParams(params)
 
   const pool = createPool(connectionURI, poolConfig)
 
-  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
+  const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
-  const gdesc = async (sql: string) => {
+  const _gdesc = async (sql: string) => {
     try {
       return await psql(`${sql} \\gdesc`)
     } catch (e) {
@@ -51,7 +55,11 @@ export const generate = (params: Partial<Options>) => {
     }
   }
 
+  const psql = memoizee(_psql, {max: 1000})
+  const gdesc = memoizee(_gdesc, {max: 1000})
+
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
+    console.log('gdescing', query.sql)
     const rows = await gdesc(query.sql)
     const fields = await Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
@@ -140,43 +148,74 @@ export const generate = (params: Partial<Options>) => {
     }
 
     const files = await getFiles() // Migration may have deleted some, get files from fresh.
-    const extracted = files.flatMap(extractQueries)
 
-    logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
+    async function generateForFiles(files: string[]) {
+      const extracted = files.flatMap(extractQueries)
 
-    const promises = extracted.map(async (query): Promise<DescribedQuery | null> => {
-      try {
-        if (isUntypeable(query.template)) {
-          logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
+      logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
+
+      const promises = extracted.map(async (query): Promise<DescribedQuery | null> => {
+        try {
+          if (isUntypeable(query.template)) {
+            logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
+            return null
+          }
+          return {
+            ...query,
+            fields: await getFields(query),
+            parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+          }
+        } catch (e) {
+          let message = `${query.file}:${query.line} Describing query failed: ${e}.`
+          if (query.sql.includes('--')) {
+            message += ' Try moving comments to dedicated lines.'
+          }
+          logger.warn(message)
           return null
         }
-        return {
-          ...query,
-          fields: await getFields(query),
-          parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-        }
-      } catch (e) {
-        let message = `${query.file}:${query.line} Describing query failed: ${e}.`
-        if (query.sql.includes('--')) {
-          message += ' Try moving comments to dedicated lines.'
-        }
-        logger.warn(message)
-        return null
+      })
+
+      const describedQueries = lodash.compact(await Promise.all(promises))
+
+      const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
+      logger.info(
+        `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles} .`,
+      )
+
+      const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
+
+      await writeTypes(analysedQueries)
+      await maybeDo(checkCleanWhen.includes('after'), checkClean)
+    }
+
+    if (!lazy) {
+      await generateForFiles(files)
+    }
+
+    const watch = () => {
+      console.log('Waiting for files to change')
+      const cwd = path.resolve(rootDir)
+      const watcher = chokidar.watch(globParams[0], {
+        ignored: globParams[1]?.ignore,
+        cwd,
+        ignoreInitial: true,
+      })
+      const runOne = memoizee((json: string) => generateForFiles(JSON.parse(json).slice(0, 1)))
+      const handler = async (filepath: string, stats: fs.Stats) => {
+        logger.info(filepath + ' updated, running codegen')
+        const fullpath = path.join(cwd, filepath)
+        await runOne(JSON.stringify([fullpath, fs.readFileSync(fullpath).toString()]))
+        logger.info(filepath + ' done.')
       }
-    })
-
-    const describedQueries = lodash.compact(await Promise.all(promises))
-
-    const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
-    logger.info(
-      `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles} .`,
-    )
-
-    const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
-
-    await writeTypes(analysedQueries)
-    await maybeDo(checkCleanWhen.includes('after'), checkClean)
+      watcher.on('add', handler)
+      watcher.on('change', handler)
+      // await new Promise(() => {})
+      return {
+        close: () => watcher.close(),
+      }
+    }
+    return watch
   }
-
-  return findAll()
+  const watch = await findAll()
+  return {watch}
 }
