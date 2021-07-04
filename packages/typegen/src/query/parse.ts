@@ -70,6 +70,7 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
   try {
     return pgsqlAST.parse(sql)
   } catch (e) {
+    /* istanbul ignore if */
     if (attemptsLeft <= 1) {
       throw e
     }
@@ -177,7 +178,7 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
 const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
   return match(ex)
     .case({type: 'ref' as const}, e => e.name)
-    .case({type: 'call', function: String} as const, e => e.function)
+    .case({type: 'call', function: {name: String}} as const, e => e.function.name)
     .case({type: 'cast'} as const, e => expressionName(e.operand))
     .default(() => undefined)
     .get()
@@ -201,7 +202,7 @@ export const aliasMappings = (
   }
 
   const allTableReferences: QueryTableReference[] = []
-  const nullableJoins = [] as string[]
+  const nullableJoins: string[] = []
 
   pgsqlAST
     .astVisitor(map => ({
