@@ -18,22 +18,7 @@ export class SlonikTypegenCLI extends cli.CommandLineParser {
   onDefineParameters() {}
 }
 
-export abstract class VerboseCommandLineAction extends cli.CommandLineAction {
-  abstract onExecuteWithoutErrorLogging(): Promise<void>
-
-  async onExecute() {
-    try {
-      await this.onExecuteWithoutErrorLogging()
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        console.error(err.stack)
-      }
-      throw err
-    }
-  }
-}
-
-export class GenerateAction extends VerboseCommandLineAction {
+export class GenerateAction extends cli.CommandLineAction {
   private _params!: ReturnType<typeof GenerateAction._defineParameters>
 
   constructor() {
@@ -127,7 +112,7 @@ export class GenerateAction extends VerboseCommandLineAction {
     this._params = GenerateAction._defineParameters(this)
   }
 
-  async onExecuteWithoutErrorLogging() {
+  async onExecute() {
     let optionsModule = this._params.config.value
       ? require(path.resolve(process.cwd(), this._params.config.value))
       : tryOrDefault(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)), null)
