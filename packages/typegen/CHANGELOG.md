@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.10.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.5...@slonik/typegen@0.10.0) (2021-07-04)
+
+
+### Bug Fixes
+
+* **deps:** update dependency pgsql-ast-parser to v8 ([#308](https://github.com/mmkal/slonik-tools/issues/308)) ([e727534](https://github.com/mmkal/slonik-tools/commit/e727534de26a7fc8e76b5953bc53526f54ffc338))
+
+
+### Features
+
+* **typegen:** watch mode ([#324](https://github.com/mmkal/slonik-tools/issues/324)) ([656efd5](https://github.com/mmkal/slonik-tools/commit/656efd5e7ecc54a9afef57d8a6bee6b51ef9f94f))
+
+
+
+
+
 ## [0.9.5](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.4...@slonik/typegen@0.9.5) (2021-06-29)
 
 
