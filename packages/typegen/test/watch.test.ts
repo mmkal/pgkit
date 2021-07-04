@@ -102,6 +102,7 @@ test('watch file system', async () => {
   expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('file1.ts was changed, running codegen'))
   expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('file1.ts updated.'))
 
-  expect(JSON.stringify(logger.info.mock.calls)).toContain('file1.ts was changed, running codegen')
-  expect(JSON.stringify(logger.info.mock.calls)).not.toContain('file2.ts')
+  const watchLogs = JSON.stringify(logger.info.mock.calls).split('Waiting for files to change').slice(1).join('')
+  expect(watchLogs).toContain('file1.ts was changed, running codegen')
+  expect(watchLogs).not.toContain('file2.ts')
 })
