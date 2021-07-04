@@ -142,7 +142,7 @@ export class GenerateAction extends VerboseCommandLineAction {
         defaultType: this._params.defaultType.value,
         glob: this._params.since.value ? {since: this._params.since.value} : this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
-        checkClean: this._params.skipCheckClean ? ['none'] : undefined,
+        checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
         lazy: this._params.lazy.value,
       } as Partial<Options>),
     )
