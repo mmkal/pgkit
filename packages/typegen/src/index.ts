@@ -130,22 +130,20 @@ export const generate = async (params: Partial<Options>) => {
         ? [globList(changedFiles({since: glob.since, cwd: path.resolve(rootDir)})), {}]
         : glob
 
-    logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
-
-    const getFiles = () =>
-      globAsync(globParams[0], {
+    const getFiles = () => {
+      logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
+      return globAsync(globParams[0], {
         ...globParams[1],
         cwd: path.resolve(process.cwd(), rootDir),
         absolute: true,
       })
+    }
 
     if (migrate) {
       await maybeDo(checkCleanWhen.includes('before-migrate'), checkClean)
       migrateLegacyCode(migrate)({files: await getFiles(), logger})
       await maybeDo(checkCleanWhen.includes('after-migrate'), checkClean)
     }
-
-    const files = await getFiles() // Migration may have deleted some, get files from fresh.
 
     async function generateForFiles(files: string[]) {
       const extracted = files.flatMap(extractQueries)
@@ -186,7 +184,7 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     if (!lazy) {
-      await generateForFiles(files)
+      await generateForFiles(await getFiles())
     }
 
     const watch = () => {
