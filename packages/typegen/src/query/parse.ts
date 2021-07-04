@@ -125,7 +125,9 @@ const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
         from: [
           {
             type: 'table',
-            name: ast.type === 'update' ? ast.table.name : ast.type === 'insert' ? ast.into.name : ast.from.name,
+            name: {
+              name: ast.type === 'update' ? ast.table.name : ast.type === 'insert' ? ast.into.name : ast.from.name,
+            },
           },
         ],
         columns: ast.returning,
@@ -155,14 +157,15 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
       tables: ast.from
         ?.map(f =>
           match(f)
-            .case({type: 'table'} as const, t => t.name)
             .case({alias: String}, f => f.alias)
+            .case({type: 'table'} as const, t => t.name.name)
+            .default(() => '') // filtered out below
             .get(),
         )
         .filter(Boolean),
       columns: lodash
         .chain(ast.columns)
-        .map(c => c.alias || expressionName(c.expr))
+        .map(c => c.alias?.name || expressionName(c.expr))
         .compact()
         .value(),
     }
@@ -195,11 +198,10 @@ export const aliasMappings = (
   interface QueryTableReference {
     table: string
     referredToAs: string
-    /** even if a column is non-null, if its table is joined via `LEFT JOIN` or `FULL OUTER JOIN`, the value can be null in the resultant query */
-    nullableJoin: boolean
   }
 
   const allTableReferences: QueryTableReference[] = []
+  const nullableJoins = [] as string[]
 
   pgsqlAST
     .astVisitor(map => ({
@@ -207,9 +209,19 @@ export const aliasMappings = (
         allTableReferences.push({
           table: t.name,
           referredToAs: t.alias || t.name,
-          nullableJoin: ['LEFT JOIN', 'FULL JOIN'].includes((t as any)?.join?.type),
         }),
-      join: t => map.super().join(t),
+      join: t => {
+        const markNullable = (ref: pgsqlAST.Expr) =>
+          ref.type === 'ref' && ref.table?.name && nullableJoins.push(ref.table.name)
+        if (t.type === 'LEFT JOIN' && t.on && t.on.type === 'binary') {
+          markNullable(t.on.right)
+        }
+        if (t.type === 'FULL JOIN' && t.on?.type === 'binary') {
+          markNullable(t.on.left)
+          markNullable(t.on.right)
+        }
+        return map.super().join(t)
+      },
     }))
     .statement(statement)
 
@@ -225,13 +237,13 @@ export const aliasMappings = (
   const mappings = statement.columns
     .map(c => {
       const tableReferences = availableTables.filter(t =>
-        c.expr.type === 'ref' && c.expr.table ? c.expr.table === t.referredToAs : true,
+        c.expr.type === 'ref' && c.expr.table ? c.expr.table.name === t.referredToAs : true,
       )
       return {
-        queryColumn: c.alias,
+        queryColumn: c.alias?.name,
         aliasFor: c.expr.type === 'ref' ? c.expr.name : '',
         tablesColumnCouldBeFrom: tableReferences.map(t => t.table),
-        hasNullableJoin: tableReferences.some(t => t.nullableJoin),
+        hasNullableJoin: c.expr.type === 'ref' && !!c.expr.table?.name && nullableJoins.includes(c.expr.table.name),
       }
     })
     .map(c => ({...c, queryColumn: c.queryColumn || c.aliasFor}))
@@ -278,7 +290,7 @@ export const simplifySql = lodash.flow(pgsqlAST.parseFirst, pgsqlAST.toSql.state
 if (require.main === module) {
   console.log = (...x: any[]) => console.dir(x.length === 1 ? x[0] : x, {depth: null})
 
-  // console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
+  console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
   // console.log(isUntypable([`select * from `, ` where b = hi`]))
   // console.log(isUntypable([`select * from a where b = `, ``]))
   // console.log(
@@ -321,6 +333,13 @@ if (require.main === module) {
     IN: 'in',
     LIKE: 'like',
     OR: 'or',
+    '#>>': 'json_obj_from_path_text',
+    '&': 'binary_and',
+    '|': 'binary_or',
+    '~': 'binary_ones_complement',
+    '<<': 'binary_left_shift',
+    '>>': 'binary_right_shift',
+    '#': 'bitwise_xor',
   }
   // console.log(`
   //   select *

@@ -15,6 +15,8 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
     "lib": [
       "esnext",
       "dom"

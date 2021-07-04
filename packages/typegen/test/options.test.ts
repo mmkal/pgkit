@@ -86,7 +86,7 @@ test('write types', async () => {
       export default [
         sql<queries.TestTable>\`select * from options_test.test_table\`,
         sql<queries.TestTable_id_t>\`select id, t from test_table\`,
-        sql<queries.TestTable_count>\`select count(*) from test_table\`,
+        sql<queries.Count>\`select count(*) from test_table\`,
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
         sql<queries.TestTable_id>\`select id from test_table where id = \${1} and n = \${2}\`,
         sql<queries._void>\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
@@ -185,7 +185,7 @@ test('write types', async () => {
         }
       
         /** - query: \`select count(*) from test_table\` */
-        export interface TestTable_count {
+        export interface Count {
           /** not null: \`true\`, regtype: \`bigint\` */
           count: number
         }

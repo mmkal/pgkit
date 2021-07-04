@@ -238,7 +238,7 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
     ast.type === 'select' &&
     ast.columns &&
     ast.columns.filter(c => {
-      if (c.expr.type !== 'call' || c.expr.function !== 'count') {
+      if (c.expr.type !== 'call' || c.expr.function.name !== 'count') {
         return false
       }
       const name = c.alias || 'count'
