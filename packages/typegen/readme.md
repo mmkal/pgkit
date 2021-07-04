@@ -155,7 +155,7 @@ usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
                                [--connection-uri URI] [--psql COMMAND]
                                [--default-type TYPESCRIPT] [--glob PATTERN]
                                [--since REF] [--migrate {<=0.8.0}]
-                               [--skip-check-clean]
+                               [--skip-check-clean] [--watch] [--lazy]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
@@ -208,6 +208,12 @@ Optional arguments:
 
   --skip-check-clean    If enabled, the tool will not check the git status to 
                         ensure changes are checked in.
+
+  --watch               Run the type checker in watch mode. Files will be run 
+                        through the code generator when changed or added.
+
+  --lazy                Skip initial processing of input files. Only useful 
+                        with '--watch'.
 ```
 <!-- codegen:end -->
 
