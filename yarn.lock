@@ -7003,10 +7003,10 @@ pgpass@1.x:
   dependencies:
     split2 "^3.1.1"
 
-pgsql-ast-parser@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/pgsql-ast-parser/-/pgsql-ast-parser-3.1.0.tgz#795b53d502ffa8ecd9718037214aaa5e93765d2f"
-  integrity sha512-G/f8pCOStC/UQctcVGVG86qpZb8ypYeUT00lc80m1hi2dxAS9W+i7FfF6C8wfJvuoym/vFfiLBEZ+SCt8oRuSA==
+pgsql-ast-parser@^8.0.0:
+  version "8.1.1"
+  resolved "https://registry.yarnpkg.com/pgsql-ast-parser/-/pgsql-ast-parser-8.1.1.tgz#7da793bcbdcf4521d2a6d07bb3cfc1126f4a2da7"
+  integrity sha512-qcLKs6lK3l2T9YrWCqJc4GUj4NHMFk4OiTxvUo4cNFQyL8jfeKpqcaZooaZsJlDo2QMRLb9+wS8IWXwqrF9UPQ==
   dependencies:
     moo "^0.5.1"
     nearley "^2.19.5"
