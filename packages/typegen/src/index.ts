@@ -59,7 +59,6 @@ export const generate = async (params: Partial<Options>) => {
   const gdesc = memoizee(_gdesc, {max: 1000})
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
-    console.log('gdescing', query.sql)
     const rows = await gdesc(query.sql)
     const fields = await Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
@@ -122,7 +121,6 @@ export const generate = async (params: Partial<Options>) => {
   }
 
   const findAll = async () => {
-    await maybeDo(checkCleanWhen.includes('before'), checkClean)
     const getColumnInfo = columnInfoGetter(pool)
 
     const globParams: Parameters<typeof globAsync> =
@@ -185,7 +183,6 @@ export const generate = async (params: Partial<Options>) => {
       const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
 
       await writeTypes(analysedQueries)
-      await maybeDo(checkCleanWhen.includes('after'), checkClean)
     }
 
     if (!lazy) {
@@ -193,29 +190,51 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     const watch = () => {
-      console.log('Waiting for files to change')
       const cwd = path.resolve(rootDir)
+      logger.info({message: 'Waiting for files to change', globParams, cwd})
       const watcher = chokidar.watch(globParams[0], {
         ignored: globParams[1]?.ignore,
         cwd,
         ignoreInitial: true,
       })
-      const runOne = memoizee((json: string) => generateForFiles(JSON.parse(json).slice(0, 1)))
-      const handler = async (filepath: string, stats: fs.Stats) => {
-        logger.info(filepath + ' updated, running codegen')
+      const runOne = memoizee((filepath: string, _existingContent: string) => generateForFiles([filepath]), {
+        max: 1000,
+      })
+      let promises: Promise<void>[] = []
+      /**
+       * memoized logger. We're memoizing several layers deep, so when the codegen runs on a file, it memoizes
+       * the file path and content, and the queries inside the file. So when a file updates, it's processed and
+       * re-edited inline, which triggers another file change handler. It's then _re-processed_ but since everything
+       * is memoized the resultant content is unchanged from query cache hits. The file is written to with the same
+       * content one more time before the `runOne` cache is hit. Memoizing the log for one second ensure we don't see
+       * unnecessary `x.ts was changed, running codegen` entries. It's hacky, but there's not much overhead at runtime
+       * or in code.
+       */
+      const log = memoizee((msg: unknown) => logger.info(msg), {max: 1000, maxAge: 5000})
+      const handler = async (filepath: string) => {
+        log(filepath + ' was changed, running codegen')
         const fullpath = path.join(cwd, filepath)
-        await runOne(JSON.stringify([fullpath, fs.readFileSync(fullpath).toString()]))
-        logger.info(filepath + ' done.')
+        const existingContent = fs.readFileSync(fullpath).toString()
+        const promise = runOne(fullpath, existingContent)
+        promises.push(promise)
+        await promise
+        log(filepath + ' updated.')
       }
       watcher.on('add', handler)
       watcher.on('change', handler)
-      // await new Promise(() => {})
       return {
-        close: () => watcher.close(),
+        close: async () => {
+          await watcher.close()
+          await Promise.all(promises)
+        },
       }
     }
     return watch
   }
+
+  await maybeDo(checkCleanWhen.includes('before'), checkClean)
   const watch = await findAll()
+  await maybeDo(checkCleanWhen.includes('after'), checkClean)
+
   return {watch}
 }

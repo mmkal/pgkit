@@ -17,7 +17,23 @@ export class SlonikTypegenCLI extends cli.CommandLineParser {
 
   onDefineParameters() {}
 }
-export class GenerateAction extends cli.CommandLineAction {
+
+export abstract class VerboseCommandLineAction extends cli.CommandLineAction {
+  abstract onExecuteWithoutErrorLogging(): Promise<void>
+
+  async onExecute() {
+    try {
+      await this.onExecuteWithoutErrorLogging()
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error(err.stack)
+      }
+      throw err
+    }
+  }
+}
+
+export class GenerateAction extends VerboseCommandLineAction {
   private _params!: ReturnType<typeof GenerateAction._defineParameters>
 
   constructor() {
@@ -111,14 +127,14 @@ export class GenerateAction extends cli.CommandLineAction {
     this._params = GenerateAction._defineParameters(this)
   }
 
-  async onExecute() {
+  async onExecuteWithoutErrorLogging() {
     let optionsModule = this._params.config.value
       ? require(path.resolve(process.cwd(), this._params.config.value))
       : tryOrDefault(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)), null)
 
     const options = optionsModule?.default || optionsModule
 
-    return generate(
+    const run = await generate(
       lodash.merge({}, options, {
         rootDir: this._params.rootDir.value,
         connectionURI: this._params.connectionURI.value,
@@ -126,10 +142,14 @@ export class GenerateAction extends cli.CommandLineAction {
         defaultType: this._params.defaultType.value,
         glob: this._params.since.value ? {since: this._params.since.value} : this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
-        checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
-        watch: this._params.watch.value,
+        checkClean: this._params.skipCheckClean ? ['none'] : undefined,
+        lazy: this._params.lazy.value,
       } as Partial<Options>),
     )
+
+    if (this._params.watch.value) {
+      run.watch()
+    }
   }
 }
 
