@@ -145,6 +145,10 @@ export interface Options {
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
   typeParsers: Array<TypeParserInfo>
+  /**
+   * Skip initial processing of input files. Only useful with `watch`.
+   */
+  lazy?: boolean
 }
 
 export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>

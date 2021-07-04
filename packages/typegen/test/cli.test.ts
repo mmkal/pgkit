@@ -3,6 +3,7 @@ import * as fsSyncer from 'fs-syncer'
 import * as slonik from 'slonik'
 import {psqlCommand} from './helper'
 import * as child_process from 'child_process'
+import * as chokidar from 'chokidar'
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -24,6 +25,13 @@ jest.mock('slonik', () => {
 jest.mock('child_process', () => ({
   ...jest.requireActual<any>('child_process'),
   execSync: jest.fn().mockImplementation(() => ''),
+}))
+
+jest.mock('chokidar', () => ({
+  watch: jest.fn().mockReturnValue({
+    on: jest.fn(),
+    close: jest.fn(),
+  }),
 }))
 
 afterAll(async () => {
@@ -90,7 +98,7 @@ test('can skip checking git status', async () => {
   expect(child_process.execSync).not.toHaveBeenCalled()
 }, 20000)
 
-const fixPsqlCommand = (content: string) => content.split(process.env.POSTGRES_PSQL_COMMAND!).join('<<psql>>')
+const fixPsqlCommand = (content: string) => content.split(psqlCommand).join('<<psql>>')
 
 test('typegen.config.js is used by default', async () => {
   const cli = new SlonikTypegenCLI()
@@ -252,4 +260,20 @@ test('use git to get changed files', async () => {
   ])
 
   expect(child_process.execSync).toHaveBeenCalledWith(`git diff --relative --name-only main`, {cwd: expect.any(String)})
+}, 20000)
+
+test('use chokidar to watch', async () => {
+  // this only tests that we start using chokidar, watch.test.ts checks the actual functionality
+  const cli = new SlonikTypegenCLI()
+
+  const syncer = fsSyncer.jestFixture({
+    targetState: {},
+  })
+
+  syncer.sync()
+
+  await cli.executeWithoutErrorHandling(['generate', '--root-dir', syncer.baseDir, '--skip-check-clean', '--watch'])
+
+  expect(chokidar.watch).toHaveBeenCalledTimes(1)
+  expect(chokidar.watch([]).on).toHaveBeenCalledTimes(2)
 }, 20000)

@@ -6,10 +6,13 @@ import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} fro
 import {columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import * as assert from 'assert'
 import * as path from 'path'
+import * as fs from 'fs'
 import {parameterTypesGetter} from './query/parameters'
 import {migrateLegacyCode} from './migrate'
 import * as write from './write'
 import {createPool} from 'slonik'
+import memoizee = require('memoizee')
+import chokidar = require('chokidar')
 
 export {Options} from './types'
 
@@ -17,7 +20,7 @@ export {defaults}
 
 export {write}
 
-export const generate = (params: Partial<Options>) => {
+export const generate = async (params: Partial<Options>) => {
   const {
     psqlCommand,
     connectionURI,
@@ -32,13 +35,14 @@ export const generate = (params: Partial<Options>) => {
     logger,
     migrate,
     checkClean: checkCleanWhen,
+    lazy,
   } = defaults.getParams(params)
 
   const pool = createPool(connectionURI, poolConfig)
 
-  const {psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
+  const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
-  const gdesc = async (sql: string) => {
+  const _gdesc = async (sql: string) => {
     try {
       return await psql(`${sql} \\gdesc`)
     } catch (e) {
@@ -50,6 +54,9 @@ export const generate = (params: Partial<Options>) => {
       return await psql(`${simplified} \\gdesc`)
     }
   }
+
+  const psql = memoizee(_psql, {max: 1000})
+  const gdesc = memoizee(_gdesc, {max: 1000})
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await gdesc(query.sql)
@@ -114,7 +121,6 @@ export const generate = (params: Partial<Options>) => {
   }
 
   const findAll = async () => {
-    await maybeDo(checkCleanWhen.includes('before'), checkClean)
     const getColumnInfo = columnInfoGetter(pool)
 
     const globParams: Parameters<typeof globAsync> =
@@ -124,14 +130,14 @@ export const generate = (params: Partial<Options>) => {
         ? [globList(changedFiles({since: glob.since, cwd: path.resolve(rootDir)})), {}]
         : glob
 
-    logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
-
-    const getFiles = () =>
-      globAsync(globParams[0], {
+    const getFiles = () => {
+      logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
+      return globAsync(globParams[0], {
         ...globParams[1],
         cwd: path.resolve(process.cwd(), rootDir),
         absolute: true,
       })
+    }
 
     if (migrate) {
       await maybeDo(checkCleanWhen.includes('before-migrate'), checkClean)
@@ -139,44 +145,94 @@ export const generate = (params: Partial<Options>) => {
       await maybeDo(checkCleanWhen.includes('after-migrate'), checkClean)
     }
 
-    const files = await getFiles() // Migration may have deleted some, get files from fresh.
-    const extracted = files.flatMap(extractQueries)
+    async function generateForFiles(files: string[]) {
+      const extracted = files.flatMap(extractQueries)
 
-    logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
+      logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
 
-    const promises = extracted.map(async (query): Promise<DescribedQuery | null> => {
-      try {
-        if (isUntypeable(query.template)) {
-          logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
+      const promises = extracted.map(async (query): Promise<DescribedQuery | null> => {
+        try {
+          if (isUntypeable(query.template)) {
+            logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
+            return null
+          }
+          return {
+            ...query,
+            fields: await getFields(query),
+            parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+          }
+        } catch (e) {
+          let message = `${query.file}:${query.line} Describing query failed: ${e}.`
+          if (query.sql.includes('--')) {
+            message += ' Try moving comments to dedicated lines.'
+          }
+          logger.warn(message)
           return null
         }
-        return {
-          ...query,
-          fields: await getFields(query),
-          parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-        }
-      } catch (e) {
-        let message = `${query.file}:${query.line} Describing query failed: ${e}.`
-        if (query.sql.includes('--')) {
-          message += ' Try moving comments to dedicated lines.'
-        }
-        logger.warn(message)
-        return null
+      })
+
+      const describedQueries = lodash.compact(await Promise.all(promises))
+
+      const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
+      logger.info(
+        `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles} .`,
+      )
+
+      const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
+
+      await writeTypes(analysedQueries)
+    }
+
+    if (!lazy) {
+      await generateForFiles(await getFiles())
+    }
+
+    const watch = () => {
+      const cwd = path.resolve(rootDir)
+      logger.info({message: 'Waiting for files to change', globParams, cwd})
+      const watcher = chokidar.watch(globParams[0], {
+        ignored: globParams[1]?.ignore,
+        cwd,
+        ignoreInitial: true,
+      })
+      const runOne = memoizee((filepath: string, _existingContent: string) => generateForFiles([filepath]), {
+        max: 1000,
+      })
+      let promises: Promise<void>[] = []
+      /**
+       * memoized logger. We're memoizing several layers deep, so when the codegen runs on a file, it memoizes
+       * the file path and content, and the queries inside the file. So when a file updates, it's processed and
+       * re-edited inline, which triggers another file change handler. It's then _re-processed_ but since everything
+       * is memoized the resultant content is unchanged from query cache hits. The file is written to with the same
+       * content one more time before the `runOne` cache is hit. Memoizing the log for one second ensure we don't see
+       * unnecessary `x.ts was changed, running codegen` entries. It's hacky, but there's not much overhead at runtime
+       * or in code.
+       */
+      const log = memoizee((msg: unknown) => logger.info(msg), {max: 1000, maxAge: 5000})
+      const handler = async (filepath: string) => {
+        log(filepath + ' was changed, running codegen')
+        const fullpath = path.join(cwd, filepath)
+        const existingContent = fs.readFileSync(fullpath).toString()
+        const promise = runOne(fullpath, existingContent)
+        promises.push(promise)
+        await promise
+        log(filepath + ' updated.')
       }
-    })
-
-    const describedQueries = lodash.compact(await Promise.all(promises))
-
-    const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
-    logger.info(
-      `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles} .`,
-    )
-
-    const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
-
-    await writeTypes(analysedQueries)
-    await maybeDo(checkCleanWhen.includes('after'), checkClean)
+      watcher.on('add', handler)
+      watcher.on('change', handler)
+      return {
+        close: async () => {
+          await watcher.close()
+          await Promise.all(promises)
+        },
+      }
+    }
+    return watch
   }
 
-  return findAll()
+  await maybeDo(checkCleanWhen.includes('before'), checkClean)
+  const watch = await findAll()
+  await maybeDo(checkCleanWhen.includes('after'), checkClean)
+
+  return {watch}
 }

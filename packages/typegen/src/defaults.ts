@@ -56,6 +56,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     typeParsers = defaultTypeParsers(poolConfig.typeParsers || []),
     migrate = undefined,
     checkClean = defaultCheckClean,
+    lazy = false,
     ...rest
   } = partial
 
@@ -77,5 +78,6 @@ export const getParams = (partial: Partial<Options>): Options => {
     logger,
     migrate,
     checkClean,
+    lazy,
   }
 }

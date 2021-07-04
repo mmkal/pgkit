@@ -29,8 +29,8 @@ export function addTags(queries: AnalysedQuery[]): TaggedQuery[] {
       const matchesFirstTag = arr[firstWithTagIndex].identifier === q.identifier
       return {
         ...q,
-        tag: matchesFirstTag ? q.tag : q.tag + '_' + firstWithTagIndex,
-        priority: matchesFirstTag ? 0 : 1,
+        tag: matchesFirstTag ? q.tag : `${q.tag}_${firstWithTagIndex}`,
+        priority: q.tag.startsWith('Anonymous') ? 2 : matchesFirstTag ? 0 : 1,
       }
     })
     .sortBy(q => q.priority)

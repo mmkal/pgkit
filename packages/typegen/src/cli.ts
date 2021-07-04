@@ -17,6 +17,7 @@ export class SlonikTypegenCLI extends cli.CommandLineParser {
 
   onDefineParameters() {}
 }
+
 export class GenerateAction extends cli.CommandLineAction {
   private _params!: ReturnType<typeof GenerateAction._defineParameters>
 
@@ -96,6 +97,14 @@ export class GenerateAction extends cli.CommandLineAction {
         parameterLongName: '--skip-check-clean',
         description: `If enabled, the tool will not check the git status to ensure changes are checked in.`,
       }),
+      watch: action.defineFlagParameter({
+        parameterLongName: '--watch',
+        description: `Run the type checker in watch mode. Files will be run through the code generator when changed or added.`,
+      }),
+      lazy: action.defineFlagParameter({
+        parameterLongName: '--lazy',
+        description: `Skip initial processing of input files. Only useful with '--watch'.`,
+      }),
     }
   }
 
@@ -110,7 +119,7 @@ export class GenerateAction extends cli.CommandLineAction {
 
     const options = optionsModule?.default || optionsModule
 
-    return generate(
+    const run = await generate(
       lodash.merge({}, options, {
         rootDir: this._params.rootDir.value,
         connectionURI: this._params.connectionURI.value,
@@ -119,8 +128,13 @@ export class GenerateAction extends cli.CommandLineAction {
         glob: this._params.since.value ? {since: this._params.since.value} : this._params.glob.value,
         migrate: this._params.migrate.value as Options['migrate'],
         checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
+        lazy: this._params.lazy.value,
       } as Partial<Options>),
     )
+
+    if (this._params.watch.value) {
+      run.watch()
+    }
   }
 }
 
