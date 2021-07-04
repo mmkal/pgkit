@@ -157,7 +157,7 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
       tables: ast.from
         ?.map(f =>
           match(f)
-            .case({alias: String}, f => f.alias)
+            .case({alias: {name: String}}, f => f.alias.name)
             .case({type: 'table'} as const, t => t.name.name)
             .default(() => '') // filtered out below
             .get(),
