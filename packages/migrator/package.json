@@ -28,7 +28,7 @@
   },
   "devDependencies": {
     "@types/dedent": "0.7.0",
-    "@types/lodash": "4.14.170",
+    "@types/lodash": "4.14.171",
     "dedent": "0.7.0",
     "lodash": "4.17.21",
     "strip-ansi": "7.0.0"
