@@ -24,14 +24,14 @@ describe('run sql, js and ts migrations', () => {
     '01.one.sql': 'create table migration_test_1(id int)',
     '02.two.sql': 'create table migration_test_2(id int)',
     '03.three.js': dedent`
-      module.exports.up = ({slonik, sql}) => slonik.query(sql\`create table migration_test_3(id int)\`)
-      module.exports.down = ({slonik, sql}) => slonik.query(sql\`drop table migration_test_3\`)
+      module.exports.up = ({context: {connection, sql}}) => connection.query(sql\`create table migration_test_3(id int)\`)
+      module.exports.down = ({context: {connection, sql}}) => connection.query(sql\`drop table migration_test_3\`)
     `,
     '04.four.ts': dedent`
       import {Migration} from '../../../..'
 
-      export const up: Migration = ({slonik, sql}) => slonik.query(sql\`create table migration_test_4(id int)\`)
-      export const down: Migration = ({slonik, sql}) => slonik.query(sql\`drop table migration_test_4\`)
+      export const up: Migration = ({context: {connection, sql}}) => connection.query(sql\`create table migration_test_4(id int)\`)
+      export const down: Migration = ({context: {connection, sql}}) => connection.query(sql\`drop table migration_test_4\`)
     `,
     down: {
       '01.one.sql': 'drop table migration_test_1',
