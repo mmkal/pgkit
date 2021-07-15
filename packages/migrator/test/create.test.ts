@@ -47,23 +47,23 @@ describe('create', () => {
         raise 'up migration not implemented'
       2000.01.02T00.00.00.javascript.js: |
         /** @type {import('@sloink/migrator').Migration} */
-        exports.up = async ({slonik, sql}) => {
-          await slonik.query(sql\`raise 'up migration not implemented'\`)
+        exports.up = async ({context: {connection, sql}}) => {
+          await connection.query(sql\`raise 'up migration not implemented'\`)
         }
 
         /** @type {import('@sloink/migrator').Migration} */
-        exports.down = async ({slonik, sql}) => {
-          await slonik.query(sql\`raise 'down migration not implemented'\`)
+        exports.down = async ({context: {connection, sql}}) => {
+          await connection.query(sql\`raise 'down migration not implemented'\`)
         }
       2000.01.03T00.00.00.typescript.ts: |
         import {Migration} from '@slonik/migrator'
 
-        export const up: Migration = async ({slonik, sql}) => {
-          await slonik.query(sql\`raise 'up migration not implemented'\`)
+        export const up: Migration = async ({context: {connection, sql}}) => {
+          await connection.query(sql\`raise 'up migration not implemented'\`)
         }
 
-        export const down: Migration = async ({slonik, sql}) => {
-          await slonik.query(sql\`raise 'down migration not implemented'\`)
+        export const down: Migration = async ({context: {connection, sql}}) => {
+          await connection.query(sql\`raise 'down migration not implemented'\`)
         }
       down:
         2000.01.01T00.00.00.sql.sql: |
