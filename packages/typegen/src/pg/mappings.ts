@@ -45,17 +45,26 @@ export function regTypeToPGTypeGetter(pool: DatabasePoolType) {
 
 /**
  * Global mappings from postgres type => typescript, in the absence of any field transformers.
+ * List of postgres types: https://www.postgresql.org/docs/9.5/datatype.html
  */
 export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
-  text: 'string',
-  integer: 'number',
-  real: 'number',
-  oid: 'number',
+  bigint: 'number',
+  bit: 'number',
   boolean: 'boolean',
-  name: 'string',
-  regtype: 'string',
-  'double precision': 'number',
+  cidr: 'string',
   'character varying': 'string',
+  'double precision': 'number',
+  integer: 'number',
+  interval: 'number',
+  money: 'string',
+  name: 'string',
+  oid: 'number',
+  real: 'number',
+  regtype: 'string',
+  smallint: 'number',
+  text: 'string',
+  'time with time zone': 'string',
+  'time without time zone': 'string',
   'timestamp with time zone': 'string',
   'timestamp without time zone': 'string',
   uuid: 'string',
