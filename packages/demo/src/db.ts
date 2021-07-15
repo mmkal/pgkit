@@ -4,6 +4,7 @@ import {load} from 'dotenv-extended'
 load()
 
 export const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING!, {
+  preferNativeBindings: false,
   typeParsers: [
     ...createTypeParserPreset(),
     {

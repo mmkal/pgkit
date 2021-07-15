@@ -39,6 +39,7 @@ export const getPoolHelper = (params: {
 
   const pool = createPool(params.baseConnectionURI, {
     idleTimeout: 1,
+    preferNativeBindings: false,
     ...params?.config,
     interceptors: [
       {

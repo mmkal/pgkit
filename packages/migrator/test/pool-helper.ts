@@ -11,6 +11,7 @@ export const getPoolHelper = (params: {__filename: string; config?: ClientConfig
 
   const pool = createPool('postgresql://postgres:postgres@localhost:5433/postgres', {
     idleTimeout: 1,
+    preferNativeBindings: false,
     ...params?.config,
     interceptors: [
       {
