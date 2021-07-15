@@ -6,38 +6,40 @@ import {truncateQuery} from '../util'
 // todo[pgsql-ast-parser>=3.2.0] blacklist deallocate, drop, etc. rather than rely on this.
 const _sql = sql
 
-export const parameterTypesGetter = (pool: DatabasePoolType) => async (query: string): Promise<string[]> => {
-  const statementName = `temp_statement_${randomBytes(16).join('')}`
+export const parameterTypesGetter =
+  (pool: DatabasePoolType) =>
+  async (query: string): Promise<string[]> => {
+    const statementName = `temp_statement_${randomBytes(16).join('')}`
 
-  const prepareSql = `prepare ${statementName} as ${query}`
+    const prepareSql = `prepare ${statementName} as ${query}`
 
-  await pool.query({
-    type: 'SLONIK_TOKEN_SQL',
-    sql: prepareSql,
-    values: [],
-  })
+    await pool.query({
+      type: 'SLONIK_TOKEN_SQL',
+      sql: prepareSql,
+      values: [],
+    })
 
-  try {
-    const regtypes = await pool.oneFirst(
-      sql<queries.PgPreparedStatement>`
+    try {
+      const regtypes = await pool.oneFirst(
+        sql<queries.PgPreparedStatement>`
         select parameter_types::text
         from pg_prepared_statements
         where name = ${statementName}
       `,
-    )
+      )
 
-    assert.ok(regtypes, `No parameters received from: prepare ${statementName} as ${truncateQuery(query)}`)
-    // parameter_types is an array, but to make sure we aren't tripped over by any custom type parsers, it was cast to text.
-    // so it should look like `{int,boolean,text}`
-    assert.ok(regtypes.startsWith('{') && regtypes.endsWith('}'), `Unexpected parameter types format: ${regtypes}`)
+      assert.ok(regtypes, `No parameters received from: prepare ${statementName} as ${truncateQuery(query)}`)
+      // parameter_types is an array, but to make sure we aren't tripped over by any custom type parsers, it was cast to text.
+      // so it should look like `{int,boolean,text}`
+      assert.ok(regtypes.startsWith('{') && regtypes.endsWith('}'), `Unexpected parameter types format: ${regtypes}`)
 
-    if (regtypes === '{}') return []
+      if (regtypes === '{}') return []
 
-    return regtypes.slice(1, -1).split(',')
-  } finally {
-    await pool.query(_sql`deallocate ${sql.identifier([statementName])}`)
+      return regtypes.slice(1, -1).split(',')
+    } finally {
+      await pool.query(_sql`deallocate ${sql.identifier([statementName])}`)
+    }
   }
-}
 
 /* istanbul ignore if */
 if (require.main === module) {

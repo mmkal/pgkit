@@ -13,15 +13,14 @@ export interface WriteSQLFileOptions {
 export const defaultGetModulePathFromSQLPath: WriteSQLFileOptions['getModulePath'] = sqlPath =>
   path.join(path.dirname(sqlPath), '__sql__', path.basename(sqlPath) + '.ts')
 
-export const getSQLHelperWriter = ({
-  getModulePath = defaultGetModulePathFromSQLPath,
-  writeFile,
-}: WriteSQLFileOptions) => async (query: TaggedQuery) => {
-  const destPath = getModulePath(query.file)
-  const newContent = getSQLHelperContent(query, destPath)
+export const getSQLHelperWriter =
+  ({getModulePath = defaultGetModulePathFromSQLPath, writeFile}: WriteSQLFileOptions) =>
+  async (query: TaggedQuery) => {
+    const destPath = getModulePath(query.file)
+    const newContent = getSQLHelperContent(query, destPath)
 
-  await writeFile(destPath, prettifyOne({content: newContent, filepath: destPath}))
-}
+    await writeFile(destPath, prettifyOne({content: newContent, filepath: destPath}))
+  }
 
 export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
   query = {...query, tag: typeName(path.parse(query.file).name)}

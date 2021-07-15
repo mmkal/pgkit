@@ -30,7 +30,7 @@
     "eslint": "eslint --ext .ts,.js,.md",
     "changes": "echo n | lerna publish | grep -v 'Are you sure you want to publish these packages?'",
     "changes:hash": "export CHANGES=\"$(yarn --silent changes)\" && export HASH=\"$(echo \"$CHANGES\" | sha256sum | sed 's/\\W//g')\" && printf \"${CHANGES:-no changes!}\\n\\n\" 1>&2 && echo \"$HASH\"",
-    "lint": "yarn eslint .",
+    "lint": "yarn --max-warnings 0 eslint .",
     "migrate": "lerna run migrate",
     "publish-canary": "lerna publish --canary --preid $(yarn --silent canary-preid) --dist-tag $(yarn --silent current-branch)",
     "test": "jest --runInBand"
