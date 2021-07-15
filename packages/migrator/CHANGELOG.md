@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.8.4](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.8.3...@slonik/migrator@0.8.4) (2021-07-15)
+
+
+### Bug Fixes
+
+* **typegen:** explicitly disable pg-native ([#335](https://github.com/mmkal/slonik-tools/issues/335)) ([bac83f9](https://github.com/mmkal/slonik-tools/commit/bac83f9efa09d439377d4eb054b41e825633f008)), closes [#334](https://github.com/mmkal/slonik-tools/issues/334) [#334](https://github.com/mmkal/slonik-tools/issues/334)
+* stop templates using deprecated API ([4d9c644](https://github.com/mmkal/slonik-tools/commit/4d9c6440f39f06c17e28ed6455a774f1cffbe1fc)), closes [#332](https://github.com/mmkal/slonik-tools/issues/332)
+
+
+
+
+
 ## [0.8.3](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.8.2...@slonik/migrator@0.8.3) (2021-06-29)
 
 

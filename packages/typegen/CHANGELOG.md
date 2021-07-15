@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.11.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.10.0...@slonik/typegen@0.11.0) (2021-07-15)
+
+
+### Bug Fixes
+
+* **typegen:** explicitly disable pg-native ([#335](https://github.com/mmkal/slonik-tools/issues/335)) ([bac83f9](https://github.com/mmkal/slonik-tools/commit/bac83f9efa09d439377d4eb054b41e825633f008)), closes [#334](https://github.com/mmkal/slonik-tools/issues/334) [#334](https://github.com/mmkal/slonik-tools/issues/334)
+
+
+### Features
+
+* more default type mappings ([15a7bb5](https://github.com/mmkal/slonik-tools/commit/15a7bb580da200727848c3e960602c715a8e09d0)), closes [#333](https://github.com/mmkal/slonik-tools/issues/333)
+
+
+
+
+
 # [0.10.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.9.5...@slonik/typegen@0.10.0) (2021-07-04)
 
 

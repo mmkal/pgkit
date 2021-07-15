@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.9.7](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.9.6...slonik-tools-demo@0.9.7) (2021-07-15)
+
+
+### Bug Fixes
+
+* **typegen:** explicitly disable pg-native ([#335](https://github.com/mmkal/slonik-tools/issues/335)) ([bac83f9](https://github.com/mmkal/slonik-tools/commit/bac83f9efa09d439377d4eb054b41e825633f008)), closes [#334](https://github.com/mmkal/slonik-tools/issues/334) [#334](https://github.com/mmkal/slonik-tools/issues/334)
+
+
+
+
+
 ## [0.9.6](https://github.com/mmkal/slonik-tools/compare/slonik-tools-demo@0.9.5...slonik-tools-demo@0.9.6) (2021-07-04)
 
 **Note:** Version bump only for package slonik-tools-demo
