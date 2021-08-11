@@ -166,7 +166,7 @@ describe('concurrency', () => {
         slonik: helper.pool,
         migrationsPath: path.join(syncer.baseDir, 'migrations'),
         migrationTableName: 'migrations',
-        logger: undefined,
+        logger: helper.mockLogger,
       })
 
     const [m1, m2] = [migrator(), migrator()]
@@ -189,5 +189,11 @@ describe('concurrency', () => {
     expect(m2MigratingSpy).not.toHaveBeenCalled()
 
     expect(await migrator().executed().then(names)).toEqual(['m1.sql', 'm2.sql'])
+
+    expect(helper.mockLogger.info).toHaveBeenCalledWith({
+      message: expect.stringContaining(
+        `Waiting for lock. This may mean another process is simultaneously running migrations. You may want to issue a command like "set lock_timeout = '10s'" if this happens frequently. Othrewise, this command may wait until the process is killed.`,
+      ),
+    })
   })
 })
