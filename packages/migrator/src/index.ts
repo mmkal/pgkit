@@ -28,7 +28,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
         parent: slonikMigratorOptions.slonik,
         sql,
         commit: null as never, // commit function is added later by storage setup.
-        connection: null as never, // commit function is added later by storage setup.
+        connection: null as never, // connection function is added later by storage setup.
       }),
       migrations: () => ({
         glob: [this.migrationsGlob(), {cwd: path.resolve(slonikMigratorOptions.migrationsPath)}],
@@ -174,14 +174,16 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected async teardown({context}: {context: SlonikMigratorContext}) {
-    await context.connection.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
+    // Note: the unlock command needs to be done using the parent connection, since `teardown` can be called when an error is thrown.
+    // When `singleTransaction: true` this means unlock is _never_ called.
+    context.connection = null as never
+    await context.parent.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
       this.slonikMigratorOptions.logger?.error({
-        message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
+        message: `Failed to unlock. This is expected if the lock acquisition timed out. You may need to run "select pg_advisory_unlock(${this.advisoryLockId()})" manually`,
         originalError: error,
       })
     })
     await context.commit()
-    context.connection = null as never
   }
 
   protected hash(name: string) {
