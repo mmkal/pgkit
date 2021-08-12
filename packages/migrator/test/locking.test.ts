@@ -52,6 +52,39 @@ describe('locking', () => {
 
     expect(await migrator().executed().then(names)).toEqual(['m1.sql', 'm2.sql'])
   })
+
+  test(`singleTransaction doesn't prevent unlock`, async () => {
+    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'singelTransaction')
+    const syncer = fsSyncer(baseDir, {
+      migrations: {
+        'm1.sql': 'create table locking_test_table(id int primary key);',
+        'm2.sql': 'this is a syntax error',
+        down: {
+          'm1.sql': 'drop table locking_test_table;',
+          'm2.sql': '',
+        },
+      },
+    })
+    syncer.sync()
+
+    const migrator = new SlonikMigrator({
+      slonik: helper.pool,
+      migrationsPath: path.join(syncer.baseDir, 'migrations'),
+      migrationTableName: 'locking_transaction_migrations',
+      singleTransaction: true,
+      logger: helper.mockLogger,
+    })
+
+    expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
+
+    await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
+      `"Migration m2.sql (up) failed: Original error: syntax error at or near \\"this\\""`,
+    )
+
+    expect(helper.mockLogger.error).not.toHaveBeenCalled()
+
+    expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
+  })
 })
 
 describe('concurrency', () => {
@@ -133,7 +166,7 @@ describe('concurrency', () => {
         slonik: helper.pool,
         migrationsPath: path.join(syncer.baseDir, 'migrations'),
         migrationTableName: 'migrations',
-        logger: undefined,
+        logger: helper.mockLogger,
       })
 
     const [m1, m2] = [migrator(), migrator()]
@@ -156,5 +189,11 @@ describe('concurrency', () => {
     expect(m2MigratingSpy).not.toHaveBeenCalled()
 
     expect(await migrator().executed().then(names)).toEqual(['m1.sql', 'm2.sql'])
+
+    expect(helper.mockLogger.info).toHaveBeenCalledWith({
+      message: expect.stringContaining(
+        `Waiting for lock. This may mean another process is simultaneously running migrations. You may want to issue a command like "set lock_timeout = '10s'" if this happens frequently. Othrewise, this command may wait until the process is killed.`,
+      ),
+    })
   })
 })

@@ -28,7 +28,7 @@ describe('run sql, js and ts migrations', () => {
       module.exports.down = ({context: {connection, sql}}) => connection.query(sql\`drop table migration_test_3\`)
     `,
     '04.four.ts': dedent`
-      import {Migration} from '../../../..'
+      import {Migration} from '../../../../src'
 
       export const up: Migration = ({context: {connection, sql}}) => connection.query(sql\`create table migration_test_4(id int)\`)
       export const down: Migration = ({context: {connection, sql}}) => connection.query(sql\`drop table migration_test_4\`)

@@ -28,7 +28,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
         parent: slonikMigratorOptions.slonik,
         sql,
         commit: null as never, // commit function is added later by storage setup.
-        connection: null as never, // commit function is added later by storage setup.
+        connection: null as never, // connection function is added later by storage setup.
       }),
       migrations: () => ({
         glob: [this.migrationsGlob(), {cwd: path.resolve(slonikMigratorOptions.migrationsPath)}],
@@ -137,6 +137,38 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     `)
   }
 
+  async runCommand<T>(command: string, cb: ({context}: {context: SlonikMigratorContext}) => Promise<T>) {
+    if (command === 'up' || command === 'down') {
+      return super.runCommand(command, async ({context}) => {
+        return context.parent.connect(async conn => {
+          const logger = this.slonikMigratorOptions.logger
+          const timeout = setTimeout(
+            () =>
+              logger?.info({
+                message: `Waiting for lock. This may mean another process is simultaneously running migrations. You may want to issue a command like "set lock_timeout = '10s'" if this happens frequently. Othrewise, this command may wait until the process is killed.`,
+              }),
+            1000,
+          )
+          await conn.any(context.sql`select pg_advisory_lock(${this.advisoryLockId()})`)
+
+          try {
+            clearTimeout(timeout)
+            const result = await cb({context})
+            return result
+          } finally {
+            await conn.any(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
+              this.slonikMigratorOptions.logger?.error({
+                message: `Failed to unlock. This is expected if the lock acquisition timed out. Otherwise, you may need to run "select pg_advisory_unlock(${this.advisoryLockId()})" manually`,
+                originalError: error,
+              })
+            })
+          }
+        })
+      })
+    }
+    return super.runCommand(command, cb)
+  }
+
   protected async setup({context}: {context: SlonikMigratorContext}) {
     let settle!: Function
     const settledPromise = new Promise(resolve => (settle = resolve))
@@ -159,13 +191,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
       return connectionPromise
     }
 
-    const logger = this.slonikMigratorOptions.logger
-
     try {
-      const timeout = setTimeout(() => logger?.info({message: `Waiting for lock...`} as any), 1000)
-      await context.connection.any(context.sql`select pg_advisory_lock(${this.advisoryLockId()})`)
-      clearTimeout(timeout)
-
       await this.getOrCreateMigrationsTable(context)
     } catch (e) {
       await context.commit()
@@ -174,14 +200,10 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected async teardown({context}: {context: SlonikMigratorContext}) {
-    await context.connection.query(context.sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
-      this.slonikMigratorOptions.logger?.error({
-        message: `Failed to unlock. This is expected if the lock acquisition timed out.`,
-        originalError: error,
-      })
-    })
-    await context.commit()
+    // Note: the unlock command needs to be done using the parent connection, since `teardown` can be called when an error is thrown.
+    // When `singleTransaction: true` this means unlock is _never_ called.
     context.connection = null as never
+    await context.commit()
   }
 
   protected hash(name: string) {

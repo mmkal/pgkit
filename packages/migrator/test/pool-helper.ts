@@ -32,12 +32,11 @@ export const getPoolHelper = (params: {__filename: string; config?: ClientConfig
     await pool.query(sql`create schema ${schemaIdentifier}`)
   })
 
-  const mockLog = jest.fn()
   const mockLogger = {
-    debug: mockLog,
-    info: mockLog,
-    warn: mockLog,
-    error: mockLog,
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
   }
 
   /** Get the names from a list of migrations. Useful for light assertions */
