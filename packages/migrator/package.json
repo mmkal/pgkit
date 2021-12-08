@@ -1,6 +1,6 @@
 {
   "name": "@slonik/migrator",
-  "version": "0.8.5",
+  "version": "0.8.6",
   "description": "database migration tool using slonik",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
