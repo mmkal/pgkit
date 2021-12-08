@@ -7982,7 +7982,7 @@ slide@^1.1.6:
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-slonik@^26.0.0:
+slonik@26.0.0:
   version "26.0.0"
   resolved "https://registry.yarnpkg.com/slonik/-/slonik-26.0.0.tgz#b47718503687418318f2e4e5e1120977014e2076"
   integrity sha512-1+Bt/tKDDyqIbqc6Nke6+VkfvcFv/RidqoYNIo9ryvVqJBK4wYfyEToAoWv35UJ0UXsEd3mkFKalkcNaou2pJQ==
