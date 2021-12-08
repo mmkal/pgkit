@@ -6,12 +6,14 @@ import {addTags} from '../query/tag'
 import * as assert from 'assert'
 import * as fs from 'fs'
 import * as path from 'path'
+import {prettifyOne} from './prettify'
 
 export type WriteFile = (filepath: string, content: string) => Promise<void>
 
 export const defaultWriteFile: WriteFile = async (filepath, content) => {
   await fs.promises.mkdir(path.dirname(filepath), {recursive: true})
-  await fs.promises.writeFile(filepath, content)
+  const pretty = prettifyOne({filepath, content})
+  await fs.promises.writeFile(filepath, pretty)
 }
 
 /**

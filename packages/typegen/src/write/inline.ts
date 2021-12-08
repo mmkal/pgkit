@@ -1,7 +1,7 @@
 import * as lodash from 'lodash'
 import {TaggedQuery} from '../types'
 import {relativeUnixPath} from '../util'
-import {prettifyOne, tsPrettify} from './prettify'
+import {tsPrettify} from './prettify'
 import type * as ts from 'typescript'
 import * as path from 'path'
 import {queryInterfaces} from './typescript'
@@ -45,7 +45,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
       })
     } else {
       let content = queryInterfaces(group)
-      await writeFile(destPath, prettifyOne({filepath: destPath, content}))
+      await writeFile(destPath, content)
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
       const importStatement = `import * as queries from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
@@ -67,7 +67,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
 
     const newSource = applyEdits(originalSource, edits)
 
-    await writeFile(file, prettifyOne({filepath: file, content: newSource}))
+    await writeFile(file, newSource)
 
     function visit(node: ts.Node) {
       if (ts.isModuleDeclaration(node) && node.name.getText() === 'queries') {

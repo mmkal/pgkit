@@ -2,7 +2,7 @@ import {dedent, relativeUnixPath, typeName, truncateQuery} from '../util'
 import * as path from 'path'
 import {getterExpression, jsdocComment, queryInterfaces, quotePropKey} from './typescript'
 import {TaggedQuery} from '../types'
-import {prettifyOne, tsPrettify} from './prettify'
+import {tsPrettify} from './prettify'
 import {WriteFile} from '.'
 
 export interface WriteSQLFileOptions {
@@ -19,7 +19,7 @@ export const getSQLHelperWriter =
     const destPath = getModulePath(query.file)
     const newContent = getSQLHelperContent(query, destPath)
 
-    await writeFile(destPath, prettifyOne({content: newContent, filepath: destPath}))
+    await writeFile(destPath, newContent)
   }
 
 export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
