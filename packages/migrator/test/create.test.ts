@@ -46,12 +46,12 @@ describe('create', () => {
       2000.01.01T00.00.00.sql.sql: |
         raise 'up migration not implemented'
       2000.01.02T00.00.00.javascript.js: |
-        /** @type {import('@sloink/migrator').Migration} */
+        /** @type {import('@slonik/migrator').Migration} */
         exports.up = async ({context: {connection, sql}}) => {
           await connection.query(sql\`raise 'up migration not implemented'\`)
         }
 
-        /** @type {import('@sloink/migrator').Migration} */
+        /** @type {import('@slonik/migrator').Migration} */
         exports.down = async ({context: {connection, sql}}) => {
           await connection.query(sql\`raise 'down migration not implemented'\`)
         }
