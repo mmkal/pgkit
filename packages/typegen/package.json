@@ -42,7 +42,6 @@
     "@types/glob": "7.1.4",
     "@types/memoizee": "0.4.6",
     "@types/pluralize": "0.0.29",
-    "fs-syncer": "0.3.4-next.2",
-    "pg-native": "3.0.0"
+    "fs-syncer": "0.3.4-next.2"
   }
 }
