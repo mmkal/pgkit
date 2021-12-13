@@ -31,4 +31,5 @@ module.exports = params => {
     })
     .join(os.EOL + os.EOL)
     .replace(/<script>/g, 'node migrate')
+    .replace('\n-h', '-h')
 }
