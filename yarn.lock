@@ -4084,6 +4084,11 @@ fast-safe-stringify@^2.0.7:
   resolved "https://registry.yarnpkg.com/fast-safe-stringify/-/fast-safe-stringify-2.0.7.tgz#124aa885899261f68aedb42a7c080de9da608743"
   integrity sha512-Utm6CdzT+6xsDk2m8S6uL8VHxNwI6Jub+e9NYTcAms28T84pTa25GJQV9j0CY0N1rM8hK4x6grpF2BQf+2qwVA==
 
+fast-safe-stringify@^2.1.1:
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/fast-safe-stringify/-/fast-safe-stringify-2.1.1.tgz#c406a83b6e70d9e35ce3b30a81141df30aeba884"
+  integrity sha512-W+KJc2dmILlPplD/H4K9l9LcAHAfPtP6BY84uVLXQ6Evcz9Lcg33Y2z1IVblT6xdY54PXYVHEv+0Wpq8Io6zkA==
+
 fastq@^1.6.0:
   version "1.8.0"
   resolved "https://registry.yarnpkg.com/fastq/-/fastq-1.8.0.tgz#550e1f9f59bbc65fe185cb6a9b4d95357107f481"
@@ -7991,13 +7996,14 @@ slide@^1.1.6:
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-slonik@26.0.0:
-  version "26.0.0"
-  resolved "https://registry.yarnpkg.com/slonik/-/slonik-26.0.0.tgz#b47718503687418318f2e4e5e1120977014e2076"
-  integrity sha512-1+Bt/tKDDyqIbqc6Nke6+VkfvcFv/RidqoYNIo9ryvVqJBK4wYfyEToAoWv35UJ0UXsEd3mkFKalkcNaou2pJQ==
+slonik@26.1.0:
+  version "26.1.0"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-26.1.0.tgz#8ee3446af7b329c44d25ec49b6fa3e4e15382bad"
+  integrity sha512-P4/l37p1c0j5pTXrXCDqShTMtNUCmbbFy+VXZomdcgFynmyRtee28+Zr/DLcwSBroTfxBg60T9WoxWeXJ8XgtQ==
   dependencies:
     concat-stream "^2.0.0"
     es6-error "^4.1.1"
+    fast-safe-stringify "^2.1.1"
     get-stack-trace "^2.1.1"
     hyperid "^2.3.1"
     is-plain-object "^5.0.0"
