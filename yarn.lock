@@ -8906,10 +8906,10 @@ umask@^1.1.0:
   resolved "https://registry.yarnpkg.com/umask/-/umask-1.1.0.tgz#f29cebf01df517912bb58ff9c4e50fde8e33320d"
   integrity sha1-8pzr8B31F5ErtY/5xOUP3o4zMg0=
 
-umzug@3.0.0-beta.19:
-  version "3.0.0-beta.19"
-  resolved "https://registry.yarnpkg.com/umzug/-/umzug-3.0.0-beta.19.tgz#4862003f7ce263c9a44216cb4df4df9ec298e5d1"
-  integrity sha512-oZ16QeFT0U5rkUI356eXvwlNl4JR3nooVD0Dn+xSd8Qbbm2vvLdmyOEzXOnMFJAB5DJagLIUmlis+ulFY/EziQ==
+umzug@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/umzug/-/umzug-3.0.0.tgz#de19183c0bce7e79d432f746ad423b68b38d485a"
+  integrity sha512-uHeJsOJ7qtoIkZmtknpg+iSlI25m7glBA237pYp5fMsEKnRfRY+F4FP8eGx28g6b0VujkniC6Zlz09lbDFuBbw==
   dependencies:
     "@rushstack/ts-command-line" "^4.7.7"
     "@types/verror" "^1.10.4"
