@@ -10,7 +10,6 @@ interface SlonikMigratorContext {
   parent: DatabasePoolType
   connection: DatabaseTransactionConnectionType
   sql: typeof sql
-  commit: () => Promise<void>
 }
 
 export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
@@ -27,7 +26,6 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
       context: () => ({
         parent: slonikMigratorOptions.slonik,
         sql,
-        commit: null as never, // commit function is added later by storage setup.
         connection: null as never, // connection function is added later by storage setup.
       }),
       migrations: () => ({
@@ -55,9 +53,6 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
         `@slonik/migrator: Relying on the default migration table name is deprecated. You should set this explicitly to 'migration' if you've used a prior version of this library.`,
       )
     }
-
-    this.on('beforeCommand', ev => this.setup(ev))
-    this.on('afterCommand', ev => this.teardown(ev))
   }
 
   getCli(options?: umzug.CommandLineParserOptions) {
@@ -137,9 +132,10 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     `)
   }
 
-  async runCommand<T>(command: string, cb: ({context}: {context: SlonikMigratorContext}) => Promise<T>) {
+  async runCommand<T>(command: string, cb: (params: {context: SlonikMigratorContext}) => Promise<T>) {
+    let run = cb
     if (command === 'up' || command === 'down') {
-      return super.runCommand(command, async ({context}) => {
+      run = async ({context}) => {
         return context.parent.connect(async conn => {
           const logger = this.slonikMigratorOptions.logger
           const timeout = setTimeout(
@@ -164,46 +160,17 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
             })
           }
         })
+      }
+    }
+
+    return super.runCommand(command, async ({context: _ctx}) => {
+      const connect = this.slonikMigratorOptions.singleTransaction ? _ctx.parent.transaction : _ctx.parent.connect
+      return connect(async connection => {
+        const context = {..._ctx, connection}
+        await this.getOrCreateMigrationsTable(context)
+        return run({context})
       })
-    }
-    return super.runCommand(command, cb)
-  }
-
-  protected async setup({context}: {context: SlonikMigratorContext}) {
-    let settle!: Function
-    const settledPromise = new Promise(resolve => (settle = resolve))
-
-    let ready!: Function
-    const readyPromise = new Promise(r => (ready = r))
-
-    const connect = this.slonikMigratorOptions.singleTransaction ? context.parent.transaction : context.parent.connect
-    const connectionPromise = connect(async connection => {
-      context.connection = connection
-      ready()
-
-      await settledPromise
     })
-
-    await readyPromise
-
-    context.commit = () => {
-      settle()
-      return connectionPromise
-    }
-
-    try {
-      await this.getOrCreateMigrationsTable(context)
-    } catch (e) {
-      await context.commit()
-      throw e
-    }
-  }
-
-  protected async teardown({context}: {context: SlonikMigratorContext}) {
-    // Note: the unlock command needs to be done using the parent connection, since `teardown` can be called when an error is thrown.
-    // When `singleTransaction: true` this means unlock is _never_ called.
-    context.connection = null as never
-    await context.commit()
   }
 
   protected hash(name: string) {
