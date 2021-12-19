@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.9.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.8.6...@slonik/migrator@0.9.0) (2021-12-17)
+
+
+### Features
+
+* umzug v3 + lock/unlock without events ([#361](https://github.com/mmkal/slonik-tools/issues/361)) ([6016a10](https://github.com/mmkal/slonik-tools/commit/6016a1000f2357eeedc2304656d86df642741d87))
+
+
+
+
+
 ## [0.8.6](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.8.5...@slonik/migrator@0.8.6) (2021-12-08)
 
 **Note:** Version bump only for package @slonik/migrator
