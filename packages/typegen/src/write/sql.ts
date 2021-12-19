@@ -122,7 +122,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       if (cached) {
         return cached
       }
-      const content = fs.readFileSync(filepath).toString()
+      const content = fs.readFileSync(filepath).toString().replace(/\\$(\\d)/g, '#$#$1')
       _queryCache.set(filepath, content)
       return content
     }
@@ -132,7 +132,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       if (cached) {
         return cached
       }
-      const content = (await fs.promises.readFile(filepath)).toString()
+      const content = (await fs.promises.readFile(filepath)).toString().replace(/\\$(\\d)/g, '#$#$1')
       _queryCache.set(filepath, content)
       return content
     }

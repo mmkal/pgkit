@@ -126,7 +126,10 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = fs.readFileSync(filepath).toString()
+          const content = fs
+            .readFileSync(filepath)
+            .toString()
+            .replace(/\\\\$(\\\\d)/g, '#$#$1')
           _queryCache.set(filepath, content)
           return content
         }
@@ -136,7 +139,7 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = (await fs.promises.readFile(filepath)).toString()
+          const content = (await fs.promises.readFile(filepath)).toString().replace(/\\\\$(\\\\d)/g, '#$#$1')
           _queryCache.set(filepath, content)
           return content
         }
@@ -229,7 +232,10 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = fs.readFileSync(filepath).toString()
+          const content = fs
+            .readFileSync(filepath)
+            .toString()
+            .replace(/\\\\$(\\\\d)/g, '#$#$1')
           _queryCache.set(filepath, content)
           return content
         }
@@ -239,7 +245,7 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = (await fs.promises.readFile(filepath)).toString()
+          const content = (await fs.promises.readFile(filepath)).toString().replace(/\\\\$(\\\\d)/g, '#$#$1')
           _queryCache.set(filepath, content)
           return content
         }
@@ -379,7 +385,10 @@ test('sql with parameters', async () => {
           if (cached) {
             return cached
           }
-          const content = fs.readFileSync(filepath).toString()
+          const content = fs
+            .readFileSync(filepath)
+            .toString()
+            .replace(/\\\\$(\\\\d)/g, '#$#$1')
           _queryCache.set(filepath, content)
           return content
         }
@@ -389,7 +398,7 @@ test('sql with parameters', async () => {
           if (cached) {
             return cached
           }
-          const content = (await fs.promises.readFile(filepath)).toString()
+          const content = (await fs.promises.readFile(filepath)).toString().replace(/\\\\$(\\\\d)/g, '#$#$1')
           _queryCache.set(filepath, content)
           return content
         }
