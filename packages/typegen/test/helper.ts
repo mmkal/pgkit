@@ -41,10 +41,42 @@ export const getPoolHelper = (params: {
     idleTimeout: 1,
     preferNativeBindings: false,
     ...params?.config,
+    captureStackTrace: true,
     interceptors: [
       {
         afterPoolConnection: async (context, connection) => {
           await connection.query(sql`set search_path to ${schemaIdentifier}`)
+          return null
+        },
+        queryExecutionError: (context, query, error: any, notices) => {
+          if (context.stackTrace) {
+            let message = `${error.message}`
+            if (error.position?.match(/^\d+$/)) {
+              const start = Number(error.position) - 1
+              const end =
+                query.sql
+                  .split('')
+                  .findIndex(
+                    (ch, i, {length}) => (i > start + 10 && ch.match(/\W/)) || i === length - 1 || i > start + 30,
+                  ) + 1
+              message += ` - query: "${query.sql.slice(Math.max(0, start - 10), start)} >>>> ${query.sql.slice(
+                start,
+                end,
+              )} <<<< ${query.sql.slice(end, end + 10)}"`
+            }
+            throw Object.assign(new Error(message), {
+              stack:
+                `${message}\n` +
+                context.stackTrace
+                  .map((site: any) => {
+                    const location = `(${site.fileName}:${site.lineNumber}:${site.columnNumber})`
+                    return `    at ${site.functionName || '[unknown]'} ${location}`
+                  })
+                  .join('\n'),
+              cause: error,
+            })
+          }
+
           return null
         },
       },

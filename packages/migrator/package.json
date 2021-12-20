@@ -24,7 +24,7 @@
     "umzug": "^3.0.0"
   },
   "peerDependencies": {
-    "slonik": ">= 23.0.0 < 24"
+    "slonik": ">= 23.0.0 < 27"
   },
   "devDependencies": {
     "@types/dedent": "0.7.0",
