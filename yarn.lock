@@ -8067,10 +8067,10 @@ slide@^1.1.6:
   resolved "https://registry.yarnpkg.com/slide/-/slide-1.1.6.tgz#56eb027d65b4d2dce6cb2e2d32c4d4afc9e1d707"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-slonik@23.8.5:
-  version "23.8.5"
-  resolved "https://registry.yarnpkg.com/slonik/-/slonik-23.8.5.tgz#9e8374f34a979222f95e2d82efb21a02a2f3fbb3"
-  integrity sha512-/lODpIUUKWpFfU5sg5QNv0Ey0UlLpHJeobYchZq+lJilNft/HLGIFTRuYXmmieK1NpGLb9oSNISOSytpbxBT2w==
+slonik@23.9.0:
+  version "23.9.0"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-23.9.0.tgz#5fb5b04d714758f360c6a0cf184400ba49d0f845"
+  integrity sha512-TETKgFVAy3TcXKTvf7YlUtlMzSCdz7VmGUng5z+i5SfiRNW9SUqGsHmPdead5JAAZbI+eu6vBQXQtXzW6pN9gA==
   dependencies:
     concat-stream "^2.0.0"
     delay "^5.0.0"
