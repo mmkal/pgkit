@@ -126,10 +126,7 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = fs
-            .readFileSync(filepath)
-            .toString()
-            .replace(/\\\\$(\\\\d)/g, '#$#$1')
+          const content = fs.readFileSync(filepath).toString()
           _queryCache.set(filepath, content)
           return content
         }
@@ -139,7 +136,7 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = (await fs.promises.readFile(filepath)).toString().replace(/\\\\$(\\\\d)/g, '#$#$1')
+          const content = (await fs.promises.readFile(filepath)).toString()
           _queryCache.set(filepath, content)
           return content
         }
@@ -232,10 +229,7 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = fs
-            .readFileSync(filepath)
-            .toString()
-            .replace(/\\\\$(\\\\d)/g, '#$#$1')
+          const content = fs.readFileSync(filepath).toString()
           _queryCache.set(filepath, content)
           return content
         }
@@ -245,12 +239,12 @@ test('types for sql files', async () => {
           if (cached) {
             return cached
           }
-          const content = (await fs.promises.readFile(filepath)).toString().replace(/\\\\$(\\\\d)/g, '#$#$1')
+          const content = (await fs.promises.readFile(filepath)).toString()
           _queryCache.set(filepath, content)
           return content
         }
         "
-  `)
+    `)
 
   const sqlWithParameters: typeof import('./fixtures/sql.test.ts/types-for-sql-files/__sql__/test-table1.sql') = require('./fixtures/sql.test.ts/types-for-sql-files/__sql__/test-table1.sql')
 
@@ -385,10 +379,7 @@ test('sql with parameters', async () => {
           if (cached) {
             return cached
           }
-          const content = fs
-            .readFileSync(filepath)
-            .toString()
-            .replace(/\\\\$(\\\\d)/g, '#$#$1')
+          const content = fs.readFileSync(filepath).toString()
           _queryCache.set(filepath, content)
           return content
         }
@@ -398,12 +389,12 @@ test('sql with parameters', async () => {
           if (cached) {
             return cached
           }
-          const content = (await fs.promises.readFile(filepath)).toString().replace(/\\\\$(\\\\d)/g, '#$#$1')
+          const content = (await fs.promises.readFile(filepath)).toString()
           _queryCache.set(filepath, content)
           return content
         }
         "
-  `)
+    `)
 
   const sqlWithParameters: typeof import('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql') = require('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql')
 
