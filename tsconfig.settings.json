@@ -26,5 +26,8 @@
     {"path": "packages/migrator"},
     {"path": "packages/typegen"},
     {"path": "packages/demo"}
-  ]
+  ],
+  "ts-node": {
+    "transpileOnly": true
+  }
 }

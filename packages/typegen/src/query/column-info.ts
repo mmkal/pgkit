@@ -29,12 +29,11 @@ create type pg_temp.types_type as (
 -- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
 -- nullable: https://stackoverflow.com/a/63980243
 
-create or replace function pg_temp.gettypes(text)
+create or replace function pg_temp.gettypes(sql_query text)
 returns setof pg_temp.types_type as
 $$
 declare
   v_tmp_name text;
-  sql_query alias for $1;
   returnrec types_type;
 begin
   v_tmp_name := 'temp_view_' || md5(sql_query);

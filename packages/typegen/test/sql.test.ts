@@ -244,7 +244,7 @@ test('types for sql files', async () => {
           return content
         }
         "
-  `)
+    `)
 
   const sqlWithParameters: typeof import('./fixtures/sql.test.ts/types-for-sql-files/__sql__/test-table1.sql') = require('./fixtures/sql.test.ts/types-for-sql-files/__sql__/test-table1.sql')
 
@@ -394,7 +394,7 @@ test('sql with parameters', async () => {
           return content
         }
         "
-  `)
+    `)
 
   const sqlWithParameters: typeof import('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql') = require('./fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql')
 

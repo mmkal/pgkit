@@ -38,7 +38,7 @@ export const generate = async (params: Partial<Options>) => {
     lazy,
   } = defaults.getParams(params)
 
-  const pool = createPool(connectionURI, {...poolConfig, preferNativeBindings: false})
+  const pool = createPool(connectionURI, poolConfig)
 
   const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
