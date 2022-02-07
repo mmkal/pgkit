@@ -174,7 +174,10 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected hash(name: string) {
-    return name
+    return createHash('md5')
+      .update(readFileSync(join(this.slonikMigratorOptions.migrationsPath, name), 'utf8').trim().replace(/\s+/g, ' '))
+      .digest('hex')
+      .slice(0, 10)
   }
 
   protected async executedNames({context}: {context: SlonikMigratorContext}) {
