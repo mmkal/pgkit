@@ -217,7 +217,7 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
       .forEach(({migration, dbHash, diskHash}) => {
         this.slonikMigratorOptions.logger?.warn({
           message: `hash in '${this.slonikMigratorOptions.migrationTableName}' table didn't match content on disk.`,
-          question: `did you try to change a migration file after it had been run?`,
+          question: `Did you try to change a migration file after it had been run? If you upgraded from v0.8.X-v0.9.X to v.0.10.X, you might need to run the 'repair' command.`,
           migration,
           dbHash,
           diskHash,
@@ -384,7 +384,8 @@ class RepairAction extends CommandLineAction {
     super({
       actionName: 'repair',
       summary: 'Repair hashes in the migration table',
-      documentation: 'Repair hashes in the migration table.', // TODO provide context (e.g. link to the README)
+      documentation:
+        'If, for any reason, the hashes are incorrectly stored in the database, you can recompute them using this command. Note that due to a bug in @slonik/migrator v0.8.X-v0.9-X the hashes were incorrectly calculated, so this command is recommended after upgrading to v0.10.',
     })
   }
   protected onDefineParameters(): void {
