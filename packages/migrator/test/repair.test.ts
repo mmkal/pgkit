@@ -36,24 +36,28 @@ describe('repair broken hashes', () => {
 
     await migrator.up()
   })
-
-  test('repair broken hash', async () => {
-    const getDbHash = () =>
-      pool.oneFirst<string>(sql`
+  ;[{dryRun: true}, {dryRun: false}].forEach(({dryRun}) => {
+    test(`dryRun = ${dryRun}`, async () => {
+      const getDbHash = () =>
+        pool.oneFirst<string>(sql`
         select hash
         from migrations
       `)
-    const setDbHash = (hash: string) =>
-      pool.any(sql`
+      const setDbHash = (hash: string) =>
+        pool.any(sql`
         update migrations
         set hash = ${hash}
       `)
-    const dbHashCorrect = await getDbHash()
-    await setDbHash('asd')
-    await expect(getDbHash()).resolves.not.toEqual(dbHashCorrect)
+      const dbHashCorrect = await getDbHash()
+      await setDbHash('asd')
+      await expect(getDbHash()).resolves.not.toEqual(dbHashCorrect)
 
-    await migrator.repair()
+      await migrator.repair({dryRun})
 
-    await expect(getDbHash()).resolves.toEqual(dbHashCorrect)
+      const dbHashAfterRepair = await getDbHash()
+
+      if (dryRun) expect(dbHashAfterRepair).not.toEqual(dbHashCorrect)
+      else expect(dbHashAfterRepair).toEqual(dbHashCorrect)
+    })
   })
 })

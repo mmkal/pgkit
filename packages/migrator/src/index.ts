@@ -4,7 +4,7 @@ import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
 import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType, DatabasePoolType} from 'slonik'
 import * as path from 'path'
-import {CommandLineAction} from '@rushstack/ts-command-line'
+import {CommandLineAction, CommandLineFlagParameter} from '@rushstack/ts-command-line'
 import * as templates from './templates'
 
 interface SlonikMigratorContext {
@@ -176,7 +176,9 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     })
   }
 
-  async repair() {
+  async repair(options?: RepairOptions) {
+    const dryRun = options?.dryRun ?? false
+
     await this.runCommand('repair', async ({context}) => {
       const infos = await this.executedInfos(context)
       const migrationsThatNeedRepair = infos.filter(({dbHash, diskHash}) => dbHash !== diskHash)
@@ -192,8 +194,10 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
           migration,
           oldHash: dbHash,
           newHash: diskHash,
+          dryRun,
         })
-        await this.repairMigration({name: migration, hash: diskHash, context})
+
+        if (!dryRun) await this.repairMigration({name: migration, hash: diskHash, context})
       }
     })
   }
@@ -374,6 +378,8 @@ interface MigrationInfo {
 }
 
 class RepairAction extends CommandLineAction {
+  private dryRunFlag?: CommandLineFlagParameter
+
   constructor(private slonikMigrator: SlonikMigrator) {
     super({
       actionName: 'repair',
@@ -382,9 +388,17 @@ class RepairAction extends CommandLineAction {
     })
   }
   protected onDefineParameters(): void {
-    // No flags are supported currently
+    this.dryRunFlag = this.defineFlagParameter({
+      parameterShortName: '-d',
+      parameterLongName: '--dry-run',
+      description: 'No changes are actually made',
+    })
   }
   protected async onExecute(): Promise<void> {
-    await this.slonikMigrator.repair()
+    await this.slonikMigrator.repair({dryRun: this.dryRunFlag!.value})
   }
+}
+
+export interface RepairOptions {
+  dryRun?: boolean
 }
