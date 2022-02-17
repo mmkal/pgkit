@@ -57,7 +57,9 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   getCli(options?: umzug.CommandLineParserOptions) {
-    return super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
+    const cli = super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
+    cli.addAction(new RepairAction(this))
+    return cli
   }
 
   async runAsCLI(argv?: string[]) {
@@ -174,6 +176,28 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     })
   }
 
+  async repair() {
+    await this.runCommand('repair', async ({context}) => {
+      const infos = await this.executedInfos(context)
+      const migrationsThatNeedRepair = infos.filter(({dbHash, diskHash}) => dbHash !== diskHash)
+
+      if (migrationsThatNeedRepair.length === 0) {
+        this.slonikMigratorOptions.logger?.info({message: 'Nothing to repair'})
+        return
+      }
+
+      for (const {migration, dbHash, diskHash} of migrationsThatNeedRepair) {
+        this.slonikMigratorOptions.logger?.warn({
+          message: `Repairing migration ${migration}`,
+          migration,
+          oldHash: dbHash,
+          newHash: diskHash,
+        })
+        await this.repairMigration({name: migration, hash: diskHash, context})
+      }
+    })
+  }
+
   protected hash(name: string) {
     return createHash('md5')
       .update(readFileSync(join(this.slonikMigratorOptions.migrationsPath, name), 'utf8').trim().replace(/\s+/g, ' '))
@@ -226,6 +250,13 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   protected async unlogMigration({name, context}: {name: string; context: SlonikMigratorContext}) {
     await context.connection.query(sql`
       delete from ${this.migrationTableNameIdentifier()}
+      where name = ${name}
+    `)
+  }
+  protected async repairMigration({name, hash, context}: {name: string; hash: string; context: SlonikMigratorContext}) {
+    await context.connection.query(sql`
+      update ${this.migrationTableNameIdentifier()}
+      set hash = ${hash}
       where name = ${name}
     `)
   }
@@ -340,4 +371,20 @@ interface MigrationInfo {
   migration: string
   dbHash: string
   diskHash: string
+}
+
+class RepairAction extends CommandLineAction {
+  constructor(private slonikMigrator: SlonikMigrator) {
+    super({
+      actionName: 'repair',
+      summary: 'Repair hashes in the migration table',
+      documentation: 'Repair hashes in the migration table.', // TODO provide context (e.g. link to the README)
+    })
+  }
+  protected onDefineParameters(): void {
+    // No flags are supported currently
+  }
+  protected async onExecute(): Promise<void> {
+    await this.slonikMigrator.repair()
+  }
 }
