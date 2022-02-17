@@ -4,6 +4,7 @@ import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
 import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType, DatabasePoolType} from 'slonik'
 import * as path from 'path'
+import {CommandLineAction} from '@rushstack/ts-command-line'
 import * as templates from './templates'
 
 interface SlonikMigratorContext {
@@ -181,27 +182,38 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   protected async executedNames({context}: {context: SlonikMigratorContext}) {
-    await this.getOrCreateMigrationsTable(context)
-    const results = await context.parent
-      .any(sql`select name, hash from ${this.migrationTableNameIdentifier()}`)
-      .then(migrations =>
-        migrations.map(r => {
-          const name = r.name as string
-          /* istanbul ignore if */
-          if (r.hash !== this.hash(name)) {
-            this.slonikMigratorOptions.logger?.warn({
-              message: `hash in '${this.slonikMigratorOptions.migrationTableName}' table didn't match content on disk.`,
-              question: `did you try to change a migration file after it had been run?`,
-              migration: r.name,
-              dbHash: r.hash,
-              diskHash: this.hash(name),
-            })
-          }
-          return name
-        }),
-      )
+    const infos = await this.executedInfos(context)
 
-    return results
+    infos
+      .filter(({dbHash, diskHash}) => dbHash !== diskHash)
+      .forEach(({migration, dbHash, diskHash}) => {
+        this.slonikMigratorOptions.logger?.warn({
+          message: `hash in '${this.slonikMigratorOptions.migrationTableName}' table didn't match content on disk.`,
+          question: `did you try to change a migration file after it had been run?`,
+          migration,
+          dbHash,
+          diskHash,
+        })
+      })
+
+    return infos.map(({migration}) => migration)
+  }
+
+  /**
+   * Returns the name, dbHash and diskHash for each executed migration.
+   */
+  private async executedInfos(context: SlonikMigratorContext): Promise<MigrationInfo[]> {
+    await this.getOrCreateMigrationsTable(context)
+    const migrations = await context.parent.any(sql`select name, hash from ${this.migrationTableNameIdentifier()}`)
+
+    return migrations.map(r => {
+      const name = r.name as string
+      return {
+        migration: name,
+        dbHash: r.hash as string,
+        diskHash: this.hash(name),
+      }
+    })
   }
 
   protected async logMigration({name, context}: {name: string; context: SlonikMigratorContext}) {
@@ -322,4 +334,10 @@ export const setupSlonikMigrator = (
     migrator.runAsCLI()
   }
   return migrator
+}
+
+interface MigrationInfo {
+  migration: string
+  dbHash: string
+  diskHash: string
 }
