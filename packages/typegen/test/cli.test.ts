@@ -9,7 +9,7 @@ beforeEach(() => {
   jest.clearAllMocks()
 })
 
-let pools: slonik.DatabasePoolType[] = []
+let pools: slonik.DatabasePool[] = []
 jest.mock('slonik', () => {
   const actualSlonik = jest.requireActual('slonik')
   return {

@@ -1,5 +1,5 @@
 import {randomBytes} from 'crypto'
-import {DatabasePoolType, sql} from 'slonik'
+import {DatabasePool, sql} from 'slonik'
 import * as assert from 'assert'
 import {truncateQuery} from '../util'
 
@@ -7,7 +7,7 @@ import {truncateQuery} from '../util'
 const _sql = sql
 
 export const parameterTypesGetter =
-  (pool: DatabasePoolType) =>
+  (pool: DatabasePool) =>
   async (query: string): Promise<string[]> => {
     const statementName = `temp_statement_${randomBytes(16).join('')}`
 

@@ -1,7 +1,7 @@
 import * as lodash from 'lodash'
-import {DatabasePoolType, sql} from 'slonik'
+import {DatabasePool, sql} from 'slonik'
 
-export function enumTypesGetter(pool: DatabasePoolType) {
+export function enumTypesGetter(pool: DatabasePool) {
   return lodash.once(async () => {
     const types = await pool.any(sql<queries.Type>`
       select distinct
@@ -32,7 +32,7 @@ export function enumTypesGetter(pool: DatabasePoolType) {
   })
 }
 
-export function regTypeToPGTypeGetter(pool: DatabasePoolType) {
+export function regTypeToPGTypeGetter(pool: DatabasePool) {
   return lodash.once(async () => {
     const types = await pool.any(sql<queries.PgType>`
       select oid, typname, oid::regtype as regtype
