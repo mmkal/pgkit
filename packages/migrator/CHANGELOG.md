@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.10.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.9.1...@slonik/migrator@0.10.0) (2022-02-18)
+
+
+### Features
+
+* repair command + fix hash function ([#370](https://github.com/mmkal/slonik-tools/issues/370)) ([801379e](https://github.com/mmkal/slonik-tools/commit/801379ec72044a3e9f3746afad33cd130d96e42e))
+
+
+
+
+
 ## [0.9.1](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.9.0...@slonik/migrator@0.9.1) (2022-02-05)
 
 **Note:** Version bump only for package @slonik/migrator
