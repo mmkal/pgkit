@@ -1,7 +1,7 @@
 import * as execa from 'execa'
 import {simplifyWhitespace} from '../util'
 import * as assert from 'assert'
-import {DatabasePoolType} from 'slonik'
+import {DatabasePool} from 'slonik'
 import {enumTypesGetter, regTypeToPGTypeGetter} from './mappings'
 
 export type PSQLClient = ReturnType<typeof psqlClient>
@@ -10,7 +10,7 @@ export type PSQLClient = ReturnType<typeof psqlClient>
  * Get a basic postgres client. which can execute simple queries and return row results.
  * This parses `psql` output and no type parsing is done. Everything is a string.
  */
-export const psqlClient = (psqlCommand: string, pool: DatabasePoolType) => {
+export const psqlClient = (psqlCommand: string, pool: DatabasePool) => {
   assert.ok(
     !psqlCommand.includes(`'`),
     `Can't run psql command "${psqlCommand}"; with single quotes in it. Try using double quotes or a bash alias.`,

@@ -2,21 +2,21 @@ import {createHash} from 'crypto'
 import {readFileSync} from 'fs'
 import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
-import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType, DatabasePoolType} from 'slonik'
+import {sql, DatabaseTransactionConnection, DatabasePoolConnection, DatabasePool} from 'slonik'
 import * as path from 'path'
 import {CommandLineAction, CommandLineFlagParameter} from '@rushstack/ts-command-line'
 import * as templates from './templates'
 
 interface SlonikMigratorContext {
-  parent: DatabasePoolType
-  connection: DatabaseTransactionConnectionType
+  parent: DatabasePool
+  connection: DatabaseTransactionConnection
   sql: typeof sql
 }
 
 export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   constructor(
     private slonikMigratorOptions: {
-      slonik: DatabasePoolType
+      slonik: DatabasePool
       migrationsPath: string
       migrationTableName: string | string[]
       logger: umzug.UmzugOptions['logger']
@@ -269,17 +269,17 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
 export type Migration = (
   params: umzug.MigrationParams<SlonikMigratorContext> & {
     /** @deprecated use `context.connection` */
-    slonik: DatabaseTransactionConnectionType
+    slonik: DatabaseTransactionConnection
     /** @deprecated use `context.sql` */
     sql: typeof sql
   },
 ) => Promise<unknown>
 
 /**
- * Should either be a `DatabasePoolType` or `DatabasePoolConnectionType`. If it's a `DatabasePoolType` with an `.end()`
+ * Should either be a `DatabasePool` or `DatabasePoolConnection`. If it's a `DatabasePool` with an `.end()`
  * method, the `.end()` method will be called after running the migrator as a CLI.
  */
-export interface SlonikConnectionType extends DatabasePoolConnectionType {
+export interface SlonikConnection extends DatabasePoolConnection {
   end?: () => Promise<void>
 }
 
@@ -288,7 +288,7 @@ export interface SlonikMigratorOptions {
    * Slonik instance for running migrations. You can import this from the same place as your main application,
    * or import another slonik instance with different permissions, security settings etc.
    */
-  slonik: DatabasePoolType
+  slonik: DatabasePool
   /**
    * Path to folder that will contain migration files.
    */

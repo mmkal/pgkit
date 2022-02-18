@@ -1,7 +1,7 @@
 import * as lodash from 'lodash'
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {getViewFriendlySql} from '.'
-import {sql, DatabasePoolType} from 'slonik'
+import {sql, DatabasePool} from 'slonik'
 import * as parse from './index'
 import {getHopefullyViewableAST, getSuggestedTags, isCTE, suggestedTags} from './parse'
 import * as assert from 'assert'
@@ -77,7 +77,7 @@ LANGUAGE 'plpgsql';
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const columnInfoGetter = (pool: DatabasePoolType) => {
+export const columnInfoGetter = (pool: DatabasePool) => {
   // const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
 
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {

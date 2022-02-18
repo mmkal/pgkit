@@ -1,11 +1,11 @@
 import * as path from 'path'
-import {createPool, sql, ClientConfigurationInputType} from 'slonik'
+import {createPool, sql, ClientConfigurationInput} from 'slonik'
 
 /**
  * Gets a pool suitable for use in tests. Creates a schema based on the passed-in test file name,
  * which is wiped before every test. Adds an afterAll listener which makes sure jest exits cleanly.
  */
-export const getPoolHelper = (params: {__filename: string; config?: ClientConfigurationInputType}) => {
+export const getPoolHelper = (params: {__filename: string; config?: ClientConfigurationInput}) => {
   const schemaName = path.parse(params.__filename).name.replace(/\W/g, '_')
   const schemaIdentifier = sql.identifier([schemaName])
 

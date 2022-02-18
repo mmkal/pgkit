@@ -66,7 +66,7 @@ export interface Options {
   /**
    * Slonik pool configuration. Defaults to empty. The configuration will be used to create a new pool, connecting to `connectionURI`.
    */
-  poolConfig: slonik.ClientConfigurationInputType
+  poolConfig: slonik.ClientConfigurationInput
 
   /**
    * @experimental
@@ -129,7 +129,7 @@ export interface Options {
   /**
    * @experimental
    *
-   * List of `slonik.TypeParserType` objects, as passed into slonik. These should each have an extra `typescript` string property,
+   * List of `slonik.TypeParser` objects, as passed into slonik. These should each have an extra `typescript` string property,
    * which indicates what type the parse into.
    *
    * e.g. for a slonik type parser
@@ -231,10 +231,10 @@ export interface TaggedQuery extends AnalysedQuery {
 
 export interface ResolvedTableColumn {}
 
-/** Corresponds to a @see slonik.TypeParserType */
+/** Corresponds to a @see slonik.TypeParser */
 export interface TypeParserInfo {
-  /** Corresponds to @see slonik.TypeParserType.name */
+  /** Corresponds to @see slonik.TypeParser.name */
   pgtype: string
-  /** The TypeScript type that the @see slonik.TypeParserType transforms values to. */
+  /** The TypeScript type that the @see slonik.TypeParser transforms values to. */
   typescript: string
 }

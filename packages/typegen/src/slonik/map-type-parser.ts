@@ -32,13 +32,13 @@ export const sampleTypeValues: Record<string, any> = {
   money: '$0.00',
 }
 
-export const inferTypeParserTypeScript = (tp: slonik.TypeParserType<any>, defaultSampleInput = '') => {
+export const inferTypeParserTypeScript = (tp: slonik.TypeParser<any>, defaultSampleInput = '') => {
   const sample = tp.parse(sampleTypeValues[tp.name] || defaultSampleInput)
   const match = jsValueMatchers.find(m => m[1](sample))
   return match?.[0] || `unknown`
 }
 
-export const defaultTypeParsers = (parsers: readonly slonik.TypeParserType<unknown>[]): TypeParserInfo[] =>
+export const defaultTypeParsers = (parsers: readonly slonik.TypeParser<unknown>[]): TypeParserInfo[] =>
   parsers.map(tp => ({
     pgtype: tp.name, // slonik uses `name` for the type, corresponding to `pg_type.typname`
     typescript: inferTypeParserTypeScript(tp),

@@ -1,4 +1,4 @@
-import {createPool, sql, ClientConfigurationInputType} from 'slonik'
+import {createPool, sql, ClientConfigurationInput} from 'slonik'
 import * as typegen from '../src'
 import * as path from 'path'
 
@@ -32,7 +32,7 @@ export const getHelper = (params: {__filename: string}) => {
 export const getPoolHelper = (params: {
   __filename: string
   baseConnectionURI: string
-  config?: ClientConfigurationInputType
+  config?: ClientConfigurationInput
 }) => {
   const schemaName = path.parse(params.__filename).name.replace(/\W/g, '_')
   const schemaIdentifier = sql.identifier([schemaName])

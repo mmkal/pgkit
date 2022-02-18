@@ -77,7 +77,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     export const get${tag}QuerySync = ({
       readFileSync = defaultReadFileSync,
       ${defaults.valuesParam}
-    }: Get${tag}QuerySyncOptions ${defaults.paramsObj}): TaggedTemplateLiteralInvocationType<${tag}> => ({
+    }: Get${tag}QuerySyncOptions ${defaults.paramsObj}): TaggedTemplateLiteralInvocation<${tag}> => ({
       sql: readFileSync(sqlPath).toString(),
       type: 'SLONIK_TOKEN_SQL',
       ${defaults.sqlTokenValueProp},
@@ -91,7 +91,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     export const get${tag}QueryAsync = async ({
       readFile = defaultReadFileAsync,
       ${defaults.valuesParam}
-    }: Get${tag}QueryAsyncOptions ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocationType<${tag}>> => ({
+    }: Get${tag}QueryAsyncOptions ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocation<${tag}>> => ({
       sql: (await readFile(sqlPath)).toString(),
       type: 'SLONIK_TOKEN_SQL',
       ${defaults.sqlTokenValueProp},
@@ -139,7 +139,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
   `)
 
   const newContent = tsPrettify(`
-    import {TaggedTemplateLiteralInvocationType} from 'slonik'
+    import {TaggedTemplateLiteralInvocation} from 'slonik'
     import * as path from 'path'
     import * as fs from 'fs'
 
