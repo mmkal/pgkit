@@ -7986,10 +7986,10 @@ slide@^1.1.6:
   resolved "https://registry.npmjs.org/slide/-/slide-1.1.6.tgz"
   integrity sha1-VusCfWW00tzmyy4tMsTUr8nh1wc=
 
-slonik@26.2.2:
-  version "26.2.2"
-  resolved "https://registry.npmjs.org/slonik/-/slonik-26.2.2.tgz"
-  integrity sha512-7IS4+b8rMkOE7xFbdLIs2XuEHKWmeWMjpbsnUnZjCd2nPANmxLHD6AWyeXL8nZnVlJPVtNWxDmeSxGG2bsMWcg==
+slonik@27.1.0:
+  version "27.1.0"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-27.1.0.tgz#6cd878742329ff84873fc4dedafc6a39b4bdf54d"
+  integrity sha512-dZYChx5HIuhoB84oiQNbNSnLEF0/BAhn+4xhA7jvngxqfzdRrm2TvxffHAKDP0MZBd6e1rmzCV+Ap8LF81nmzQ==
   dependencies:
     concat-stream "^2.0.0"
     es6-error "^4.1.1"
