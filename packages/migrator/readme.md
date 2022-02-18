@@ -29,6 +29,7 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
    - [pending](#pending)
    - [executed](#executed)
    - [create](#create)
+   - [repair](#repair)
    - [Examples](#examples)
    - [Running programatically](#running-programatically)
 - [Configuration](#configuration)
@@ -137,6 +138,7 @@ Positional arguments:
     pending   Lists pending migrations
     executed  Lists executed migrations
     create    Create a migration file
+    repair    Repair hashes in the migration table
 
 Optional arguments:
   -h, --help  Show this help message and exit.
@@ -266,6 +268,21 @@ Optional arguments:
                         If you use a custom ordering system, you can disable 
                         this behavior, but it's strongly recommended that you 
                         don't! If you're unsure, just ignore this option.
+```
+
+### repair
+
+```
+usage: node migrate repair [-h] [-d]
+
+If, for any reason, the hashes are incorrectly stored in the database, you 
+can recompute them using this command. Note that due to a bug in 
+@slonik/migrator v0.8.X-v0.9-X the hashes were incorrectly calculated, so 
+this command is recommended after upgrading to v0.10.
+
+Optional arguments:
+  -h, --help     Show this help message and exit.
+  -d, --dry-run  No changes are actually made
 ```
 <!-- codegen:end -->
 

@@ -4,6 +4,7 @@ import {basename, dirname, join} from 'path'
 import * as umzug from 'umzug'
 import {sql, DatabaseTransactionConnectionType, DatabasePoolConnectionType, DatabasePoolType} from 'slonik'
 import * as path from 'path'
+import {CommandLineAction, CommandLineFlagParameter} from '@rushstack/ts-command-line'
 import * as templates from './templates'
 
 interface SlonikMigratorContext {
@@ -56,7 +57,9 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   }
 
   getCli(options?: umzug.CommandLineParserOptions) {
-    return super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
+    const cli = super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
+    cli.addAction(new RepairAction(this))
+    return cli
   }
 
   async runAsCLI(argv?: string[]) {
@@ -173,32 +176,72 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     })
   }
 
+  async repair(options?: RepairOptions) {
+    const dryRun = options?.dryRun ?? false
+
+    await this.runCommand('repair', async ({context}) => {
+      const infos = await this.executedInfos(context)
+      const migrationsThatNeedRepair = infos.filter(({dbHash, diskHash}) => dbHash !== diskHash)
+
+      if (migrationsThatNeedRepair.length === 0) {
+        this.slonikMigratorOptions.logger?.info({message: 'Nothing to repair'})
+        return
+      }
+
+      for (const {migration, dbHash, diskHash} of migrationsThatNeedRepair) {
+        this.slonikMigratorOptions.logger?.warn({
+          message: `Repairing migration ${migration}`,
+          migration,
+          oldHash: dbHash,
+          newHash: diskHash,
+          dryRun,
+        })
+
+        if (!dryRun) await this.repairMigration({name: migration, hash: diskHash, context})
+      }
+    })
+  }
+
   protected hash(name: string) {
-    return name
+    return createHash('md5')
+      .update(readFileSync(join(this.slonikMigratorOptions.migrationsPath, name), 'utf8').trim().replace(/\s+/g, ' '))
+      .digest('hex')
+      .slice(0, 10)
   }
 
   protected async executedNames({context}: {context: SlonikMigratorContext}) {
-    await this.getOrCreateMigrationsTable(context)
-    const results = await context.parent
-      .any(sql`select name, hash from ${this.migrationTableNameIdentifier()}`)
-      .then(migrations =>
-        migrations.map(r => {
-          const name = r.name as string
-          /* istanbul ignore if */
-          if (r.hash !== this.hash(name)) {
-            this.slonikMigratorOptions.logger?.warn({
-              message: `hash in '${this.slonikMigratorOptions.migrationTableName}' table didn't match content on disk.`,
-              question: `did you try to change a migration file after it had been run?`,
-              migration: r.name,
-              dbHash: r.hash,
-              diskHash: this.hash(name),
-            })
-          }
-          return name
-        }),
-      )
+    const infos = await this.executedInfos(context)
 
-    return results
+    infos
+      .filter(({dbHash, diskHash}) => dbHash !== diskHash)
+      .forEach(({migration, dbHash, diskHash}) => {
+        this.slonikMigratorOptions.logger?.warn({
+          message: `hash in '${this.slonikMigratorOptions.migrationTableName}' table didn't match content on disk.`,
+          question: `Did you try to change a migration file after it had been run? If you upgraded from v0.8.X-v0.9.X to v.0.10.X, you might need to run the 'repair' command.`,
+          migration,
+          dbHash,
+          diskHash,
+        })
+      })
+
+    return infos.map(({migration}) => migration)
+  }
+
+  /**
+   * Returns the name, dbHash and diskHash for each executed migration.
+   */
+  private async executedInfos(context: SlonikMigratorContext): Promise<MigrationInfo[]> {
+    await this.getOrCreateMigrationsTable(context)
+    const migrations = await context.parent.any(sql`select name, hash from ${this.migrationTableNameIdentifier()}`)
+
+    return migrations.map(r => {
+      const name = r.name as string
+      return {
+        migration: name,
+        dbHash: r.hash as string,
+        diskHash: this.hash(name),
+      }
+    })
   }
 
   protected async logMigration({name, context}: {name: string; context: SlonikMigratorContext}) {
@@ -211,6 +254,13 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
   protected async unlogMigration({name, context}: {name: string; context: SlonikMigratorContext}) {
     await context.connection.query(sql`
       delete from ${this.migrationTableNameIdentifier()}
+      where name = ${name}
+    `)
+  }
+  protected async repairMigration({name, hash, context}: {name: string; hash: string; context: SlonikMigratorContext}) {
+    await context.connection.query(sql`
+      update ${this.migrationTableNameIdentifier()}
+      set hash = ${hash}
       where name = ${name}
     `)
   }
@@ -319,4 +369,37 @@ export const setupSlonikMigrator = (
     migrator.runAsCLI()
   }
   return migrator
+}
+
+interface MigrationInfo {
+  migration: string
+  dbHash: string
+  diskHash: string
+}
+
+class RepairAction extends CommandLineAction {
+  private dryRunFlag?: CommandLineFlagParameter
+
+  constructor(private slonikMigrator: SlonikMigrator) {
+    super({
+      actionName: 'repair',
+      summary: 'Repair hashes in the migration table',
+      documentation:
+        'If, for any reason, the hashes are incorrectly stored in the database, you can recompute them using this command. Note that due to a bug in @slonik/migrator v0.8.X-v0.9-X the hashes were incorrectly calculated, so this command is recommended after upgrading to v0.10.',
+    })
+  }
+  protected onDefineParameters(): void {
+    this.dryRunFlag = this.defineFlagParameter({
+      parameterShortName: '-d',
+      parameterLongName: '--dry-run',
+      description: 'No changes are actually made',
+    })
+  }
+  protected async onExecute(): Promise<void> {
+    await this.slonikMigrator.repair({dryRun: this.dryRunFlag!.value})
+  }
+}
+
+export interface RepairOptions {
+  dryRun?: boolean
 }

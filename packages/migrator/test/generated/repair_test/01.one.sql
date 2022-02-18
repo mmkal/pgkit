@@ -1,0 +1,1 @@
+create table migration_test_1(id int)
