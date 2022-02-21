@@ -328,6 +328,9 @@ node migrate create --name some-migration.sql # creates a new migration, prefixe
 
 node migrate pending # lists pending migrations
 node migrate executed # lists executed migrations
+
+node migrate repair --dry-run # logs which migrations are in need of a repair
+node migrate repair --dry-run # repairs them
 ```
 
 ### Running programatically
