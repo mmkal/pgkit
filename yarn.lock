@@ -4815,9 +4815,7 @@ io-ts-extra@0.11.5:
     io-ts "^2.2.4"
 
 io-ts-extra@^0.11.4:
-  version "0.11.4"
-  resolved "https://registry.npmjs.org/io-ts-extra/-/io-ts-extra-0.11.4.tgz"
-  integrity sha512-XrvZluS4RPnj0/w8i0Vl9L9m7ajF1Spx039b8exDybF6z9speQJleBP0ujmJ3uu3eelpredYywlec2ZF9ZtH7g==
+  version: "0.11.6"
   dependencies:
     fp-ts "^2.1.0"
     io-ts "^2.2.4"
