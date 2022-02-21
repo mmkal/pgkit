@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.11.3](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.11.2...@slonik/typegen@0.11.3) (2022-02-21)
+
+**Note:** Version bump only for package @slonik/typegen
+
+
+
+
+
 ## [0.11.2](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.11.1...@slonik/typegen@0.11.2) (2022-02-05)
 
 **Note:** Version bump only for package @slonik/typegen
