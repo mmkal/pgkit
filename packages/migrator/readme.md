@@ -330,7 +330,7 @@ node migrate pending # lists pending migrations
 node migrate executed # lists executed migrations
 
 node migrate repair --dry-run # logs which migrations are in need of a repair
-node migrate repair --dry-run # repairs them
+node migrate repair # repairs them
 ```
 
 ### Running programatically
