@@ -52,6 +52,7 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
   bit: 'number',
   boolean: 'boolean',
   cidr: 'string',
+  character: 'string',
   'character varying': 'string',
   'double precision': 'number',
   integer: 'number',
