@@ -241,7 +241,7 @@ export const isFieldNotNull = (sql: string, field: QueryField) => {
       if (c.expr.type !== 'call' || c.expr.function.name !== 'count') {
         return false
       }
-      const name = c.alias || 'count'
+      const name = c.alias?.name || 'count'
       return field.name === name
     })
 
