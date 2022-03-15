@@ -1,9 +1,12 @@
-import * as pgsqlAST from 'pgsql-ast-parser'
-import * as lodash from 'lodash'
-import {pascalCase, tryOrDefault} from '../util'
-import {match} from 'io-ts-extra'
 import * as assert from 'assert'
+
+import {match} from 'io-ts-extra'
+import * as lodash from 'lodash'
+import * as pgsqlAST from 'pgsql-ast-parser'
+import {QName} from 'pgsql-ast-parser'
 import * as pluralize from 'pluralize'
+
+import {pascalCase} from '../util'
 
 // function return types:
 // $ echo 'select pg_get_function_result(2880)' | docker-compose exec -T postgres psql -h localhost -U postgres postgres -f -
@@ -180,15 +183,19 @@ const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
     .get()
 }
 
+interface AliasMapping {
+  queryColumn: string
+  aliasFor: string
+  tablesColumnCouldBeFrom: string[]
+  hasNullableJoin: boolean
+}
 /**
  * This analyses an AST statement, and tries to find the table name and column name the query column could possibly correspond to.
  * It doesn't try to understand every possible kind of postgres statement, so for very complicated queries it will return a long
  * list of `tablesColumnCouldBeFrom`. For simple queries like `select id from messages` it'll get sensible results, though, and those
  * results can be used to look for non-nullability of columns.
  */
-export const aliasMappings = (
-  statement: pgsqlAST.Statement,
-): Array<{queryColumn: string; aliasFor: string; tablesColumnCouldBeFrom: string[]; hasNullableJoin: boolean}> => {
+export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => {
   assert.strictEqual(statement.type, 'select' as const)
   assert.ok(statement.columns, `Can't get alias mappings from query with no columns`)
 
@@ -199,6 +206,8 @@ export const aliasMappings = (
 
   const allTableReferences: QueryTableReference[] = []
   const nullableJoins: string[] = []
+  const markNullable = (ref: pgsqlAST.Expr) =>
+    ref.type === 'ref' && ref.table?.name && nullableJoins.push(ref.table.name)
 
   pgsqlAST
     .astVisitor(map => ({
@@ -208,8 +217,6 @@ export const aliasMappings = (
           referredToAs: t.alias || t.name,
         }),
       join: t => {
-        const markNullable = (ref: pgsqlAST.Expr) =>
-          ref.type === 'ref' && ref.table?.name && nullableJoins.push(ref.table.name)
         if (t.type === 'LEFT JOIN' && t.on && t.on.type === 'binary') {
           markNullable(t.on.right)
         }
@@ -231,22 +238,17 @@ export const aliasMappings = (
     `Some aliases are duplicated, this is too confusing. ${JSON.stringify({aliasGroups})}`,
   )
 
-  const mappings = statement.columns
-    .map(c => {
-      const tableReferences = availableTables.filter(t =>
-        c.expr.type === 'ref' && c.expr.table ? c.expr.table.name === t.referredToAs : true,
-      )
-      return {
-        queryColumn: c.alias?.name,
-        aliasFor: c.expr.type === 'ref' ? c.expr.name : '',
-        tablesColumnCouldBeFrom: tableReferences.map(t => t.table),
-        hasNullableJoin: c.expr.type === 'ref' && !!c.expr.table?.name && nullableJoins.includes(c.expr.table.name),
-      }
-    })
-    .map(c => ({...c, queryColumn: c.queryColumn || c.aliasFor}))
-    .filter(c => c.queryColumn && c.aliasFor)
-
-  return mappings
+  return statement.columns.reduce<AliasMapping[]>((mappings, {expr, alias}) => {
+    if (expr.type === 'ref') {
+      return mappings.concat({
+        queryColumn: alias?.name ?? expr.name,
+        aliasFor: expr.name,
+        tablesColumnCouldBeFrom: availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table),
+        hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
+      })
+    }
+    return mappings
+  }, [])
 }
 
 export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
