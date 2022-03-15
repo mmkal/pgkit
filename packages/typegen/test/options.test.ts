@@ -1,8 +1,11 @@
-import * as fsSyncer from 'fs-syncer'
-import * as typegen from '../src'
-import * as path from 'path'
-import {getHelper} from './helper'
 import './register-mock-serializer'
+
+import * as path from 'path'
+
+import * as fsSyncer from 'fs-syncer'
+
+import * as typegen from '../src'
+import {getHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
