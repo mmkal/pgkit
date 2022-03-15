@@ -1,13 +1,15 @@
+import * as assert from 'assert'
+import {createHash} from 'crypto'
+
 import * as lodash from 'lodash'
+import {singular} from 'pluralize'
+import {DatabasePool, sql} from 'slonik'
+
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
-import {getViewFriendlySql} from '.'
-import {sql, DatabasePool} from 'slonik'
+import {tryOrDefault} from '../util'
 import * as parse from './index'
 import {getHopefullyViewableAST, getSuggestedTags, isCTE, suggestedTags} from './parse'
-import * as assert from 'assert'
-import {tryOrDefault} from '../util'
-import {createHash} from 'crypto'
-import {singular} from 'pluralize'
+import {getViewFriendlySql} from '.'
 
 const _sql = sql
 
@@ -146,12 +148,13 @@ export const columnInfoGetter = (pool: DatabasePool) => {
 
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
 
+        // determine nullability
         let nullability: AnalysedQueryField['nullability'] = 'unknown'
         if (res?.is_underlying_nullable === 'YES') {
           nullability = 'nullable'
         } else if (res?.hasNullableJoin) {
           nullability = 'nullable_via_join'
-        } else if (res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))) {
+        } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(parseableSql, f)) {
           nullability = 'not_null'
         } else {
           nullability = 'unknown'
@@ -232,21 +235,54 @@ export const defaultAnalysedQueryField = (f: QueryField): AnalysedQueryField => 
   column: undefined,
 })
 
-export const isFieldNotNull = (sql: string, field: QueryField) => {
+const nonNullableExpressionTypes = new Set([
+  'integer',
+  'numeric',
+  'string',
+  'boolean',
+  'list',
+  'array',
+  'keyword',
+  'parameter',
+  'constant',
+  'values',
+])
+export const isNonNullableField = (sql: string, field: QueryField) => {
   const ast = getHopefullyViewableAST(sql)
-  const getMatchingCountColumns = () =>
-    ast.type === 'select' &&
-    ast.columns &&
-    ast.columns.filter(c => {
-      if (c.expr.type !== 'call' || c.expr.function.name !== 'count') {
-        return false
-      }
-      const name = c.alias?.name || 'count'
-      return field.name === name
-    })
-
-  const matchingCountColumns = getMatchingCountColumns()
-  return matchingCountColumns && matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
+  if (ast.type !== 'select' || ast.columns == null) {
+    return false
+  }
+  const nonNullableColumns = ast.columns.filter(c => {
+    if (c.expr.type !== 'call') {
+      return false
+    }
+    const name = c.alias?.name ?? c.expr.function.name
+    if (field.name !== name) {
+      return false
+    }
+    if (c.expr.function.name === 'count') {
+      // `count` is the only aggregation function, which never returns null.
+      return true
+    }
+    if (c.expr.function.name === 'coalesce') {
+      // let's try to check the args for nullability - starting at the end.
+      return c.expr.args
+        .slice(1)
+        .reverse()
+        .find(arg => {
+          if ('cast' == arg.type) {
+            // at this point we could go recursive, but this rabbit hole is alrady deep enough.
+            // so we'll only check for operands, of which we're sure to be not null and assume nullability for all others (i.e. refs or other functions).
+            return nonNullableExpressionTypes.has(arg.operand.type)
+            // todo: consider moving function nullability checks into parse logic
+          }
+          return false
+        })
+    }
+    return false
+  })
+  // if there's exactly one column with the same name as the field and matching the conditions above, we can be confident it's not nullable.
+  return nonNullableColumns.length === 1
 }
 
 // this query is for a type in a temp schema so this tool doesn't work with it
