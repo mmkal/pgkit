@@ -74,6 +74,17 @@ $$
 LANGUAGE 'plpgsql';
 `
 
+export class AnalyseQueryError extends Error {
+  public readonly [Symbol.toStringTag] = 'ParseError'
+  constructor(
+    public readonly originalError: Error,
+    public readonly query: DescribedQuery,
+    public readonly recover?: AnalysedQuery,
+  ) {
+    super(`Error describing Query: ${originalError.message}`)
+  }
+}
+
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
@@ -173,13 +184,12 @@ export const columnInfoGetter = (pool: DatabasePool) => {
 
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
-      const tags = tagsFromDescribedQuery(query)
-
-      return {
+      const recover = {
         ...query,
-        suggestedTags: tags,
+        suggestedTags: tagsFromDescribedQuery(query),
         fields: query.fields.map(defaultAnalysedQueryField),
       }
+      throw new AnalyseQueryError(e, query, recover)
     })
 }
 

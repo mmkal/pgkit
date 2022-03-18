@@ -1,16 +1,19 @@
-import * as lodash from 'lodash'
-import {globAsync, tryOrDefault, truncateQuery, checkClean, maybeDo, changedFiles, globList} from './util'
-import {psqlClient} from './pg'
-import * as defaults from './defaults'
-import {Options, QueryField, DescribedQuery, ExtractedQuery, QueryParameter} from './types'
-import {columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import * as assert from 'assert'
-import * as path from 'path'
 import * as fs from 'fs'
-import {parameterTypesGetter} from './query/parameters'
-import {migrateLegacyCode} from './migrate'
-import * as write from './write'
+import * as path from 'path'
+
+import * as lodash from 'lodash'
 import {createPool} from 'slonik'
+
+import * as defaults from './defaults'
+import {migrateLegacyCode} from './migrate'
+import {psqlClient} from './pg'
+import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
+import {parameterTypesGetter} from './query/parameters'
+import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
+import {changedFiles, checkClean, globAsync, globList, maybeDo, truncateQuery, tryOrDefault} from './util'
+import * as write from './write'
+
 import memoizee = require('memoizee')
 import chokidar = require('chokidar')
 
@@ -130,12 +133,24 @@ export const generate = async (params: Partial<Options>) => {
         ? [globList(changedFiles({since: glob.since, cwd: path.resolve(rootDir)})), {}]
         : glob
 
+    const getLogPath = (filepath: string) => {
+      const relPath = path.relative(process.cwd(), filepath)
+      return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
+    }
+
+    const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
+
     const getFiles = () => {
-      logger.info(`Searching for files matching ${globParams[0]} in ${rootDir}.`)
+      logger.info(
+        `Searching for files matching ${globParams[0]} in ${getLogPath(path.resolve(process.cwd(), rootDir))}`,
+      )
       return globAsync(globParams[0], {
         ...globParams[1],
         cwd: path.resolve(process.cwd(), rootDir),
         absolute: true,
+      }).then(files => {
+        logger.info(`Found ${files.length} files matching pattern.`)
+        return files
       })
     }
 
@@ -146,41 +161,75 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     async function generateForFiles(files: string[]) {
-      const extracted = files.flatMap(extractQueries)
+      const processedFiles = await Promise.all(files.map(generateForFile))
 
-      logger.info(`Found ${files.length} files and ${extracted.length} queries.`)
+      // gather stats for log
+      const queriesTotal = processedFiles.reduce((sum, {total}) => sum + total, 0)
+      const queriesSuccessful = processedFiles.reduce((sum, {successful}) => sum + successful, 0)
+      const queriesProcessed = queriesSuccessful < queriesTotal ? `${queriesSuccessful}/${queriesTotal}` : queriesTotal
+      const filesSuccessful = processedFiles.reduce((sum, {successful}) => sum + (successful > 0 ? 1 : 0), 0)
+      const filesProcessed = filesSuccessful < files.length ? `${filesSuccessful}/${files.length}` : files.length
+      logger.info(`Finished processing ${queriesProcessed} queries in ${filesProcessed} files.`)
+    }
 
-      const promises = extracted.map(async (query): Promise<DescribedQuery | null> => {
-        try {
-          if (isUntypeable(query.template)) {
-            logger.debug(`Query \`${truncateQuery(query.sql)}\` in file ${query.file} is not typeable`)
-            return null
-          }
-          return {
-            ...query,
-            fields: await getFields(query),
-            parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-          }
-        } catch (e) {
-          let message = `${query.file}:${query.line} Describing query failed: ${e}.`
-          if (query.sql.includes('--')) {
-            message += ' Try moving comments to dedicated lines.'
-          }
-          logger.warn(message)
+    async function generateForFile(file: string) {
+      const queries = extractQueries(file)
+
+      const queriesToAnalyse = queries.map(async (query): Promise<AnalysedQuery | null> => {
+        const describedQuery = await describeQuery(query)
+        if (null == describedQuery) {
           return null
         }
+        return await analyseQuery(describedQuery)
       })
 
-      const describedQueries = lodash.compact(await Promise.all(promises))
+      const analysedQueries = lodash.compact(await Promise.all(queriesToAnalyse))
 
-      const uniqueFiles = [...new Set(describedQueries.map(q => q.file))]
-      logger.info(
-        `Succesfully processed ${describedQueries.length} out of ${promises.length} queries in files ${uniqueFiles} .`,
-      )
-
-      const analysedQueries = await Promise.all(describedQueries.map(getColumnInfo))
-
+      logger.info(`${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries.`)
       await writeTypes(analysedQueries)
+
+      return {
+        total: queries.length,
+        successful: analysedQueries.length,
+      }
+    }
+
+    // uses _gdesc or fallback to attain basic type information
+    const describeQuery = async (query: ExtractedQuery): Promise<DescribedQuery | null> => {
+      try {
+        if (isUntypeable(query.template)) {
+          logger.debug(`${getLogQueryReference(query)} [!] Query is not typeable.`)
+          return null
+        }
+        return {
+          ...query,
+          fields: await getFields(query),
+          parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+        }
+      } catch (e) {
+        let message = `${getLogQueryReference(query)} [!] Extracting types from query failed: ${e}.`
+        if (query.sql.includes('--')) {
+          message += ' Try moving comments to dedicated lines.'
+        }
+        logger.warn(message)
+        return null
+      }
+    }
+
+    // use pgsql-ast-parser or fallback to add column information (i.e. nullability)
+    const analyseQuery = (query: DescribedQuery): Promise<AnalysedQuery> => {
+      return getColumnInfo(query).catch(e => {
+        if (e instanceof AnalyseQueryError && undefined !== e.recover) {
+          // well this is not great, but we can recover from this with default values, which are better than nothing.
+          logger.debug(
+            `${getLogQueryReference(
+              query,
+            )} [!] Error parsing column details: column, comment and nullability might be incorrect.`,
+          )
+          return e.recover
+        }
+        throw e
+      })
     }
 
     if (!lazy) {
@@ -189,16 +238,16 @@ export const generate = async (params: Partial<Options>) => {
 
     const watch = () => {
       const cwd = path.resolve(rootDir)
-      logger.info({message: 'Waiting for files to change', globParams, cwd})
+      logger.info(`Watching for file changes in ${getLogPath(cwd)}`)
       const watcher = chokidar.watch(globParams[0], {
         ignored: globParams[1]?.ignore,
         cwd,
         ignoreInitial: true,
       })
-      const runOne = memoizee((filepath: string, _existingContent: string) => generateForFiles([filepath]), {
+      const runOne = memoizee((filepath: string, _existingContent: string) => generateForFile(filepath), {
         max: 1000,
       })
-      let promises: Promise<void>[] = []
+      const promises: Promise<unknown>[] = []
       /**
        * memoized logger. We're memoizing several layers deep, so when the codegen runs on a file, it memoizes
        * the file path and content, and the queries inside the file. So when a file updates, it's processed and
@@ -210,13 +259,12 @@ export const generate = async (params: Partial<Options>) => {
        */
       const log = memoizee((msg: unknown) => logger.info(msg), {max: 1000, maxAge: 5000})
       const handler = async (filepath: string) => {
-        log(filepath + ' was changed, running codegen')
         const fullpath = path.join(cwd, filepath)
+        log(getLogPath(fullpath) + ' was changed, running codegen.')
         const existingContent = fs.readFileSync(fullpath).toString()
         const promise = runOne(fullpath, existingContent)
         promises.push(promise)
         await promise
-        log(filepath + ' updated.')
       }
       watcher.on('add', handler)
       watcher.on('change', handler)
