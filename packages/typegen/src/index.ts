@@ -244,25 +244,18 @@ export const generate = async (params: Partial<Options>) => {
         cwd,
         ignoreInitial: true,
       })
-      const runOne = memoizee((filepath: string, _existingContent: string) => generateForFile(filepath), {
-        max: 1000,
-      })
-      const promises: Promise<unknown>[] = []
-      /**
-       * memoized logger. We're memoizing several layers deep, so when the codegen runs on a file, it memoizes
-       * the file path and content, and the queries inside the file. So when a file updates, it's processed and
-       * re-edited inline, which triggers another file change handler. It's then _re-processed_ but since everything
-       * is memoized the resultant content is unchanged from query cache hits. The file is written to with the same
-       * content one more time before the `runOne` cache is hit. Memoizing the log for one second ensure we don't see
-       * unnecessary `x.ts was changed, running codegen` entries. It's hacky, but there's not much overhead at runtime
-       * or in code.
-       */
-      const log = memoizee((msg: unknown) => logger.info(msg), {max: 1000, maxAge: 5000})
+      const content = new Map<string, string>()
+      const promises: Promise<void>[] = []
+      const getContentSync = (filepath: string) => fs.readFileSync(filepath).toString()
       const handler = async (filepath: string) => {
         const fullpath = path.join(cwd, filepath)
-        log(getLogPath(fullpath) + ' was changed, running codegen.')
-        const existingContent = fs.readFileSync(fullpath).toString()
-        const promise = runOne(fullpath, existingContent)
+        if (content.get(fullpath) === getContentSync(fullpath)) {
+          return // didn't change from what we'd expect
+        }
+        logger.info(getLogPath(fullpath) + ' was changed, running codegen.')
+        const promise = generateForFile(fullpath).then(() => {
+          content.set(fullpath, getContentSync(fullpath))
+        })
         promises.push(promise)
         await promise
       }
