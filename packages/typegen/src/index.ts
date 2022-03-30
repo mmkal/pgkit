@@ -177,7 +177,7 @@ export const generate = async (params: Partial<Options>) => {
 
       const queriesToAnalyse = queries.map(async (query): Promise<AnalysedQuery | null> => {
         const describedQuery = await describeQuery(query)
-        if (null == describedQuery) {
+        if (describedQuery === null) {
           return null
         }
         return await analyseQuery(describedQuery)
