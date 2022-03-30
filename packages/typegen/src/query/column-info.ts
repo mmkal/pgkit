@@ -245,11 +245,12 @@ const nonNullableExpressionTypes = new Set([
   'keyword',
   'parameter',
   'constant',
+  'value',
   'values',
 ])
 export const isNonNullableField = (sql: string, field: QueryField) => {
   const ast = getHopefullyViewableAST(sql)
-  if (ast.type !== 'select' || ast.columns == null) {
+  if (ast.type !== 'select' || !Array.isArray(ast.columns)) {
     return false
   }
   const nonNullableColumns = ast.columns.filter(c => {
@@ -270,13 +271,11 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
         .slice(1)
         .reverse()
         .find(arg => {
-          if ('cast' == arg.type) {
-            // at this point we could go recursive, but this rabbit hole is alrady deep enough.
-            // so we'll only check for operands, of which we're sure to be not null and assume nullability for all others (i.e. refs or other functions).
-            return nonNullableExpressionTypes.has(arg.operand.type)
-            // todo: consider moving function nullability checks into parse logic
-          }
-          return false
+          // at this point we could go recursive, but this rabbit hole is alrady deep enough.
+          // so we'll only check for static args, of which we're sure to be not null, and assume nullability for all others (i.e. refs or other functions).
+          // todo: consider moving function nullability checks into parse logic
+          const type = arg.type === 'cast' ? arg.operand.type : arg.type
+          return nonNullableExpressionTypes.has(type)
         })
     }
     return false
