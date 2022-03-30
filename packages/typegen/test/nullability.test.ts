@@ -17,6 +17,12 @@ describe('isNonNullableField', () => {
   test('resolves coalesce with primitives as parameters', () => {
     expect(isNonNullableField('select coalesce(sum(*), 1) as x', field)).toBe(true)
   })
+  test('only works for selects', () => {
+    expect(isNonNullableField('update tablename set col=1', field)).toBe(false)
+  })
+  test('returns false for unknown/unsupported functions', () => {
+    expect(isNonNullableField('select sum(*) as x', field)).toBe(false)
+  })
   test.skip('resolves coalesce with nested functions', () => {
     // skipped => resolving nested function is currently not supported and requires the above centralisation to be done first.
     expect(isNonNullableField('select coalesce(1, count(1)) as x', field)).toBe(true)
