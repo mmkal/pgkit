@@ -1,13 +1,15 @@
+import * as assert from 'assert'
+import {createHash} from 'crypto'
+
 import * as lodash from 'lodash'
+import {singular} from 'pluralize'
+import {DatabasePool, sql} from 'slonik'
+
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
-import {getViewFriendlySql} from '.'
-import {sql, DatabasePool} from 'slonik'
+import {tryOrDefault} from '../util'
 import * as parse from './index'
 import {getHopefullyViewableAST, getSuggestedTags, isCTE, suggestedTags} from './parse'
-import * as assert from 'assert'
-import {tryOrDefault} from '../util'
-import {createHash} from 'crypto'
-import {singular} from 'pluralize'
+import {getViewFriendlySql} from '.'
 
 const _sql = sql
 
@@ -75,7 +77,7 @@ LANGUAGE 'plpgsql';
 `
 
 export class AnalyseQueryError extends Error {
-  public readonly [Symbol.toStringTag] = 'ParseError'
+  public readonly [Symbol.toStringTag] = 'AnalyseQueryError'
   constructor(
     public readonly originalError: Error,
     public readonly query: DescribedQuery,
