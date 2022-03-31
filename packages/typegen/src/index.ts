@@ -228,6 +228,7 @@ export const generate = async (params: Partial<Options>) => {
           )
           return e.recover
         }
+        /* istanbul ignore next */
         throw e
       })
     }
