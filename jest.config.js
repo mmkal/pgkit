@@ -7,4 +7,5 @@ module.exports = {
     },
   },
   collectCoverageFrom: ['**/*.ts', '!**/*.d.ts', '!**/generated/**', '!**/fixtures/**'],
+  watchPathIgnorePatterns: ['fixtures', 'generated'],
 }
