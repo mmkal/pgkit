@@ -79,9 +79,7 @@ test('variable table name', async () => {
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
-  expect(logger.debug).toHaveBeenCalledWith(
-    expect.stringMatching(/Query `select \* from \$1` in file .*index.ts is not typeable/),
-  )
+  expect(logger.debug).toHaveBeenCalledWith(expect.stringMatching(/.*index.ts:\d+ \[!\] Query is not typeable./))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -254,9 +252,9 @@ test('queries with comments are modified', async () => {
   expect(logger.warn).toHaveBeenCalled()
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
-        [cwd]/packages/typegen/test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
-        Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql
-        query.
+        ./packages/typegen/test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
+        [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
+        Error running psql query.
 
         Query: "select 1 as a, -- comment 2 as b, '--' as c, -- comment id from
         test_table -- comment \\\\gdesc"
@@ -297,9 +295,9 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
   expect(logger.warn).toHaveBeenCalled()
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
-        [cwd]/packages/typegen/test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
-        Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql
-        query.
+        ./packages/typegen/test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
+        [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
+        Error running psql query.
 
         Query: "with abc as ( select table_name -- comment from
         information_schema.tables ), def as ( select table_schema from

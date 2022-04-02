@@ -470,9 +470,9 @@ test(`queries with syntax errors don't affect others`, async () => {
   expect(logger.warn).toHaveBeenCalledTimes(1)
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
-        [cwd]/packages/typegen/test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
-        Describing query failed: AssertionError [ERR_ASSERTION]: Error running psql
-        query.
+        ./packages/typegen/test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
+        [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
+        Error running psql query.
 
         Query: "this is a nonsense query which will cause an error \\\\gdesc"
 

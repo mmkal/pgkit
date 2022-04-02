@@ -1,13 +1,15 @@
+import * as assert from 'assert'
+import {createHash} from 'crypto'
+
 import * as lodash from 'lodash'
+import {singular} from 'pluralize'
+import {DatabasePool, sql} from 'slonik'
+
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
-import {getViewFriendlySql} from '.'
-import {sql, DatabasePool} from 'slonik'
+import {tryOrDefault} from '../util'
 import * as parse from './index'
 import {getHopefullyViewableAST, getSuggestedTags, isCTE, suggestedTags} from './parse'
-import * as assert from 'assert'
-import {tryOrDefault} from '../util'
-import {createHash} from 'crypto'
-import {singular} from 'pluralize'
+import {getViewFriendlySql} from '.'
 
 const _sql = sql
 
@@ -73,6 +75,17 @@ end;
 $$
 LANGUAGE 'plpgsql';
 `
+
+export class AnalyseQueryError extends Error {
+  public readonly [Symbol.toStringTag] = 'AnalyseQueryError'
+  constructor(
+    public readonly originalError: Error,
+    public readonly query: DescribedQuery,
+    public readonly recover?: AnalysedQuery,
+  ) {
+    super(`Error describing Query: ${originalError.message}`)
+  }
+}
 
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
@@ -173,13 +186,12 @@ export const columnInfoGetter = (pool: DatabasePool) => {
 
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
-      const tags = tagsFromDescribedQuery(query)
-
-      return {
+      const recover = {
         ...query,
-        suggestedTags: tags,
+        suggestedTags: tagsFromDescribedQuery(query),
         fields: query.fields.map(defaultAnalysedQueryField),
       }
+      throw new AnalyseQueryError(e, query, recover)
     })
 }
 

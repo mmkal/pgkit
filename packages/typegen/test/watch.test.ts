@@ -104,9 +104,11 @@ test('watch file system', async () => {
   `)
 
   expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('file1.ts was changed, running codegen'))
-  expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('file1.ts updated.'))
+  expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('file1.ts finished'))
 
-  const watchLogs = JSON.stringify(logger.info.mock.calls).split('Waiting for files to change').slice(1).join('')
+  const watcherStart = logger.info.mock.calls.findIndex(([msg]) => msg.includes('Watching for file changes'))
+  expect(watcherStart).not.toBe(-1)
+  const watchLogs = JSON.stringify(logger.info.mock.calls.slice(watcherStart))
   expect(watchLogs).toContain('file1.ts was changed, running codegen')
   expect(watchLogs).not.toContain('file2.ts')
 })
@@ -141,7 +143,7 @@ test('lazily watch file system', async () => {
 
   await watcher.close()
 
-  expect(logger.info).toHaveBeenCalledWith('file1.ts was changed, running codegen')
+  expect(logger.info).toHaveBeenCalledWith(expect.stringContaining('file1.ts was changed, running codegen'))
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
     file1.ts: |-
