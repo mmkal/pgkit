@@ -14,8 +14,12 @@ describe('isNonNullableField', () => {
   test('respects aliases', () => {
     expect(isNonNullableField('select count(1) as x', {...field, name: 'y'})).toBe(false)
   })
-  test('resolves coalesce with primitives as parameters', () => {
+  test('resolves coalesce as non-nullable, when arguments can be determined to be non-nullable', () => {
+    // Note: Currently only Primitives are supported
+    expect(isNonNullableField('select coalesce(1) as x', field)).toBe(true)
+    expect(isNonNullableField('select coalesce(1, null) as x', field)).toBe(true)
     expect(isNonNullableField('select coalesce(sum(*), 1) as x', field)).toBe(true)
+    expect(isNonNullableField('select coalesce(sum(*), 1, null) as x', field)).toBe(true)
   })
   test('only works for selects', () => {
     expect(isNonNullableField('update tablename set col=1', field)).toBe(false)

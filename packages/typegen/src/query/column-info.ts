@@ -266,17 +266,14 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
       return true
     }
     if (c.expr.function.name === 'coalesce') {
-      // let's try to check the args for nullability - starting at the end.
-      return c.expr.args
-        .slice(1)
-        .reverse()
-        .find(arg => {
-          // at this point we could go recursive, but this rabbit hole is alrady deep enough.
-          // so we'll only check for static args, of which we're sure to be not null, and assume nullability for all others (i.e. refs or other functions).
-          // todo: consider moving function nullability checks into parse logic
-          const type = arg.type === 'cast' ? arg.operand.type : arg.type
-          return nonNullableExpressionTypes.has(type)
-        })
+      // let's try to check the args for nullability - as soon as we encounter a definitive non-nullable one, the whole term becomes non-nullable.
+      return c.expr.args.some(arg => {
+        // for now we'll only check for static args, of which we're sure to be not null, and assume nullability for all others
+        // to work for other types (i.e. refs or functions) this function needs to become recursive, which requires the change below
+        // todo: centralise nullability checks in query parse routine
+        const type = arg.type === 'cast' ? arg.operand.type : arg.type
+        return nonNullableExpressionTypes.has(type)
+      })
     }
     return false
   })
