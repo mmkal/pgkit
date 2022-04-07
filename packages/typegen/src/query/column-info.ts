@@ -159,12 +159,13 @@ export const columnInfoGetter = (pool: DatabasePool) => {
 
         const res = relatedResults.length === 1 ? relatedResults[0] : undefined
 
+        // determine nullability
         let nullability: AnalysedQueryField['nullability'] = 'unknown'
         if (res?.is_underlying_nullable === 'YES') {
           nullability = 'nullable'
         } else if (res?.hasNullableJoin) {
           nullability = 'nullable_via_join'
-        } else if (res?.is_underlying_nullable === 'NO' || Boolean(isFieldNotNull(parseableSql, f))) {
+        } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(parseableSql, f)) {
           nullability = 'not_null'
         } else {
           nullability = 'unknown'
@@ -244,21 +245,50 @@ export const defaultAnalysedQueryField = (f: QueryField): AnalysedQueryField => 
   column: undefined,
 })
 
-export const isFieldNotNull = (sql: string, field: QueryField) => {
+const nonNullableExpressionTypes = new Set([
+  'integer',
+  'numeric',
+  'string',
+  'boolean',
+  'list',
+  'array',
+  'keyword',
+  'parameter',
+  'constant',
+  'value',
+  'values',
+])
+export const isNonNullableField = (sql: string, field: QueryField) => {
   const ast = getHopefullyViewableAST(sql)
-  const getMatchingCountColumns = () =>
-    ast.type === 'select' &&
-    ast.columns &&
-    ast.columns.filter(c => {
-      if (c.expr.type !== 'call' || c.expr.function.name !== 'count') {
-        return false
-      }
-      const name = c.alias?.name || 'count'
-      return field.name === name
-    })
-
-  const matchingCountColumns = getMatchingCountColumns()
-  return matchingCountColumns && matchingCountColumns.length === 1 // If we found exactly one field which looks like the result of a `count(...)`, we can be sure it's not null.
+  if (ast.type !== 'select' || !Array.isArray(ast.columns)) {
+    return false
+  }
+  const nonNullableColumns = ast.columns.filter(c => {
+    if (c.expr.type !== 'call') {
+      return false
+    }
+    const name = c.alias?.name ?? c.expr.function.name
+    if (field.name !== name) {
+      return false
+    }
+    if (c.expr.function.name === 'count') {
+      // `count` is the only aggregation function, which never returns null.
+      return true
+    }
+    if (c.expr.function.name === 'coalesce') {
+      // let's try to check the args for nullability - as soon as we encounter a definitive non-nullable one, the whole term becomes non-nullable.
+      return c.expr.args.some(arg => {
+        // for now we'll only check for static args, of which we're sure to be not null, and assume nullability for all others
+        // to work for other types (i.e. refs or functions) this function needs to become recursive, which requires the change below
+        // todo: centralise nullability checks in query parse routine
+        const type = arg.type === 'cast' ? arg.operand.type : arg.type
+        return nonNullableExpressionTypes.has(type)
+      })
+    }
+    return false
+  })
+  // if there's exactly one column with the same name as the field and matching the conditions above, we can be confident it's not nullable.
+  return nonNullableColumns.length === 1
 }
 
 // this query is for a type in a temp schema so this tool doesn't work with it

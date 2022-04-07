@@ -12,6 +12,8 @@ module.exports = {
     'import/no-extraneous-dependencies': 'error',
     // seems to do the wrong thing with find-up
     'import/namespace': 'off',
+    eqeqeq: 'error',
+    yoda: 'error',
   },
   overrides: [
     {

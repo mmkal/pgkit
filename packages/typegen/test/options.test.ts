@@ -1,8 +1,11 @@
-import * as fsSyncer from 'fs-syncer'
-import * as typegen from '../src'
-import * as path from 'path'
-import {getHelper} from './helper'
 import './register-mock-serializer'
+
+import * as path from 'path'
+
+import * as fsSyncer from 'fs-syncer'
+
+import * as typegen from '../src'
+import {getHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
@@ -46,6 +49,8 @@ test('write types', async () => {
           sql\`select count(*) from test_table\`,
           sql\`select count(*) from test_table group by id\`,
           sql\`select count(*) as cnt from test_table\`,
+          sql\`select coalesce(t, 'fallback') from test_table\`,
+          sql\`select coalesce(sum(n), 0) as sum from test_table\`,
           sql\`select id as idalias, t as talias from test_table\`,
           sql\`select id from test_table where id = ${'${1}'} and n = ${'${2}'}\`,
           sql\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
@@ -91,6 +96,8 @@ test('write types', async () => {
         sql<queries.TestTable_count>\`select count(*) from test_table\`,
         sql<queries.TestTable_count>\`select count(*) from test_table group by id\`,
         sql<queries.TestTable_cnt>\`select count(*) as cnt from test_table\`,
+        sql<queries.TestTable_coalesce>\`select coalesce(t, 'fallback') from test_table\`,
+        sql<queries.TestTable_sum>\`select coalesce(sum(n), 0) as sum from test_table\`,
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
         sql<queries.TestTable_id>\`select id from test_table where id = \${1} and n = \${2}\`,
         sql<queries._void>\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
@@ -202,6 +209,18 @@ test('write types', async () => {
         export interface TestTable_cnt {
           /** not null: \`true\`, regtype: \`bigint\` */
           cnt: number
+        }
+      
+        /** - query: \`select coalesce(t, 'fallback') from test_table\` */
+        export interface TestTable_coalesce {
+          /** not null: \`true\`, regtype: \`text\` */
+          coalesce: string
+        }
+      
+        /** - query: \`select coalesce(sum(n), 0) as sum from test_table\` */
+        export interface TestTable_sum {
+          /** not null: \`true\`, regtype: \`bigint\` */
+          sum: number
         }
       
         /** - query: \`select id as idalias, t as talias from test_table\` */
