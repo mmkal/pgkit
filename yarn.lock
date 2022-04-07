@@ -4815,7 +4815,9 @@ io-ts-extra@0.11.5:
     io-ts "^2.2.4"
 
 io-ts-extra@^0.11.4:
-  version: "0.11.6"
+  version "0.11.6"
+  resolved "https://registry.yarnpkg.com/io-ts-extra/-/io-ts-extra-0.11.6.tgz#ae18f8662cce59b421ed6f36a48b099e970ff0df"
+  integrity sha512-rTsvx3W5B2nx7p/eGf+OsEaBTmjSjLzxBDEiweCjwqIL9ZN6CZjG7hFK8zyGJyM0I2uCsRU4uYUhaTgg2SKHkQ==
   dependencies:
     fp-ts "^2.1.0"
     io-ts "^2.2.4"
