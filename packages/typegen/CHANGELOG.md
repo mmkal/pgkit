@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.12.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.11.3...@slonik/typegen@0.12.0) (2022-04-07)
+
+
+### Bug Fixes
+
+* **nullability:** non-nullability of aliased count aggregation ([#375](https://github.com/mmkal/slonik-tools/issues/375)) ([c168907](https://github.com/mmkal/slonik-tools/commit/c168907a333678f379cccedb182fc8282f8e17c3))
+
+
+### Features
+
+* **logs:** improve log output ([#378](https://github.com/mmkal/slonik-tools/issues/378)) ([f884628](https://github.com/mmkal/slonik-tools/commit/f884628cc1908be0d0059f49209ea913bf7f162d))
+* **nullability:** naive coalesce interpretation ([#376](https://github.com/mmkal/slonik-tools/issues/376)) ([5262f2c](https://github.com/mmkal/slonik-tools/commit/5262f2c4b2a25d2242c83efc458d543d417a6979))
+
+
+
+
+
 ## [0.11.3](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.11.2...@slonik/typegen@0.11.3) (2022-02-21)
 
 **Note:** Version bump only for package @slonik/typegen

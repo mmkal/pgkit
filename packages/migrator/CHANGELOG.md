@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.11.1](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.11.0...@slonik/migrator@0.11.1) (2022-04-07)
+
+**Note:** Version bump only for package @slonik/migrator
+
+
+
+
+
 # [0.11.0](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.10.0...@slonik/migrator@0.11.0) (2022-02-21)
 
 
