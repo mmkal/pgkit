@@ -1,8 +1,9 @@
-import * as glob from 'glob'
-import {promisify} from 'util'
-import * as lodash from 'lodash'
-import * as path from 'path'
 import * as child_process from 'child_process'
+import * as path from 'path'
+import {promisify} from 'util'
+
+import * as glob from 'glob'
+import * as lodash from 'lodash'
 
 export const globAsync = promisify(glob)
 
@@ -75,5 +76,3 @@ export const changedFiles = (params: {since: string; cwd: string}) =>
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
-
-export const globList = (list: string[]) => (list.length === 1 ? list[0] : `{${list.join(',')}}`)

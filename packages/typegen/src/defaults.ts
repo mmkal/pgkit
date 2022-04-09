@@ -1,9 +1,10 @@
+import * as assert from 'assert'
+
 import {defaultExtractQueries} from './extract'
-import {defaultWriteTypes, defaultWriteFile} from './write'
 import {defaultPGDataTypeToTypeScriptMappings} from './pg'
 import {defaultTypeParsers} from './slonik'
 import {Options} from './types'
-import * as assert from 'assert'
+import {defaultWriteFile, defaultWriteTypes} from './write'
 
 // Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
 // e.g. the default `writeTypes` implementation depends on the specific value of `rootDir`.
@@ -44,7 +45,9 @@ export const getParams = (partial: Partial<Options>): Options => {
     psqlCommand = defaultPsqlCommand,
     pgTypeToTypeScript: gdescToTypeScript = () => undefined,
     rootDir = defaultRootDir,
-    glob = [`**/*.{ts,sql}`, {ignore: ['**/node_modules/**']}],
+    glob = '**/*.{ts,sql}',
+    ignore = '**/node_modules/**',
+    since = undefined,
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
@@ -70,6 +73,8 @@ export const getParams = (partial: Partial<Options>): Options => {
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
     glob,
+    ignore,
+    since,
     defaultType,
     extractQueries,
     writeTypes,

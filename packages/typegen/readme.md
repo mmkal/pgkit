@@ -120,7 +120,9 @@ export declare namespace queries {
 The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup. By default, the CLI will look for `typegen.config.js` file in the working directory. The config file can contain the following options (all are optional):
 
 - `rootDir` - Source root that the tool will search for files in. Defaults to `src`. Can be overridden with the `--root-dir` CLI argument.
-- `glob` - Glob pattern of files to search for. Defaults to searching for `.ts` and `.sql` files, ignore `node_modules`. Can be overridden with the `--glob` CLI argument.
+- `glob` - Glob pattern of files to search for. Defaults to `'**/*.{ts,sql}'`, matching all `.ts` and `.sql` files. Can be overridden with the `--glob` CLI argument.
+- `ignore` - Glob pattern (or array of patterns) of files to ignore. Defaults to `'**/node_modules/**'`, ignoring `node_modules`. Can be overridden with the `--ignore` CLI argument.
+- `since` - Limit matched files to those which have been changed since the given git ref. Use `"HEAD"` for files changed since the last commit, `"main"` for files changed in a branch, etc. Can be overridden with the `--since` CLI argument.
 - `connectionURI` - URI for connecting to psql. Defaults to `postgresql://postgres:postgres@localhost:5432/postgres`. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and slonik to connect to the database.
 - `poolConfig` - Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.
 - `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql`. You can test it's working, and that your postgres version supports `\gdesc` with your connection string using: `echo 'select 123 as abc \gdesc' | psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!). If you are using docker compose, you can use a command like `docker-compose exec -T postgres psql`
@@ -137,7 +139,8 @@ const yourAppDB = require('./lib/db')
 /** @type {import('@slonik/typegen').Options} */
 module.exports.default = {
   rootDir: 'source', // maybe you don't like using `src`
-  glob: ['{queries/**.ts,sql/**.sql}', {ignore: 'legacy-queries/**.sql'}],
+  glob: '{queries/**.ts,sql/**.sql}',
+  ignore: 'legacy-queries/**.sql',
   connectionURI: 'postgresql://postgres:postgres@localhost:5432/postgres',
   poolConfig: yourAppDB.getPool().configuration,
 }
@@ -154,8 +157,9 @@ Some of the options above can be overriden by the CLI:
 usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
                                [--connection-uri URI] [--psql COMMAND]
                                [--default-type TYPESCRIPT] [--glob PATTERN]
-                               [--since REF] [--migrate {<=0.8.0}]
-                               [--skip-check-clean] [--watch] [--lazy]
+                               [--ignore PATTERN] [--since REF]
+                               [--migrate {<=0.8.0}] [--skip-check-clean]
+                               [--watch] [--lazy]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
@@ -196,12 +200,16 @@ Optional arguments:
 
   --glob PATTERN        Glob pattern of source files to search for SQL 
                         queries in. By default searches for all ts and sql 
-                        files under 'rootDir'
+                        files under 'rootDir': **/*.{ts,sql}
+
+  --ignore PATTERN      One or more glob pattern for files to be excluded 
+                        from processing. By default ignores **/node_modules/**
 
   --since REF           Limit affected files to those which have been changed 
                         since the given git ref. Use "--since HEAD" for files 
                         changed since the last commit, "--since main" for 
-                        files changed in a branch, etc.
+                        files changed in a branch, etc. This option has no 
+                        effect in watch mode.
 
   --migrate {<=0.8.0}   Before generating types, attempt to migrate a 
                         codebase which has used a prior version of this tool

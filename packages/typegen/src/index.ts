@@ -11,7 +11,7 @@ import {psqlClient} from './pg'
 import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import {parameterTypesGetter} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, globAsync, globList, maybeDo, truncateQuery, tryOrDefault} from './util'
+import {changedFiles, checkClean, globAsync, maybeDo, truncateQuery, tryOrDefault} from './util'
 import * as write from './write'
 
 import memoizee = require('memoizee')
@@ -30,6 +30,8 @@ export const generate = async (params: Partial<Options>) => {
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
     glob,
+    ignore,
+    since,
     defaultType,
     extractQueries,
     writeTypes,
@@ -126,13 +128,6 @@ export const generate = async (params: Partial<Options>) => {
   const findAll = async () => {
     const getColumnInfo = columnInfoGetter(pool)
 
-    const globParams: Parameters<typeof globAsync> =
-      typeof glob === 'string'
-        ? [glob, {}]
-        : 'since' in glob
-        ? [globList(changedFiles({since: glob.since, cwd: path.resolve(rootDir)})), {}]
-        : glob
-
     const getLogPath = (filepath: string) => {
       const relPath = path.relative(process.cwd(), filepath)
       return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
@@ -140,18 +135,24 @@ export const generate = async (params: Partial<Options>) => {
 
     const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
 
-    const getFiles = () => {
-      logger.info(
-        `Searching for files matching ${globParams[0]} in ${getLogPath(path.resolve(process.cwd(), rootDir))}`,
-      )
-      return globAsync(globParams[0], {
-        ...globParams[1],
-        cwd: path.resolve(process.cwd(), rootDir),
+    const getFiles = async () => {
+      // TODO: update readme
+      const cwd = path.resolve(process.cwd(), rootDir)
+      logger.info(`Searching for files matching ${glob} in ${getLogPath(cwd)}`)
+      let files = await globAsync(glob, {
+        ignore,
+        cwd,
         absolute: true,
-      }).then(files => {
-        logger.info(`Found ${files.length} files matching pattern.`)
-        return files
       })
+      if (since !== undefined) {
+        // filter matched files to only include changed files
+        const changed = changedFiles({since, cwd}).map(
+          file => path.join(cwd, file), // convert to absolute paths
+        )
+        files = files.filter(file => changed.includes(file))
+      }
+      logger.info(`Found ${files.length} files matching pattern.`)
+      return files
     }
 
     if (migrate) {
@@ -240,9 +241,8 @@ export const generate = async (params: Partial<Options>) => {
     const watch = () => {
       const cwd = path.resolve(rootDir)
       logger.info(`Watching for file changes in ${getLogPath(cwd)}`)
-      const ignorePattern = globParams[1]?.ignore
-      const watcher = chokidar.watch(globParams[0], {
-        ignored: typeof ignorePattern === 'object' ? [...ignorePattern] : ignorePattern,
+      const watcher = chokidar.watch(glob, {
+        ignored: ignore,
         cwd,
         ignoreInitial: true,
       })
