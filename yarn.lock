@@ -1735,7 +1735,7 @@
   dependencies:
     "@octokit/openapi-types" "^7.3.5"
 
-"@rushstack/ts-command-line@4.10.8":
+"@rushstack/ts-command-line@^4.10.8":
   version "4.10.8"
   resolved "https://registry.yarnpkg.com/@rushstack/ts-command-line/-/ts-command-line-4.10.8.tgz#f4bec690e7f4838e6f91028d8a557e67c3a75f68"
   integrity sha512-G7CQYY/m3aZU5fVxbebv35yDeua7sSumrDAB2pJp0d60ZEsxGkUQW8771CeMcGWwSKqT9PxPzKpmIakiWv54sA==
@@ -7165,10 +7165,10 @@ pgpass@1.x:
   dependencies:
     split2 "^4.1.0"
 
-pgsql-ast-parser@^8.0.0:
-  version "8.1.1"
-  resolved "https://registry.npmjs.org/pgsql-ast-parser/-/pgsql-ast-parser-8.1.1.tgz"
-  integrity sha512-qcLKs6lK3l2T9YrWCqJc4GUj4NHMFk4OiTxvUo4cNFQyL8jfeKpqcaZooaZsJlDo2QMRLb9+wS8IWXwqrF9UPQ==
+pgsql-ast-parser@10.0.2:
+  version "10.0.2"
+  resolved "https://registry.yarnpkg.com/pgsql-ast-parser/-/pgsql-ast-parser-10.0.2.tgz#df63752e02b41b87f6f6106e9547bcad11246960"
+  integrity sha512-evH3sRyqmtA11AJD1naowum37JGVGyD36PqHaBG8ZcoS1iWzKYhuz9BGwqugQs2nuRGEZ7x1h+Orh58ovpmokQ==
   dependencies:
     moo "^0.5.1"
     nearley "^2.19.5"
