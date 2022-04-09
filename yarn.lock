@@ -1735,7 +1735,17 @@
   dependencies:
     "@octokit/openapi-types" "^7.3.5"
 
-"@rushstack/ts-command-line@^4.7.7", "@rushstack/ts-command-line@^4.7.8":
+"@rushstack/ts-command-line@^4.10.8":
+  version "4.10.8"
+  resolved "https://registry.yarnpkg.com/@rushstack/ts-command-line/-/ts-command-line-4.10.8.tgz#f4bec690e7f4838e6f91028d8a557e67c3a75f68"
+  integrity sha512-G7CQYY/m3aZU5fVxbebv35yDeua7sSumrDAB2pJp0d60ZEsxGkUQW8771CeMcGWwSKqT9PxPzKpmIakiWv54sA==
+  dependencies:
+    "@types/argparse" "1.0.38"
+    argparse "~1.0.9"
+    colors "~1.2.1"
+    string-argv "~0.3.1"
+
+"@rushstack/ts-command-line@^4.7.7":
   version "4.7.10"
   resolved "https://registry.npmjs.org/@rushstack/ts-command-line/-/ts-command-line-4.7.10.tgz"
   integrity sha512-8t042g8eerypNOEcdpxwRA3uCmz0duMo21rG4Z2mdz7JxJeylDmzjlU3wDdef2t3P1Z61JCdZB6fbm1Mh0zi7w==
@@ -1896,10 +1906,10 @@
     "@types/qs" "*"
     "@types/serve-static" "*"
 
-"@types/glob@7.1.4":
-  version "7.1.4"
-  resolved "https://registry.npmjs.org/@types/glob/-/glob-7.1.4.tgz"
-  integrity sha512-w+LsMxKyYQm347Otw+IfBXOv9UWVjpHpCDdbBMt8Kz/xbvCYNjP+0qPh91Km3iKfSRLBB0P7fAMf0KHrPu+MyA==
+"@types/glob@7.2.0":
+  version "7.2.0"
+  resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.2.0.tgz#bc1b5bf3aa92f25bd5dd39f35c57361bdce5b2eb"
+  integrity sha512-ZUxbzKl0IfJILTS6t7ip5fQQM/J3TJYubDm3nMbgubNNYS62eXeUpoLUC8/7fJNiFYHTrGPQn7hspDUzIHX3UA==
   dependencies:
     "@types/minimatch" "*"
     "@types/node" "*"
@@ -1958,10 +1968,10 @@
   resolved "https://registry.npmjs.org/@types/lodash/-/lodash-4.14.171.tgz"
   integrity sha512-7eQ2xYLLI/LsicL2nejW9Wyko3lcpN6O/z0ZLHrEQsg280zIdCv1t/0m6UtBjUHokCGBQ3gYTbHzDkZ1xOBwwg==
 
-"@types/memoizee@0.4.6":
-  version "0.4.6"
-  resolved "https://registry.npmjs.org/@types/memoizee/-/memoizee-0.4.6.tgz"
-  integrity sha512-qJezGqoi3pW9Pset2w1Gfv8jATvmHHHnpO9Dq8x8pJGyYIpiUZJqRU0NM7xenmN0AcXEe7vqshI8H98KeFLYcg==
+"@types/memoizee@0.4.7":
+  version "0.4.7"
+  resolved "https://registry.yarnpkg.com/@types/memoizee/-/memoizee-0.4.7.tgz#fa0025b5ea1c8acb85fd52a76982c5a096c2c91e"
+  integrity sha512-EMtvWnRC/W0KYmXxbPJAMg/M1OXkFboSpd/IzkNMDXfoFPE4uom1RHFl8q7m/4R0y9eG1yaoaIPiMHk0vMA0eA==
 
 "@types/mime@*":
   version "2.0.1"
@@ -2825,10 +2835,10 @@ check-clean@0.3.1:
   resolved "https://registry.npmjs.org/check-clean/-/check-clean-0.3.1.tgz"
   integrity sha512-2g3QAu6zVaPrYfxieSZCKoxz3SRaknmVlKJSFYEpnGojmZQ/9ZqjUP80pP9/CsIHOe+5orKqLf6fKn4csf1fTg==
 
-chokidar@^3.5.2:
-  version "3.5.2"
-  resolved "https://registry.npmjs.org/chokidar/-/chokidar-3.5.2.tgz"
-  integrity sha512-ekGhOnNVPgT77r4K/U3GDhu+FQ2S8TnK/s2KbIGXi0SZWuwkZ2QNyfWdZW+TVfn84DpEP7rLeCt2UI6bJ8GwbQ==
+chokidar@^3.5.3:
+  version "3.5.3"
+  resolved "https://registry.yarnpkg.com/chokidar/-/chokidar-3.5.3.tgz#1cf37c8707b932bd1af1ae22c0432e2acd1903bd"
+  integrity sha512-Dr3sfKRP6oTcjf2JmUmFJfeVMvXBdegxB0iVQ5eb2V10uFJUCAS8OByZdVAyVb8xXNz3GjjTgj9kLWsZTqE6kw==
   dependencies:
     anymatch "~3.1.2"
     braces "~3.0.2"
@@ -4256,10 +4266,10 @@ fs-syncer@0.3.0:
   resolved "https://registry.npmjs.org/fs-syncer/-/fs-syncer-0.3.0.tgz"
   integrity sha512-2/sSLnms2gTMDyAZH2KKI0L+Rw+ysX7FkzG3GWiqT/3cBJ0WsJpZOr7s2QAm7t2trpROwW6YOEdZkq4WmvnNKg==
 
-fs-syncer@0.3.4-next.2:
-  version "0.3.4-next.2"
-  resolved "https://registry.npmjs.org/fs-syncer/-/fs-syncer-0.3.4-next.2.tgz"
-  integrity sha512-KXAUO/kc9Rr2JvL6wSxfzpzh3qioL4cXMwcc1ce/hab2wKw89FT1WrJCy2FGaZA90xomcnzPotgQCn/Lny01uQ==
+fs-syncer@0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/fs-syncer/-/fs-syncer-0.4.0.tgz#2ada6daba1885e6490b9733d7468f8c7680f283d"
+  integrity sha512-GHxfTs+TCc9F3rgHlVaP+W2iVEhk5Wl6sMSb3O1qQQmgsrCwqwimkpwJza2viSg3XpbSwdxaZvdQJjBoOV2Vzg==
 
 fs.realpath@^1.0.0:
   version "1.0.0"
@@ -4439,7 +4449,7 @@ glob-parent@^5.1.1, glob-parent@^5.1.2, glob-parent@~5.1.2:
   dependencies:
     is-glob "^4.0.1"
 
-glob@^7.0.0, glob@^7.1.7:
+glob@^7.0.0:
   version "7.1.7"
   resolved "https://registry.npmjs.org/glob/-/glob-7.1.7.tgz"
   integrity sha512-OvD9ENzPLbegENnYP5UUfJIirTg4+XwMWGaQfQTY0JenxNvvIKP3U3/tAQSPIu/lHxXYSZmpXlUHeqAIdKzBLQ==
@@ -4455,6 +4465,18 @@ glob@^7.1.1, glob@^7.1.2, glob@^7.1.3, glob@^7.1.4, glob@^7.1.6:
   version "7.1.6"
   resolved "https://registry.npmjs.org/glob/-/glob-7.1.6.tgz"
   integrity sha512-LwaxwyZ72Lk7vZINtNNrywX0ZuLyStrdDtabefZKAY5ZGJhVtgdznluResxNmPitE0SAO+O26sWTHeKSI2wMBA==
+  dependencies:
+    fs.realpath "^1.0.0"
+    inflight "^1.0.4"
+    inherits "2"
+    minimatch "^3.0.4"
+    once "^1.3.0"
+    path-is-absolute "^1.0.0"
+
+glob@^7.2.0:
+  version "7.2.0"
+  resolved "https://registry.yarnpkg.com/glob/-/glob-7.2.0.tgz#d15535af7732e02e948f4c41628bd910293f6023"
+  integrity sha512-lmLf6gtyrPq8tTjSmrO94wBeQbFR3HbLHbuyD69wuyQkImp2hWqMGB47OX65FBkPffO641IP9jWa1z4ivqG26Q==
   dependencies:
     fs.realpath "^1.0.0"
     inflight "^1.0.4"
@@ -4814,7 +4836,7 @@ io-ts-extra@0.11.5:
     fp-ts "^2.1.0"
     io-ts "^2.2.4"
 
-io-ts-extra@^0.11.4:
+io-ts-extra@^0.11.6:
   version "0.11.6"
   resolved "https://registry.yarnpkg.com/io-ts-extra/-/io-ts-extra-0.11.6.tgz#ae18f8662cce59b421ed6f36a48b099e970ff0df"
   integrity sha512-rTsvx3W5B2nx7p/eGf+OsEaBTmjSjLzxBDEiweCjwqIL9ZN6CZjG7hFK8zyGJyM0I2uCsRU4uYUhaTgg2SKHkQ==
@@ -6074,7 +6096,7 @@ media-typer@0.3.0:
 
 memoizee@^0.4.15:
   version "0.4.15"
-  resolved "https://registry.npmjs.org/memoizee/-/memoizee-0.4.15.tgz"
+  resolved "https://registry.yarnpkg.com/memoizee/-/memoizee-0.4.15.tgz#e6f3d2da863f318d02225391829a6c5956555b72"
   integrity sha512-UBWmJpLZd5STPm7PMUlOw/TSy972M+z8gcyQ5veOnSDRREz/0bmpyTfKt3/51DhEBqCZQn1udM/5flcSPYhkdQ==
   dependencies:
     d "^1.0.1"
@@ -7138,10 +7160,10 @@ pgpass@1.x:
   dependencies:
     split2 "^4.1.0"
 
-pgsql-ast-parser@^8.0.0:
-  version "8.1.1"
-  resolved "https://registry.npmjs.org/pgsql-ast-parser/-/pgsql-ast-parser-8.1.1.tgz"
-  integrity sha512-qcLKs6lK3l2T9YrWCqJc4GUj4NHMFk4OiTxvUo4cNFQyL8jfeKpqcaZooaZsJlDo2QMRLb9+wS8IWXwqrF9UPQ==
+pgsql-ast-parser@^10.0.2:
+  version "10.0.2"
+  resolved "https://registry.yarnpkg.com/pgsql-ast-parser/-/pgsql-ast-parser-10.0.2.tgz#df63752e02b41b87f6f6106e9547bcad11246960"
+  integrity sha512-evH3sRyqmtA11AJD1naowum37JGVGyD36PqHaBG8ZcoS1iWzKYhuz9BGwqugQs2nuRGEZ7x1h+Orh58ovpmokQ==
   dependencies:
     moo "^0.5.1"
     nearley "^2.19.5"
@@ -7228,7 +7250,7 @@ pkg-up@^2.0.0:
 
 pluralize@^8.0.0:
   version "8.0.0"
-  resolved "https://registry.npmjs.org/pluralize/-/pluralize-8.0.0.tgz"
+  resolved "https://registry.yarnpkg.com/pluralize/-/pluralize-8.0.0.tgz#1a6fa16a38d12a1901e0320fa017051c539ce3b1"
   integrity sha512-Nc3IT5yHzflTfbjgqWcCPpo7DaKy4FnpB0l/zCAW0Tc7jxAiuqSxHasntB3D7887LSrA93kDJ9IXovxJYxyLCA==
 
 postgres-array@^3.0.1:

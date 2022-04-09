@@ -339,6 +339,7 @@ if (require.main === module) {
     '<<': 'binary_left_shift',
     '>>': 'binary_right_shift',
     '#': 'bitwise_xor',
+    'AT TIME ZONE': 'at_time_zone',
   }
   // console.log(`
   //   select *
