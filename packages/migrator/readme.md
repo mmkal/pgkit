@@ -363,7 +363,7 @@ parameters for the `SlonikMigrator` constructor
 |--------|------------|-------------|
 | `slonik` | slonik database pool instance, created by `createPool`. | N/A |
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
-| `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. | N/A |
+| `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. Set to an array to change the schema e.g. `['public', 'dbmigrations']` | N/A |
 | `logger` | how information about the migrations will be logged. You can set to `undefined` to prevent logs appearing at all. | `console` |
 
 ## Implementation
