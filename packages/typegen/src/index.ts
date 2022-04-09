@@ -240,8 +240,9 @@ export const generate = async (params: Partial<Options>) => {
     const watch = () => {
       const cwd = path.resolve(rootDir)
       logger.info(`Watching for file changes in ${getLogPath(cwd)}`)
+      const ignorePattern = globParams[1]?.ignore
       const watcher = chokidar.watch(globParams[0], {
-        ignored: globParams[1]?.ignore,
+        ignored: typeof ignorePattern === 'object' ? [...ignorePattern] : ignorePattern,
         cwd,
         ignoreInitial: true,
       })
