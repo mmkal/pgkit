@@ -257,6 +257,10 @@ test('use git to get changed files', async () => {
     '--skip-check-clean',
     '--since',
     'main',
+    '--ignore',
+    '**/node_modules/**',
+    '--ignore',
+    '**/second_ignore_pattern/**',
   ])
 
   expect(child_process.execSync).toHaveBeenCalledWith(`git diff --relative --name-only main`, {cwd: expect.any(String)})

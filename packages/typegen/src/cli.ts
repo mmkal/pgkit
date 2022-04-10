@@ -79,14 +79,14 @@ export class GenerateAction extends cli.CommandLineAction {
         parameterLongName: '--glob',
         argumentName: 'PATTERN',
         description: `
-          Glob pattern of source files to search for SQL queries in. By default searches for all ts and sql files under 'rootDir': **/*.{ts,sql}
+          Glob pattern of source files to search for SQL queries in. By default searches for all ts and sql files under 'rootDir': '**/*.{ts,sql}'
         `,
       }),
       ignore: action.defineStringListParameter({
         parameterLongName: '--ignore',
         argumentName: 'PATTERN',
         description: `
-          One or more glob pattern for files to be excluded from processing. By default ignores **/node_modules/**
+          Glob pattern for files to be excluded from processing. By default ignores '**/node_modules/**'. This option is repeatable to ignore multiple patterns.
         `,
       }),
       since: action.defineStringParameter({
@@ -137,7 +137,7 @@ export class GenerateAction extends cli.CommandLineAction {
         defaultType: this._params.defaultType.value,
         glob: this._params.glob.value,
         since: this._params.since.value,
-        ignore: this._params.ignore.values,
+        ignore: this._params.ignore.values.length > 0 ? this._params.ignore.values : undefined,
         migrate: this._params.migrate.value as Options['migrate'],
         checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
         lazy: this._params.lazy.value,

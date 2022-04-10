@@ -63,6 +63,11 @@ export const generate = async (params: Partial<Options>) => {
   const psql = memoizee(_psql, {max: 1000})
   const gdesc = memoizee(_gdesc, {max: 1000})
 
+  const getLogPath = (filepath: string) => {
+    const relPath = path.relative(process.cwd(), filepath)
+    return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
+  }
+
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await gdesc(query.sql)
     const fields = await Promise.all(
@@ -126,32 +131,28 @@ export const generate = async (params: Partial<Options>) => {
   }
 
   const findAll = async () => {
-    const getColumnInfo = columnInfoGetter(pool)
+    const cwd = path.resolve(process.cwd(), rootDir)
+    const logMsgIgnore = undefined === ignore ? '' : ` ignoring ${ignore}`
+    const logMsgSince = undefined === since ? '' : ` since ${since}`
+    logger.info(`Matching files in ${getLogPath(cwd)} with pattern ${glob}${logMsgIgnore}${logMsgSince}`)
 
-    const getLogPath = (filepath: string) => {
-      const relPath = path.relative(process.cwd(), filepath)
-      return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
-    }
+    const getColumnInfo = columnInfoGetter(pool)
 
     const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
 
     const getFiles = async () => {
-      // TODO: update readme
-      const cwd = path.resolve(process.cwd(), rootDir)
-      logger.info(`Searching for files matching ${glob} in ${getLogPath(cwd)}`)
+      logger.info(`Searching for files.`)
       let files = await globAsync(glob, {
         ignore,
         cwd,
         absolute: true,
       })
       if (since !== undefined) {
-        // filter matched files to only include changed files
-        const changed = changedFiles({since, cwd}).map(
-          file => path.join(cwd, file), // convert to absolute paths
-        )
+        // filter matched files to only include changed files and convert to absolute paths
+        const changed = changedFiles({since, cwd}).map(file => path.join(cwd, file))
         files = files.filter(file => changed.includes(file))
       }
-      logger.info(`Found ${files.length} files matching pattern.`)
+      logger.info(`Found ${files.length} files matching criteria.`)
       return files
     }
 
@@ -186,8 +187,12 @@ export const generate = async (params: Partial<Options>) => {
 
       const analysedQueries = lodash.compact(await Promise.all(queriesToAnalyse))
 
-      logger.info(`${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries.`)
-      await writeTypes(analysedQueries)
+      if (queries.length > 0) {
+        logger.info(`${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries.`)
+      }
+      if (analysedQueries.length > 0) {
+        await writeTypes(analysedQueries)
+      }
 
       return {
         total: queries.length,
@@ -239,8 +244,7 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     const watch = () => {
-      const cwd = path.resolve(rootDir)
-      logger.info(`Watching for file changes in ${getLogPath(cwd)}`)
+      logger.info(`Watching for file changes.`)
       const watcher = chokidar.watch(glob, {
         ignored: ignore,
         cwd,

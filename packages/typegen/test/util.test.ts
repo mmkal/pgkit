@@ -1,4 +1,4 @@
-import {globList, typeName} from '../src/util'
+import {typeName} from '../src/util'
 import {getterExpression} from '../src/write/typescript'
 
 test('typeName', () => {
@@ -9,9 +9,4 @@ test('typeName', () => {
 test('getterExpression', () => {
   expect(getterExpression('foo')).toEqual('.foo')
   expect(getterExpression('not an identifier')).toEqual(`["not an identifier"]`)
-})
-
-test('globList', () => {
-  expect(globList(['foo'])).toEqual('foo')
-  expect(globList(['foo', 'bar'])).toEqual('{foo,bar}')
 })

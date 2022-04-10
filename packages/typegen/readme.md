@@ -200,10 +200,11 @@ Optional arguments:
 
   --glob PATTERN        Glob pattern of source files to search for SQL 
                         queries in. By default searches for all ts and sql 
-                        files under 'rootDir': **/*.{ts,sql}
+                        files under 'rootDir': '**/*.{ts,sql}'
 
-  --ignore PATTERN      One or more glob pattern for files to be excluded 
-                        from processing. By default ignores **/node_modules/**
+  --ignore PATTERN      Glob pattern for files to be excluded from processing.
+                         By default ignores '**/node_modules/**'. This option 
+                        is repeatable to ignore multiple patterns.
 
   --since REF           Limit affected files to those which have been changed 
                         since the given git ref. Use "--since HEAD" for files 
