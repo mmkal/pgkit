@@ -342,3 +342,36 @@ test('create function gets an anoymous tag', async () => {
       "
   `)
 })
+
+test('queries with semicolons are rejected', async () => {
+  const syncer = fsSyncer.jestFixture({
+    targetState: {
+      'index.ts': `
+        import {sql} from 'slonik'
+
+        export default sql\`create table semicolon_query_table(x int);\`
+      `,
+    },
+  })
+
+  syncer.sync()
+
+  await typegen.generate(typegenOptions(syncer.baseDir))
+
+  // running typegen should not have executed the `create table` statement!!!!
+  expect(
+    await helper.pool.any(
+      helper.sql`select table_schema, table_name from information_schema.tables where table_name = 'semicolon_query_table'`,
+    ),
+  ).toEqual([])
+
+  expect(logger.warn).toMatchInlineSnapshot(`
+    - - >-
+        ./packages/typegen/test/fixtures/limitations.test.ts/queries-with-semicolons-are-rejected/index.ts:3
+        [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
+        Can't use \\gdesc on query containing a semicolon. Try removing trailing
+        semicolons, separating multi-statement queries into separate queries, using
+        a template variable for semicolons inside strings, or ignoring this query.
+
+    `)
+})

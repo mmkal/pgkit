@@ -46,6 +46,8 @@ export const generate = async (params: Partial<Options>) => {
   const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
 
   const _gdesc = async (sql: string) => {
+    // fix commented out initially to make sure test fails in CI
+    // assert.ok(!sql.includes(';'), `Can't use \\gdesc on query containing a semicolon`)
     try {
       return await psql(`${sql} \\gdesc`)
     } catch (e) {
@@ -210,6 +212,9 @@ export const generate = async (params: Partial<Options>) => {
         let message = `${getLogQueryReference(query)} [!] Extracting types from query failed: ${e}.`
         if (query.sql.includes('--')) {
           message += ' Try moving comments to dedicated lines.'
+        }
+        if (query.sql.includes(';')) {
+          message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
         }
         logger.warn(message)
         return null
