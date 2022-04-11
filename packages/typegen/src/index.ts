@@ -132,8 +132,8 @@ export const generate = async (params: Partial<Options>) => {
 
   const findAll = async () => {
     const cwd = path.resolve(process.cwd(), rootDir)
-    const logMsgIgnore = undefined === ignore ? '' : ` ignoring ${ignore}`
-    const logMsgSince = undefined === since ? '' : ` since ${since}`
+    const logMsgIgnore = ignore ? ` ignoring ${ignore}` : ''
+    const logMsgSince = since ? ` since ${since}` :  ''
     logger.info(`Matching files in ${getLogPath(cwd)} with pattern ${glob}${logMsgIgnore}${logMsgSince}`)
 
     const getColumnInfo = columnInfoGetter(pool)
@@ -147,7 +147,7 @@ export const generate = async (params: Partial<Options>) => {
         cwd,
         absolute: true,
       })
-      if (since !== undefined) {
+      if (since) {
         // filter matched files to only include changed files and convert to absolute paths
         const changed = changedFiles({since, cwd}).map(file => path.join(cwd, file))
         files = files.filter(file => changed.includes(file))
