@@ -47,6 +47,7 @@ export const generate = async (params: Partial<Options>) => {
 
   const _gdesc = async (sql: string) => {
     // fix commented out initially to make sure test fails in CI
+    // sql = sql.trim().replace(/;$/, '')
     // assert.ok(!sql.includes(';'), `Can't use \\gdesc on query containing a semicolon`)
     try {
       return await psql(`${sql} \\gdesc`)
