@@ -45,8 +45,8 @@ export const getParams = (partial: Partial<Options>): Options => {
     psqlCommand = defaultPsqlCommand,
     pgTypeToTypeScript: gdescToTypeScript = () => undefined,
     rootDir = defaultRootDir,
-    glob = '**/*.{ts,sql}',
-    ignore = '**/node_modules/**',
+    include = '**/*.{ts,sql}',
+    exclude = '**/node_modules/**',
     since = undefined,
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
@@ -63,6 +63,11 @@ export const getParams = (partial: Partial<Options>): Options => {
     ...rest
   } = partial
 
+  assert.ok(
+    !('glob' in partial),
+    `The 'glob' option is deprecated. Instead please use 'include', 'exclude' or 'since' respectively.`,
+  )
+
   assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest)}`)
 
   assert.ok(!connectionURI.match(/ '"/), `Connection URI should not contain spaces or quotes`)
@@ -72,8 +77,8 @@ export const getParams = (partial: Partial<Options>): Options => {
     psqlCommand,
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
-    glob,
-    ignore,
+    include,
+    exclude,
     since,
     defaultType,
     extractQueries,

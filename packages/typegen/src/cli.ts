@@ -75,18 +75,18 @@ export class GenerateAction extends cli.CommandLineAction {
           or 'any' if you like to live dangerously.
         `,
       }),
-      glob: action.defineStringParameter({
-        parameterLongName: '--glob',
+      include: action.defineStringParameter({
+        parameterLongName: '--include',
         argumentName: 'PATTERN',
         description: `
-          Glob pattern of source files to search for SQL queries in. By default searches for all ts and sql files under 'rootDir': '**/*.{ts,sql}'
+          Glob pattern of files to search for SQL queries in. By default searches for all .ts and .sql files: '**/*.{ts,sql}'
         `,
       }),
-      ignore: action.defineStringListParameter({
-        parameterLongName: '--ignore',
+      exclude: action.defineStringListParameter({
+        parameterLongName: '--exclude',
         argumentName: 'PATTERN',
         description: `
-          Glob pattern for files to be excluded from processing. By default ignores '**/node_modules/**'. This option is repeatable to ignore multiple patterns.
+          Glob pattern for files to be excluded from processing. By default excludes '**/node_modules/**'. This option is repeatable to exlude multiple patterns.
         `,
       }),
       since: action.defineStringParameter({
@@ -135,9 +135,9 @@ export class GenerateAction extends cli.CommandLineAction {
         connectionURI: this._params.connectionURI.value,
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
-        glob: this._params.glob.value,
+        include: this._params.include.value,
+        exclude: this._params.exclude.values.length > 0 ? this._params.exclude.values : undefined,
         since: this._params.since.value,
-        ignore: this._params.ignore.values.length > 0 ? this._params.ignore.values : undefined,
         migrate: this._params.migrate.value as Options['migrate'],
         checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
         lazy: this._params.lazy.value,

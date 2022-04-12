@@ -43,16 +43,21 @@ export interface Options {
   rootDir: string
 
   /**
-   * Files to look for SQL queries in. e.g. `source/queries/*.ts`
-   * Defaults to all '.ts' and '.sql' files.
+   * @deprecated Use `include` and `exclude` options instead
    */
-  glob: string
+  glob?: never
 
   /**
-   * Glob filename pattern or array of patterns to ignore e.g. `source/don-touch/*.ts`
-   * Defaults to ignore node_modules.
+   * Files to look for SQL queries in. e.g. `source/queries/*.ts`
+   * Defaults to include all '.ts' and '.sql' files.
    */
-  ignore: string | string[]
+  include: string
+
+  /**
+   * Filename pattern or array of patterns to exclude e.g. `source/dont-touch/*.ts`
+   * Defaults to exlude node_modules.
+   */
+  exclude: string | string[]
 
   /**
    * Filter matcher results to files from specific git refs.

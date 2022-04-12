@@ -29,8 +29,8 @@ export const generate = async (params: Partial<Options>) => {
     connectionURI,
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
-    glob,
-    ignore,
+    include,
+    exclude,
     since,
     defaultType,
     extractQueries,
@@ -132,9 +132,9 @@ export const generate = async (params: Partial<Options>) => {
 
   const findAll = async () => {
     const cwd = path.resolve(process.cwd(), rootDir)
-    const logMsgIgnore = ignore ? ` ignoring ${ignore}` : ''
-    const logMsgSince = since ? ` since ${since}` :  ''
-    logger.info(`Matching files in ${getLogPath(cwd)} with pattern ${glob}${logMsgIgnore}${logMsgSince}`)
+    const logMsgExclude = exclude ? ` excluding ${exclude}` : ''
+    const logMsgSince = since ? ` since ${since}` : ''
+    logger.info(`Matching files in ${getLogPath(cwd)} with pattern ${include}${logMsgExclude}${logMsgSince}`)
 
     const getColumnInfo = columnInfoGetter(pool)
 
@@ -142,9 +142,9 @@ export const generate = async (params: Partial<Options>) => {
 
     const getFiles = async () => {
       logger.info(`Searching for files.`)
-      let files = await globAsync(glob, {
-        ignore,
+      let files = await globAsync(include, {
         cwd,
+        ignore: exclude,
         absolute: true,
       })
       if (since) {
@@ -245,9 +245,9 @@ export const generate = async (params: Partial<Options>) => {
 
     const watch = () => {
       logger.info(`Watching for file changes.`)
-      const watcher = chokidar.watch(glob, {
-        ignored: ignore,
+      const watcher = chokidar.watch(include, {
         cwd,
+        ignored: exclude,
         ignoreInitial: true,
       })
       const content = new Map<string, string>()

@@ -1,9 +1,11 @@
-import {SlonikTypegenCLI} from '../src/cli'
+import * as child_process from 'child_process'
+
+import * as chokidar from 'chokidar'
 import * as fsSyncer from 'fs-syncer'
 import * as slonik from 'slonik'
+
+import {SlonikTypegenCLI} from '../src/cli'
 import {psqlCommand} from './helper'
-import * as child_process from 'child_process'
-import * as chokidar from 'chokidar'
 
 beforeEach(() => {
   jest.clearAllMocks()
@@ -107,7 +109,7 @@ test('typegen.config.js is used by default', async () => {
     targetState: {
       'typegen.config.js': `
         module.exports = {
-          glob: 'b*.ts',
+          include: 'b*.ts',
           psqlCommand: ${JSON.stringify(psqlCommand)},
         }
       `,
@@ -141,7 +143,7 @@ test('typegen.config.js is used by default', async () => {
     "---
     typegen.config.js: |-
       module.exports = {
-        glob: 'b*.ts',
+        include: 'b*.ts',
         psqlCommand: \\"<<psql>>\\",
       }
       
@@ -171,14 +173,14 @@ test('config flag overrides typegen.config.js', async () => {
     targetState: {
       'typegen.config.js': `
         module.exports = {
-          glob: 'b*.ts',
+          include: 'b*.ts',
           psqlCommand: ${JSON.stringify(psqlCommand)},
         }
       `,
       // note that this config uses a default export to make sure that works too
       'otherconfig.js': `
         module.exports.default = {
-          glob: 'a.ts',
+          include: 'a.ts',
           psqlCommand: ${JSON.stringify(psqlCommand)},
         }
       `,
@@ -212,13 +214,13 @@ test('config flag overrides typegen.config.js', async () => {
     "---
     otherconfig.js: |-
       module.exports.default = {
-        glob: 'a.ts',
+        include: 'a.ts',
         psqlCommand: \\"<<psql>>\\",
       }
       
     typegen.config.js: |-
       module.exports = {
-        glob: 'b*.ts',
+        include: 'b*.ts',
         psqlCommand: \\"<<psql>>\\",
       }
       
@@ -257,10 +259,10 @@ test('use git to get changed files', async () => {
     '--skip-check-clean',
     '--since',
     'main',
-    '--ignore',
+    '--exclude',
     '**/node_modules/**',
-    '--ignore',
-    '**/second_ignore_pattern/**',
+    '--exclude',
+    '**/second_exclude_pattern/**',
   ])
 
   expect(child_process.execSync).toHaveBeenCalledWith(`git diff --relative --name-only main`, {cwd: expect.any(String)})

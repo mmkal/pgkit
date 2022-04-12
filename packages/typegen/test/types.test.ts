@@ -23,7 +23,7 @@ test('types are correct', async () => {
 
   await typegen.generate({
     ...typegenOptions(__dirname),
-    glob: path.basename(__filename), // match only this file
+    include: path.basename(__filename), // match only this file
   })
 
   const thisTestFileAfterRunning = fs.readFileSync(__filename).toString()
