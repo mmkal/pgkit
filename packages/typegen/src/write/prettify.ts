@@ -21,7 +21,7 @@ export function prettifyOne({filepath, content}: {filepath: string; content: str
  */
 export const tsPrettify = (uglyContent: string) => {
   const ts: typeof import('typescript') = require('typescript')
-  const sourceFile = ts.createSourceFile(__filename, uglyContent, ts.ScriptTarget.ES2015, true)
+  const sourceFile = ts.createSourceFile('', uglyContent, ts.ScriptTarget.ES2015, true)
   const prettyContent = ts.createPrinter().printNode(ts.EmitHint.SourceFile, sourceFile, sourceFile)
   return prettyContent
     .replace(/\nexport /g, '\n\nexport ') // typescript printer squashes everything a bit too much
