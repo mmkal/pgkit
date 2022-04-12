@@ -115,7 +115,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       ${defaults.paramsProp}
     }
 
-    export const _queryCache: Map<string, string> = new Map()
+    export const _queryCache = new Map<string, string>()
 
     export const defaultReadFileSync = (filepath: string) => {
       const cached = _queryCache.get(filepath)
