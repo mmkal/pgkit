@@ -1,8 +1,10 @@
-import * as fsSyncer from 'fs-syncer'
-import * as typegen from '../src'
-import {getHelper} from './helper'
 import * as fs from 'fs'
 import * as path from 'path'
+
+import * as fsSyncer from 'fs-syncer'
+
+import * as typegen from '../src'
+import {getHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
@@ -130,7 +132,7 @@ test('lazily watch file system', async () => {
     lazy: true,
   })
 
-  expect(logger.info).not.toHaveBeenCalled()
+  expect(logger.info).toHaveBeenCalledTimes(1)
 
   const watcher = watch()
 

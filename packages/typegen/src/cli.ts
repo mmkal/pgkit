@@ -1,9 +1,11 @@
-import * as cli from '@rushstack/ts-command-line'
-import {generate, Options} from './index'
 import * as path from 'path'
-import {tryOrDefault} from './util'
-import * as defaults from './defaults'
+
+import * as cli from '@rushstack/ts-command-line'
 import * as lodash from 'lodash'
+
+import * as defaults from './defaults'
+import {Options, generate} from './index'
+import {tryOrDefault} from './util'
 
 export class SlonikTypegenCLI extends cli.CommandLineParser {
   constructor() {
@@ -73,19 +75,31 @@ export class GenerateAction extends cli.CommandLineAction {
           or 'any' if you like to live dangerously.
         `,
       }),
-      glob: action.defineStringParameter({
-        parameterLongName: '--glob',
+      include: action.defineStringListParameter({
+        parameterLongName: '--include',
         argumentName: 'PATTERN',
         description: `
-          Glob pattern of source files to search for SQL queries in. By default searches for all ts and sql files under 'rootDir'
+          Glob pattern of files to search for SQL queries in.
+          By default searches for all .ts and .sql files: '**/*.{ts,sql}'
+          This option is repeatable to include multiple patterns.
+        `,
+      }),
+      exclude: action.defineStringListParameter({
+        parameterLongName: '--exclude',
+        argumentName: 'PATTERN',
+        description: `
+          Glob pattern for files to be excluded from processing.
+          By default excludes '**/node_modules/**'.
+          This option is repeatable to exlude multiple patterns.
         `,
       }),
       since: action.defineStringParameter({
         parameterLongName: '--since',
         argumentName: 'REF',
         description: `
-          Limit affected files to those which have been changed since the given git ref. Use "--since HEAD" for files changed
-          since the last commit, "--since main" for files changed in a branch, etc.
+          Limit affected files to those which have been changed since the given git ref.
+          Use "--since HEAD" for files changed since the last commit, "--since main for files changed in a branch, etc.
+          This option has no effect in watch mode.
         `,
       }),
       migrate: action.defineChoiceParameter({
@@ -125,7 +139,9 @@ export class GenerateAction extends cli.CommandLineAction {
         connectionURI: this._params.connectionURI.value,
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
-        glob: this._params.since.value ? {since: this._params.since.value} : this._params.glob.value,
+        include: this._params.include.values.length > 0 ? this._params.include.values : undefined,
+        exclude: this._params.exclude.values.length > 0 ? this._params.exclude.values : undefined,
+        since: this._params.since.value,
         migrate: this._params.migrate.value as Options['migrate'],
         checkClean: this._params.skipCheckClean.value ? ['none'] : undefined,
         lazy: this._params.lazy.value,

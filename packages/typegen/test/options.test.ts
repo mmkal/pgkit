@@ -525,7 +525,7 @@ test(`queries with syntax errors don't affect others`, async () => {
   `)
 })
 
-test('custom glob pattern', async () => {
+test('custom include pattern', async () => {
   const syncer = fsSyncer.jestFixture({
     targetState: {
       'excluded.ts': `
@@ -550,7 +550,7 @@ test('custom glob pattern', async () => {
 
   await typegen.generate({
     ...typegenOptions(syncer.baseDir),
-    glob: 'included*.ts',
+    include: ['included*.ts'],
   })
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`

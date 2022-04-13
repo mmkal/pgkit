@@ -120,7 +120,9 @@ export declare namespace queries {
 The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup. By default, the CLI will look for `typegen.config.js` file in the working directory. The config file can contain the following options (all are optional):
 
 - `rootDir` - Source root that the tool will search for files in. Defaults to `src`. Can be overridden with the `--root-dir` CLI argument.
-- `glob` - Glob pattern of files to search for. Defaults to searching for `.ts` and `.sql` files, ignore `node_modules`. Can be overridden with the `--glob` CLI argument.
+- `include` - Array of glob patterns for files to include in processing. Defaults to `['**/*.{ts,sql}']`, matching all `.ts` and `.sql` files. Can be overridden with the `--include` CLI argument.
+- `exclude` - Array of glob patterns for files to exclude from processing. Defaults to `['**/node_modules/**']`, excluding `node_modules`. Can be overridden with the `--exclude` CLI argument.
+- `since` - Limit matched files to those which have been changed since the given git ref. Use `"HEAD"` for files changed since the last commit, `"main"` for files changed in a branch, etc. Can be overridden with the `--since` CLI argument.
 - `connectionURI` - URI for connecting to psql. Defaults to `postgresql://postgres:postgres@localhost:5432/postgres`. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and slonik to connect to the database.
 - `poolConfig` - Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.
 - `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql`. You can test it's working, and that your postgres version supports `\gdesc` with your connection string using: `echo 'select 123 as abc \gdesc' | psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!). If you are using docker compose, you can use a command like `docker-compose exec -T postgres psql`
@@ -137,7 +139,8 @@ const yourAppDB = require('./lib/db')
 /** @type {import('@slonik/typegen').Options} */
 module.exports.default = {
   rootDir: 'source', // maybe you don't like using `src`
-  glob: ['{queries/**.ts,sql/**.sql}', {ignore: 'legacy-queries/**.sql'}],
+  include: ['{queries/**.ts,sql/**.sql}'],
+  exclude: ['legacy-queries/**.sql'],
   connectionURI: 'postgresql://postgres:postgres@localhost:5432/postgres',
   poolConfig: yourAppDB.getPool().configuration,
 }
@@ -153,9 +156,10 @@ Some of the options above can be overriden by the CLI:
 ```
 usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
                                [--connection-uri URI] [--psql COMMAND]
-                               [--default-type TYPESCRIPT] [--glob PATTERN]
-                               [--since REF] [--migrate {<=0.8.0}]
-                               [--skip-check-clean] [--watch] [--lazy]
+                               [--default-type TYPESCRIPT] [--include PATTERN]
+                               [--exclude PATTERN] [--since REF]
+                               [--migrate {<=0.8.0}] [--skip-check-clean]
+                               [--watch] [--lazy]
                                
 
 Generates a directory containing with a 'sql' tag wrapper based on found 
@@ -194,14 +198,20 @@ Optional arguments:
                         should usually be 'unknown', or 'any' if you like to 
                         live dangerously.
 
-  --glob PATTERN        Glob pattern of source files to search for SQL 
-                        queries in. By default searches for all ts and sql 
-                        files under 'rootDir'
+  --include PATTERN     Glob pattern of files to search for SQL queries in. 
+                        By default searches for all .ts and .sql files: '**/*.
+                        {ts,sql}' This option is repeatable to include 
+                        multiple patterns.
+
+  --exclude PATTERN     Glob pattern for files to be excluded from processing.
+                         By default excludes '**/node_modules/**'. This 
+                        option is repeatable to exlude multiple patterns.
 
   --since REF           Limit affected files to those which have been changed 
                         since the given git ref. Use "--since HEAD" for files 
-                        changed since the last commit, "--since main" for 
-                        files changed in a branch, etc.
+                        changed since the last commit, "--since main for 
+                        files changed in a branch, etc. This option has no 
+                        effect in watch mode.
 
   --migrate {<=0.8.0}   Before generating types, attempt to migrate a 
                         codebase which has used a prior version of this tool
@@ -386,7 +396,7 @@ Version 0.8.0 and below of this library used a different style of code-generatio
 
 Conceptually, this library now does more work so you don't have to worry about it so much. Just write slonik code/queries as normal, and then run the CLI to add types to them. If you add a new column to any query, run it again to update the interfaces.
 
-If you previously used the old version of the tool, you can run it once with the  `--migrate v0.8.0` CLI argument to automatically attempt to codemod your project. Note that this will, by default, check that your git status is clean before running since it modifies code in place. The codemod isn't advanced enough to find all usages of the old API, so have a look through what it does after running it to make sure the changes look OK. If they aren't, reset the git changes and either apply them manually and/or pass in a different `glob` value to avoid files that were incorrectly modified.
+If you previously used the old version of the tool, you can run it once with the  `--migrate v0.8.0` CLI argument to automatically attempt to codemod your project. Note that this will, by default, check that your git status is clean before running since it modifies code in place. The codemod isn't advanced enough to find all usages of the old API, so have a look through what it does after running it to make sure the changes look OK. If they aren't, reset the git changes and either apply them manually and/or pass in a different `include` value to avoid files that were incorrectly modified.
 
 ## SQL files
 

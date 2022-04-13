@@ -29,7 +29,9 @@ export const generate = async (params: Partial<Options>) => {
     connectionURI,
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
-    glob,
+    include,
+    exclude,
+    since,
     defaultType,
     extractQueries,
     writeTypes,
@@ -62,6 +64,11 @@ export const generate = async (params: Partial<Options>) => {
 
   const psql = memoizee(_psql, {max: 1000})
   const gdesc = memoizee(_gdesc, {max: 1000})
+
+  const getLogPath = (filepath: string) => {
+    const relPath = path.relative(process.cwd(), filepath)
+    return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
+  }
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await gdesc(query.sql)
@@ -126,34 +133,30 @@ export const generate = async (params: Partial<Options>) => {
   }
 
   const findAll = async () => {
+    const cwd = path.resolve(process.cwd(), rootDir)
+    const logMsgInclude = `pattern${include.length > 1 ? 's' : ''} ${include.join(', ')}`
+    const logMsgExclude = exclude.length > 0 ? ` excluding ${exclude.join(', ')}` : ''
+    const logMsgSince = since ? ` since ${since}` : ''
+    logger.info(`Matching files in ${getLogPath(cwd)} with ${logMsgInclude}${logMsgExclude}${logMsgSince}`)
+
     const getColumnInfo = columnInfoGetter(pool)
-
-    const globParams: Parameters<typeof globAsync> =
-      typeof glob === 'string'
-        ? [glob, {}]
-        : 'since' in glob
-        ? [globList(changedFiles({since: glob.since, cwd: path.resolve(rootDir)})), {}]
-        : glob
-
-    const getLogPath = (filepath: string) => {
-      const relPath = path.relative(process.cwd(), filepath)
-      return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
-    }
 
     const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
 
-    const getFiles = () => {
-      logger.info(
-        `Searching for files matching ${globParams[0]} in ${getLogPath(path.resolve(process.cwd(), rootDir))}`,
-      )
-      return globAsync(globParams[0], {
-        ...globParams[1],
-        cwd: path.resolve(process.cwd(), rootDir),
+    const getFiles = async () => {
+      logger.info(`Searching for files.`)
+      let files = await globAsync(globList(include), {
+        cwd,
+        ignore: exclude,
         absolute: true,
-      }).then(files => {
-        logger.info(`Found ${files.length} files matching pattern.`)
-        return files
       })
+      if (since) {
+        // filter matched files to only include changed files and convert to absolute paths
+        const changed = changedFiles({since, cwd}).map(file => path.join(cwd, file))
+        files = files.filter(file => changed.includes(file))
+      }
+      logger.info(`Found ${files.length} files matching criteria.`)
+      return files
     }
 
     if (migrate) {
@@ -187,8 +190,12 @@ export const generate = async (params: Partial<Options>) => {
 
       const analysedQueries = lodash.compact(await Promise.all(queriesToAnalyse))
 
-      logger.info(`${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries.`)
-      await writeTypes(analysedQueries)
+      if (queries.length > 0) {
+        logger.info(`${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries.`)
+      }
+      if (analysedQueries.length > 0) {
+        await writeTypes(analysedQueries)
+      }
 
       return {
         total: queries.length,
@@ -243,12 +250,10 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     const watch = () => {
-      const cwd = path.resolve(rootDir)
-      logger.info(`Watching for file changes in ${getLogPath(cwd)}`)
-      const ignorePattern = globParams[1]?.ignore
-      const watcher = chokidar.watch(globParams[0], {
-        ignored: typeof ignorePattern === 'object' ? [...ignorePattern] : ignorePattern,
+      logger.info(`Watching for file changes.`)
+      const watcher = chokidar.watch(include, {
         cwd,
+        ignored: [...exclude],
         ignoreInitial: true,
       })
       const content = new Map<string, string>()

@@ -43,13 +43,29 @@ export interface Options {
   rootDir: string
 
   /**
-   * Files to look for SQL queries in. e.g. `source/queries/*.ts`
-   * Also allows passing `cwd` and `ignore` strings e.g. `['source/*.ts', {ignore: ['source/*.test.ts']}]`
-   * Defaults to all '.ts' and '.sql' files, ignoring node_modules.
-   *
-   * Use the `{since: string}` format to match files changed since the given git ref. e.g. `{since: 'main'}` or `{since: 'HEAD~1'}`
+   * @deprecated Use `include` and `exclude` options instead
    */
-  glob: string | [string, {ignore?: string[]}?] | {since: string}
+  glob?: never
+
+  /**
+   * Array of patterns of files to look for SQL queries in, e.g. `source/queries/*.ts`
+   * Defaults to include all '.ts' and '.sql' files.
+   */
+  include: readonly string[]
+
+  /**
+   * Array of patterns to exclude from processing, e.g. `source/dont-touch/*.ts`
+   * Defaults to exlude node_modules.
+   */
+  exclude: readonly string[]
+
+  /**
+   * Filter matcher results to files from specific git refs.
+   * Use to match files changed since the given git ref. e.g. `'main'` or `'HEAD~1'`
+   * This option has no effect in watch mode, as every file change constitutes a git diff.
+   * Defaults to undefined (git filter disabled)
+   */
+  since: string | undefined
 
   /**
    * console-like logger which will output info, warning, error and debug messages. Defaults to `console`.
