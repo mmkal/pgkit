@@ -109,7 +109,7 @@ test('typegen.config.js is used by default', async () => {
     targetState: {
       'typegen.config.js': `
         module.exports = {
-          include: 'b*.ts',
+          include: ['b*.ts'],
           psqlCommand: ${JSON.stringify(psqlCommand)},
         }
       `,
@@ -143,7 +143,7 @@ test('typegen.config.js is used by default', async () => {
     "---
     typegen.config.js: |-
       module.exports = {
-        include: 'b*.ts',
+        include: ['b*.ts'],
         psqlCommand: \\"<<psql>>\\",
       }
       
@@ -173,14 +173,14 @@ test('config flag overrides typegen.config.js', async () => {
     targetState: {
       'typegen.config.js': `
         module.exports = {
-          include: 'b*.ts',
+          include: ['b*.ts'],
           psqlCommand: ${JSON.stringify(psqlCommand)},
         }
       `,
       // note that this config uses a default export to make sure that works too
       'otherconfig.js': `
         module.exports.default = {
-          include: 'a.ts',
+          include: ['a.ts'],
           psqlCommand: ${JSON.stringify(psqlCommand)},
         }
       `,
@@ -214,13 +214,13 @@ test('config flag overrides typegen.config.js', async () => {
     "---
     otherconfig.js: |-
       module.exports.default = {
-        include: 'a.ts',
+        include: ['a.ts'],
         psqlCommand: \\"<<psql>>\\",
       }
       
     typegen.config.js: |-
       module.exports = {
-        include: 'b*.ts',
+        include: ['b*.ts'],
         psqlCommand: \\"<<psql>>\\",
       }
       

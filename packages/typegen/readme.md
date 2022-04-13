@@ -120,8 +120,8 @@ export declare namespace queries {
 The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup. By default, the CLI will look for `typegen.config.js` file in the working directory. The config file can contain the following options (all are optional):
 
 - `rootDir` - Source root that the tool will search for files in. Defaults to `src`. Can be overridden with the `--root-dir` CLI argument.
-- `include` - Glob pattern of files to search for. Defaults to `'**/*.{ts,sql}'`, matching all `.ts` and `.sql` files. Can be overridden with the `--include` CLI argument.
-- `exclude` - Glob pattern (or array of patterns) of files to exclude. Defaults to `'**/node_modules/**'`, excluding `node_modules`. Can be overridden with the `--exclude` CLI argument.
+- `include` - Array of glob patterns for files to include in processing. Defaults to `['**/*.{ts,sql}']`, matching all `.ts` and `.sql` files. Can be overridden with the `--include` CLI argument.
+- `exclude` - Array of glob patterns for files to exclude from processing. Defaults to `['**/node_modules/**']`, excluding `node_modules`. Can be overridden with the `--exclude` CLI argument.
 - `since` - Limit matched files to those which have been changed since the given git ref. Use `"HEAD"` for files changed since the last commit, `"main"` for files changed in a branch, etc. Can be overridden with the `--since` CLI argument.
 - `connectionURI` - URI for connecting to psql. Defaults to `postgresql://postgres:postgres@localhost:5432/postgres`. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and slonik to connect to the database.
 - `poolConfig` - Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.
@@ -139,8 +139,8 @@ const yourAppDB = require('./lib/db')
 /** @type {import('@slonik/typegen').Options} */
 module.exports.default = {
   rootDir: 'source', // maybe you don't like using `src`
-  include: '{queries/**.ts,sql/**.sql}',
-  exclude: 'legacy-queries/**.sql',
+  include: ['{queries/**.ts,sql/**.sql}'],
+  exclude: ['legacy-queries/**.sql'],
   connectionURI: 'postgresql://postgres:postgres@localhost:5432/postgres',
   poolConfig: yourAppDB.getPool().configuration,
 }
@@ -200,7 +200,8 @@ Optional arguments:
 
   --include PATTERN     Glob pattern of files to search for SQL queries in. 
                         By default searches for all .ts and .sql files: '**/*.
-                        {ts,sql}'
+                        {ts,sql}' This option is repeatable to include 
+                        multiple patterns.
 
   --exclude PATTERN     Glob pattern for files to be excluded from processing.
                          By default excludes '**/node_modules/**'. This 
@@ -208,7 +209,7 @@ Optional arguments:
 
   --since REF           Limit affected files to those which have been changed 
                         since the given git ref. Use "--since HEAD" for files 
-                        changed since the last commit, "--since main" for 
+                        changed since the last commit, "--since main for 
                         files changed in a branch, etc. This option has no 
                         effect in watch mode.
 

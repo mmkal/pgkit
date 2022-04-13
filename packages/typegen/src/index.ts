@@ -11,7 +11,7 @@ import {psqlClient} from './pg'
 import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import {parameterTypesGetter} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, globAsync, maybeDo, truncateQuery, tryOrDefault} from './util'
+import {changedFiles, checkClean, globAsync, globList, maybeDo, truncateQuery, tryOrDefault} from './util'
 import * as write from './write'
 
 import memoizee = require('memoizee')
@@ -132,9 +132,10 @@ export const generate = async (params: Partial<Options>) => {
 
   const findAll = async () => {
     const cwd = path.resolve(process.cwd(), rootDir)
-    const logMsgExclude = exclude ? ` excluding ${exclude}` : ''
+    const logMsgInclude = `pattern${include.length > 1 ? 's' : ''} ${include.join(', ')}`
+    const logMsgExclude = exclude.length > 0 ? ` excluding ${exclude.join(', ')}` : ''
     const logMsgSince = since ? ` since ${since}` : ''
-    logger.info(`Matching files in ${getLogPath(cwd)} with pattern ${include}${logMsgExclude}${logMsgSince}`)
+    logger.info(`Matching files in ${getLogPath(cwd)} with ${logMsgInclude}${logMsgExclude}${logMsgSince}`)
 
     const getColumnInfo = columnInfoGetter(pool)
 
@@ -142,7 +143,7 @@ export const generate = async (params: Partial<Options>) => {
 
     const getFiles = async () => {
       logger.info(`Searching for files.`)
-      let files = await globAsync(include, {
+      let files = await globAsync(globList(include), {
         cwd,
         ignore: exclude,
         absolute: true,
@@ -247,7 +248,7 @@ export const generate = async (params: Partial<Options>) => {
       logger.info(`Watching for file changes.`)
       const watcher = chokidar.watch(include, {
         cwd,
-        ignored: exclude,
+        ignored: [...exclude],
         ignoreInitial: true,
       })
       const content = new Map<string, string>()

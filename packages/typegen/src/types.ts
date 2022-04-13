@@ -48,16 +48,16 @@ export interface Options {
   glob?: never
 
   /**
-   * Files to look for SQL queries in. e.g. `source/queries/*.ts`
+   * Array of patterns of files to look for SQL queries in, e.g. `source/queries/*.ts`
    * Defaults to include all '.ts' and '.sql' files.
    */
-  include: string
+  include: readonly string[]
 
   /**
-   * Filename pattern or array of patterns to exclude e.g. `source/dont-touch/*.ts`
+   * Array of patterns to exclude from processing, e.g. `source/dont-touch/*.ts`
    * Defaults to exlude node_modules.
    */
-  exclude: string | string[]
+  exclude: readonly string[]
 
   /**
    * Filter matcher results to files from specific git refs.

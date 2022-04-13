@@ -550,7 +550,7 @@ test('custom include pattern', async () => {
 
   await typegen.generate({
     ...typegenOptions(syncer.baseDir),
-    include: 'included*.ts',
+    include: ['included*.ts'],
   })
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`

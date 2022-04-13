@@ -76,3 +76,5 @@ export const changedFiles = (params: {since: string; cwd: string}) =>
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
+
+export const globList = (list: readonly string[]) => (list.length === 1 ? list[0] : `{${list.join(',')}}`)
