@@ -85,7 +85,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
       }
 
       if (ts.isTaggedTemplateExpression(node)) {
-        const isSqlIdentifier = (e: ts.Expression) => ts.isIdentifier(e) && e.getText() === 'sql'
+        const isSqlIdentifier = (e: ts.Node) => ts.isIdentifier(e) && e.getText() === 'sql'
         const isSqlPropertyAccessor = (e: ts.Expression) => ts.isPropertyAccessExpression(e) && isSqlIdentifier(e.name)
         if (!isSqlIdentifier(node.tag) && !isSqlPropertyAccessor(node.tag)) {
           return
