@@ -1,14 +1,18 @@
+import * as path from 'path'
+
 import * as lodash from 'lodash'
+import type * as ts from 'typescript'
+
 import {TaggedQuery} from '../types'
 import {relativeUnixPath} from '../util'
 import {tsPrettify} from './prettify'
-import type * as ts from 'typescript'
-import * as path from 'path'
 import {queryInterfaces} from './typescript'
 import {WriteFile} from '.'
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
+
+const queryNamespace = 'queries' // todo: at some point we might want to make this configurable
 
 export const defaultGetQueriesModule = (filepath: string) => filepath
 
@@ -34,7 +38,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
 
     const edits: Array<Edit> = []
 
-    visit(sourceFile)
+    visitRecursive(sourceFile)
 
     const destPath = getQueriesModulePath(file)
     if (destPath === file) {
@@ -48,7 +52,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
       await writeFile(destPath, content)
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
-      const importStatement = `import * as queries from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
+      const importStatement = `import * as ${queryNamespace} from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
 
       const importExists =
         originalSource.includes(importStatement) ||
@@ -69,31 +73,51 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
 
     await writeFile(file, newSource)
 
-    function visit(node: ts.Node) {
-      if (ts.isModuleDeclaration(node) && node.name.getText() === 'queries') {
+    function visitRecursive(node: ts.Node) {
+      if (ts.isModuleDeclaration(node) && node.name.getText() === queryNamespace) {
+        // remove old import(s) (will get re-added later)
         edits.push({
           start: node.getStart(sourceFile),
           end: node.getEnd(),
           replacement: '',
         })
+        return
       }
 
       if (ts.isTaggedTemplateExpression(node)) {
-        const isSqlIdentifier = (n: ts.Node) => ts.isIdentifier(n) && n.getText() === 'sql'
-        const sqlPropertyAccessor = ts.isPropertyAccessExpression(node.tag) && isSqlIdentifier(node.tag.name)
-        if (isSqlIdentifier(node.tag) || sqlPropertyAccessor) {
-          const match = group.find(q => q.text === node.getFullText())
-          if (match) {
+        const isSqlIdentifier = (e: ts.Expression) => ts.isIdentifier(e) && e.getText() === 'sql'
+        const isSqlPropertyAccessor = (e: ts.Expression) => ts.isPropertyAccessExpression(e) && isSqlIdentifier(e.name)
+        if (!isSqlIdentifier(node.tag) && !isSqlPropertyAccessor(node.tag)) {
+          return
+        }
+        const matchingQuery = group.find(q => q.text === node.getFullText())
+        if (!matchingQuery) {
+          return
+        }
+        const typeReference = `${queryNamespace}.${matchingQuery.tag}`
+        if (node.typeArguments && node.typeArguments.length === 1) {
+          // existing type definitions
+          const [typeNode] = node.typeArguments
+          if (ts.isIntersectionTypeNode(typeNode)) {
+            // we want to preserve intersection types
+            const [firstArg] = typeNode.types // We can't be sure the first argument is a generated type, but as the namespace might have been overwritten we're gonna have to assume.
             edits.push({
-              start: node.tag.getStart(sourceFile),
-              end: node.template.getStart(sourceFile),
-              replacement: `${node.tag.getText()}<queries.${match.tag}>`,
+              start: firstArg.getStart(sourceFile),
+              end: firstArg.getEnd(),
+              replacement: typeReference,
             })
+            return
           }
         }
+        // default: replace complete tag to add/overwrite type arguments
+        edits.push({
+          start: node.tag.getStart(sourceFile),
+          end: node.template.getStart(sourceFile),
+          replacement: `${node.tag.getText()}<${typeReference}>`,
+        })
       }
 
-      ts.forEachChild(node, visit)
+      ts.forEachChild(node, visitRecursive)
     }
   }
 }
