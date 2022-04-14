@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.12.2](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.12.1...@slonik/typegen@0.12.2) (2022-04-14)
+
+
+### Bug Fixes
+
+* **tsPrettify:** Error when processing .sql files ([#388](https://github.com/mmkal/slonik-tools/issues/388)) ([d3eb65a](https://github.com/mmkal/slonik-tools/commit/d3eb65a93660780080e45983e8d266552b140306))
+* **typegen:** don't let semicolons cause queries to be executed ([#387](https://github.com/mmkal/slonik-tools/issues/387)) ([e040550](https://github.com/mmkal/slonik-tools/commit/e0405501137d2b2d7297ae6334dba3816a73df6b))
+
+
+
+
+
 ## [0.12.1](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.12.0...@slonik/typegen@0.12.1) (2022-04-11)
 
 **Note:** Version bump only for package @slonik/typegen

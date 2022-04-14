@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.11.2](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.11.1...@slonik/migrator@0.11.2) (2022-04-14)
+
+
+### Bug Fixes
+
+* **docs:** add array table name example ([#381](https://github.com/mmkal/slonik-tools/issues/381)) ([a8feab3](https://github.com/mmkal/slonik-tools/commit/a8feab331c8346a20c1d981bbebb474b5f696f66))
+
+
+
+
+
 ## [0.11.1](https://github.com/mmkal/slonik-tools/compare/@slonik/migrator@0.11.0...@slonik/migrator@0.11.1) (2022-04-07)
 
 **Note:** Version bump only for package @slonik/migrator
