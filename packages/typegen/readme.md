@@ -383,12 +383,13 @@ type ResultingType = {
 }
 ```
 
-**On subsequent runs typegen will only update the first intersection type and <u>leave all subsequent intersections untouched**.</u>
+**On subsequent runs typegen will only update the first intersection type and leave all following intersections untouched**.
 
 This also means you can make the column `string_col` non-nullable by intersecting it with `{ string_col: string }`.
 
-Note that you can't completely change a type (say from `string` to `number`) this way. This is by design, because if you could, a change of the unterlying table might cause typegen to detect a new type, which would be ignored, if you could overwrite it. It is also why typegen only specifies a type when it's reasonably sure, as stated at the beginning of this paragraph.  
-If you found an example where this is not the case, please [raise an issue](https://github.com/mmkal/slonik-tools/issues/new).
+Note that you can't completely change a property type (say from `string` to `number`) this way.  
+This is by design, because if you could, a change in the underlying table might cause typegen to detect a new type, which would be ignored, had you overwritten it. This would cause type changes to go unnoticed and we can't have that.  
+With intersections, the resulting property will be of type `never`, when an underlying column type changes. This will alert you to the change, so you can update your manual enhancements.
 
 ## Examples
 
