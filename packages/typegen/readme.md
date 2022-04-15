@@ -141,7 +141,7 @@ CLI arguments will always have precedence over config options.
 ||`--lazy`|CLI argument|disabled|Skip initial processing of input files. Only useful with `'--watch'`.|
 ||`--skip-check-clean`|CLI argument|disabled|If enabled, the tool will not check the git status to ensure changes are checked in.|
 
-Documentation for CLI arguments can be printed to your terminal with `slonik-typegen --help`.
+Documentation for CLI arguments can be printed to your terminal with `npx slonik-typegen generate --help`.
 #### Complex config types
 ```typescript
 type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>;
