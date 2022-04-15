@@ -26,11 +26,11 @@ Select statements, joins, and updates/inserts/deletes using `returning` are all 
 - [Usage](#usage)
 - [Configuration](#configuration)
    - [Example config](#example-config)
-   - [CLI options](#cli-options)
-   - [writeTypes](#writetypes)
+   - [Advanced Configuration](#writetypes)
       - [Controlling write destination](#controlling-write-destination)
       - [Modifying types](#modifying-types)
       - [Modifying source files](#modifying-source-files)
+- [Enhancing Return Types](#enhancing-return-types)
 - [Examples](#examples)
 - [Migration from v0.8.0](#migration-from-v080)
 - [SQL files](#sql-files)
@@ -117,17 +117,44 @@ export declare namespace queries {
 
 ## Configuration
 
-The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup. By default, the CLI will look for `typegen.config.js` file in the working directory. The config file can contain the following options (all are optional):
+The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup.  
+By default, the CLI will look for `typegen.config.js` file in the working directory, exporting an object containing the properties below.
 
-- `rootDir` - Source root that the tool will search for files in. Defaults to `src`. Can be overridden with the `--root-dir` CLI argument.
-- `include` - Array of glob patterns for files to include in processing. Defaults to `['**/*.{ts,sql}']`, matching all `.ts` and `.sql` files. Can be overridden with the `--include` CLI argument.
-- `exclude` - Array of glob patterns for files to exclude from processing. Defaults to `['**/node_modules/**']`, excluding `node_modules`. Can be overridden with the `--exclude` CLI argument.
-- `since` - Limit matched files to those which have been changed since the given git ref. Use `"HEAD"` for files changed since the last commit, `"main"` for files changed in a branch, etc. Can be overridden with the `--since` CLI argument.
-- `connectionURI` - URI for connecting to psql. Defaults to `postgresql://postgres:postgres@localhost:5432/postgres`. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and slonik to connect to the database.
-- `poolConfig` - Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.
-- `psqlCommand` - the CLI command for running the official postgres `psql` CLI client. Defaults to `psql`. You can test it's working, and that your postgres version supports `\gdesc` with your connection string using: `echo 'select 123 as abc \gdesc' | psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -`. Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!). If you are using docker compose, you can use a command like `docker-compose exec -T postgres psql`
-- `logger` - Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.
-- `writeTypes` (advanced/experimental) - Control how files are written to disk. See the [writeTypes](#writetypes) section.
+Some options are only available via CLI, some are only available in the config.  
+CLI arguments will always have precedence over config options.
+
+|Option|CLI&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|Type|Default|Description|
+|-|-|-|-|-|
+|`rootDir`|`--root-dir`|`string`|`'src'`|Source root that the tool will search for files in.|
+|`include`|`--include`|`string[]`|`['**/*.{ts,sql}']`|Glob patterns for files to include in processing. Repeatable in CLI.|
+|`exclude`|`--exclude`|`string[]`|`['**/node_modules/**']`|Glob patterns for files to exclude from processing. Repeatable in CLI.|
+|`since`|`--since`|`string \| undefined`|`undefined`|Limit matched files to those which have been changed since the given git ref. Use `"HEAD"` for files changed since the last commit, `"main"` for files changed in a branch, etc.|
+|`connectionURI`|`--connection-uri`|`string`|`'postgresql://`&thinsp;`postgres:postgres`&thinsp;`@localhost:5432/`&thinsp;`postgres'`|URI for connecting to psql. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and slonik to connect to the database.|
+|`psqlCommand`|`--psql`|`string`|`'psql'`|The CLI command for running the official postgres `psql` CLI client.<br/>Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!). If you are using docker compose, you can use a command like `docker-compose exec -T postgres psql`|
+|`defaultType`|`--default-type`|`string`|`'unknown'`|TypeScript type when no mapping is found. This should usually be `unknown` (or `any` if you like to live dangerously).|
+|`poolConfig`||`PoolConfig \| undefined`<br/>(see [below](#complex-config-types))|`undefined`|Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.|
+|`logger`||`Logger`<br/>(see [below](#complex-config-types))|`console`|Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.|
+|`writeTypes`<br/>(experimental)||`WriteTypes`<br/>(see [below](#complex-config-types))|`typegen.`&thinsp;`defaultWriteTypes`|Control how files are written to disk. See the [writeTypes](#writetypes) section.|
+||`--config`|`string`|`'typegen.config.js'`|Path to configuration file.|
+||`--migrate`|`'<=0.8.0'`|disabled|Before generating types, attempt to migrate a codebase which has used a prior version of this tool.|
+||`--watch`|CLI argument|disabled|Run in watch mode.|
+||`--lazy`|CLI argument|disabled|Skip initial processing of input files. Only useful with `'--watch'`.|
+||`--skip-check-clean`|CLI argument|disabled|If enabled, the tool will not check the git status to ensure changes are checked in.|
+
+#### Complex config types
+```typescript
+type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>;
+type WriteTypes = (queries: AnalysedQuery[]) => Promise<void>;
+type PoolConfig = slonik.ClientConfigurationInput; // imported from slonik lib
+```
+
+#### Testing `psqlCommand`
+You can check if your `psql` is working, and that your postgres version supports `\gdesc` with your connection string using this shell command:
+```bash
+echo 'select 123 as abc \gdesc' \| psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -
+```
+
+There are some more configuration options [documented in code](./src/types.ts), but these should be considered experimental, and might change without warning. You can try them out as documented [below](#writetypes), but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
 
 ### Example config
 
@@ -147,87 +174,6 @@ module.exports.default = {
 ```
 
 Note that the `/** @type {import('@slonik/typegen').Options} */` comment is optional, but will ensure your IDE gives you type hints.
-
-### CLI options
-
-Some of the options above can be overriden by the CLI:
-
-<!-- codegen:start {preset: custom, source: ./docgen.js, export: cliHelpText} -->
-```
-usage: slonik-typegen generate [-h] [--config PATH] [--root-dir PATH]
-                               [--connection-uri URI] [--psql COMMAND]
-                               [--default-type TYPESCRIPT] [--include PATTERN]
-                               [--exclude PATTERN] [--since REF]
-                               [--migrate {<=0.8.0}] [--skip-check-clean]
-                               [--watch] [--lazy]
-                               
-
-Generates a directory containing with a 'sql' tag wrapper based on found 
-queries found in source files. By default, searches 'src' for source files.
-
-Optional arguments:
-
-  -h, --help            Show this help message and exit.
-
-  --config PATH         Path to a module containing parameters to be passed 
-                        to 'generate'. If specified, it will be required and 
-                        the export will be used as parameters. If not 
-                        specified, defaults will be used. Note: other CLI 
-                        arguments will override values set in this module
-
-  --root-dir PATH       Path to the source directory containing SQL queries. 
-                        Defaults to "src" if no value is provided
-
-  --connection-uri URI  URI for connecting to postgres. Defaults to 
-                        URI for connecting to postgres. Defaults to 
-
-  --psql COMMAND        psql command used to query postgres via CLI client. e.
-                        g. 'psql -h localhost -U postgres postgres' if 
-                        running postgres locally, or 'docker-compose exec -T 
-                        postgres psql -h localhost -U postgres postgres' if 
-                        running with docker-compose. You can test this by 
-                        running "<<your_psql_command>> -c 'select 1 as a, 2 
-                        as b'". Note that this command will be executed 
-                        dynamically, so avoid using any escape characters in 
-                        here.
-
-  --default-type TYPESCRIPT
-                        TypeScript fallback type for when no type is found. 
-                        Most simple types (text, int etc.) are mapped to 
-                        their TypeScript equivalent automatically. This 
-                        should usually be 'unknown', or 'any' if you like to 
-                        live dangerously.
-
-  --include PATTERN     Glob pattern of files to search for SQL queries in. 
-                        By default searches for all .ts and .sql files: '**/*.
-                        {ts,sql}' This option is repeatable to include 
-                        multiple patterns.
-
-  --exclude PATTERN     Glob pattern for files to be excluded from processing.
-                         By default excludes '**/node_modules/**'. This 
-                        option is repeatable to exlude multiple patterns.
-
-  --since REF           Limit affected files to those which have been changed 
-                        since the given git ref. Use "--since HEAD" for files 
-                        changed since the last commit, "--since main for 
-                        files changed in a branch, etc. This option has no 
-                        effect in watch mode.
-
-  --migrate {<=0.8.0}   Before generating types, attempt to migrate a 
-                        codebase which has used a prior version of this tool
-
-  --skip-check-clean    If enabled, the tool will not check the git status to 
-                        ensure changes are checked in.
-
-  --watch               Run the type checker in watch mode. Files will be run 
-                        through the code generator when changed or added.
-
-  --lazy                Skip initial processing of input files. Only useful 
-                        with '--watch'.
-```
-<!-- codegen:end -->
-
-There are some more configuration options [documented in code](./src/types.ts), but these should be considered experimental, and might change without warning. You can try them out as documented below, but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
 
 ### writeTypes
 
