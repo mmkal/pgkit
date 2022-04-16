@@ -99,8 +99,8 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
           // existing type definitions
           const [typeNode] = node.typeArguments
           if (ts.isIntersectionTypeNode(typeNode)) {
-            // we want to preserve intersection types
-            const [firstArg] = typeNode.types // We can't be sure the first argument is a generated type, but as the namespace might have been overwritten we're gonna have to assume.
+            // preserve intersection types
+            const [firstArg] = typeNode.types // Always overwrite the first type in the intersection, leave all subsequent ones alone.
             edits.push({
               start: firstArg.getStart(sourceFile),
               end: firstArg.getEnd(),
