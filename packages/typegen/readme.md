@@ -335,7 +335,7 @@ module.exports.default = {
 
 ## Enhancing Return Types
 
-Typgen is designed to output types only to the degree it's certain they are correct.  
+Typegen is designed to output types only to the degree it's certain they are correct.  
 
 Let's say in a complex query it can determine that a specific column will return a `string`, but isn't sure if it is also nullable, it will extract the type as `{ column: string | null }`, just to be on the safe side. When it encounters columns where it is unable to even determine the basic type, i.e. `json` columns, it will return :shrug: (Ok, actually the typescript equivalent, which is `unknown`).
 
