@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.13.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.12.2...@slonik/typegen@0.13.0) (2022-04-16)
+
+
+### Features
+
+* **typegen:** retain intersection types ([#389](https://github.com/mmkal/slonik-tools/issues/389)) ([81ab1fa](https://github.com/mmkal/slonik-tools/commit/81ab1fa5f2f6657966db0a5d979d868f6cedd599))
+
+
+
+
+
 ## [0.12.2](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.12.1...@slonik/typegen@0.12.2) (2022-04-14)
 
 
