@@ -101,7 +101,7 @@ test('write types', async () => {
         sql<queries.TestTable_idalias_talias>\`select id as idalias, t as talias from test_table\`,
         sql<queries.TestTable_id>\`select id from test_table where id = \${1} and n = \${2}\`,
         sql<queries._void>\`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`,
-        sql<queries._void>\`update test_table set t = ''\`,
+        sql\`update test_table set t = ''\`,
         sql<queries.TestTable_id_t>\`insert into test_table(id, t_nn, j_nn, jb_nn) values (1, '', '{}', '{}') returning id, t\`,
         sql<queries.TestTable_id_t>\`update test_table set t = '' returning id, t\`,
         sql<queries.TestTable_id_t>\`insert into test_table as tt (id, j_nn, jb_nn) values (1, '{}', '{}') returning id, t\`,
@@ -246,11 +246,7 @@ test('write types', async () => {
           id: number
         }
       
-        /**
-         * queries:
-         * - \`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\`
-         * - \`update test_table set t = ''\`
-         */
+        /** - query: \`insert into test_table(id, j_nn, jb_nn) values (1, '{}', '{}')\` */
         export type _void = {}
       
         /** - query: \`select pg_advisory_lock(123)\` */
@@ -476,7 +472,7 @@ test(`queries with syntax errors don't affect others`, async () => {
 
         export default [
           sql\`select id from options_test.test_table\`, // this should get a valid type
-          sql\`this is a nonsense query which will cause an error\`
+          sql\`select this is a nonsense query which will cause an error\`
         ]
       `,
     },
@@ -493,10 +489,11 @@ test(`queries with syntax errors don't affect others`, async () => {
         [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
         Error running psql query.
 
-        Query: "this is a nonsense query which will cause an error \\\\gdesc"
+        Query: "select this is a nonsense query which will cause an error \\\\gdesc"
 
-        Result: "psql:<stdin>:1: ERROR:  syntax error at or near \\"this\\"\\nLINE 1:
-        this is a nonsense query which will cause an error \\n        ^"
+        Result: "psql:<stdin>:1: ERROR:  syntax error at or near \\"a\\"\\nLINE 1:
+        select this is a nonsense query which will cause an error
+        \\n                       ^"
 
         Error: Empty output received.
 
@@ -509,7 +506,7 @@ test(`queries with syntax errors don't affect others`, async () => {
       
       export default [
         sql<queries.TestTable>\`select id from options_test.test_table\`, // this should get a valid type
-        sql\`this is a nonsense query which will cause an error\`,
+        sql\`select this is a nonsense query which will cause an error\`,
       ]
       
       export declare namespace queries {

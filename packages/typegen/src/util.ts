@@ -5,6 +5,8 @@ import {promisify} from 'util'
 import * as glob from 'glob'
 import * as lodash from 'lodash'
 
+import ts = require('typescript')
+
 export const globAsync = promisify(glob)
 
 /** Trim and compact whitespace. Don't use on content where whitespace matters! */
@@ -43,7 +45,9 @@ export const attempt = <T>(context: string, action: () => T): T => {
   try {
     return action()
   } catch (e) {
-    e.message = `Failure: ${context}: ${e}`
+    if (e instanceof Error) {
+      e.message = `Failure: ${context}: ${e}`
+    }
     throw e
   }
 }
@@ -78,3 +82,33 @@ export const changedFiles = (params: {since: string; cwd: string}) =>
     .filter(Boolean)
 
 export const globList = (list: readonly string[]) => (list.length === 1 ? list[0] : `{${list.join(',')}}`)
+
+export const tsCustom = (() => {
+  const isSqlIdentifier = (node: ts.Node) => ts.isIdentifier(node) && node.getText() === 'sql'
+  const isSqlPropertyAccessor = (e: ts.Expression) => ts.isPropertyAccessExpression(e) && isSqlIdentifier(e.name)
+  /**
+   * Checks if the supplied node is an sql template literal
+   */
+  const isSqlLiteral = (node: ts.Node): node is ts.TaggedTemplateExpression =>
+    ts.isTaggedTemplateExpression(node) && (isSqlIdentifier(node.tag) || isSqlPropertyAccessor(node.tag))
+  return {
+    isSqlLiteral,
+  } as const
+})()
+
+/**
+ * Tests a string against a regex checking for the existence of specific keywords.
+ * The rationale here is that typegen should only consider queries containing for example `SELECT`, and skip query fragments.
+ */
+export const isReturningQuery = (() => {
+  const returningKeywords = /(^|\s|\()(SELECT|VALUES|RETURNING)\s/i
+  return (query: string) => returningKeywords.test(query)
+})()
+
+/**
+ * Checks if a string contains a sql-comment, meant to signal typegen to ignore it.
+ */
+export const containsIgnoreComment = (() => {
+  const ignoreKeywords = /--[^\S\n\r\f]*typegen-ignore|(\/\*\s*typegen-ignore\s*\*\/)/i
+  return (query: string) => ignoreKeywords.test(query)
+})()

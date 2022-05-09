@@ -25,12 +25,15 @@ Select statements, joins, and updates/inserts/deletes using `returning` are all 
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+      - [Complex config types](#complex-config-types)
+      - [Testing `psqlCommand`](#testing-psqlcommand)
    - [Example config](#example-config)
-   - [Advanced Configuration](#writetypes)
+   - [Advanced Configuration](#advanced-configuration)
       - [Controlling write destination](#controlling-write-destination)
       - [Modifying types](#modifying-types)
       - [Modifying source files](#modifying-source-files)
 - [Enhancing Return Types](#enhancing-return-types)
+- [Ignoring Queries](#ignoring-queries)
 - [Examples](#examples)
 - [Migration from v0.8.0](#migration-from-v080)
 - [SQL files](#sql-files)
@@ -176,7 +179,7 @@ module.exports.default = {
 
 Note that the `/** @type {import('@slonik/typegen').Options} */` comment is optional, but will ensure your IDE gives you type hints.
 
-### writeTypes
+### Advanced Configuration
 
 The `writeTypes` option allows you to tweak what's written to disk. Note that the usage style isn't finalised and might change in future. If you use it, please create a discussion about it in https://github.com/mmkal/slonik-tools/discussions so that your use-case doesn't get taken away unexpectedly.
 
@@ -392,6 +395,14 @@ Note that you can't completely change a property type (say from `string` to `num
 This is by design, because if you could, a change in the underlying table might cause typegen to detect a new type, which would be ignored, had you overwritten it. This would cause type changes to go unnoticed and we can't have that.  
 With intersections, the resulting property will be of type `never`, when an underlying column type changes. This will alert you to the change, so you can update your manual enhancements.
 
+## Ignoring Queries
+
+For file-based ignores, you can use the [exclude option](#configuration) to set a pattern or specific file(s) to be ignored via the config file or using the CLI option.
+
+Typegen also automatically ignores all queries with zero chance of returning a result (i.e. sql fragments).
+
+If you want to exclude a specific query from processing, you can add a `--typegen-ignore` or `/* typegen-ignore */` comment anywhere in the query.
+
 ## Examples
 
 [The tests](./test) and [corresponding fixtures](./test/fixtures) are a good starting point to see what the code-generator will do.
@@ -432,18 +443,18 @@ In the above example, no type can be inferred because it's impossible to know wh
 
 ___
 
-Queries with multiple statements will also not receive a type:
+Queries with multiple statements will result in an error:
 
 ```ts
 import {sql} from 'slonik'
 
 sql`
-  insert into foo(a, b) values (1, 2);
-  insert into foo(a, b) values (3, 4);
+  update table set col=1 where id=1 returning 1;
+  update table set col=2 where id=2 returning 2;
 `
 ```
 
-This kind of query does not return a value when executed anyway.
+The return type is not clearly assigned here. Every literal should only contain one query statement.
 
 ___
 
@@ -465,7 +476,8 @@ import {sql} from 'slonik'
 sql`this is not even valid SQL!`
 ```
 
-If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/slonik-tools/issues/new). In the meantime, you can create a variable `const _sql = sql` and use the `_sql` tag in the same way as `sql`. `_sql` will not be detected by the tool and can be used as normal.
+If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/slonik-tools/issues/new).  
+In the meantime, you can use of of the [ignore options](#ignoring-queries) to skip processing the concerned queries.
 
 ___
 

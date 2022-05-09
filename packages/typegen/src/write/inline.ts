@@ -4,7 +4,7 @@ import * as lodash from 'lodash'
 import type * as ts from 'typescript'
 
 import {TaggedQuery} from '../types'
-import {relativeUnixPath} from '../util'
+import {relativeUnixPath, tsCustom} from '../util'
 import {tsPrettify} from './prettify'
 import {queryInterfaces} from './typescript'
 import {WriteFile} from '.'
@@ -85,9 +85,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
       }
 
       if (ts.isTaggedTemplateExpression(node)) {
-        const isSqlIdentifier = (e: ts.Node) => ts.isIdentifier(e) && e.getText() === 'sql'
-        const isSqlPropertyAccessor = (e: ts.Expression) => ts.isPropertyAccessExpression(e) && isSqlIdentifier(e.name)
-        if (!isSqlIdentifier(node.tag) && !isSqlPropertyAccessor(node.tag)) {
+        if (!tsCustom.isSqlLiteral(node)) {
           return
         }
         const matchingQuery = group.find(q => q.text === node.getFullText())
