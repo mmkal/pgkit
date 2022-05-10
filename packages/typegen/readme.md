@@ -137,7 +137,7 @@ CLI arguments will always have precedence over config options.
 |`defaultType`|`--default-type`|`string`|`'unknown'`|TypeScript type when no mapping is found. This should usually be `unknown` (or `any` if you like to live dangerously).|
 |`poolConfig`||`PoolConfig \| undefined`<br/>(see [below](#complex-config-types))|`undefined`|Slonik database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.|
 |`logger`||`Logger`<br/>(see [below](#complex-config-types))|`console`|Logger object with `debug`, `info`, `warn` and `error` methods. Defaults to `console`.|
-|`writeTypes`<br/>(experimental)||`WriteTypes`<br/>(see [below](#complex-config-types))|`typegen.`&thinsp;`defaultWriteTypes`|Control how files are written to disk. See the [writeTypes](#writetypes) section.|
+|`writeTypes`<br/>(experimental)||`WriteTypes`<br/>(see [below](#complex-config-types))|`typegen.`&thinsp;`defaultWriteTypes`|Control how files are written to disk. See the [Advanced Configuration](#advanced-configuration) section.|
 ||`--config`|`string`|`'typegen.config.js'`|Path to configuration file.|
 ||`--migrate`|`'<=0.8.0'`|disabled|Before generating types, attempt to migrate a codebase which has used a prior version of this tool.|
 ||`--watch`|CLI argument|disabled|Run in watch mode.|
@@ -158,7 +158,7 @@ You can check if your `psql` is working, and that your postgres version supports
 echo 'select 123 as abc \gdesc' \| psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -
 ```
 
-There are some more configuration options [documented in code](./src/types.ts), but these should be considered experimental, and might change without warning. You can try them out as documented [below](#writetypes), but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
+There are some more configuration options [documented in code](./src/types.ts), but these should be considered experimental, and might change without warning. You can try them out as documented [below](#advanced-configuration), but please start a [discussion](https://github.com/mmkal/slonik-tools/discussions) on this library's project page with some info about your use case so the API can be stabilised in a sensible way.
 
 ### Example config
 
