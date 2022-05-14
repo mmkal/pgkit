@@ -1,8 +1,10 @@
-import {ExtractedQuery, Options} from '../types'
-import * as lodash from 'lodash'
-import * as fs from 'fs'
-import type * as ts from 'typescript'
 import * as assert from 'assert'
+import * as fs from 'fs'
+
+import type * as ts from 'typescript'
+
+import {ExtractedQuery, Options} from '../types'
+import {isReturningQuery, tsCustom} from '../util'
 
 const rawExtractWithTypeScript: Options['extractQueries'] = file => {
   const ts: typeof import('typescript') = require('typescript')
@@ -12,22 +14,20 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
   // adapted from https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter
   const queries: ExtractedQuery[] = []
 
-  visitNodeGenerics(sourceFile, [])
+  visitNodeGenericsRecursive(sourceFile, [])
 
   return queries
 
-  function visitNodeGenerics(node: ts.Node, context: string[]) {
+  function visitNodeGenericsRecursive(node: ts.Node, context: string[]) {
     if (!ts.isTaggedTemplateExpression(node)) {
       const newContext =
         (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node) || ts.isFunctionDeclaration(node)) && node.name
           ? [...context, node.name.getText()]
           : context
-      ts.forEachChild(node, n => visitNodeGenerics(n, newContext))
+      ts.forEachChild(node, n => visitNodeGenericsRecursive(n, newContext))
       return
     }
-    const isSqlIdentifier = (n: ts.Node) => ts.isIdentifier(n) && n.getText() === 'sql'
-    const sqlPropertyAccessor = ts.isPropertyAccessExpression(node.tag) && isSqlIdentifier(node.tag.name)
-    if (isSqlIdentifier(node.tag) || sqlPropertyAccessor) {
+    if (tsCustom.isSqlLiteral(node)) {
       let template: string[] = []
       if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
         template = [node.template.text]
@@ -38,17 +38,24 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
 
       assert.ok(template.length > 0, `Couldn't get template for node at ${node.pos}`)
 
+      const sql = template
+        // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
+        .map((t, i) => `$${i}${t}`)
+        .join('')
+        .slice(2) // slice off $0 at the start
+
+      if (!isReturningQuery(sql)) {
+        // this is likely a fragment. let's skip it.
+        return
+      }
+
       queries.push({
         text: node.getFullText(),
         source,
         file,
         context,
         line: node.getSourceFile().getLineAndCharacterOfPosition(node.pos).line + 1,
-        sql: template
-          // join with $1. May not be correct if ${sql.identifier(['blah'])} is used. \gdesc will fail in that case.
-          .map((t, i) => `$${i}${t}`)
-          .join('')
-          .slice(2), // slice off $0 at the start
+        sql,
         template,
       })
     }

@@ -11,7 +11,16 @@ import {psqlClient} from './pg'
 import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import {parameterTypesGetter} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, globAsync, globList, maybeDo, truncateQuery, tryOrDefault} from './util'
+import {
+  changedFiles,
+  checkClean,
+  containsIgnoreComment,
+  globAsync,
+  globList,
+  maybeDo,
+  truncateQuery,
+  tryOrDefault,
+} from './util'
 import * as write from './write'
 
 import memoizee = require('memoizee')
@@ -171,16 +180,19 @@ export const generate = async (params: Partial<Options>) => {
       // gather stats for log
       const queriesTotal = processedFiles.reduce((sum, {total}) => sum + total, 0)
       const queriesSuccessful = processedFiles.reduce((sum, {successful}) => sum + successful, 0)
-      const queriesProcessed = queriesSuccessful < queriesTotal ? `${queriesSuccessful}/${queriesTotal}` : queriesTotal
       const filesSuccessful = processedFiles.reduce((sum, {successful}) => sum + (successful > 0 ? 1 : 0), 0)
-      const filesProcessed = filesSuccessful < files.length ? `${filesSuccessful}/${files.length}` : files.length
-      logger.info(`Finished processing ${queriesProcessed} queries in ${filesProcessed} files.`)
+      const queriesMsg = queriesSuccessful < queriesTotal ? `${queriesSuccessful}/${queriesTotal}` : queriesTotal
+      const filesMsg = filesSuccessful < files.length ? `${filesSuccessful}/${files.length}` : files.length
+      logger.info(`Finished processing ${queriesMsg} queries in ${filesMsg} files.`)
     }
 
     async function generateForFile(file: string) {
       const queries = extractQueries(file)
 
-      const queriesToAnalyse = queries.map(async (query): Promise<AnalysedQuery | null> => {
+      const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
+      const ignoreCount = queries.length - queriesToDescribe.length
+
+      const queriesToAnalyse = queriesToDescribe.map(async (query): Promise<AnalysedQuery | null> => {
         const describedQuery = await describeQuery(query)
         if (describedQuery === null) {
           return null
@@ -191,7 +203,10 @@ export const generate = async (params: Partial<Options>) => {
       const analysedQueries = lodash.compact(await Promise.all(queriesToAnalyse))
 
       if (queries.length > 0) {
-        logger.info(`${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries.`)
+        const ignoreMsg = ignoreCount > 0 ? ` (${ignoreCount} ignored)` : ''
+        logger.info(
+          `${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries${ignoreMsg}.`,
+        )
       }
       if (analysedQueries.length > 0) {
         await writeTypes(analysedQueries)
@@ -200,6 +215,7 @@ export const generate = async (params: Partial<Options>) => {
       return {
         total: queries.length,
         successful: analysedQueries.length,
+        ignored: ignoreCount,
       }
     }
 
