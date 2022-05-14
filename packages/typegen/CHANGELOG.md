@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# [0.14.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.13.0...@slonik/typegen@0.14.0) (2022-05-14)
+
+
+### Features
+
+* **ignore:** add ignore option ([0fa854e](https://github.com/mmkal/slonik-tools/commit/0fa854e3b531e26ce3af4ffa762c49694a06568d))
+
+
+
+
+
 # [0.13.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.12.2...@slonik/typegen@0.13.0) (2022-04-16)
 
 
