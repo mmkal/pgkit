@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## [0.14.1](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.14.0...@slonik/typegen@0.14.1) (2022-05-24)
+
+
+### Bug Fixes
+
+* double import if using import type ([#396](https://github.com/mmkal/slonik-tools/issues/396)) ([c7ace0c](https://github.com/mmkal/slonik-tools/commit/c7ace0c9d2395c8c7d0e4b1c24d82492e686ec49))
+
+
+
+
+
 # [0.14.0](https://github.com/mmkal/slonik-tools/compare/@slonik/typegen@0.13.0...@slonik/typegen@0.14.0) (2022-05-14)
 
 
