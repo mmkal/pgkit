@@ -14,6 +14,13 @@ import {WriteFile} from '.'
 
 const queryNamespace = 'queries' // todo: at some point we might want to make this configurable
 
+const importVariations = [
+  'import * as',
+  'import', // synthetic default import
+  'import type * as', // type-only import
+  'import type', // type-only synthetic default import
+]
+
 export const defaultGetQueriesModule = (filepath: string) => filepath
 
 export interface WriteTSFileOptions {
@@ -52,19 +59,20 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
       await writeFile(destPath, content)
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
-      const importStatement = `import * as ${queryNamespace} from './${importPath.replace(/\.(js|ts|tsx)$/, '')}'`
+      const importPathNoExtension = importPath.replace(/\.(js|ts|tsx)$/, '')
 
-      const importExists =
-        originalSource.includes(importStatement) ||
-        originalSource.includes(importStatement.replace(/'/g, `"`)) || // double quotes
-        originalSource.includes(importStatement.replace('import * as', 'import')) || // synthetic default import
-        originalSource.includes(importStatement.replace(/'/g, `"`).replace('import * as', 'import')) // synthetic default import with double quotes
+      const importStatementVariations = [
+        ...importVariations.map(imps => `${imps} ${queryNamespace} from './${importPathNoExtension}'`), // single quotes
+        ...importVariations.map(imps => `${imps} ${queryNamespace} from "./${importPathNoExtension}"`), // double quotes
+      ]
+
+      const importExists = importStatementVariations.some(imp => originalSource.includes(imp))
 
       if (!importExists) {
         edits.push({
           start: 0,
           end: 0,
-          replacement: importStatement + '\n',
+          replacement: `import * as ${queryNamespace} from './${importPathNoExtension}'\n`,
         })
       }
     }
