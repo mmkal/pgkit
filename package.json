@@ -41,7 +41,7 @@
   "devDependencies": {
     "@types/jest": "26.0.24",
     "@types/js-yaml": "4.0.2",
-    "@types/node": "12.20.50",
+    "@types/node": "12.20.55",
     "@types/pg": "8.6.1",
     "@typescript-eslint/eslint-plugin": "4.28.4",
     "@typescript-eslint/parser": "4.28.4",
