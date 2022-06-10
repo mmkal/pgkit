@@ -23,7 +23,7 @@ export const psqlClient = (psqlCommand: string, pool: DatabasePool) => {
     const result = await execa('sh', ['-c', command], {env: {SLONIK_TYPEGEN_QUERY: query}})
     try {
       return psqlRows(result.stdout)
-    } catch (e) {
+    } catch (e: any) {
       const stdout = result.stdout || result.stderr
       e.message =
         `Error running psql query.\n` +
