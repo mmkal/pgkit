@@ -183,7 +183,7 @@ const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
     .get()
 }
 
-interface AliasMapping {
+export interface AliasMapping {
   queryColumn: string
   aliasFor: string
   tablesColumnCouldBeFrom: string[]
@@ -273,7 +273,9 @@ export const isCTE = lodash.flow(templateToValidSql, getModifiedAST, m => m.modi
 
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
-export const getViewFriendlySql = lodash.flow(templateToValidSql, getHopefullyViewableAST, pgsqlAST.toSql.statement)
+export const templateToHopefullyViewableAST = lodash.flow(templateToValidSql, getHopefullyViewableAST)
+
+export const astToViewFriendlySql = pgsqlAST.toSql.statement
 
 export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappings)
 

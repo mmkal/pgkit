@@ -11,16 +11,7 @@ import {psqlClient} from './pg'
 import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import {parameterTypesGetter} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {
-  changedFiles,
-  checkClean,
-  containsIgnoreComment,
-  globAsync,
-  globList,
-  maybeDo,
-  truncateQuery,
-  tryOrDefault,
-} from './util'
+import {changedFiles, checkClean, containsIgnoreComment, globAsync, globList, maybeDo, tryOrDefault} from './util'
 import * as write from './write'
 
 import memoizee = require('memoizee')
@@ -81,15 +72,13 @@ export const generate = async (params: Partial<Options>) => {
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await gdesc(query.sql)
-    const fields = await Promise.all(
+    return await Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
         name: row.Column,
         regtype: row.Type,
         typescript: await getTypeScriptType(row.Type, row.Column),
       })),
     )
-
-    return Promise.all(fields)
   }
 
   const regTypeToTypeScript = async (regtype: string) => {
