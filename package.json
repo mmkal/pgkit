@@ -55,7 +55,7 @@
     "fs-syncer": "0.4.0",
     "jest": "28.1.1",
     "js-yaml": "4.1.0",
-    "lerna": "5.1.1",
+    "lerna": "4.0.0",
     "npm-run-all": "4.1.5",
     "prettier": "2.6.2",
     "slonik": "28.1.1",
