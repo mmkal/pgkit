@@ -21,17 +21,17 @@
   },
   "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/migrator#readme",
   "dependencies": {
-    "@rushstack/ts-command-line": "^4.7.7",
-    "umzug": "^3.0.0"
+    "@rushstack/ts-command-line": "^4.11.0",
+    "umzug": "^3.1.1"
   },
   "peerDependencies": {
     "slonik": ">= 27.0.0 < 29"
   },
   "devDependencies": {
     "@types/dedent": "0.7.0",
-    "@types/lodash": "4.14.171",
+    "@types/lodash": "4.14.182",
     "dedent": "0.7.0",
     "lodash": "4.17.21",
-    "strip-ansi": "6.0.1"
+    "strip-ansi": "7.0.1"
   }
 }
