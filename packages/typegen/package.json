@@ -40,7 +40,7 @@
   },
   "devDependencies": {
     "@types/glob": "7.2.0",
-    "@types/memoizee": "0.4.7",
+    "@types/memoizee": "0.4.8",
     "@types/pluralize": "0.0.29",
     "fs-syncer": "0.4.0"
   }
