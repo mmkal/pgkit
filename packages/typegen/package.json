@@ -23,7 +23,7 @@
   },
   "license": "ISC",
   "peerDependencies": {
-    "slonik": ">= 27.0.0 < 29",
+    "slonik": "27 - 29",
     "typescript": "*"
   },
   "dependencies": {
