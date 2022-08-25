@@ -1,11 +1,11 @@
-const {SlonikMigrator} = require('@slonik/migrator')
+const {SlonikMigrator, prettyLogger} = require('@slonik/migrator')
 const {slonik} = require('./dist/db')
 
 const migrator = new SlonikMigrator({
   slonik,
   migrationTableName: 'demo_migration',
   migrationsPath: __dirname + '/migrations',
-  logger: console,
+  logger: prettyLogger,
 })
 
 migrator.runAsCLI()

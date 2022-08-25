@@ -403,3 +403,57 @@ class RepairAction extends CommandLineAction {
 export interface RepairOptions {
   dryRun?: boolean
 }
+
+type LogMessage = Record<string, unknown>
+
+/**
+ * Logs messages to console. Known events are prettified to strings, unknown
+ * events or unexpected message properties in known events are logged as objects.
+ */
+export const prettyLogger: NonNullable<SlonikMigratorOptions['logger']> = {
+  info: message => prettifyAndLog('info', message),
+  warn: message => prettifyAndLog('warn', message),
+  error: message => prettifyAndLog('error', message),
+  debug: message => prettifyAndLog('debug', message),
+}
+
+function prettifyAndLog(level: keyof typeof prettyLogger, message: LogMessage) {
+  const MESSAGE_FORMATS: Record<string, (msg: LogMessage) => [string, LogMessage]> = {
+    created: msg => {
+      const {event, path, ...rest} = msg
+      return [`created   ${path}`, rest]
+    },
+    migrating: msg => {
+      const {event, name, ...rest} = msg
+      return [`migrating ${name}`, rest]
+    },
+    migrated: msg => {
+      const {event, name, durationSeconds, ...rest} = msg
+      return [`migrated  ${name} in ${durationSeconds} s`, rest]
+    },
+    reverting: msg => {
+      const {event, name, ...rest} = msg
+      return [`reverting ${name}`, rest]
+    },
+    reverted: msg => {
+      const {event, name, durationSeconds, ...rest} = msg
+      return [`reverted  ${name} in ${durationSeconds} s`, rest]
+    },
+    up: msg => {
+      const {event, message, ...rest} = msg
+      return [`${message}`, rest]
+    },
+    down: msg => {
+      const {event, message, ...rest} = msg
+      return [`${message}`, rest]
+    },
+  } as const
+
+  const {event} = message
+  if (typeof event !== 'string' || !(event in MESSAGE_FORMATS)) return console[level](message)
+
+  const [messageStr, rest] = MESSAGE_FORMATS[event](message)
+  console[level](messageStr)
+
+  if (Object.keys(rest).length > 0) console[level](rest)
+}
