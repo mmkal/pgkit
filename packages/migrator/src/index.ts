@@ -449,7 +449,7 @@ function prettifyAndLog(level: keyof typeof prettyLogger, message: LogMessage) {
     },
   } as const
 
-  const {event} = message
+  const {event} = message || {}
   if (typeof event !== 'string' || !(event in MESSAGE_FORMATS)) return console[level](message)
 
   const [messageStr, rest] = MESSAGE_FORMATS[event](message)
