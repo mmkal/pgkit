@@ -417,45 +417,45 @@ export const prettyLogger: NonNullable<SlonikMigratorOptions['logger']> = {
   debug: message => prettifyAndLog('debug', message),
 }
 
+const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
+  formats
+
+const MESSAGE_FORMATS = createMessageFormats({
+  created: msg => {
+    const {event, path, ...rest} = msg
+    return [`created   ${path}`, rest]
+  },
+  migrating: msg => {
+    const {event, name, ...rest} = msg
+    return [`migrating ${name}`, rest]
+  },
+  migrated: msg => {
+    const {event, name, durationSeconds, ...rest} = msg
+    return [`migrated  ${name} in ${durationSeconds} s`, rest]
+  },
+  reverting: msg => {
+    const {event, name, ...rest} = msg
+    return [`reverting ${name}`, rest]
+  },
+  reverted: msg => {
+    const {event, name, durationSeconds, ...rest} = msg
+    return [`reverted  ${name} in ${durationSeconds} s`, rest]
+  },
+  up: msg => {
+    const {event, message, ...rest} = msg
+    return [`${message}`, rest]
+  },
+  down: msg => {
+    const {event, message, ...rest} = msg
+    return [`${message}`, rest]
+  },
+})
+
+function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
+  return typeof event === 'string' && event in MESSAGE_FORMATS
+}
+
 function prettifyAndLog(level: keyof typeof prettyLogger, message: LogMessage) {
-  const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
-    formats
-
-  const MESSAGE_FORMATS = createMessageFormats({
-    created: msg => {
-      const {event, path, ...rest} = msg
-      return [`created   ${path}`, rest]
-    },
-    migrating: msg => {
-      const {event, name, ...rest} = msg
-      return [`migrating ${name}`, rest]
-    },
-    migrated: msg => {
-      const {event, name, durationSeconds, ...rest} = msg
-      return [`migrated  ${name} in ${durationSeconds} s`, rest]
-    },
-    reverting: msg => {
-      const {event, name, ...rest} = msg
-      return [`reverting ${name}`, rest]
-    },
-    reverted: msg => {
-      const {event, name, durationSeconds, ...rest} = msg
-      return [`reverted  ${name} in ${durationSeconds} s`, rest]
-    },
-    up: msg => {
-      const {event, message, ...rest} = msg
-      return [`${message}`, rest]
-    },
-    down: msg => {
-      const {event, message, ...rest} = msg
-      return [`${message}`, rest]
-    },
-  })
-
-  function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
-    return typeof event === 'string' && event in MESSAGE_FORMATS
-  }
-
   const {event} = message || {}
   if (!isProperEvent(event)) return console[level](message)
 
