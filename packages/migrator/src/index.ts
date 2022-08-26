@@ -56,6 +56,17 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     }
   }
 
+  /**
+   * Logs messages to console. Known events are prettified to strings, unknown
+   * events or unexpected message properties in known events are logged as objects.
+   */
+  static prettyLogger: NonNullable<SlonikMigratorOptions['logger']> = {
+    info: message => prettifyAndLog('info', message),
+    warn: message => prettifyAndLog('warn', message),
+    error: message => prettifyAndLog('error', message),
+    debug: message => prettifyAndLog('debug', message),
+  }
+
   getCli(options?: umzug.CommandLineParserOptions) {
     const cli = super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
     cli.addAction(new RepairAction(this))
@@ -406,17 +417,6 @@ export interface RepairOptions {
 
 type LogMessage = Record<string, unknown>
 
-/**
- * Logs messages to console. Known events are prettified to strings, unknown
- * events or unexpected message properties in known events are logged as objects.
- */
-export const prettyLogger: NonNullable<SlonikMigratorOptions['logger']> = {
-  info: message => prettifyAndLog('info', message),
-  warn: message => prettifyAndLog('warn', message),
-  error: message => prettifyAndLog('error', message),
-  debug: message => prettifyAndLog('debug', message),
-}
-
 const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
   formats
 
@@ -455,7 +455,7 @@ function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
   return typeof event === 'string' && event in MESSAGE_FORMATS
 }
 
-function prettifyAndLog(level: keyof typeof prettyLogger, message: LogMessage) {
+function prettifyAndLog(level: keyof typeof SlonikMigrator.prettyLogger, message: LogMessage) {
   const {event} = message || {}
   if (!isProperEvent(event)) return console[level](message)
 

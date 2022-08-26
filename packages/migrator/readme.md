@@ -46,7 +46,7 @@ npm install --save-dev @slonik/migrator
 
 Then in a file called `migrate.js`:
 ```javascript
-const {SlonikMigrator, prettyLogger}} = require('@slonik/migrator')
+const {SlonikMigrator} = require('@slonik/migrator')
 const {createPool} = require('slonik')
 
 // in an existing slonik project, this would usually be setup in another module
@@ -56,7 +56,7 @@ const migrator = new SlonikMigrator({
   migrationsPath: __dirname + '/migrations',
   migrationTableName: 'migration',
   slonik,
-  logger: prettyLogger,
+  logger: SlonikMigrator.prettyLogger,
 })
 
 migrator.runAsCLI()
@@ -365,9 +365,9 @@ parameters for the `SlonikMigrator` constructor
 | `slonik` | slonik database pool instance, created by `createPool`. | N/A |
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
 | `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. Set to an array to change the schema e.g. `['public', 'dbmigrations']` | N/A |
-| `logger` | how information about the migrations will be logged. You can set to `console` to log raw objects to console, `undefined` to prevent logs appearing at all, use provided `prettyLogger` or supply a custom logger. | `undefined` |
+| `logger` | how information about the migrations will be logged. You can set to `console` to log raw objects to console, `undefined` to prevent logs appearing at all, use `SlonikMigrator.prettyLogger` or supply a custom logger. | `undefined` |
 
-Provided `prettyLogger` logs all messages to console. Known events are prettified to strings, unknown events or unexpected message properties in known events are logged as objects.
+`SlonikMigrator.prettyLogger` logs all messages to console. Known events are prettified to strings, unknown events or unexpected message properties in known events are logged as objects.
 
 ## Implementation
 
