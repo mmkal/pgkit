@@ -418,7 +418,10 @@ export const prettyLogger: NonNullable<SlonikMigratorOptions['logger']> = {
 }
 
 function prettifyAndLog(level: keyof typeof prettyLogger, message: LogMessage) {
-  const MESSAGE_FORMATS: Record<string, (msg: LogMessage) => [string, LogMessage]> = {
+  const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
+    formats
+
+  const MESSAGE_FORMATS = createMessageFormats({
     created: msg => {
       const {event, path, ...rest} = msg
       return [`created   ${path}`, rest]
@@ -447,10 +450,14 @@ function prettifyAndLog(level: keyof typeof prettyLogger, message: LogMessage) {
       const {event, message, ...rest} = msg
       return [`${message}`, rest]
     },
-  } as const
+  })
+
+  function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
+    return typeof event === 'string' && event in MESSAGE_FORMATS
+  }
 
   const {event} = message || {}
-  if (typeof event !== 'string' || !(event in MESSAGE_FORMATS)) return console[level](message)
+  if (!isProperEvent(event)) return console[level](message)
 
   const [messageStr, rest] = MESSAGE_FORMATS[event](message)
   console[level](messageStr)
