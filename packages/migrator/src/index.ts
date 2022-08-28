@@ -443,11 +443,11 @@ const MESSAGE_FORMATS = createMessageFormats({
   },
   up: msg => {
     const {event, message, ...rest} = msg
-    return [`${message}`, rest]
+    return [`up migration completed, ${message}`, rest]
   },
   down: msg => {
     const {event, message, ...rest} = msg
-    return [`${message}`, rest]
+    return [`down migration completed, ${message}`, rest]
   },
 })
 

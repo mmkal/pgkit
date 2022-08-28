@@ -34,16 +34,16 @@ describe('prettyLogger', () => {
     expect((console.info as jest.Mock).mock.calls[0][0]).toBe('created   ./db/migrations/2022.08.25T12.51.47.test.sql')
     expect((console.info as jest.Mock).mock.calls[1][0]).toBe('migrating 2022.08.25T12.51.47.test.sql')
     expect((console.debug as jest.Mock).mock.calls[0][0]).toBe('migrated  2022.08.25T12.51.47.test.sql in 0.024 s')
-    expect((console.debug as jest.Mock).mock.calls[1][0]).toBe('applied 1 migrations.')
+    expect((console.debug as jest.Mock).mock.calls[1][0]).toBe('up migration completed, applied 1 migrations.')
     expect((console.warn as jest.Mock).mock.calls[0][0]).toBe('reverting 2022.08.25T12.51.47.test.sql')
     expect((console.warn as jest.Mock).mock.calls[1][0]).toBe('reverted  2022.08.25T12.51.47.test.sql in 0.026 s')
-    expect((console.error as jest.Mock).mock.calls[0][0]).toBe('reverted 1 migrations.')
+    expect((console.error as jest.Mock).mock.calls[0][0]).toBe('down migration completed, reverted 1 migrations.')
   })
 
   test('known events with additional parameters', () => {
     prettyLogger.info({event: 'up', message: 'applied 1 migrations.', totalMigrations: 10})
 
-    expect((console.info as jest.Mock).mock.calls[0][0]).toBe('applied 1 migrations.')
+    expect((console.info as jest.Mock).mock.calls[0][0]).toBe('up migration completed, applied 1 migrations.')
     expect((console.info as jest.Mock).mock.calls[1][0]).toEqual({totalMigrations: 10})
   })
 
