@@ -5,7 +5,7 @@ const migrator = new SlonikMigrator({
   slonik,
   migrationTableName: 'demo_migration',
   migrationsPath: __dirname + '/migrations',
-  logger: console,
+  logger: SlonikMigrator.prettyLogger,
 })
 
 migrator.runAsCLI()

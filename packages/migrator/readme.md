@@ -56,6 +56,7 @@ const migrator = new SlonikMigrator({
   migrationsPath: __dirname + '/migrations',
   migrationTableName: 'migration',
   slonik,
+  logger: SlonikMigrator.prettyLogger,
 })
 
 migrator.runAsCLI()
@@ -364,8 +365,10 @@ parameters for the `SlonikMigrator` constructor
 | `slonik` | slonik database pool instance, created by `createPool`. | N/A |
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
 | `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. Set to an array to change the schema e.g. `['public', 'dbmigrations']` | N/A |
-| `logger` | how information about the migrations will be logged. You can set to `undefined` to prevent logs appearing at all. | `console` |
+| `logger` | how information about the migrations will be logged. You can set to `console` to log raw objects to console, `undefined` to prevent logs appearing at all, use `SlonikMigrator.prettyLogger` or supply a custom logger. | `undefined` |
+
+`SlonikMigrator.prettyLogger` logs all messages to console. Known events are prettified to strings, unknown events or unexpected message properties in known events are logged as objects.
 
 ## Implementation
 
-Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom slonik-based stoage implementation.
+Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom slonik-based storage implementation.

@@ -56,6 +56,17 @@ export class SlonikMigrator extends umzug.Umzug<SlonikMigratorContext> {
     }
   }
 
+  /**
+   * Logs messages to console. Known events are prettified to strings, unknown
+   * events or unexpected message properties in known events are logged as objects.
+   */
+  static prettyLogger: NonNullable<SlonikMigratorOptions['logger']> = {
+    info: message => prettifyAndLog('info', message),
+    warn: message => prettifyAndLog('warn', message),
+    error: message => prettifyAndLog('error', message),
+    debug: message => prettifyAndLog('debug', message),
+  }
+
   getCli(options?: umzug.CommandLineParserOptions) {
     const cli = super.getCli({toolDescription: `@slonik/migrator - PostgreSQL migration tool`, ...options})
     cli.addAction(new RepairAction(this))
@@ -402,4 +413,54 @@ class RepairAction extends CommandLineAction {
 
 export interface RepairOptions {
   dryRun?: boolean
+}
+
+type LogMessage = Record<string, unknown>
+
+const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
+  formats
+
+const MESSAGE_FORMATS = createMessageFormats({
+  created: msg => {
+    const {event, path, ...rest} = msg
+    return [`created   ${path}`, rest]
+  },
+  migrating: msg => {
+    const {event, name, ...rest} = msg
+    return [`migrating ${name}`, rest]
+  },
+  migrated: msg => {
+    const {event, name, durationSeconds, ...rest} = msg
+    return [`migrated  ${name} in ${durationSeconds} s`, rest]
+  },
+  reverting: msg => {
+    const {event, name, ...rest} = msg
+    return [`reverting ${name}`, rest]
+  },
+  reverted: msg => {
+    const {event, name, durationSeconds, ...rest} = msg
+    return [`reverted  ${name} in ${durationSeconds} s`, rest]
+  },
+  up: msg => {
+    const {event, message, ...rest} = msg
+    return [`up migration completed, ${message}`, rest]
+  },
+  down: msg => {
+    const {event, message, ...rest} = msg
+    return [`down migration completed, ${message}`, rest]
+  },
+})
+
+function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
+  return typeof event === 'string' && event in MESSAGE_FORMATS
+}
+
+function prettifyAndLog(level: keyof typeof SlonikMigrator.prettyLogger, message: LogMessage) {
+  const {event} = message || {}
+  if (!isProperEvent(event)) return console[level](message)
+
+  const [messageStr, rest] = MESSAGE_FORMATS[event](message)
+  console[level](messageStr)
+
+  if (Object.keys(rest).length > 0) console[level](rest)
 }
