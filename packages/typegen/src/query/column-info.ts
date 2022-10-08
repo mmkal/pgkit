@@ -2,79 +2,24 @@ import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
+import {SelectFromStatement, Statement} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 import {DatabasePool, sql} from 'slonik'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {tryOrDefault} from '../util'
+import {ViewResult, getViewResult} from './getViewResult'
 import * as parse from './index'
-import {getHopefullyViewableAST, getSuggestedTags, isCTE, suggestedTags} from './parse'
-import {getViewFriendlySql} from '.'
-
-const _sql = sql
-
-const getTypesSql = _sql`
-drop type if exists pg_temp.types_type cascade;
-
-create type pg_temp.types_type as (
-  schema_name text,
-  view_name text,
-  table_column_name text,
-  query_column_name text,
-  comment text,
-  underlying_table_name text,
-  is_underlying_nullable text,
-  formatted_query text
-);
-
--- taken from https://dataedo.com/kb/query/postgresql/list-views-columns
--- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
--- nullable: https://stackoverflow.com/a/63980243
-
-create or replace function pg_temp.gettypes(sql_query text)
-returns setof pg_temp.types_type as
-$$
-declare
-  v_tmp_name text;
-  returnrec types_type;
-begin
-  v_tmp_name := 'temp_view_' || md5(sql_query);
-  execute 'drop view if exists ' || v_tmp_name;
-  execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
-
-  FOR returnrec in
-  select
-    vcu.table_schema as schema_name,
-    vcu.view_name as view_name,
-    c.column_name,
-    vcu.column_name,
-    col_description(
-      to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
-      c.ordinal_position
-    ),
-    vcu.table_name as underlying_table_name,
-    c.is_nullable as is_underlying_nullable,
-    pg_get_viewdef(v_tmp_name) as formatted_query
-  from
-    information_schema.columns c
-  join
-    information_schema.view_column_usage vcu
-      on c.table_name = vcu.table_name
-      and c.column_name = vcu.column_name
-      and c.table_schema = vcu.table_schema
-  where
-    c.table_name = v_tmp_name
-    or vcu.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
-loop
-  return next returnrec;
-end loop;
-
-execute 'drop view if exists ' || v_tmp_name;
-
-end;
-$$
-LANGUAGE 'plpgsql';
-`
+import {
+  AliasMapping,
+  aliasMappings,
+  astToViewFriendlySql,
+  getHopefullyViewableAST,
+  getSuggestedTags,
+  isCTE,
+  suggestedTags,
+  templateToHopefullyViewableAST,
+} from './parse'
 
 export class AnalyseQueryError extends Error {
   public readonly [Symbol.toStringTag] = 'AnalyseQueryError'
@@ -91,112 +36,93 @@ export class AnalyseQueryError extends Error {
 // todo: get table description from obj_description(oid) (like column)
 
 export const columnInfoGetter = (pool: DatabasePool) => {
-  // const createViewAnalyser = lodash.once(() => pool.query(getTypesSql))
-
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
-    const cte = isCTE(query.template)
-    const viewFriendlySql = getViewFriendlySql(query.template)
-    const suggestedTags = tagsFromDescribedQuery(query)
+    const viewFriendlyAst = templateToHopefullyViewableAST(query.template)
 
-    // await createViewAnalyser()
-
-    const viewResultQuery = _sql<GetTypes>`
-      select
-        schema_name,
-        table_column_name,
-        underlying_table_name,
-        is_underlying_nullable,
-        comment,
-        formatted_query
-      from
-        pg_temp.gettypes(${viewFriendlySql})
-    `
-
-    const ast = getHopefullyViewableAST(viewFriendlySql)
-    if (ast.type !== 'select') {
-      return {
-        ...query,
-        suggestedTags,
-        fields: query.fields.map(defaultAnalysedQueryField),
-      }
+    if (viewFriendlyAst.type !== 'select') {
+      return getDefaultAnalysedQuery(query)
     }
 
-    const viewResult = cte
+    const viewFriendlySql = astToViewFriendlySql(viewFriendlyAst)
+    const viewResult = isCTE(query.template)
       ? [] // not smart enough to figure out what types are referenced via a CTE
-      : await pool.transaction(async t => {
-          await t.query(getTypesSql)
-          const results = await t.any(viewResultQuery)
-          return lodash.uniqBy(results, JSON.stringify)
-        })
+      : await getViewResult(pool, viewFriendlySql)
 
-    const formattedSqlStatements = [...new Set(viewResult.map(r => r.formatted_query))]
-
-    assert.ok(formattedSqlStatements.length <= 1, `Expected exactly 1 formatted sql, got ${formattedSqlStatements}`)
-
-    const parseableSql = formattedSqlStatements[0] || viewFriendlySql
-
-    const parsed = parse.getAliasMappings(parseableSql)
+    const getFieldInfo = buildGetFieldInfo(viewResult, viewFriendlyAst)
 
     return {
       ...query,
-      suggestedTags,
-      fields: query.fields.map(f => {
-        const relatedResults = parsed.flatMap(c =>
-          viewResult
-            .map(v => ({
-              ...v,
-              hasNullableJoin: c.hasNullableJoin,
-            }))
-            .filter(v => {
-              assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
-              return (
-                c.queryColumn === f.name &&
-                c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
-                c.aliasFor === v.table_column_name
-              )
-            }),
-        )
-
-        const res = relatedResults.length === 1 ? relatedResults[0] : undefined
-
-        // determine nullability
-        let nullability: AnalysedQueryField['nullability'] = 'unknown'
-        if (res?.is_underlying_nullable === 'YES') {
-          nullability = 'nullable'
-        } else if (res?.hasNullableJoin) {
-          nullability = 'nullable_via_join'
-        } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(parseableSql, f)) {
-          nullability = 'not_null'
-        } else {
-          nullability = 'unknown'
-        }
-
-        return {
-          ...f,
-          nullability,
-          column: res && {
-            schema: res.schema_name!,
-            table: res.underlying_table_name!,
-            name: res.table_column_name!,
-          },
-          comment: res?.comment || undefined,
-        }
-      }),
+      suggestedTags: generateTags(query),
+      fields: query.fields.map(getFieldInfo),
     }
   }
 
   return async (query: DescribedQuery): Promise<AnalysedQuery> =>
     addColumnInfo(query).catch(e => {
-      const recover = {
-        ...query,
-        suggestedTags: tagsFromDescribedQuery(query),
-        fields: query.fields.map(defaultAnalysedQueryField),
-      }
+      const recover = getDefaultAnalysedQuery(query)
       throw new AnalyseQueryError(e, query, recover)
     })
 }
 
-const tagOptions = (query: DescribedQuery) => {
+const buildGetFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement) => {
+  const viewableAst =
+    viewResult[0]?.formatted_query === undefined ? ast : getHopefullyViewableAST(viewResult[0].formatted_query!) // TODO: explore why this fallback might be needed - can't we always use the original ast?
+
+  const mappings = aliasMappings(viewableAst)
+
+  return function getFieldInfo(field: QueryField) {
+    const relatedResults = mappings.flatMap(c =>
+      viewResult
+        .map(v => ({
+          ...v,
+          hasNullableJoin: c.hasNullableJoin,
+        }))
+        .filter(v => {
+          assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
+          return (
+            c.queryColumn === field.name &&
+            c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
+            c.aliasFor === v.table_column_name
+          )
+        }),
+    )
+
+    const res = relatedResults.length === 1 ? relatedResults[0] : undefined
+
+    // determine nullability
+    let nullability: AnalysedQueryField['nullability'] = 'unknown'
+    if (res?.is_underlying_nullable === 'YES') {
+      nullability = 'nullable'
+    } else if (res?.hasNullableJoin) {
+      nullability = 'nullable_via_join'
+      // TODO: we're converting from sql to ast back and forth for `isNonNullableField`. this is probably unneded
+    } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(astToViewFriendlySql(viewableAst), field)) {
+      nullability = 'not_null'
+    } else {
+      nullability = 'unknown'
+    }
+
+    return {
+      ...field,
+      nullability,
+      column: res && {
+        schema: res.schema_name!,
+        table: res.underlying_table_name!,
+        name: res.table_column_name!,
+      },
+      comment: res?.comment || undefined,
+    }
+  }
+}
+
+/**
+ * Generate short hash
+ */
+const shortHexHash = (str: string) => createHash('md5').update(str).digest('hex').slice(0, 6)
+/**
+ * Uses various strategies to come up with options for tags
+ */
+const generateTagOptions = (query: DescribedQuery) => {
   const sqlTags = tryOrDefault(() => getSuggestedTags(query.template), [])
 
   const codeContextTags = query.context
@@ -224,10 +150,15 @@ const tagOptions = (query: DescribedQuery) => {
   return {sqlTags, codeContextTags, fieldTags, anonymousTags}
 }
 
-const tagsFromDescribedQuery = (query: DescribedQuery) => {
-  const options = tagOptions(query)
+/**
+ * Generates a list of tag options based on a query
+ * @param query DescribedQuery
+ * @returns List of tag options sorted by quality
+ */
+const generateTags = (query: DescribedQuery) => {
+  const options = generateTagOptions(query)
 
-  const tags = options.sqlTags.slice()
+  const tags = [...options.sqlTags]
   tags.splice(tags[0]?.slice(1).includes('_') ? 0 : 1, 0, ...options.codeContextTags)
   tags.push(...options.fieldTags)
   tags.push(...options.codeContextTags)
@@ -236,13 +167,18 @@ const tagsFromDescribedQuery = (query: DescribedQuery) => {
   return tags
 }
 
-const shortHexHash = (str: string) => createHash('md5').update(str).digest('hex').slice(0, 6)
-
-export const defaultAnalysedQueryField = (f: QueryField): AnalysedQueryField => ({
-  ...f,
-  nullability: 'unknown',
-  comment: undefined,
-  column: undefined,
+/**
+ * Create a fallback, in case we fail to analyse the query
+ */
+const getDefaultAnalysedQuery = (query: DescribedQuery): AnalysedQuery => ({
+  ...query,
+  suggestedTags: generateTags(query),
+  fields: query.fields.map(f => ({
+    ...f,
+    nullability: 'unknown',
+    comment: undefined,
+    column: undefined,
+  })),
 })
 
 const nonNullableExpressionTypes = new Set([
@@ -289,25 +225,4 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
   })
   // if there's exactly one column with the same name as the field and matching the conditions above, we can be confident it's not nullable.
   return nonNullableColumns.length === 1
-}
-
-// this query is for a type in a temp schema so this tool doesn't work with it
-export interface GetTypes {
-  /** postgres type: `text` */
-  schema_name: string | null
-
-  /** postgres type: `text` */
-  table_column_name: string | null
-
-  /** postgres type: `text` */
-  underlying_table_name: string | null
-
-  /** postgres type: `text` */
-  is_underlying_nullable: string | null
-
-  /** postgres type: `text` */
-  comment: string | null
-
-  /** postgres type: `text` */
-  formatted_query: string | null
 }
