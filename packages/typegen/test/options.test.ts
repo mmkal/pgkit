@@ -32,7 +32,7 @@ beforeEach(async () => {
       j_nn json not null,
       jb_nn jsonb not null,
       d_p numeric(8),
-      d_ps numeric(8,4)
+      d_ps numeric(8, 4)
     );
 
     comment on column test_table.t is 'Some custom comment on "t"';
