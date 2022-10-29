@@ -114,7 +114,7 @@ export const generate = async (params: Partial<Options>) => {
       return itemType.match(/^\w+$/) ? `${itemType}[]` : `Array<${itemType}>`
     }
 
-    if (regtype.match(/\(\d+\)/)) {
+    if (regtype.match(/\([\d,]+\)/)) {
       // e.g. `character varying(10)`, which is the regtype from `create table t(s varchar(10))`
       return getTypeScriptType(regtype.split('(')[0], typeName)
     }
