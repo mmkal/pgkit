@@ -30,7 +30,9 @@ beforeEach(async () => {
       j json,
       jb jsonb,
       j_nn json not null,
-      jb_nn jsonb not null
+      jb_nn jsonb not null,
+      d_p numeric(8),
+      d_ps numeric(8, 4)
     );
 
     comment on column test_table.t is 'Some custom comment on "t"';
@@ -76,6 +78,8 @@ test('write types', async () => {
                 where n = 1
               )
           \`,
+          sql\`select d_p from test_table\`,
+          sql\`select d_ps from test_table\`,
         ]
       `,
     },
@@ -123,6 +127,8 @@ test('write types', async () => {
               where n = 1
             )
         \`,
+        sql<queries.TestTable_dP>\`select d_p from test_table\`,
+        sql<queries.TestTable_dPs>\`select d_ps from test_table\`,
       ]
       
       export declare namespace queries {
@@ -172,6 +178,12 @@ test('write types', async () => {
       
           /** column: \`options_test.test_table.jb_nn\`, not null: \`true\`, regtype: \`jsonb\` */
           jb_nn: unknown
+      
+          /** column: \`options_test.test_table.d_p\`, regtype: \`numeric(8,0)\` */
+          d_p: number | null
+      
+          /** column: \`options_test.test_table.d_ps\`, regtype: \`numeric(8,4)\` */
+          d_ps: number | null
         }
       
         /**
@@ -293,6 +305,18 @@ test('write types', async () => {
       
           /** column: \`options_test.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
           t_nn_aliased: string
+        }
+      
+        /** - query: \`select d_p from test_table\` */
+        export interface TestTable_dP {
+          /** column: \`options_test.test_table.d_p\`, regtype: \`numeric(8,0)\` */
+          d_p: number | null
+        }
+      
+        /** - query: \`select d_ps from test_table\` */
+        export interface TestTable_dPs {
+          /** column: \`options_test.test_table.d_ps\`, regtype: \`numeric(8,4)\` */
+          d_ps: number | null
         }
       }
       "
