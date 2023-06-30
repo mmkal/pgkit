@@ -181,7 +181,7 @@ Note that the `/** @type {import('@slonik/typegen').Options} */` comment is opti
 
 ### Advanced Configuration
 
-The `writeTypes` option allows you to tweak what's written to disk. Note that the usage style isn't finalised and might change in future. If you use it, please create a discussion about it in https://github.com/mmkal/slonik-tools/discussions so that your use-case doesn't get taken away unexpectedly.
+The `writeTypes` option allows you to tweak what's written to disk. Note that the usage style isn't finalised and might change in future. If you use it, please create a discussion about it in https://github.com/mmkal/slonik-tools/discussions so your use-case doesn't get taken away unexpectedly.
 
 #### Controlling write destination
 
