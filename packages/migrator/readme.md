@@ -358,7 +358,7 @@ export const seed = async () => {
 
 ## Configuration
 
-parameters for the `SlonikMigrator` constructor
+parameters for the `SlonikMigrator` constructor:
 
 | property | description | default value |
 |--------|------------|-------------|
