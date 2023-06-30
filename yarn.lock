@@ -6319,10 +6319,10 @@ pgpass@1.x:
   dependencies:
     split2 "^4.1.0"
 
-pgsql-ast-parser@^10.3.1:
-  version "10.5.2"
-  resolved "https://registry.yarnpkg.com/pgsql-ast-parser/-/pgsql-ast-parser-10.5.2.tgz#2385e9d7f200aa4a497f2c0e94db06e765b1d985"
-  integrity sha512-GkGhxSPiGlLlT6dRpeTveK8g0meJZuQldhbBmlFWwjoNp4SePoS2n5cCS2bmjVUkI5ugvvSnfl1WMIB36IQzxA==
+pgsql-ast-parser@^11.1.0:
+  version "11.1.0"
+  resolved "https://registry.yarnpkg.com/pgsql-ast-parser/-/pgsql-ast-parser-11.1.0.tgz#b3015171fd844e93f37368a50fdb3c06ab9e5b01"
+  integrity sha512-c0XnjHzUyg2Z/3iB2Akk6+jDtsza4Jqw4bC5SSt9pQ3b+K4aQC75gJQDvsNYvFqQNaPHLCUunDLPc5SZsQQLIA==
   dependencies:
     moo "^0.5.1"
     nearley "^2.19.5"

@@ -342,6 +342,10 @@ if (require.main === module) {
     '>>': 'binary_right_shift',
     '#': 'bitwise_xor',
     'AT TIME ZONE': 'at_time_zone',
+    '~*': null,
+    '!~': null,
+    '!~*': null,
+    '@@': null,
   }
   // console.log(`
   //   select *
