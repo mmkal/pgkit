@@ -40,7 +40,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn
+      - run: yarn --ignore-engines
       - run: yarn ci
       - uses: codecov/codecov-action@v2
         if: matrix.node-version == '14.x'
