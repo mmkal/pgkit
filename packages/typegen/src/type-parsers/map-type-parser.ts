@@ -1,5 +1,5 @@
+import {ParseFn, pgTypes, setRecommendedTypeParsers} from '@pgkit/client'
 import {TypeParserInfo} from '../types'
-import * as slonik from 'slonik'
 
 const jsValueMatchers: Array<[type: string, test: (value: unknown) => boolean]> = [
   ['number', val => typeof val === 'number'],
@@ -12,8 +12,9 @@ const jsValueMatchers: Array<[type: string, test: (value: unknown) => boolean]> 
 /**
  * Mapping from pg_type.typname to a valid sample value
  */
-// todo: explicitly test to see how these all come back by default from pg/slonik
+// todo: explicitly test to see how these all come back by default from pg
 // e.g. by doing sql`select ${sampleValue}::${sampleValueType}` somehow
+// but wait - should these all be strings?
 export const sampleTypeValues: Record<string, any> = {
   int8: 0,
   date: '2000-01-01',
@@ -32,14 +33,19 @@ export const sampleTypeValues: Record<string, any> = {
   money: '$0.00',
 }
 
-export const inferTypeParserTypeScript = (tp: slonik.TypeParser<any>, defaultSampleInput = '') => {
-  const sample = tp.parse(sampleTypeValues[tp.name] || defaultSampleInput)
+export const inferTypeParserTypeScript = (tp: ParseFn, defaultSampleInput = ''): string => {
+  const sample = tp(sampleTypeValues[tp.name] || defaultSampleInput)
   const match = jsValueMatchers.find(m => m[1](sample))
   return match?.[0] || `unknown`
 }
 
-export const defaultTypeParsers = (parsers: readonly slonik.TypeParser<unknown>[]): TypeParserInfo[] =>
-  parsers.map(tp => ({
-    pgtype: tp.name, // slonik uses `name` for the type, corresponding to `pg_type.typname`
-    typescript: inferTypeParserTypeScript(tp),
-  }))
+export const defaultTypeParsers = (setTypeParsers = setRecommendedTypeParsers): TypeParserInfo[] => {
+  const list = [] as TypeParserInfo[]
+  setTypeParsers({
+    builtins: pgTypes.builtins,
+    setTypeParser(typeId, parse) {
+      list.push({oid: typeId, typescript: inferTypeParserTypeScript(parse)})
+    },
+  })
+  return list
+}

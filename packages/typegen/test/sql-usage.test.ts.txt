@@ -1,11 +1,13 @@
+import {expectTypeOf} from 'expect-type'
+import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
 import * as sqlWithParameters from './fixtures/sql.test.ts/sql-with-parameters/__sql__/test-table.sql'
 
-import {expectTypeOf} from 'expect-type'
-import {getHelper} from './helper'
+import {getPureHelper as getHelper} from './helper'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
+  await helper.setupDb()
   await helper.pool.query(helper.sql`
     create table test_table(a int not null, b text);
 

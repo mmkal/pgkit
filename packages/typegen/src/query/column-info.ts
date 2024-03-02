@@ -1,15 +1,14 @@
+import * as parse from './index'
+import {Client, sql} from '@pgkit/client'
 import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
 import {SelectFromStatement, Statement} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
-import {DatabasePool, sql} from 'slonik'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {tryOrDefault} from '../util'
-import {ViewResult, getViewResult} from './getViewResult'
-import * as parse from './index'
 import {
   AliasMapping,
   aliasMappings,
@@ -20,6 +19,7 @@ import {
   suggestedTags,
   templateToHopefullyViewableAST,
 } from './parse'
+import {ViewResult, getViewResult} from './view-result'
 
 export class AnalyseQueryError extends Error {
   public readonly [Symbol.toStringTag] = 'AnalyseQueryError'
@@ -35,7 +35,7 @@ export class AnalyseQueryError extends Error {
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const columnInfoGetter = (pool: DatabasePool) => {
+export const columnInfoGetter = (pool: Client) => {
   const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
     const viewFriendlyAst = templateToHopefullyViewableAST(query.template)
 
@@ -66,7 +66,7 @@ export const columnInfoGetter = (pool: DatabasePool) => {
 
 const buildGetFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement) => {
   const viewableAst =
-    viewResult[0]?.formatted_query === undefined ? ast : getHopefullyViewableAST(viewResult[0].formatted_query!) // TODO: explore why this fallback might be needed - can't we always use the original ast?
+    viewResult[0]?.formatted_query === undefined ? ast : getHopefullyViewableAST(viewResult[0].formatted_query) // TODO: explore why this fallback might be needed - can't we always use the original ast?
 
   const mappings = aliasMappings(viewableAst)
 
@@ -106,9 +106,9 @@ const buildGetFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement) =
       ...field,
       nullability,
       column: res && {
-        schema: res.schema_name!,
-        table: res.underlying_table_name!,
-        name: res.table_column_name!,
+        schema: res.schema_name,
+        table: res.underlying_table_name,
+        name: res.table_column_name,
       },
       comment: res?.comment || undefined,
     }
@@ -160,9 +160,7 @@ const generateTags = (query: DescribedQuery) => {
 
   const tags = [...options.sqlTags]
   tags.splice(tags[0]?.slice(1).includes('_') ? 0 : 1, 0, ...options.codeContextTags)
-  tags.push(...options.fieldTags)
-  tags.push(...options.codeContextTags)
-  tags.push(...options.anonymousTags)
+  tags.push(...options.fieldTags, ...options.codeContextTags, ...options.anonymousTags)
 
   return tags
 }
@@ -199,18 +197,22 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
   if (ast.type !== 'select' || !Array.isArray(ast.columns)) {
     return false
   }
+
   const nonNullableColumns = ast.columns.filter(c => {
     if (c.expr.type !== 'call') {
       return false
     }
+
     const name = c.alias?.name ?? c.expr.function.name
     if (field.name !== name) {
       return false
     }
+
     if (c.expr.function.name === 'count') {
       // `count` is the only aggregation function, which never returns null.
       return true
     }
+
     if (c.expr.function.name === 'coalesce') {
       // let's try to check the args for nullability - as soon as we encounter a definitive non-nullable one, the whole term becomes non-nullable.
       return c.expr.args.some(arg => {
@@ -221,6 +223,7 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
         return nonNullableExpressionTypes.has(type)
       })
     }
+
     return false
   })
   // if there's exactly one column with the same name as the field and matching the conditions above, we can be confident it's not nullable.

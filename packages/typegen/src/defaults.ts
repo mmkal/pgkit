@@ -1,23 +1,15 @@
 import * as assert from 'assert'
 
 import {defaultExtractQueries} from './extract'
-import {defaultPGDataTypeToTypeScriptMappings} from './pg'
-import {defaultTypeParsers} from './slonik'
+
+import {defaultTypeParsers} from './type-parsers'
 import {Options} from './types'
-import {defaultWriteFile, defaultWriteTypes} from './write'
+import {defaultWriteTypes} from './write'
 
 // Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
 // e.g. the default `writeTypes` implementation depends on the specific value of `rootDir`.
 
 export const typegenConfigFile = 'typegen.config.js'
-
-export {
-  defaultWriteTypes,
-  defaultWriteFile,
-  defaultTypeParsers,
-  defaultExtractQueries,
-  defaultPGDataTypeToTypeScriptMappings,
-}
 
 export const defaultConnectionURI = 'postgresql://postgres:postgres@localhost:5432/postgres'
 
@@ -37,7 +29,7 @@ const getWithWarning = <T>(logger: Options['logger'], message: string, value: T)
 export const getParams = (partial: Partial<Options>): Options => {
   const {
     logger = console,
-    connectionURI = getWithWarning(
+    connectionString = getWithWarning(
       logger,
       `Using default connection URI of ${defaultConnectionURI}`,
       defaultConnectionURI,
@@ -56,7 +48,7 @@ export const getParams = (partial: Partial<Options>): Options => {
       `Using default pool config - type parsers will not be respected.`,
       {},
     ),
-    typeParsers = defaultTypeParsers(poolConfig.typeParsers || []),
+    typeParsers = defaultTypeParsers(poolConfig.setTypeParsers),
     migrate = undefined,
     checkClean = defaultCheckClean,
     lazy = false,
@@ -70,10 +62,10 @@ export const getParams = (partial: Partial<Options>): Options => {
 
   assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest)}`)
 
-  assert.ok(!connectionURI.match(/ '"/), `Connection URI should not contain spaces or quotes`)
+  assert.ok(!connectionString.includes(' \'"'), `Connection URI should not contain spaces or quotes`)
 
   return {
-    connectionURI,
+    connectionString,
     psqlCommand,
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
@@ -91,3 +83,8 @@ export const getParams = (partial: Partial<Options>): Options => {
     lazy,
   }
 }
+
+export {defaultPGDataTypeToTypeScriptMappings} from './pg'
+export {defaultWriteFile, defaultWriteTypes} from './write'
+export {defaultExtractQueries} from './extract'
+export {defaultTypeParsers} from './type-parsers'

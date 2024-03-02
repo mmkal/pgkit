@@ -1,17 +1,16 @@
-import * as path from 'path'
-
+import {Options, generate} from './index'
 import * as cli from '@rushstack/ts-command-line'
 import * as lodash from 'lodash'
+import * as path from 'path'
 
 import * as defaults from './defaults'
-import {Options, generate} from './index'
 import {tryOrDefault} from './util'
 
-export class SlonikTypegenCLI extends cli.CommandLineParser {
+export class TypegenCLI extends cli.CommandLineParser {
   constructor() {
     super({
-      toolFilename: 'slonik-typegen',
-      toolDescription: `CLI for https://npmjs.com/package/@slonik/typegen.`,
+      toolFilename: 'pg-typegen',
+      toolDescription: `CLI for https://npmjs.com/package/@pgkit/typegen.`,
     })
 
     this.addAction(new GenerateAction())
@@ -50,10 +49,10 @@ export class GenerateAction extends cli.CommandLineAction {
         argumentName: 'PATH',
         description: `Path to the source directory containing SQL queries. Defaults to "src" if no value is provided`,
       }),
-      connectionURI: action.defineStringParameter({
-        parameterLongName: '--connection-uri',
-        argumentName: 'URI',
-        description: `URI for connecting to postgres. Defaults to 'postgresql://postgres:postgres@localhost:5432/postgres'`,
+      connectionString: action.defineStringParameter({
+        parameterLongName: '--connection-string',
+        argumentName: 'URL',
+        description: `URL for connecting to postgres. Defaults to 'postgresql://postgres:postgres@localhost:5432/postgres'`,
       }),
       psql: action.defineStringParameter({
         parameterLongName: '--psql',
@@ -127,16 +126,16 @@ export class GenerateAction extends cli.CommandLineAction {
   }
 
   async onExecute() {
-    let optionsModule = this._params.config.value
-      ? require(path.resolve(process.cwd(), this._params.config.value))
-      : tryOrDefault(() => require(path.resolve(process.cwd(), defaults.typegenConfigFile)), null)
+    const optionsModule = this._params.config.value
+      ? await import(path.resolve(process.cwd(), this._params.config.value))
+      : tryOrDefault(async () => import(path.resolve(process.cwd(), defaults.typegenConfigFile)), null)
 
-    const options = optionsModule?.default || optionsModule
+    const options: {} = optionsModule?.default || optionsModule
 
     const run = await generate(
       lodash.merge({}, options, {
         rootDir: this._params.rootDir.value,
-        connectionURI: this._params.connectionURI.value,
+        connectionString: this._params.connectionString.value,
         psqlCommand: this._params.psql.value,
         defaultType: this._params.defaultType.value,
         include: this._params.include.values.length > 0 ? this._params.include.values : undefined,
@@ -156,5 +155,6 @@ export class GenerateAction extends cli.CommandLineAction {
 
 /* istanbul ignore if */
 if (require.main === module) {
-  new SlonikTypegenCLI().execute()
+  const program = new TypegenCLI()
+  void program.execute()
 }

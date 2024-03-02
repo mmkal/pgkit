@@ -1,13 +1,13 @@
+import {WriteFile} from '.'
+import * as lodash from 'lodash'
 import * as path from 'path'
 
-import * as lodash from 'lodash'
 import type * as ts from 'typescript'
 
 import {TaggedQuery} from '../types'
 import {relativeUnixPath, tsCustom} from '../util'
 import {tsPrettify} from './prettify'
 import {queryInterfaces} from './typescript'
-import {WriteFile} from '.'
 
 // todo: pg-protocol parseError adds all the actually useful information
 // to fields which don't show up in error messages. make a library which patches it to include relevant info.
@@ -41,9 +41,9 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
   return async (group: TaggedQuery[], file: string) => {
     const ts: typeof import('typescript') = require('typescript')
     const originalSource = group[0].source
-    const sourceFile = ts.createSourceFile(file, originalSource, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
+    const sourceFile = ts.createSourceFile(file, originalSource, ts.ScriptTarget.ES2015, /* setParentNodes */ true)
 
-    const edits: Array<Edit> = []
+    const edits: Edit[] = []
 
     visitRecursive(sourceFile)
 
@@ -55,7 +55,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
         replacement: queriesModule(group),
       })
     } else {
-      let content = queryInterfaces(group)
+      const content = queryInterfaces(group)
       await writeFile(destPath, content)
 
       const importPath = relativeUnixPath(destPath, path.dirname(file))
@@ -96,10 +96,12 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
         if (!tsCustom.isSqlLiteral(node)) {
           return
         }
+
         const matchingQuery = group.find(q => q.text === node.getFullText())
         if (!matchingQuery) {
           return
         }
+
         const typeReference = `${queryNamespace}.${matchingQuery.tag}`
         if (node.typeArguments && node.typeArguments.length === 1) {
           // existing type definitions
@@ -115,6 +117,7 @@ export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, w
             return
           }
         }
+
         // default: replace complete tag to add/overwrite type arguments
         edits.push({
           start: node.tag.getStart(sourceFile),

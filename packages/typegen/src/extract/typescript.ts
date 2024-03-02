@@ -9,7 +9,7 @@ import {isReturningQuery, tsCustom} from '../util'
 const rawExtractWithTypeScript: Options['extractQueries'] = file => {
   const ts: typeof import('typescript') = require('typescript')
   const source = fs.readFileSync(file).toString()
-  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.ES2015, /*setParentNodes */ true)
+  const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.ES2015, /* setParentNodes */ true)
 
   // adapted from https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter
   const queries: ExtractedQuery[] = []
@@ -27,11 +27,13 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
       ts.forEachChild(node, n => visitNodeGenericsRecursive(n, newContext))
       return
     }
+
     if (tsCustom.isSqlLiteral(node)) {
       let template: string[] = []
       if (ts.isNoSubstitutionTemplateLiteral(node.template)) {
         template = [node.template.text]
       }
+
       if (ts.isTemplateExpression(node.template)) {
         template = [node.template.head.text, ...node.template.templateSpans.map(s => s.literal.text)]
       }

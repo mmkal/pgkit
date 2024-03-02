@@ -1,9 +1,9 @@
-import {dedent, relativeUnixPath, typeName, truncateQuery} from '../util'
-import * as path from 'path'
-import {getterExpression, jsdocComment, queryInterfaces, quotePropKey} from './typescript'
-import {TaggedQuery} from '../types'
-import {tsPrettify} from './prettify'
 import {WriteFile} from '.'
+import * as path from 'path'
+import {TaggedQuery} from '../types'
+import {dedent, relativeUnixPath, typeName, truncateQuery} from '../util'
+import {tsPrettify} from './prettify'
+import {getterExpression, jsdocComment, queryInterfaces, quotePropKey} from './typescript'
 
 export interface WriteSQLFileOptions {
   getModulePath?: (sqlPath: string) => string
@@ -25,7 +25,7 @@ export const getSQLHelperWriter =
 export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
   query = {...query, tag: typeName(path.parse(query.file).name)}
   const relPath = relativeUnixPath(query.file, path.dirname(destPath))
-  const tag = query.tag
+  const {tag} = query
 
   const content = queryInterfaces([query])
 
@@ -46,7 +46,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       const result = await pool.query(get${tag}QuerySync())
 
       return result.rows.map(r => [${query.fields
-        .filter(f => !f.name.match(/\W/))
+        .filter(f => !/\W/.test(f.name))
         .slice(0, 2)
         .map(f => `r.${f.name}`)
         .join(', ')}])
@@ -58,9 +58,11 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     valuesParam: 'params',
     paramsObj: '',
     sqlTokenValueProp: `values: [${query.parameters.map(p => `params${getterExpression(p.name)}`).join(', ')}]`,
-    paramsInterface: `export interface Get${tag}QueryParams {
-      ${query.parameters.map(p => `${quotePropKey(p.name)}: ${p.typescript}`).join('\n')}
-    }`,
+    paramsInterface: `
+      export interface Get${tag}QueryParams {
+            ${query.parameters.map(p => `${quotePropKey(p.name)}: ${p.typescript}`).join('\n')}
+          }
+    `,
     paramsProp: `params: Get${tag}QueryParams`,
   }
 
@@ -77,25 +79,17 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
     export const get${tag}QuerySync = ({
       readFileSync = defaultReadFileSync,
       ${defaults.valuesParam}
-    }: Get${tag}QuerySyncOptions ${defaults.paramsObj}): TaggedTemplateLiteralInvocation<${tag}> => ({
-      sql: readFileSync(sqlPath).toString(),
-      type: 'SLONIK_TOKEN_SQL',
-      ${defaults.sqlTokenValueProp},
-    })
+    }: Get${tag}QuerySyncOptions ${defaults.paramsObj}) => sql.raw<${tag}>(readFileSync(sqlPath).toString())
 
     ${jsdocComment([comment])
-      .replace(/readFileSync/g, 'readFile')
-      .replace(/Sync/g, 'Async')
-      .replace(/\bsync/g, 'async')
+      .replaceAll('readFileSync', 'readFile')
+      .replaceAll('Sync', 'Async')
+      .replaceAll(/\bsync/g, 'async')
       .replace(`get${tag}QueryAsync()`, `await get${tag}QueryAsync()`)}
     export const get${tag}QueryAsync = async ({
       readFile = defaultReadFileAsync,
       ${defaults.valuesParam}
-    }: Get${tag}QueryAsyncOptions ${defaults.paramsObj}): Promise<TaggedTemplateLiteralInvocation<${tag}>> => ({
-      sql: (await readFile(sqlPath)).toString(),
-      type: 'SLONIK_TOKEN_SQL',
-      ${defaults.sqlTokenValueProp},
-    })
+    }: Get${tag}QueryAsyncOptions ${defaults.paramsObj}) => sql.raw<${tag}>((await readFile(sqlPath)).toString())
 
     const sqlPath = path.join(__dirname, (${JSON.stringify(relPath)}))
 
@@ -126,7 +120,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
       _queryCache.set(filepath, content)
       return content
     }
-    
+
     export const defaultReadFileAsync = async (filepath: string) => {
       const cached = _queryCache.get(filepath)
       if (cached) {
@@ -139,7 +133,7 @@ export function getSQLHelperContent(query: TaggedQuery, destPath: string) {
   `)
 
   const newContent = tsPrettify(`
-    import {TaggedTemplateLiteralInvocation} from 'slonik'
+    import {sql} from 'slonik'
     import * as path from 'path'
     import * as fs from 'fs'
 

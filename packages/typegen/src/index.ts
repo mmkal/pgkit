@@ -1,9 +1,11 @@
+import {createClient} from '@pgkit/client'
 import * as assert from 'assert'
+import chokidar = require('chokidar')
 import * as fs from 'fs'
-import * as path from 'path'
-
+import {glob} from 'glob'
 import * as lodash from 'lodash'
-import {createPool} from 'slonik'
+import memoizee = require('memoizee')
+import * as path from 'path'
 
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
@@ -11,22 +13,14 @@ import {psqlClient} from './pg'
 import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
 import {parameterTypesGetter} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, containsIgnoreComment, globAsync, globList, maybeDo, tryOrDefault} from './util'
-import * as write from './write'
+import {changedFiles, checkClean, containsIgnoreComment, globList, maybeDo, tryOrDefault} from './util'
 
-import memoizee = require('memoizee')
-import chokidar = require('chokidar')
-
-export {Options} from './types'
-
-export {defaults}
-
-export {write}
+export type {Options} from './types'
 
 export const generate = async (params: Partial<Options>) => {
   const {
     psqlCommand,
-    connectionURI,
+    connectionString,
     pgTypeToTypeScript: gdescToTypeScript,
     rootDir,
     include,
@@ -43,16 +37,16 @@ export const generate = async (params: Partial<Options>) => {
     lazy,
   } = defaults.getParams(params)
 
-  const pool = createPool(connectionURI, poolConfig)
+  const pool = createClient(connectionString, poolConfig)
 
-  const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionURI}"`, pool)
+  const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
 
   const _gdesc = async (sql: string) => {
     sql = sql.trim().replace(/;$/, '')
     assert.ok(!sql.includes(';'), `Can't use \\gdesc on query containing a semicolon`)
     try {
       return await psql(`${sql} \\gdesc`)
-    } catch (e) {
+    } catch {
       const simplified = tryOrDefault(
         () => removeSimpleComments(sql),
         tryOrDefault(() => simplifySql(sql), ''),
@@ -67,12 +61,12 @@ export const generate = async (params: Partial<Options>) => {
 
   const getLogPath = (filepath: string) => {
     const relPath = path.relative(process.cwd(), filepath)
-    return relPath.charAt(0) === '.' ? relPath : `./${relPath}`
+    return relPath.startsWith('.') ? relPath : `./${relPath}`
   }
 
   const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
     const rows = await gdesc(query.sql)
-    return await Promise.all(
+    return Promise.all(
       rows.map<Promise<QueryField>>(async row => ({
         name: row.Column,
         regtype: row.Type,
@@ -111,22 +105,23 @@ export const generate = async (params: Partial<Options>) => {
 
     if (regtype.endsWith('[]')) {
       const itemType = await getTypeScriptType(regtype.slice(0, -2), typeName)
-      return itemType.match(/^\w+$/) ? `${itemType}[]` : `Array<${itemType}>`
+      return /^\w+$/.test(itemType) ? `${itemType}[]` : `Array<${itemType}>`
     }
 
-    if (regtype.match(/\([\d, ]+\)/)) {
+    if (/\([\d ,]+\)/.test(regtype)) {
       // e.g. `character varying(10)`, which is the regtype from `create table t(s varchar(10))`
       return getTypeScriptType(regtype.split('(')[0], typeName)
     }
 
-    const pgtype = regtypeToPGType[regtype].typname
+    const pgtype = regtypeToPGType[regtype]
 
     assert.ok(pgtype, `pgtype not found from regtype ${regtype}`)
 
     return (
-      lodash.findLast(typeParsers, p => p.pgtype === pgtype)?.typescript ||
+      // console.log({pgtype, regtype, typeName}) ||
+      lodash.findLast(typeParsers, p => p.oid === pgtype.oid)?.typescript ||
       gdescToTypeScript(regtype, typeName) ||
-      (await regTypeToTypeScript(regtype))
+      regTypeToTypeScript(regtype)
     )
   }
 
@@ -143,24 +138,25 @@ export const generate = async (params: Partial<Options>) => {
 
     const getFiles = async () => {
       logger.info(`Searching for files.`)
-      let files = await globAsync(globList(include), {
+      let files = glob.sync(globList(include), {
         cwd,
         ignore: exclude,
         absolute: true,
       })
       if (since) {
         // filter matched files to only include changed files and convert to absolute paths
-        const changed = changedFiles({since, cwd}).map(file => path.join(cwd, file))
-        files = files.filter(file => changed.includes(file))
+        const changed = new Set(changedFiles({since, cwd}).map(file => path.join(cwd, file)))
+        files = files.filter(file => changed.has(file))
       }
+
       logger.info(`Found ${files.length} files matching criteria.`)
       return files
     }
 
     if (migrate) {
-      await maybeDo(checkCleanWhen.includes('before-migrate'), checkClean)
-      migrateLegacyCode(migrate)({files: await getFiles(), logger})
-      await maybeDo(checkCleanWhen.includes('after-migrate'), checkClean)
+      maybeDo(checkCleanWhen.includes('before-migrate'), checkClean)
+      await migrateLegacyCode(migrate)({files: await getFiles(), logger})
+      maybeDo(checkCleanWhen.includes('after-migrate'), checkClean)
     }
 
     async function generateForFiles(files: string[]) {
@@ -186,7 +182,8 @@ export const generate = async (params: Partial<Options>) => {
         if (describedQuery === null) {
           return null
         }
-        return await analyseQuery(describedQuery)
+
+        return analyseQuery(describedQuery)
       })
 
       const analysedQueries = lodash.compact(await Promise.all(queriesToAnalyse))
@@ -197,6 +194,7 @@ export const generate = async (params: Partial<Options>) => {
           `${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries${ignoreMsg}.`,
         )
       }
+
       if (analysedQueries.length > 0) {
         await writeTypes(analysedQueries)
       }
@@ -215,6 +213,7 @@ export const generate = async (params: Partial<Options>) => {
           logger.debug(`${getLogQueryReference(query)} [!] Query is not typeable.`)
           return null
         }
+
         return {
           ...query,
           fields: await getFields(query),
@@ -225,16 +224,18 @@ export const generate = async (params: Partial<Options>) => {
         if (query.sql.includes('--')) {
           message += ' Try moving comments to dedicated lines.'
         }
+
         if (query.sql.includes(';')) {
           message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
         }
+
         logger.warn(message)
         return null
       }
     }
 
     // use pgsql-ast-parser or fallback to add column information (i.e. nullability)
-    const analyseQuery = (query: DescribedQuery): Promise<AnalysedQuery> => {
+    const analyseQuery = async (query: DescribedQuery): Promise<AnalysedQuery> => {
       return getColumnInfo(query).catch(e => {
         if (e instanceof AnalyseQueryError && undefined !== e.recover) {
           // well this is not great, but we can recover from this with default values, which are better than nothing.
@@ -245,13 +246,16 @@ export const generate = async (params: Partial<Options>) => {
           )
           return e.recover
         }
+
         /* istanbul ignore next */
         throw e
       })
     }
 
     if (!lazy) {
+      logger.info('Starting initial codegen')
       await generateForFiles(await getFiles())
+      logger.info('Initial codegen complete')
     }
 
     const watch = () => {
@@ -262,35 +266,44 @@ export const generate = async (params: Partial<Options>) => {
         ignoreInitial: true,
       })
       const content = new Map<string, string>()
-      const promises: Promise<void>[] = []
+      const promises: Array<Promise<void>> = []
       const getContentSync = (filepath: string) => fs.readFileSync(filepath).toString()
-      const handler = async (filepath: string) => {
+      const handler = async (filepath: string, ...args) => {
         const fullpath = path.join(cwd, filepath)
+        logger.info(require('util').inspect({filepath, fullpath, args}))
         if (content.get(fullpath) === getContentSync(fullpath)) {
           return // didn't change from what we'd expect
         }
+
         logger.info(getLogPath(fullpath) + ' was changed, running codegen.')
-        const promise = generateForFile(fullpath).then(() => {
+        const promise = generateForFile(fullpath).then<void>(() => {
           content.set(fullpath, getContentSync(fullpath))
+          logger.info(getLogPath(fullpath) + ' codegen complete.')
+          return void 0
         })
         promises.push(promise)
         await promise
       }
-      watcher.on('add', handler)
-      watcher.on('change', handler)
+
+      watcher.on('add', async f => handler(f, 'add'))
+      watcher.on('change', async f => handler(f, 'change'))
       return {
-        close: async () => {
+        async close() {
           await watcher.close()
           await Promise.all(promises)
         },
       }
     }
+
     return watch
   }
 
-  await maybeDo(checkCleanWhen.includes('before'), checkClean)
+  if (checkCleanWhen.includes('before')) checkClean()
   const watch = await findAll()
-  await maybeDo(checkCleanWhen.includes('after'), checkClean)
+  if (checkCleanWhen.includes('after')) checkClean()
 
   return {watch}
 }
+
+export * as write from './write'
+export * as defaults from './defaults'

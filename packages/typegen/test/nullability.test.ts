@@ -1,3 +1,4 @@
+import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
 import {isNonNullableField} from '../src/query/column-info'
 
 describe('isNonNullableField', () => {

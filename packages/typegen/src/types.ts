@@ -1,9 +1,9 @@
-import * as slonik from 'slonik'
+import {ClientOptions} from '@pgkit/client'
 
 /**
  * Options that can be specified in `typegen.config.js`. Each is optional (has a default value).
  * Those marked with @experimental are subject to change. If you want to use one of them, please post your use case
- * in https://github.com/mmkal/slonik-tools/discussions so it doesn't get broken/removed without a replacement.
+ * in https://github.com/mmkal/pgkit/discussions so it doesn't get broken/removed without a replacement.
  */
 export interface Options {
   /**
@@ -11,7 +11,7 @@ export interface Options {
    *
    * Note: It's not recommended to run this tool against a production database, even though it doesn't perform any dynamic queries.
    */
-  connectionURI: string
+  connectionString: string
   /**
    * How to execute `psql` from the machine running this tool.
    *
@@ -80,9 +80,9 @@ export interface Options {
   migrate: '<=0.8.0' | undefined
 
   /**
-   * Slonik pool configuration. Defaults to empty. The configuration will be used to create a new pool, connecting to `connectionURI`.
+   * @pgkit/client configuration. Defaults to empty. The configuration will be used to create a new pool, connecting to `connectionString`.
    */
-  poolConfig: slonik.ClientConfigurationInput
+  poolConfig: ClientOptions
 
   /**
    * @experimental
@@ -91,7 +91,7 @@ export interface Options {
    * legacy code migrations, and will also run after the tool has finished generating code. This ensures that when run in CI,
    * the job will fail if there are any changes that weren't included in the branch.
    */
-  checkClean: Array<'before' | 'after' | 'before-migrate' | 'after-migrate'>
+  checkClean: Array<'before' | 'after' | 'before-migrate' | 'after-migrate' | 'none'>
 
   /**
    * @experimental
@@ -140,15 +140,15 @@ export interface Options {
    * typescript isn't installed. Installing typescript will make the parsing more resilient to unusually-formatted queries with backticks
    * and/or nested template expressions.
    */
-  extractQueries: (file: string) => Array<ExtractedQuery>
+  extractQueries: (file: string) => ExtractedQuery[]
 
   /**
    * @experimental
    *
-   * List of `slonik.TypeParser` objects, as passed into slonik. These should each have an extra `typescript` string property,
+   * List of `TypeParser` objects, as passed into pgkit. These should each have an extra `typescript` string property,
    * which indicates what type the parse into.
    *
-   * e.g. for a slonik type parser
+   * e.g. for a type parser
    * ```
    * { name: 'int8', parse: i => parseInt(i, 10) }
    * ```
@@ -160,7 +160,7 @@ export interface Options {
    *
    * By default mimics the behavior of `slonik.createTypeParserPreset()`, so if you're only using the defaults (or you don't know!), you can leave this undefined.
    */
-  typeParsers: Array<TypeParserInfo>
+  typeParsers: TypeParserInfo[]
   /**
    * Skip initial processing of input files. Only useful with `watch`.
    */
@@ -247,10 +247,11 @@ export interface TaggedQuery extends AnalysedQuery {
 
 export interface ResolvedTableColumn {}
 
-/** Corresponds to a @see slonik.TypeParser */
+/** Corresponds to a @see TypeParser */
 export interface TypeParserInfo {
-  /** Corresponds to @see slonik.TypeParser.name */
-  pgtype: string
-  /** The TypeScript type that the @see slonik.TypeParser transforms values to. */
+  oid: number
+  /** Corresponds to @see TypeParser.name */
+  // pgtype: string
+  /** The TypeScript type that the @see TypeParser transforms values to. */
   typescript: string
 }

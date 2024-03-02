@@ -1,3 +1,4 @@
+import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
 import {containsIgnoreComment, globList, isReturningQuery, typeName} from '../src/util'
 import {getterExpression} from '../src/write/typescript'
 
@@ -23,8 +24,9 @@ test('isReturningQuery', () => {
   expect(isReturningQuery('SELECT * from table')).toBe(true)
   expect(
     isReturningQuery(`
-  
-  select * from table`),
+
+      select * from table
+    `),
   ).toBe(true)
   expect(isReturningQuery('values (1, 2, 3)')).toBe(true)
   expect(isReturningQuery('VALUES (1, 2, 3)')).toBe(true)
@@ -53,23 +55,26 @@ test('containsIgnoreComment', () => {
   expect(containsIgnoreComment('/* typegen-ignore */')).toBe(true)
   expect(
     containsIgnoreComment(`
-    with a as (values (1, 2))
-    /*
-    typegen-ignore
-    */
-   select * from t`),
+       with a as (values (1, 2))
+       /*
+       typegen-ignore
+       */
+      select * from t
+    `),
   ).toBe(true)
   expect(
     containsIgnoreComment(`
-    with a as (values (1, 2, 3))
-  --typegen-ignore
-  select * from test
-  `),
+        with a as (values (1, 2, 3))
+      --typegen-ignore
+      select * from test
+    `),
   ).toBe(true)
   expect(containsIgnoreComment('/* typegen ignore */')).toBe(false)
   expect(
-    containsIgnoreComment(`--
-typegen-ignore`),
+    containsIgnoreComment(`
+      --
+      typegen-ignore
+    `),
   ).toBe(false)
 
   expect(containsIgnoreComment('-- something typegen-ignore')).toBe(false)

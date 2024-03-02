@@ -1,34 +1,30 @@
 import * as child_process from 'child_process'
-import * as path from 'path'
-import {promisify} from 'util'
-
-import * as glob from 'glob'
 import * as lodash from 'lodash'
+import * as path from 'path'
 
-import ts = require('typescript')
-
-export const globAsync = promisify(glob)
+import * as ts from 'typescript'
 
 /** Trim and compact whitespace. Don't use on content where whitespace matters! */
 export const simplifyWhitespace = (whitespaceInsensitiveString: string, newlineReplacement = ' ') => {
   return whitespaceInsensitiveString
-    .replace(/\r?\n/g, newlineReplacement)
-    .replace(/[\t ]+/g, ' ')
+    .replaceAll(/\r?\n/g, newlineReplacement)
+    .replaceAll(/[\t ]+/g, ' ')
     .trim()
 }
 
 export const pascalCase = lodash.flow(lodash.camelCase, lodash.upperFirst)
 
-export const typeName = lodash.flow(pascalCase, s => (s.match(/^[A-Z]/) ? s : `_${s}`))
+export const typeName = lodash.flow(pascalCase, s => (/^[A-Z]/.test(s) ? s : `_${s}`))
 
 export const relativeUnixPath = (filepath: string, relativeFrom: string) => {
-  return path.relative(relativeFrom, filepath).replace(/\\/g, '/')
+  return path.relative(relativeFrom, filepath).replaceAll('\\', '/')
 }
 
 export const truncate = (str: string, maxLength = 100, truncatedMessage = '... [truncated] ...') => {
   if (str.length < 120) {
     return str
   }
+
   const halfLength = Math.floor((maxLength - truncatedMessage.length) / 2)
   return str.slice(0, halfLength) + truncatedMessage + str.slice(-halfLength)
 }
@@ -37,7 +33,7 @@ export const truncateQuery = lodash.flow(simplifyWhitespace, truncate)
 
 export const dedent = (str: string) => {
   const lines = str.split('\n').slice(1)
-  const margin = lines[0].match(/^\s+/)![0]
+  const margin = /^\s+/.exec(lines[0])[0]
   return lines.map(line => line.replace(margin, '')).join('\n')
 }
 
@@ -48,6 +44,7 @@ export const attempt = <T>(context: string, action: () => T): T => {
     if (e instanceof Error) {
       e.message = `Failure: ${context}: ${e}`
     }
+
     throw e
   }
 }
@@ -56,6 +53,7 @@ export const maybeDo = <T>(shouldDo: boolean, action: () => T) => {
   if (shouldDo) {
     return action()
   }
+
   return null
 }
 
@@ -101,7 +99,7 @@ export const tsCustom = (() => {
  * The rationale here is that typegen should only consider queries containing for example `SELECT`, and skip query fragments.
  */
 export const isReturningQuery = (() => {
-  const returningKeywords = /(^|\s|\()(SELECT|VALUES|RETURNING)\s/i
+  const returningKeywords = /(^|\s|\()(select|values|returning)\s/i
   return (query: string) => returningKeywords.test(query)
 })()
 
@@ -109,6 +107,6 @@ export const isReturningQuery = (() => {
  * Checks if a string contains a sql-comment, meant to signal typegen to ignore it.
  */
 export const containsIgnoreComment = (() => {
-  const ignoreKeywords = /--[^\S\n\r\f]*typegen-ignore|(\/\*\s*typegen-ignore\s*\*\/)/i
+  const ignoreKeywords = /--[^\S\n\f\r]*typegen-ignore|(\/\*\s*typegen-ignore\s*\*\/)/i
   return (query: string) => ignoreKeywords.test(query)
 })()

@@ -1,3 +1,4 @@
+import {test, expect, vi as jest} from 'vitest'
 import {defaults} from '../src'
 
 const {getParams} = defaults

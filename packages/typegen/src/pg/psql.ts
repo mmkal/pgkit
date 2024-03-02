@@ -1,7 +1,6 @@
-import * as execa from 'execa'
-import {simplifyWhitespace} from '../util'
+import {Client} from '@pgkit/client'
 import * as assert from 'assert'
-import {DatabasePool} from 'slonik'
+import {simplifyWhitespace} from '../util'
 import {enumTypesGetter, regTypeToPGTypeGetter} from './mappings'
 
 export type PSQLClient = ReturnType<typeof psqlClient>
@@ -10,27 +9,30 @@ export type PSQLClient = ReturnType<typeof psqlClient>
  * Get a basic postgres client. which can execute simple queries and return row results.
  * This parses `psql` output and no type parsing is done. Everything is a string.
  */
-export const psqlClient = (psqlCommand: string, pool: DatabasePool) => {
+export const psqlClient = (psqlCommand: string, pool: Client) => {
   assert.ok(
     !psqlCommand.includes(`'`),
     `Can't run psql command "${psqlCommand}"; with single quotes in it. Try using double quotes or a bash alias.`,
   )
 
   const psql = async (query: string) => {
+    const {default: execa} = await import('execa')
     query = simplifyWhitespace(query)
-    const echoQuery = 'echo "${SLONIK_TYPEGEN_QUERY}"'
+    // eslint-disable-next-line no-template-curly-in-string
+    const echoQuery = 'echo "${TYPEGEN_QUERY}"'
     const command = `${echoQuery} | ${psqlCommand} -f -`
-    const result = await execa('sh', ['-c', command], {env: {SLONIK_TYPEGEN_QUERY: query}})
+    const result = await execa('sh', ['-c', command], {env: {TYPEGEN_QUERY: query}})
     try {
       return psqlRows(result.stdout)
     } catch (e: any) {
       const stdout = result.stdout || result.stderr
-      e.message =
+      const message =
         `Error running psql query.\n` +
         `Query: ${JSON.stringify(query)}\n` +
         `Result: ${JSON.stringify(stdout)}\n` +
-        `Error: ${e.message}`
-      throw e
+        `Error: ${e.message}\n` +
+        `Connection string: ${pool.connectionString()}`
+      throw new Error(message, {cause: e})
     }
   }
 
@@ -42,7 +44,7 @@ export const psqlClient = (psqlCommand: string, pool: DatabasePool) => {
 }
 
 /** Parse a psql output into a list of rows (string tuples) */
-export const psqlRows = (output: string): Record<string, string>[] => {
+export const psqlRows = (output: string): Array<Record<string, string>> => {
   if (output === 'The command has no result, or the result has no columns.') {
     return []
   }
@@ -51,13 +53,13 @@ export const psqlRows = (output: string): Record<string, string>[] => {
     .split('\n')
     .map(line => line.trim())
     .filter(Boolean)
-    .filter(line => !line.match(/^\(\d+ rows?\)$/))
+    .filter(line => !/^\(\d+ rows?\)$/.test(line))
 
   const dividerLines = lines
     .map((row, index) => ({row, index}))
     .filter(({row}) => {
       const dividers = row.split('+')
-      return dividers.length > 0 && dividers.every(d => d.match(/^-+$/))
+      return dividers.length > 0 && dividers.every(d => /^-+$/.exec(d))
     })
 
   assert.ok(dividerLines.length <= 1, `multi statements not handled yet`)

@@ -31,10 +31,11 @@ export const isUntypeable = (template: string[]) => {
     const delimiter = `t${Math.random()}`.replace('0.', '')
     pgsqlAST
       .astVisitor(map => ({
-        tableRef: t => {
+        tableRef(t) {
           if (t.name === delimiter) {
             untypeable = true // can only get type when delimiter is used as a parameter, not an identifier
           }
+
           map.super().tableRef(t)
         },
       }))
@@ -45,7 +46,7 @@ export const isUntypeable = (template: string[]) => {
   try {
     untypeable ||= pgsqlAST.parse(templateToValidSql(template)).length !== 1
   } catch {
-    untypeable ||= templateToValidSql(template).trim().replace(/\n/g, ' ').replace(/;$/, '').includes(';')
+    untypeable ||= templateToValidSql(template).trim().replaceAll('\n', ' ').replace(/;$/, '').includes(';')
   }
 
   return untypeable
@@ -73,6 +74,7 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
     if (attemptsLeft <= 1) {
       throw e
     }
+
     if (sql.trim().startsWith('with ')) {
       // handle (some) CTEs. Can fail if comments trip up the parsing. You'll end up with queries called `Anonymous` if that happens
       const state = {
@@ -85,12 +87,11 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
         const prev = sql.slice(0, i).replace(/\s+/, ' ').trim()
         if (sql[i] === '(') {
           state.parenLevel++
-          if (prev.endsWith(' as')) {
-            if (state.parenLevel === 1) {
-              state.cteStart = i
-            }
+          if (prev.endsWith(' as') && state.parenLevel === 1) {
+            state.cteStart = i
           }
         }
+
         if (sql[i] === ')') {
           state.parenLevel--
           if (state.parenLevel === 0 && state.cteStart > -1) {
@@ -107,12 +108,13 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
 
       return parseWithWorkarounds(newSql, attemptsLeft - 1)
     }
+
     throw e
   }
 }
 
 interface ModifiedAST {
-  modifications: ('cte' | 'returning')[]
+  modifications: Array<'cte' | 'returning'>
   ast: pgsqlAST.Statement
 }
 
@@ -216,14 +218,16 @@ export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => 
           table: t.name,
           referredToAs: t.alias || t.name,
         }),
-      join: t => {
+      join(t) {
         if (t.type === 'LEFT JOIN' && t.on && t.on.type === 'binary') {
           markNullable(t.on.right)
         }
+
         if (t.type === 'FULL JOIN' && t.on?.type === 'binary') {
           markNullable(t.on.left)
           markNullable(t.on.right)
         }
+
         return map.super().join(t)
       },
     }))
@@ -247,6 +251,7 @@ export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => 
         hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
       })
     }
+
     return mappings
   }, [])
 }
@@ -287,7 +292,7 @@ export const removeSimpleComments = (sql: string) =>
 
 export const simplifySql = lodash.flow(pgsqlAST.parseFirst, pgsqlAST.toSql.statement)
 
-/* istanbul ignore if */
+/* eslint-disable */
 if (require.main === module) {
   console.log = (...x: any[]) => console.dir(x.length === 1 ? x[0] : x, {depth: null})
 
@@ -303,8 +308,10 @@ if (require.main === module) {
     if ('name' in e && typeof e.name === 'string') {
       return e.name
     }
+
     return null
   }
+
   const opNames: Record<pgsqlAST.BinaryOperator, string | null> = {
     '!=': 'ne',
     '#-': null,
@@ -360,9 +367,10 @@ if (require.main === module) {
     )([require('./testquery.ignoreme').default]),
   )
   throw 'end'
+  // eslint-disable-next-line no-unreachable
   pgsqlAST
     .astVisitor(map => ({
-      expr: e => {
+      expr(e) {
         const grandChildren =
           // Object.values(e) ||
           Object.values(e).flatMap(child =>
@@ -370,9 +378,12 @@ if (require.main === module) {
             child && typeof child === 'object' ? Object.values(child) : [],
           )
         console.log({e, grandChildren})
-        if (grandChildren.some(e => JSON.stringify(e).startsWith('{"type":"parameter'))) {
-        }
-        console.log(pgsqlAST.toSql.statement(getHopefullyViewableAST('select id from messages where id <= $1')), 444555)
+        if (grandChildren.some(e => JSON.stringify(e).startsWith('{"type":"parameter'))) {}
+
+        console.log(
+          pgsqlAST.toSql.statement(getHopefullyViewableAST('select id from messages where id <= $1')),
+          444_555,
+        )
         // console.log({e})
 
         // if (Object.values(e).some(v => JSON.stringify(v).startsWith(`{"type":"parameter"`))) {
@@ -403,7 +414,7 @@ if (require.main === module) {
   console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
   pgsqlAST
     .astVisitor(map => ({
-      constant: t => {
+      constant(t) {
         console.log({t}, map.super())
         return map.super().constant(t)
       },
@@ -433,15 +444,15 @@ if (require.main === module) {
       `select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)` ||
         `drop table test` ||
         `
-      BEGIN
-        SELECT * INTO STRICT myrec FROM emp WHERE empname = myname;
-        EXCEPTION
-            WHEN NO_DATA_FOUND THEN
-                RAISE EXCEPTION 'employee % not found', myname;
-            WHEN TOO_MANY_ROWS THEN
-                RAISE EXCEPTION 'employee % not unique', myname;
-      END
-  `,
+          BEGIN
+            SELECT * INTO STRICT myrec FROM emp WHERE empname = myname;
+            EXCEPTION
+                WHEN NO_DATA_FOUND THEN
+                    RAISE EXCEPTION 'employee % not found', myname;
+                WHEN TOO_MANY_ROWS THEN
+                    RAISE EXCEPTION 'employee % not unique', myname;
+          END
+        `,
     ),
   )
   console.log(lodash.flow(getHopefullyViewableAST, aliasMappings)('select * from messages where id = 1'))

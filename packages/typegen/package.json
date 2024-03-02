@@ -1,35 +1,36 @@
 {
-  "name": "@slonik/typegen",
-  "version": "0.15.0",
-  "description": "Automatically generates typescript types from slonik queries",
+  "name": "@pgkit/typegen",
+  "version": "0.0.0",
+  "description": "Automatically generates typescript types from SQL queries",
   "files": [
-    "dist",
-    "cli.js"
+    "dist"
   ],
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
-    "slonik-typegen": "cli.js"
+    "pg-typegen": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -p .",
-    "dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5433/postgres\""
+    "_dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5432/postgres\"",
+    "prepare": "pnpm build",
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "vitest run"
   },
   "author": "mmkal",
-  "homepage": "https://github.com/mmkal/slonik-tools/tree/master/packages/typegen#readme",
+  "homepage": "https://github.com/mmkal/pgkit/tree/main/packages/typegen#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mmkal/slonik-tools.git"
+    "url": "https://github.com/mmkal/pgkit"
   },
   "license": "ISC",
   "peerDependencies": {
-    "slonik": "27 - 29",
     "typescript": "*"
   },
   "dependencies": {
+    "@pgkit/client": "workspace:0.0.2-1",
+    "@rebundled/execa": "8.0.2-next.0",
     "@rushstack/ts-command-line": "^4.11.0",
     "chokidar": "^3.5.3",
-    "execa": "^5.0.0",
     "find-up": "^5.0.0",
     "glob": "^8.0.3",
     "io-ts-extra": "^0.11.6",
@@ -40,8 +41,15 @@
   },
   "devDependencies": {
     "@types/glob": "7.2.0",
+    "@types/lodash": "^4.14.202",
     "@types/memoizee": "0.4.8",
     "@types/pluralize": "0.0.29",
-    "fs-syncer": "0.4.0"
+    "execa": "^5.1.1",
+    "expect-type": "^0.17.3",
+    "fs-syncer": "^0.5.2",
+    "js-yaml": "^4.1.0",
+    "strip-ansi": "^7.1.0",
+    "ts-morph": "^21.0.1",
+    "vitest": "^1.2.2"
   }
 }

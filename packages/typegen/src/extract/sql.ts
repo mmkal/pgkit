@@ -1,10 +1,10 @@
-import {Options} from '../types'
+import * as assert from 'assert'
+import * as crypto from 'crypto'
 import * as fs from 'fs'
 import * as path from 'path'
-import {pascalCase, tryOrDefault} from '../util'
 import * as pgSqlAstParser from 'pgsql-ast-parser'
-import * as crypto from 'crypto'
-import * as assert from 'assert'
+import {Options} from '../types'
+import {pascalCase, tryOrDefault} from '../util'
 
 const paramMarker = `__uniqueString__${crypto.randomBytes(16).join('')}`
 
@@ -27,9 +27,10 @@ export const extractSQLFile: Options['extractQueries'] = file => {
         const asts = pgSqlAstParser.parse(sql)
         assert.strictEqual(asts.length, 1, `Exactly one statement supported`)
 
-        const ast = mapper.statement(asts[0])!
+        const ast = mapper.statement(asts[0])
         const unparamifiedSql = pgSqlAstParser.toSql.statement(ast)
 
+        // eslint-disable-next-line mmkal/@rushstack/security/no-unsafe-regexp
         return unparamifiedSql.split(new RegExp(`"?${paramMarker}"?`))
       }, [sql]),
     },
