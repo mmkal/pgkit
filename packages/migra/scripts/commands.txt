@@ -1,0 +1,103 @@
+to debug collations:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_collations_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_collations_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_collations_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_collations_b' --unsafe --ignore-extension-versions
+
+to debug constraints:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_constraints_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_constraints_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_constraints_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_constraints_b' --unsafe --ignore-extension-versions
+
+to debug dependencies:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies_b' --unsafe --ignore-extension-versions
+
+to debug dependencies2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies2_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies2_b' --unsafe --ignore-extension-versions
+
+to debug dependencies3:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies3_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies3_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies3_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies3_b' --unsafe --ignore-extension-versions
+
+to debug dependencies4:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies4_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies4_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies4_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_dependencies4_b' --unsafe --ignore-extension-versions
+
+to debug enumdefaults:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdefaults_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdefaults_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdefaults_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdefaults_b' --unsafe --ignore-extension-versions
+
+to debug enumdeps:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdeps_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdeps_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdeps_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_enumdeps_b' --unsafe --ignore-extension-versions
+
+to debug everything:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_everything_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_everything_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_everything_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_everything_b' --unsafe --ignore-extension-versions
+
+to debug excludeschema:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_excludeschema_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_excludeschema_b' --unsafe --ignore-extension-versions --exclude_schema excludedschema
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_excludeschema_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_excludeschema_b' --unsafe --ignore-extension-versions --exclude_schema excludedschema
+
+to debug extversions:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_extversions_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_extversions_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_extversions_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_extversions_b' --unsafe
+
+to debug generated:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_b' --unsafe --ignore-extension-versions
+
+to debug generated_added:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_added_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_added_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_added_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_generated_added_b' --unsafe --ignore-extension-versions
+
+to debug identitycols:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_identitycols_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_identitycols_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_identitycols_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_identitycols_b' --unsafe --ignore-extension-versions
+
+to debug inherit:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit_b' --unsafe --ignore-extension-versions
+
+to debug inherit2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit2_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_inherit2_b' --unsafe --ignore-extension-versions
+
+to debug partitioning:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_partitioning_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_partitioning_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_partitioning_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_partitioning_b' --unsafe --ignore-extension-versions
+
+to debug privileges:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_privileges_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_privileges_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_privileges_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_privileges_b' --unsafe --ignore-extension-versions
+
+to debug rls:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls_b' --unsafe --ignore-extension-versions
+
+to debug rls2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls2_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_rls2_b' --unsafe --ignore-extension-versions
+
+to debug seq:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_seq_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_seq_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_seq_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_seq_b' --unsafe --ignore-extension-versions
+
+to debug singleschema:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_b' --unsafe --ignore-extension-versions --schema goodschema
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_b' --unsafe --ignore-extension-versions --schema goodschema
+
+to debug singleschema_ext:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_ext_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_ext_b' --unsafe --ignore-extension-versions --create-extensions-only
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_ext_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_singleschema_ext_b' --unsafe --ignore-extension-versions --create-extensions-only
+
+to debug triggers:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers_b' --unsafe --ignore-extension-versions
+
+to debug triggers2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers2_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers2_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers2_b' --unsafe --ignore-extension-versions
+
+to debug triggers3:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers3_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers3_b' --unsafe --ignore-extension-versions
+migra 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers3_a' 'postgresql://postgres:postgres@localhost:5432/generate_commands_triggers3_b' --unsafe --ignore-extension-versions
