@@ -1,0 +1,1597 @@
+{
+  "schemas": {
+    "evenbetterschema": {
+      "schema": "evenbetterschema"
+    },
+    "goodschema": {
+      "schema": "goodschema"
+    },
+    "public": {
+      "schema": "public"
+    }
+  },
+  "tables": {
+    "\"public\".\"bug\"": {
+      "relationtype": "r",
+      "name": "bug",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": "nextval('bug_id_seq'::regclass)",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "description": {
+          "name": "description",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status": {
+          "name": "status",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"change_to_logged\"": {
+      "relationtype": "r",
+      "name": "change_to_logged",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"change_to_unlogged\"": {
+      "relationtype": "r",
+      "name": "change_to_unlogged",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "u"
+    },
+    "\"public\".\"columnless_table2\"": {
+      "relationtype": "r",
+      "name": "columnless_table2",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"order_items\"": {
+      "relationtype": "r",
+      "name": "order_items",
+      "schema": "public",
+      "columns": {
+        "product_no": {
+          "name": "product_no",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "order_id": {
+          "name": "order_id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"orders\"": {
+      "relationtype": "r",
+      "name": "orders",
+      "schema": "public",
+      "columns": {
+        "order_id": {
+          "name": "order_id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "shipping_address": {
+          "name": "shipping_address",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status": {
+          "name": "status",
+          "dbtype": "shipping_status",
+          "dbtypestr": "shipping_status",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": true,
+          "enum": {
+            "name": "shipping_status",
+            "schema": "public",
+            "elements": [
+              "not shipped",
+              "shipped",
+              "delivered"
+            ]
+          },
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status2": {
+          "name": "status2",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "h": {
+          "name": "h",
+          "dbtype": "hstore",
+          "dbtypestr": "hstore",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"products\"": {
+      "relationtype": "r",
+      "name": "products",
+      "schema": "public",
+      "columns": {
+        "product_no": {
+          "name": "product_no",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": "nextval('products_product_no_seq'::regclass)",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "name": {
+          "name": "name",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "price": {
+          "name": "price",
+          "dbtype": "numeric",
+          "dbtypestr": "numeric",
+          "pytype": null,
+          "default": "100",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "x": {
+          "name": "x",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "newcolumn": {
+          "name": "newcolumn",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "newcolumn2": {
+          "name": "newcolumn2",
+          "dbtype": "interval",
+          "dbtypestr": "interval",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "views": {
+    "\"public\".\"vvv\"": {
+      "relationtype": "v",
+      "name": "vvv",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": " SELECT 2 AS a;",
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "materialized_views": {
+    "\"public\".\"matvvv\"": {
+      "relationtype": "m",
+      "name": "matvvv",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": " SELECT 2 AS a;",
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "selectables": {
+    "\"public\".\"bug\"": {
+      "relationtype": "r",
+      "name": "bug",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": "nextval('bug_id_seq'::regclass)",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "description": {
+          "name": "description",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status": {
+          "name": "status",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"change_to_logged\"": {
+      "relationtype": "r",
+      "name": "change_to_logged",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"change_to_unlogged\"": {
+      "relationtype": "r",
+      "name": "change_to_unlogged",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "u"
+    },
+    "\"public\".\"columnless_table2\"": {
+      "relationtype": "r",
+      "name": "columnless_table2",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"order_items\"": {
+      "relationtype": "r",
+      "name": "order_items",
+      "schema": "public",
+      "columns": {
+        "product_no": {
+          "name": "product_no",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "order_id": {
+          "name": "order_id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"orders\"": {
+      "relationtype": "r",
+      "name": "orders",
+      "schema": "public",
+      "columns": {
+        "order_id": {
+          "name": "order_id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "shipping_address": {
+          "name": "shipping_address",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status": {
+          "name": "status",
+          "dbtype": "shipping_status",
+          "dbtypestr": "shipping_status",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": true,
+          "enum": {
+            "name": "shipping_status",
+            "schema": "public",
+            "elements": [
+              "not shipped",
+              "shipped",
+              "delivered"
+            ]
+          },
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status2": {
+          "name": "status2",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "h": {
+          "name": "h",
+          "dbtype": "hstore",
+          "dbtypestr": "hstore",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"products\"": {
+      "relationtype": "r",
+      "name": "products",
+      "schema": "public",
+      "columns": {
+        "product_no": {
+          "name": "product_no",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": "nextval('products_product_no_seq'::regclass)",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "name": {
+          "name": "name",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "price": {
+          "name": "price",
+          "dbtype": "numeric",
+          "dbtypestr": "numeric",
+          "pytype": null,
+          "default": "100",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "x": {
+          "name": "x",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "newcolumn": {
+          "name": "newcolumn",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "newcolumn2": {
+          "name": "newcolumn2",
+          "dbtype": "interval",
+          "dbtypestr": "interval",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"vvv\"": {
+      "relationtype": "v",
+      "name": "vvv",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": " SELECT 2 AS a;",
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"matvvv\"": {
+      "relationtype": "m",
+      "name": "matvvv",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": " SELECT 2 AS a;",
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"changed\"(i integer, t text[])": {
+      "relationtype": "f",
+      "name": "changed",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "pytype": null,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "integer",
+          "pytype": null,
+          "is_inherited": false
+        }
+      },
+      "inputs": [
+        {
+          "name": "i",
+          "dbtype": "integer",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        },
+        {
+          "name": "t",
+          "dbtype": "ARRAY",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        }
+      ],
+      "definition": "\n declare\n        BEGIN\n                select 'no', 1;\n        END;\n\n"
+    },
+    "\"public\".\"newfunc\"(i integer, t text[])": {
+      "relationtype": "f",
+      "name": "newfunc",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "pytype": null,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "integer",
+          "pytype": null,
+          "is_inherited": false
+        }
+      },
+      "inputs": [
+        {
+          "name": "i",
+          "dbtype": "integer",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        },
+        {
+          "name": "t",
+          "dbtype": "ARRAY",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        }
+      ],
+      "definition": "\n declare\n        BEGIN\n                select 'no', 1;\n        END;\n\n"
+    }
+  },
+  "relations": {
+    "\"public\".\"bug\"": {
+      "relationtype": "r",
+      "name": "bug",
+      "schema": "public",
+      "columns": {
+        "id": {
+          "name": "id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": "nextval('bug_id_seq'::regclass)",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "description": {
+          "name": "description",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status": {
+          "name": "status",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"change_to_logged\"": {
+      "relationtype": "r",
+      "name": "change_to_logged",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"change_to_unlogged\"": {
+      "relationtype": "r",
+      "name": "change_to_unlogged",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "u"
+    },
+    "\"public\".\"columnless_table2\"": {
+      "relationtype": "r",
+      "name": "columnless_table2",
+      "schema": "public",
+      "columns": {},
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"order_items\"": {
+      "relationtype": "r",
+      "name": "order_items",
+      "schema": "public",
+      "columns": {
+        "product_no": {
+          "name": "product_no",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "order_id": {
+          "name": "order_id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "quantity": {
+          "name": "quantity",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"orders\"": {
+      "relationtype": "r",
+      "name": "orders",
+      "schema": "public",
+      "columns": {
+        "order_id": {
+          "name": "order_id",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "shipping_address": {
+          "name": "shipping_address",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status": {
+          "name": "status",
+          "dbtype": "shipping_status",
+          "dbtypestr": "shipping_status",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": true,
+          "enum": {
+            "name": "shipping_status",
+            "schema": "public",
+            "elements": [
+              "not shipped",
+              "shipped",
+              "delivered"
+            ]
+          },
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "status2": {
+          "name": "status2",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "h": {
+          "name": "h",
+          "dbtype": "hstore",
+          "dbtypestr": "hstore",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"products\"": {
+      "relationtype": "r",
+      "name": "products",
+      "schema": "public",
+      "columns": {
+        "product_no": {
+          "name": "product_no",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": "nextval('products_product_no_seq'::regclass)",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "name": {
+          "name": "name",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "price": {
+          "name": "price",
+          "dbtype": "numeric",
+          "dbtypestr": "numeric",
+          "pytype": null,
+          "default": "100",
+          "not_null": true,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "x": {
+          "name": "x",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "newcolumn": {
+          "name": "newcolumn",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "newcolumn2": {
+          "name": "newcolumn2",
+          "dbtype": "interval",
+          "dbtypestr": "interval",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"vvv\"": {
+      "relationtype": "v",
+      "name": "vvv",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": " SELECT 2 AS a;",
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    },
+    "\"public\".\"matvvv\"": {
+      "relationtype": "m",
+      "name": "matvvv",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "integer",
+          "dbtypestr": "integer",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": " SELECT 2 AS a;",
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "sequences": {
+    "\"public\".\"bug_id_seq\"": {
+      "name": "bug_id_seq",
+      "schema": "public",
+      "table_name": "bug",
+      "column_name": "id"
+    },
+    "\"public\".\"products_product_no_seq\"": {
+      "name": "products_product_no_seq",
+      "schema": "public",
+      "table_name": "products",
+      "column_name": "product_no"
+    }
+  },
+  "enums": {
+    "\"public\".\"bug_status\"": {
+      "name": "bug_status",
+      "schema": "public",
+      "elements": [
+        "new",
+        "open",
+        "closed"
+      ]
+    },
+    "\"public\".\"shipping_status\"": {
+      "name": "shipping_status",
+      "schema": "public",
+      "elements": [
+        "not shipped",
+        "shipped",
+        "delivered"
+      ]
+    },
+    "\"public\".\"unused_enum\"": {
+      "name": "unused_enum",
+      "schema": "public",
+      "elements": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    "\"public\".\"usage_dropped_enum\"": {
+      "name": "usage_dropped_enum",
+      "schema": "public",
+      "elements": [
+        "x",
+        "y"
+      ]
+    }
+  },
+  "constraints": {
+    "\"public\".\"order_items\".\"order_items_order_id_fkey\"": {
+      "name": "order_items_order_id_fkey",
+      "schema": "public",
+      "table_name": "order_items",
+      "constraint_type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE",
+      "index": null,
+      "is_fk": true,
+      "is_deferrable": false,
+      "initially_deferred": false
+    },
+    "\"public\".\"order_items\".\"order_items_pkey\"": {
+      "name": "order_items_pkey",
+      "schema": "public",
+      "table_name": "order_items",
+      "constraint_type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (product_no, order_id)",
+      "index": "order_items_pkey",
+      "is_fk": false,
+      "is_deferrable": false,
+      "initially_deferred": false
+    },
+    "\"public\".\"order_items\".\"order_items_product_no_fkey\"": {
+      "name": "order_items_product_no_fkey",
+      "schema": "public",
+      "table_name": "order_items",
+      "constraint_type": "FOREIGN KEY",
+      "definition": "FOREIGN KEY (product_no) REFERENCES products(product_no) ON DELETE RESTRICT",
+      "index": null,
+      "is_fk": true,
+      "is_deferrable": false,
+      "initially_deferred": false
+    },
+    "\"public\".\"orders\".\"orders_pkey\"": {
+      "name": "orders_pkey",
+      "schema": "public",
+      "table_name": "orders",
+      "constraint_type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (order_id)",
+      "index": "orders_pkey",
+      "is_fk": false,
+      "is_deferrable": false,
+      "initially_deferred": false
+    },
+    "\"public\".\"products\".\"products_pkey\"": {
+      "name": "products_pkey",
+      "schema": "public",
+      "table_name": "products",
+      "constraint_type": "PRIMARY KEY",
+      "definition": "PRIMARY KEY (product_no)",
+      "index": "products_pkey",
+      "is_fk": false,
+      "is_deferrable": false,
+      "initially_deferred": false
+    },
+    "\"public\".\"products\".\"x\"": {
+      "name": "x",
+      "schema": "public",
+      "table_name": "products",
+      "constraint_type": "CHECK",
+      "definition": "CHECK ((price > (10)::numeric))",
+      "index": null,
+      "is_fk": false,
+      "is_deferrable": false,
+      "initially_deferred": false
+    },
+    "\"public\".\"products\".\"y\"": {
+      "name": "y",
+      "schema": "public",
+      "table_name": "products",
+      "constraint_type": "CHECK",
+      "definition": "CHECK ((price > (0)::numeric))",
+      "index": null,
+      "is_fk": false,
+      "is_deferrable": false,
+      "initially_deferred": false
+    }
+  },
+  "extensions": {
+    "plpgsql": {
+      "name": "plpgsql",
+      "schema": "pg_catalog",
+      "version": "1.0"
+    },
+    "citext": {
+      "name": "citext",
+      "schema": "public",
+      "version": "1.6"
+    },
+    "hstore": {
+      "name": "hstore",
+      "schema": "public",
+      "version": "1.6"
+    }
+  },
+  "functions": {
+    "\"public\".\"changed\"(i integer, t text[])": {
+      "relationtype": "f",
+      "name": "changed",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "pytype": null,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "integer",
+          "pytype": null,
+          "is_inherited": false
+        }
+      },
+      "inputs": [
+        {
+          "name": "i",
+          "dbtype": "integer",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        },
+        {
+          "name": "t",
+          "dbtype": "ARRAY",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        }
+      ],
+      "definition": "\n declare\n        BEGIN\n                select 'no', 1;\n        END;\n\n"
+    },
+    "\"public\".\"newfunc\"(i integer, t text[])": {
+      "relationtype": "f",
+      "name": "newfunc",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "pytype": null,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "integer",
+          "pytype": null,
+          "is_inherited": false
+        }
+      },
+      "inputs": [
+        {
+          "name": "i",
+          "dbtype": "integer",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        },
+        {
+          "name": "t",
+          "dbtype": "ARRAY",
+          "pytype": null,
+          "default": null,
+          "is_inherited": false
+        }
+      ],
+      "definition": "\n declare\n        BEGIN\n                select 'no', 1;\n        END;\n\n"
+    }
+  },
+  "triggers": {},
+  "collations": {},
+  "rlspolicies": {}
+}

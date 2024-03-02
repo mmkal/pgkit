@@ -1,0 +1,219 @@
+{
+  "schemas": {
+    "public": {
+      "schema": "public"
+    }
+  },
+  "tables": {
+    "\"public\".\"t\"": {
+      "relationtype": "r",
+      "name": "t",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "b": {
+          "name": "b",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": "numeric",
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": "numeric",
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "views": {},
+  "materialized_views": {},
+  "selectables": {
+    "\"public\".\"t\"": {
+      "relationtype": "r",
+      "name": "t",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "b": {
+          "name": "b",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": "numeric",
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": "numeric",
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "relations": {
+    "\"public\".\"t\"": {
+      "relationtype": "r",
+      "name": "t",
+      "schema": "public",
+      "columns": {
+        "a": {
+          "name": "a",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": null,
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "b": {
+          "name": "b",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": "numeric",
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        },
+        "c": {
+          "name": "c",
+          "dbtype": "text",
+          "dbtypestr": "text",
+          "pytype": null,
+          "default": null,
+          "not_null": false,
+          "is_enum": false,
+          "enum": null,
+          "collation": "numeric",
+          "is_identity": false,
+          "is_identity_always": false,
+          "is_generated": false,
+          "can_drop_generated": false,
+          "is_inherited": false
+        }
+      },
+      "inputs": [],
+      "definition": null,
+      "parent_table": null,
+      "partition_def": null,
+      "rowsecurity": false,
+      "persistence": "p"
+    }
+  },
+  "sequences": {},
+  "enums": {},
+  "constraints": {},
+  "extensions": {
+    "plpgsql": {
+      "name": "plpgsql",
+      "schema": "pg_catalog",
+      "version": "1.0"
+    }
+  },
+  "functions": {},
+  "triggers": {},
+  "collations": {
+    "\"public\".\"numeric\"": {
+      "name": "numeric",
+      "schema": "public",
+      "provider": "icu",
+      "lc_collate": "en-u-kn-true"
+    }
+  },
+  "rlspolicies": {}
+}

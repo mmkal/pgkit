@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ES2023"
+    ],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "strict": false,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noErrorTruncation": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "src",
+    "test",
+    "scripts"
+  ],
+  "ts-node": {
+    "transpileOnly": true
+  }
+}
