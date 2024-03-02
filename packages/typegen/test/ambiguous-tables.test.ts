@@ -6,12 +6,12 @@ import {getHelper} from './helper'
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 
 beforeEach(async () => {
+  await helper.setupDb()
+
   await helper.pool.query(helper.sql`
-    drop schema if exists public cascade;
     drop schema if exists test_schema_1 cascade;
     drop schema if exists test_schema_2 cascade;
 
-    create schema public;
     create schema test_schema_1;
     create schema test_schema_2;
 
@@ -56,7 +56,7 @@ test('disambiguate between same-named tables', async () => {
 
     export default [
       sql<queries.TestTable>\`select * from test_schema_1.test_table\`,
-      sql<queries.TestTable_0>\`select * from test_schema_2.test_table\`,
+      sql<queries.Id_e>\`select * from test_schema_2.test_table\`,
     ]
 
     export declare namespace queries {
@@ -73,10 +73,13 @@ test('disambiguate between same-named tables', async () => {
 
         /** column: \`test_schema_1.test_table.e\`, regtype: \`test_schema_1.test_enum\` */
         e: ('schema1_A' | 'schema1_B' | 'schema1_C') | null
+
+        /** column: \`test_schema_1.test_table.eee\`, regtype: \`test_enum\` */
+        eee: ('default_schema_A' | 'default_schema_B' | 'default_schema_C') | null
       }
 
       /** - query: \`select * from test_schema_2.test_table\` */
-      export interface TestTable_0 {
+      export interface Id_e {
         /**
          * This is a comment for test_schema_2.test_table.id
          *
@@ -103,7 +106,7 @@ test('disambiguate between same-named tables', async () => {
 
       export default [
         sql<queries.TestTable>\`select * from test_schema_1.test_table\`,
-        sql<queries.TestTable_0>\`select * from test_schema_2.test_table\`,
+        sql<queries.Id_e>\`select * from test_schema_2.test_table\`,
       ]
 
       export declare namespace queries {
@@ -120,10 +123,13 @@ test('disambiguate between same-named tables', async () => {
 
           /** column: \`test_schema_1.test_table.e\`, regtype: \`test_schema_1.test_enum\` */
           e: ('schema1_A' | 'schema1_B' | 'schema1_C') | null
+
+          /** column: \`test_schema_1.test_table.eee\`, regtype: \`test_enum\` */
+          eee: ('default_schema_A' | 'default_schema_B' | 'default_schema_C') | null
         }
 
         /** - query: \`select * from test_schema_2.test_table\` */
-        export interface TestTable_0 {
+        export interface Id_e {
           /**
            * This is a comment for test_schema_2.test_table.id
            *

@@ -80,8 +80,10 @@ export const getPoolHelper = (params: {__filename: string; baseConnectionURI: st
       await admin.query(sql`create database ${sql.identifier([dbName])}`)
     }
 
-    await pool.query(sql`drop schema if exists ${schemaIdentifier} cascade`)
-    await pool.query(sql`create schema ${schemaIdentifier}`)
+    await pool.query(sql`
+      drop schema if exists ${schemaIdentifier} cascade;
+      create schema ${schemaIdentifier}
+    `)
   }
 
   const mockLogger = {
