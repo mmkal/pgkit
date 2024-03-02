@@ -21,6 +21,7 @@ module.exports = {
     },
   ],
   rules: {
+    'no-throw-literal': 'off', // mmkal
     '@stylistic/no-mixed-operators': 'warn',
     'mmkal/@typescript-eslint/consistent-type-imports': 'off',
     'mmkal/@typescript-eslint/parameter-properties': 'off',

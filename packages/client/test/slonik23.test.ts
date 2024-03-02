@@ -7,7 +7,7 @@ beforeAll(async () => {
   pool = createPool('postgresql://postgres:postgres@localhost:5432/postgres')
 })
 
-// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [interval, jsonb, literalValue, fragment, type parsers, query timeout]}
+// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [interval, jsonb, literalValue, fragment, type parsers, query timeout, sql.type, sql.typeAlias]}
 beforeEach(async () => {
   await pool.query(sql`DROP TABLE IF EXISTS test_slonik23`)
   await pool.query(sql`CREATE TABLE test_slonik23 (id int, name text)`)

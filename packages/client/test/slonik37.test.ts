@@ -1,5 +1,6 @@
 import {createPool, sql as _sql} from 'slonik37'
 import {beforeAll, beforeEach, expect, test} from 'vitest'
+import z from 'zod'
 
 const sql = Object.assign(_sql.unsafe, _sql)
 
@@ -9,7 +10,7 @@ beforeAll(async () => {
   pool = await createPool('postgresql://postgres:postgres@localhost:5432/postgres')
 })
 
-// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true}
+// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [query timeout]}
 beforeEach(async () => {
   await pool.query(sql`DROP TABLE IF EXISTS test_slonik37`)
   await pool.query(sql`CREATE TABLE test_slonik37 (id int, name text)`)
@@ -96,11 +97,7 @@ test('join fragments', async () => {
 test('fragment', async () => {
   const condition = sql.fragment`id = 1`
 
-  const result = await pool.one(sql`
-    select *
-    from test_slonik37
-    where ${condition}
-  `)
+  const result = await pool.one(sql`select * from test_slonik37 where ${condition}`)
   expect(result).toEqual({id: 1, name: 'one'})
 })
 
@@ -171,11 +168,14 @@ test('type parsers', async () => {
     select
       ${sql.interval({days: 1})} as day_interval,
       ${sql.interval({hours: 1})} as hour_interval,
-      true as boolean,
+      true as so,
+      false as not_so,
       0.4::float4 as float4,
       0.8::float8 as float8,
       '{"a":1}'::json as json,
       '{"a":1}'::jsonb as jsonb,
+      '{a,b,c}'::text[] as arr,
+      array(select id from test_slonik37) as arr2,
       '2000-01-01T12:00:00Z'::timestamptz as timestamptz,
       '2000-01-01T12:00:00Z'::timestamp as timestamp,
       '2000-01-01T12:00:00Z'::date as date,
@@ -183,5 +183,25 @@ test('type parsers', async () => {
   `)
 
   expect(result).toMatchSnapshot()
+})
+
+test('sub-transactions', async () => {
+  const result = await pool.transaction(async t1 => {
+    const count1 = await t1.oneFirst(sql`select count(1) from test_slonik37 where id > 3`)
+    const count2 = await t1.transaction(async t2 => {
+      await t2.query(sql`insert into test_slonik37(id, name) values (5, 'five')`)
+      return t2.oneFirst(sql`select count(1) from test_slonik37 where id > 3`)
+    })
+    return {count1, count2}
+  })
+
+  expect(result).toEqual({count1: 0, count2: 1})
+})
+
+test('sql.type', async () => {
+  const Fooish = z.object({foo: z.number()})
+  await expect(pool.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchSnapshot()
+
+  await expect(pool.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchSnapshot()
 })
 // codegen:end

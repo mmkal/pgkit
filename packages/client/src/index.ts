@@ -8,13 +8,15 @@ export interface SQLQuery<Result = Record<string, unknown>, Values extends unkno
   name: string
   sql: string
   values: Values
-  _types: () => {result: Result}
+  parse: (input: unknown) => Result
 }
+
+export const identityParser = <T>(input: unknown): T => input as T
 
 export type TimeUnit = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
 export type IntervalInput = Partial<Record<TimeUnit, number>> // todo type-fest oneOf
 
-export type SQLQueryResult<Query extends SQLQuery<any>> = ReturnType<Query['_types']>['result']
+export type SQLQueryResult<Query extends SQLQuery<any>> = ReturnType<Query['parse']>
 
 export type SQLQueryParameter = {token: string}
 
@@ -83,10 +85,12 @@ export type TypeNameIdentifier =
   | 'timestamptz'
   | 'uuid'
 
-export type TypeParser<T> = TypeParserZodUnsafe<T> | TypeParserZodSafe<T>
-export type TypeParserZodUnsafe<T> = {parse: (input: unknown) => T}
-export type TypeParserZodSafe<T> = {
-  safeParse: (input: unknown) => {success: true; data: T} | {success: false; error: Error}
+export type ZodesqueType<T> = ZodesqueTypeUnsafe<T> | ZodesqueTypeSafe<T>
+export type ZodesqueTypeUnsafe<T> = {parse: (input: unknown) => T}
+export type ZodesqueTypeSafe<T> = {
+  safeParse: (
+    input: unknown,
+  ) => {success: true; data: T; error: undefined} | {success: false; error: Error; data: undefined}
 }
 
 export type SQLTagHelperParameters = {
@@ -238,7 +242,7 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
   })
 
   return {
-    _types: () => ({}) as any,
+    parse: input => input as any,
     name: nameQuery(strings),
     sql,
     token: 'sql',
@@ -248,16 +252,44 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
 
 export type SQLMethodHelpers = {
   raw: <T>(query: string) => SQLQuery<T, []>
+  type: <Result extends Record<string, unknown>>(
+    parser: ZodesqueType<Result>,
+  ) => <Parameters extends SQLParameter[] = SQLParameter[]>(
+    strings: TemplateStringsArray,
+    ...parameters: Parameters
+  ) => SQLQuery<Result>
 }
 
-const otherHelpers = {
+const otherHelpers: SQLMethodHelpers = {
   raw: <T>(query: string): SQLQuery<T, []> => ({
     sql: query,
-    _types: () => ({result: {} as T}),
+    parse: input => input as T,
     name: nameQuery([query]),
     token: 'sql',
     values: [],
   }),
+  type:
+    type =>
+    (strings, ...parameters) => {
+      return {
+        parse(input) {
+          if ('safeParse' in type) {
+            const parsed = type.safeParse(input)
+            if (!parsed.success) {
+              throw parsed.error
+            }
+
+            return parsed.data
+          }
+
+          return type.parse(input)
+        },
+        name: nameQuery(strings),
+        sql: strings.join(''),
+        token: 'sql',
+        values: parameters,
+      }
+    },
 }
 
 export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.assign(sqlFn, otherHelpers, {
@@ -272,7 +304,6 @@ export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.ass
   jsonb: (...args) => ({token: 'jsonb', args}),
   literalValue: (...args) => ({token: 'literalValue', args}),
   timestamp: (...args) => ({token: 'timestamp', args}),
-  // type: (...args) => ({ token: "type", args }),
   unnest: (...args) => ({token: 'unnest', args}),
 } satisfies SQLTagHelpers)
 
@@ -369,8 +400,12 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
     try {
       type Result = SQLQueryResult<typeof query>
       const result = await pgpQueryable.query<Result[]>(query.sql, query.values.length > 0 ? query.values : undefined)
-      return {rows: result}
-    } catch (err) {
+      if (query.parse === identityParser) {
+        return {rows: result}
+      }
+
+      return {rows: result.map(query.parse)}
+    } catch (err: unknown) {
       const error = errorFromUnknown(err)
       throw new QueryError(error.message, {
         cause: {query, error},

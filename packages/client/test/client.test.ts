@@ -1,4 +1,5 @@
 import {beforeAll, beforeEach, expect, test} from 'vitest'
+import {z} from 'zod'
 import {createClient, createPool, sql} from '../src'
 
 let pool: Awaited<ReturnType<typeof createPool>>
@@ -247,4 +248,27 @@ test('query timeout', async () => {
   await expect(patient.one(sql`select pg_sleep(${sleepMs})`)).resolves.toMatchObject({
     pg_sleep: expect.anything(),
   })
+})
+
+test('sql.type', async () => {
+  const Fooish = z.object({foo: z.number()})
+  await expect(pool.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchInlineSnapshot(`
+    {
+      "foo": 1,
+    }
+  `)
+
+  await expect(pool.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchInlineSnapshot(`
+    [Error: [Query select_c2b3cb1]: [
+      {
+        "code": "invalid_type",
+        "expected": "number",
+        "received": "string",
+        "path": [
+          "foo"
+        ],
+        "message": "Expected number, received string"
+      }
+    ]]
+  `)
 })
