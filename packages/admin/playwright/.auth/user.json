@@ -1,0 +1,26 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:5173",
+      "localStorage": [
+        {
+          "name": "headers.0.0.1",
+          "value": "{\"connection-string\":\"postgresql://postgres:postgres@localhost:5432/admin_test\"}"
+        },
+        {
+          "name": "sqler-layout.0.0.1",
+          "value": "\"horizontal\""
+        },
+        {
+          "name": "apiUrl.0.0.1",
+          "value": "\"http://localhost:7002\""
+        },
+        {
+          "name": "sql-editor-code:0.0.1",
+          "value": "\"select 'hello' as abc\""
+        }
+      ]
+    }
+  ]
+}

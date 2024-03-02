@@ -1,0 +1,32 @@
+#root .reactgrid {
+    max-width: 100%;
+    max-height: 100%;
+    overflow: scroll;
+    --popover-z-index: 10000;
+
+    .rowNumberer {
+        font-size: x-small;
+        color: var(--main-text-color);
+    }
+
+    .reactgrid-content .rg-cell:not(.rg-header-cell) {
+        color: var(--main-text-color);
+    }
+
+    .jsonCellButton {
+        all: unset;
+        cursor: pointer;
+        text-decoration: underline;
+        color: var(--main-text-color);
+        max-width: calc(100% - 1.1em);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .jsonCellCopyButton {
+        all: unset;
+        cursor: pointer;
+        z-index: var(--popover-z-index);
+    }
+}

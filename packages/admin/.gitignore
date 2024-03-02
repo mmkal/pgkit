@@ -1,0 +1,7 @@
+test/generated
+test/fixtures
+build
+.cache
+.parcel-cache
+test-results
+playwright-report

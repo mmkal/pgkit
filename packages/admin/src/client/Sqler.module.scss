@@ -1,0 +1,73 @@
+.navBar {
+    width: 50%;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.querierPanel {
+    --sql-editor-height: calc(100vh - 120px);
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    position: relative;
+}
+
+.sqlerContainer {
+    width: 50%;
+}
+
+.resultsContainer {
+    width: 50%;
+    height: var(--sql-editor-height);
+    overflow: scroll;
+    display: flex;
+    gap: 10px;
+    flex-direction: column;
+}
+
+[data-layout="vertical"] {
+    .navBar {
+        width: 100%;
+    }
+
+    .querierPanel {
+        --sql-editor-height: calc(50vh - 60px);
+        flex-direction: column;
+        max-height: calc(100vh - 120px);
+    }
+
+    .sqlerContainer {
+        width: 100%;
+        height: 50%;
+        display: flex;
+        flex-direction: row;
+    }
+
+    .editorContainer {
+        width: 50%;
+        position: relative;
+    }
+
+    .jsonView {
+        width: 50%;
+        height: 100%;
+        overflow: scroll;
+        max-height: var(--sql-editor-height);
+    }
+
+    .resultsContainer {
+        /* height: 50%; */
+        width: 100%;
+        max-height: 50%;
+    }
+}
+
+.endMarker {
+    padding-top: 25vh;
+}
+
+.jsonView [role="listitem"] {
+    padding-left: 5px;
+}
