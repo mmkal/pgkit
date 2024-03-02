@@ -275,12 +275,12 @@ const main = async () => {
                 }
 
                 if (localRef && registryRef) {
-                  await execa('git', ['diff', registryRef, localRef, '--', '.'], {
-                    cwd: pkg.path,
-                    stdout: {
-                      file: path.join(changesFolder, 'source.diff'),
-                    },
-                  })
+                  // await execa('git', ['diff', registryRef, localRef, '--', '.'], {
+                  //   cwd: pkg.path,
+                  //   stdout: {
+                  //     file: path.join(changesFolder, 'source.diff'),
+                  //   },
+                  // })
                 }
               },
             })),
