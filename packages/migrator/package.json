@@ -2,6 +2,13 @@
   "name": "@pgkit/migrator",
   "version": "0.0.0",
   "description": "PostgeSQL migration tool",
+  "author": "mmkal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmkal/slonik-tools",
+    "directory": "packages/migrator"
+  },
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme",
   "files": [
     "dist"
   ],

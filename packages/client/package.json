@@ -9,12 +9,17 @@
   ],
   "scripts": {
     "prepare": "pnpm build",
-    "migra": "ts-node src/migra/src/migra-js/command.ts",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["postgresql", "sql", "client", "typescript", "node.js"],
+  "author": "mmkal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmkal/slonik-tools",
+    "directory": "packages/client"
+  },
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/client#readme",
   "license": "ISC",
   "devDependencies": {
     "@stylistic/eslint-plugin": "^1.6.0",

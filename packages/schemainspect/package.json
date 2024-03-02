@@ -8,6 +8,12 @@
     "dist",
     "queries"
   ],
+  "author": "mmkal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmkal/slonik-tools",
+    "directory": "packages/schemainspect"
+  },
   "scripts": {
     "prepare": "pnpm build",
     "codegen": "ts-node scripts/generate-types.ts",

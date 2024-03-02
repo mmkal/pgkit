@@ -8,8 +8,15 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
+    "pgkit-typegen": "dist/cli.js",
     "pg-typegen": "dist/cli.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmkal/slonik-tools",
+    "directory": "packages/admin"
+  },
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme",
   "scripts": {
     "_dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5432/postgres\"",
     "prepare": "pnpm build",
@@ -17,11 +24,6 @@
     "test": "vitest run"
   },
   "author": "mmkal",
-  "homepage": "https://github.com/mmkal/pgkit/tree/main/packages/typegen#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/mmkal/pgkit"
-  },
   "license": "ISC",
   "peerDependencies": {
     "typescript": "*"

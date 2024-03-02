@@ -12,6 +12,12 @@
     "dist"
   ],
   "author": "mmkal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmkal/slonik-tools",
+    "directory": "packages/admin"
+  },
+  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme",
   "scripts": {
     "build": "rm -rf dist && pnpm /build:/",
     "build:client": "vite build",
