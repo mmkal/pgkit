@@ -4,7 +4,7 @@
     "scripts": {
         "mopub": "tsx scripts/publish",
         "build": "turbo build",
-        "test": "pnpm run -r test --workspace-concurrency 1"
+        "test": "pnpm --recursive --workspace-concurrency 1 test"
     },
     "devDependencies": {
         "@parcel/transformer-typescript-types": "2.11.0",

@@ -15,7 +15,7 @@ jobs:
       postgres:
         image: postgres:12
         env:
-          PGPORT: '5433'
+          PGPORT: '5432'
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: postgres
@@ -26,7 +26,7 @@ jobs:
           --health-retries 5
           --name postgres_github_actions
         ports:
-          - 5433:5433
+          - 5432:5432
 
     strategy:
       matrix:
@@ -35,12 +35,14 @@ jobs:
     steps:
       - name: check psql
         run: |
-          echo 'select 123 as test_column \gdesc' | docker exec -i postgres_github_actions psql "postgresql://postgres:postgres@localhost:5433/postgres" -f - | grep 'test_column | integer'
+          echo 'select 123 as test_column \gdesc' | docker exec -i postgres_github_actions psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - run: yarn --ignore-engines
-      - run: yarn ci
+      - run: corepack enable
+      - run: pnpm install
+      - run: pnpm build
+      - run: pnpm test
       - uses: codecov/codecov-action@v2
         if: matrix.node-version == '14.x'
