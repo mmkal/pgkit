@@ -1,0 +1,50 @@
+{
+  "name": "@pgkit/client",
+  "version": "0.0.2-1",
+  "description": "A strongly-typed postgres client for node.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prepare": "pnpm build",
+    "migra": "ts-node src/migra/src/migra-js/command.ts",
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "vitest run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@stylistic/eslint-plugin": "^1.6.0",
+    "@types/lodash": "^4.14.202",
+    "@types/node": "^20.11.10",
+    "@types/pg": "^8.11.0",
+    "@types/toposort": "^2.0.7",
+    "eslint": "^8.56.0",
+    "eslint-plugin-codegen": "^0.23.0",
+    "eslint-plugin-mmkal": "0.3.0-1",
+    "execa": "^8.0.1",
+    "js-yaml": "^4.1.0",
+    "lodash": "^4.17.21",
+    "make-synchronous": "^1.0.0",
+    "meow": "^13.1.0",
+    "np": "github:mmkal/np#6a58244afa28fd7d3f8c4dc4b6457c22d74e82de",
+    "pgsql-ast-parser": "^12.0.1",
+    "quicktype-core": "^23.0.81",
+    "slonik": "^37.2.0",
+    "slonik23": "npm:slonik@^23.0.0",
+    "slonik37": "npm:slonik@^37.0.0",
+    "sql-formatter": "^15.2.0",
+    "toposort": "^2.0.2",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.0.1",
+    "vitest": "^1.2.2",
+    "zod": "^3.22.4"
+  },
+  "dependencies": {
+    "pg": "^8.11.3",
+    "pg-promise": "^11.5.4"
+  }
+}

@@ -1,0 +1,75 @@
+to debug collations:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_b' --unsafe
+
+to debug constraints:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_constraints_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_constraints_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_constraints_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_constraints_b' --unsafe
+
+to debug dependencies:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies_b' --unsafe
+
+to debug dependencies2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies2_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies2_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies2_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies2_b' --unsafe
+
+to debug dependencies3:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies3_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies3_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies3_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies3_b' --unsafe
+
+to debug dependencies4:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies4_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies4_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies4_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_dependencies4_b' --unsafe
+
+to debug enumdefaults:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdefaults_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdefaults_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdefaults_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdefaults_b' --unsafe
+
+to debug enumdeps:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdeps_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdeps_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdeps_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_enumdeps_b' --unsafe
+
+to debug everything:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_everything_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_everything_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_everything_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_everything_b' --unsafe
+
+to debug generated:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_generated_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_generated_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_generated_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_generated_b' --unsafe
+
+to debug identitycols:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_identitycols_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_identitycols_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_identitycols_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_identitycols_b' --unsafe
+
+to debug inherit:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit_b' --unsafe
+
+to debug inherit2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit2_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit2_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit2_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_inherit2_b' --unsafe
+
+to debug partitioning:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_partitioning_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_partitioning_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_partitioning_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_partitioning_b' --unsafe
+
+to debug privileges:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_privileges_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_privileges_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_privileges_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_privileges_b' --unsafe
+
+to debug seq:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_seq_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_seq_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_seq_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_seq_b' --unsafe
+
+to debug triggers:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers_b' --unsafe
+
+to debug triggers2:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers2_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers2_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers2_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers2_b' --unsafe
+
+to debug triggers3:
+pnpm migra 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers3_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers3_b' --unsafe
+migra 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers3_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_triggers3_b' --unsafe
