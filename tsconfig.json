@@ -1,14 +1,25 @@
 {
-  "extends": "./tsconfig.settings.json",
   "compilerOptions": {
-    "composite": true
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "strict": true,
+    "noEmit": true,
+    "noUncheckedIndexedAccess": true,
+    "noErrorTruncation": true,
+    "esModuleInterop": true
   },
-  "exclude": [
-    "*"
+  "include": [
+    "src",
+    "test",
+    "*.js",
+    ".*.*js",
+    "*.md",
   ],
-  "references": [
-    {"path": "packages/migrator"},
-    {"path": "packages/typegen"},
-    {"path": "packages/demo"}
-  ]
+  "ts-node": {
+    "transpileOnly": true,
+    "compilerOptions": {
+      "module": "NodeNext"
+    }
+  }
 }
