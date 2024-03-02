@@ -1,8 +1,9 @@
-import * as path from 'path'
-import {range} from 'lodash'
-import {sql} from 'slonik'
-import {SlonikMigrator} from '../src'
+import {sql} from '@pgkit/client'
 import {fsSyncer} from 'fs-syncer'
+import {range} from 'lodash'
+import * as path from 'path'
+import {vi, describe, beforeEach, test, expect} from 'vitest'
+import {Migrator} from './migrator'
 import {getPoolHelper} from './pool-helper'
 
 const {pool, ...helper} = getPoolHelper({__filename})
@@ -10,11 +11,11 @@ const {pool, ...helper} = getPoolHelper({__filename})
 const millisPerDay = 1000 * 60 * 60 * 24
 const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())
 
-const toISOSpy = jest.spyOn(Date.prototype, 'toISOString')
+const toISOSpy = vi.spyOn(Date.prototype, 'toISOString')
 toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 
 describe('run migrations', () => {
-  const migrationsPath = path.join(__dirname, `generated/${helper.schemaName}`)
+  const migrationsPath = path.join(__dirname, `generated/${helper.id}`)
 
   const syncer = fsSyncer(migrationsPath, {
     '01.one.sql': 'create table migration_test_1(id int)',
@@ -30,14 +31,13 @@ describe('run migrations', () => {
   })
 
   test('up and down', async () => {
-    const migrator = new SlonikMigrator({
-      slonik: pool,
+    const migrator = new Migrator({
+      client: pool,
       migrationsPath,
       migrationTableName: 'migrations',
-      logger: undefined,
     })
 
-    const schemaTables = () =>
+    const schemaTables = async () =>
       pool.anyFirst(sql`
         select tablename
         from pg_catalog.pg_tables
@@ -47,7 +47,7 @@ describe('run migrations', () => {
 
     await expect(schemaTables()).resolves.toEqual([])
 
-    expect((await migrator.pending()).map(p => p.name)).toEqual(['01.one.sql', '02.two.sql'])
+    expect(await migrator.pending().then(helper.names)).toEqual(['01.one.sql', '02.two.sql'])
 
     await migrator.up()
 
@@ -60,11 +60,10 @@ describe('run migrations', () => {
     await pool.query(sql`drop schema if exists some_other_schema cascade`)
     await pool.query(sql`create schema some_other_schema`)
 
-    const migrator = new SlonikMigrator({
-      slonik: pool,
+    const migrator = new Migrator({
+      client: pool,
       migrationsPath,
       migrationTableName: ['some_other_schema', 'migration_meta'],
-      logger: undefined,
     })
 
     await migrator.up({to: '01.one.sql'})

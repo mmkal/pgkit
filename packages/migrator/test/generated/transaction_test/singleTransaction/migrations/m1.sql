@@ -1,1 +1,1 @@
-insert into transaction_test_table(id) values (1);
+insert into rollback_happens(id) values (1);

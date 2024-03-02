@@ -1,14 +1,15 @@
-import * as path from 'path'
+import {sql} from '@pgkit/client'
 import {fsSyncer} from 'fs-syncer'
-import {sql} from 'slonik'
+import * as path from 'path'
+import {describe, expect, test} from 'vitest'
+import {Migrator} from './migrator'
 import {getPoolHelper} from './pool-helper'
-import {SlonikMigrator} from '../src'
 
 const helper = getPoolHelper({__filename})
 
 describe('errors', () => {
   test('have helpful messages including migration name', async () => {
-    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'helpfulMessages')
+    const baseDir = path.join(__dirname, 'generated', helper.id, 'helpfulMessages')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'create table errors_test_table(id int primary key;)', // syntax error, semicolon on wrong side of parens
@@ -16,22 +17,21 @@ describe('errors', () => {
     })
     syncer.sync()
 
-    const migrator = new SlonikMigrator({
-      slonik: helper.pool,
+    const migrator = new Migrator({
+      client: helper.pool,
       migrationsPath: path.join(syncer.baseDir, 'migrations'),
       migrationTableName: 'errors_migrations',
-      logger: undefined,
     })
 
     expect(await migrator.pending().then(helper.names)).toEqual(['m1.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Migration m1.sql (up) failed: Original error: syntax error at or near \\";\\""`,
+      `[Error: up migration failed: Migration m1.sql (up) failed: Original error: [Query create_1488734]: syntax error at or near ";"]`,
     )
   })
 
-  test('error creating table - default transaction behaviour', async () => {
-    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'defaultTransactions')
+  test('error creating table - no transaction', async () => {
+    const baseDir = path.join(__dirname, 'generated', helper.id, 'defaultTransactions')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'create table errors_table1(id int primary key)',
@@ -41,29 +41,29 @@ describe('errors', () => {
     })
     syncer.sync()
 
-    const migrator = new SlonikMigrator({
-      slonik: helper.pool,
+    const migrator = new Migrator({
+      client: helper.pool,
       migrationsPath: path.join(syncer.baseDir, 'migrations'),
       migrationTableName: 'migrations',
-      logger: undefined,
+      connectMethod: 'connect',
     })
 
     expect(await migrator.pending().then(helper.names)).toEqual(['m1.sql', 'm2.sql', 'm3.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Migration m3.sql (up) failed: Original error: syntax error at or near \\";\\""`,
+      `[Error: up migration failed: Migration m3.sql (up) failed: Original error: [Query create_fe7cef3]: syntax error at or near ";"]`,
     )
 
     expect(await helper.pool.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "id": 1,
         },
       ]
     `)
 
     expect(await helper.pool.anyFirst(sql`select name from migrations`)).toMatchInlineSnapshot(`
-      Array [
+      [
         "m1.sql",
         "m2.sql",
       ]
@@ -71,7 +71,7 @@ describe('errors', () => {
   })
 
   test('error creating table - single transaction', async () => {
-    const baseDir = path.join(__dirname, 'generated', helper.schemaName, 'singleTransaction')
+    const baseDir = path.join(__dirname, 'generated', helper.id, 'singleTransaction')
     const syncer = fsSyncer(baseDir, {
       migrations: {
         'm1.sql': 'create table errors_table1(id int primary key)',
@@ -81,23 +81,21 @@ describe('errors', () => {
     })
     syncer.sync()
 
-    const migrator = new SlonikMigrator({
-      slonik: helper.pool,
+    const migrator = new Migrator({
+      client: helper.pool,
       migrationsPath: path.join(syncer.baseDir, 'migrations'),
       migrationTableName: 'migrations',
-      logger: undefined,
-      singleTransaction: true,
     })
 
     expect(await migrator.pending().then(helper.names)).toEqual(['m1.sql', 'm2.sql', 'm3.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `"Migration m3.sql (up) failed: Original error: syntax error at or near \\";\\""`,
+      `[Error: up migration failed: Migration m3.sql (up) failed: Original error: [Query create_fe7cef3]: syntax error at or near ";"]`,
     )
 
     expect(await helper.pool.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(
-      `[error: relation "errors_table1" does not exist]`,
+      `[Error: [Query select-errors_table1_24560eb]: relation "errors_table1" does not exist]`,
     )
-    expect(await helper.pool.any(sql`select * from migrations`)).toMatchInlineSnapshot(`Array []`)
+    expect(await helper.pool.any(sql`select * from migrations`)).toMatchInlineSnapshot(`[]`)
   })
 })

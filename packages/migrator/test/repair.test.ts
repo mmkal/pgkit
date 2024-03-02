@@ -1,8 +1,9 @@
-import * as path from 'path'
-import {range} from 'lodash'
-import {sql} from 'slonik'
-import {SlonikMigrator} from '../src'
+import {sql} from '@pgkit/client'
 import {fsSyncer} from 'fs-syncer'
+import {range} from 'lodash'
+import * as path from 'path'
+import {describe, expect, test, vi as jest, beforeEach} from 'vitest'
+import {Migrator} from './migrator'
 import {getPoolHelper} from './pool-helper'
 
 const {pool, ...helper} = getPoolHelper({__filename})
@@ -14,7 +15,7 @@ const toISOSpy = jest.spyOn(Date.prototype, 'toISOString')
 toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 
 describe('repair broken hashes', () => {
-  const migrationsPath = path.join(__dirname, `generated/${helper.schemaName}`)
+  const migrationsPath = path.join(__dirname, `generated/${helper.id}`)
 
   const syncer = fsSyncer(migrationsPath, {
     '01.one.sql': 'create table migration_test_1(id int)',
@@ -23,41 +24,39 @@ describe('repair broken hashes', () => {
     },
   })
 
-  let migrator: SlonikMigrator
+  let migrator: Migrator
 
   beforeEach(async () => {
     syncer.sync()
-    migrator = new SlonikMigrator({
-      slonik: pool,
+    migrator = new Migrator({
+      client: pool,
       migrationsPath,
       migrationTableName: 'migrations',
-      logger: undefined,
     })
 
     await migrator.up()
   })
-  ;[{dryRun: true}, {dryRun: false}].forEach(({dryRun}) => {
-    test(`dryRun = ${dryRun}`, async () => {
-      const getDbHash = () =>
-        pool.oneFirst<string>(sql`
+
+  test.each([[true], [false]])(`dryRun = %s`, async dryRun => {
+    const getDbHash = async () =>
+      pool.oneFirst<string>(sql`
         select hash
         from migrations
       `)
-      const setDbHash = (hash: string) =>
-        pool.any(sql`
+    const setDbHash = async (hash: string) =>
+      pool.any(sql`
         update migrations
         set hash = ${hash}
       `)
-      const dbHashCorrect = await getDbHash()
-      await setDbHash('asd')
-      await expect(getDbHash()).resolves.not.toEqual(dbHashCorrect)
+    const dbHashCorrect = await getDbHash()
+    await setDbHash('asd')
+    await expect(getDbHash()).resolves.not.toEqual(dbHashCorrect)
 
-      await migrator.repair({dryRun})
+    await migrator.repair({dryRun})
 
-      const dbHashAfterRepair = await getDbHash()
+    const dbHashAfterRepair = await getDbHash()
 
-      if (dryRun) expect(dbHashAfterRepair).not.toEqual(dbHashCorrect)
-      else expect(dbHashAfterRepair).toEqual(dbHashCorrect)
-    })
+    if (dryRun) expect(dbHashAfterRepair).not.toEqual(dbHashCorrect)
+    else expect(dbHashAfterRepair).toEqual(dbHashCorrect)
   })
 })

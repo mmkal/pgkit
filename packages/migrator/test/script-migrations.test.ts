@@ -1,9 +1,10 @@
-import {join} from 'path'
-import {range} from 'lodash'
-import {sql} from 'slonik'
-import * as dedent from 'dedent'
+import {sql} from '@pgkit/client'
+import dedent from 'dedent'
 import {fsSyncer} from 'fs-syncer'
-import {SlonikMigrator} from '../src'
+import {range} from 'lodash'
+import * as path from 'path'
+import {describe, expect, test, vi as jest, beforeEach} from 'vitest'
+import {Migrator} from './migrator'
 import {getPoolHelper} from './pool-helper'
 
 const helper = getPoolHelper({__filename})
@@ -15,7 +16,7 @@ const toISOSpy = jest.spyOn(Date.prototype, 'toISOString')
 toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 
 describe('run sql, js and ts migrations', () => {
-  const migrationsPath = join(__dirname, 'generated/run/migrations')
+  const migrationsPath = path.join(__dirname, 'generated/run/migrations')
 
   const mockLogger = jest.fn()
   const log = mockLogger
@@ -43,7 +44,7 @@ describe('run sql, js and ts migrations', () => {
     syncer.sync()
   })
 
-  const migrationTables = () =>
+  const migrationTables = async () =>
     helper.pool.anyFirst(sql`
       select tablename
       from pg_catalog.pg_tables
@@ -53,28 +54,23 @@ describe('run sql, js and ts migrations', () => {
     `)
 
   test('up and down', async () => {
-    const migrator = new SlonikMigrator({
-      slonik: helper.pool,
+    const migrator = new Migrator({
+      client: helper.pool,
       migrationsPath,
       migrationTableName: 'migration_meta_1',
-      logger: {
-        debug: log,
-        info: log,
-        warn: log,
-        error: log,
-      },
+      logger: {debug: log, info: log, warn: log, error: log},
     })
 
     expect(await migrationTables()).toEqual([])
 
-    const executed = () => migrator.executed().then(list => list.map(x => x.name))
-    const pending = () => migrator.pending().then(list => list.map(x => x.name))
+    const executed = async () => migrator.executed().then(list => list.map(x => x.name))
+    const pending = async () => migrator.pending().then(list => list.map(x => x.name))
 
     log(`getting pending migrations before initial 'up'`)
 
     const allMigrations = await pending()
     expect(allMigrations).toMatchInlineSnapshot(`
-      Array [
+      [
         "01.one.sql",
         "02.two.sql",
         "03.three.js",
@@ -86,7 +82,7 @@ describe('run sql, js and ts migrations', () => {
 
     const allTables = await migrationTables()
     expect(allTables).toMatchInlineSnapshot(`
-      Array [
+      [
         "migration_test_1",
         "migration_test_2",
         "migration_test_3",
@@ -97,12 +93,12 @@ describe('run sql, js and ts migrations', () => {
     expect(await executed()).toEqual(allMigrations)
     expect(await pending()).toEqual([])
 
-    await migrator.down({to: 0})
+    await migrator.down({to: 0 as const})
     expect(await executed()).toEqual([])
 
     await migrator.up({to: '03.three.js'})
     expect(await executed()).toMatchInlineSnapshot(`
-      Array [
+      [
         "01.one.sql",
         "02.two.sql",
         "03.three.js",
@@ -112,7 +108,7 @@ describe('run sql, js and ts migrations', () => {
     expect(
       mockLogger.mock.calls.map(msg => {
         const json = JSON.stringify(msg)
-        return JSON.parse(json.replace(/\d\.\d+/g, '0.001'))
+        return JSON.parse(json, (key, value) => (key === 'durationSeconds' ? 0.001 : value))
       }),
     ).toMatchSnapshot()
   })

@@ -1,0 +1,12 @@
+{
+    "extends": ["./tsconfig.json"],
+    "include": ["src"],
+    "compilerOptions": {
+        "outDir": "dist",
+        "declaration": true,
+        "sourceMap": true,
+        "noEmit": false,
+        "skipLibCheck": true,
+        "module": "Node16"
+    }
+}

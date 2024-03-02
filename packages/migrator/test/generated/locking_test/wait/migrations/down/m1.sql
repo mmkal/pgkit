@@ -1,1 +1,0 @@
-drop table locking_test_table;

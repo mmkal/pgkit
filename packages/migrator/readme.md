@@ -1,17 +1,17 @@
-# @slonik/migrator
+# @pgkit/migrator
 
-A cli migration tool for postgres, using [slonik](https://npmjs.com/package/slonik).
+A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
 
-[![Node CI](https://github.com/mmkal/slonik-tools/workflows/CI/badge.svg)](https://github.com/mmkal/slonik-tools/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/mmkal/slonik-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/mmkal/slonik-tools)
+[![Node CI](https://github.com/mmkal/pgkit/workflows/CI/badge.svg)](https://github.com/mmkal/pgkit/actions?query=workflow%3ACI)
+[![codecov](https://codecov.io/gh/mmkal/pgkit/branch/main/graph/badge.svg)](https://codecov.io/gh/mmkal/pgkit)
 
 ## Motivation
 
-There are already plenty of migration tools out there - but if you have an existing project that uses slonik, this will be the simplest to configure. Even if you don't, the setup required is minimal.
+There are already plenty of migration tools out there - but if you have an existing project that uses pgkit, this will be the simplest to configure. Even if you don't, the setup required is minimal.
 
 By default, the migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls. It can also run `.js` or `.ts` files - but where possible, it's often preferable to keep it simple and stick to SQL.
 
-This isn't technically a cli - it's a cli _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a slonik instance into. The javascript file you make that call in then becomes a runnable migration CLI. The migrations can be invoked programmatically from the same config.
+This isn't technically a cli - it's a cli _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a client instance into. The javascript file you make that call in then becomes a runnable migration CLI. The migrations can be invoked programmatically from the same config.
 
 <details>
   <summary>Contents</summary>
@@ -41,22 +41,22 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
 ## Usage
 
 ```bash
-npm install --save-dev @slonik/migrator
+npm install --save-dev @pgkit/migrator
 ```
 
 Then in a file called `migrate.js`:
 ```javascript
-const {SlonikMigrator} = require('@slonik/migrator')
-const {createPool} = require('slonik')
+const {Migrator} = require('@pgkit/migrator')
+const {createClient} = require('@pgkit/client')
 
-// in an existing slonik project, this would usually be setup in another module
-const slonik = createPool(process.env.POSTGRES_CONNECTION_STRING) // e.g. 'postgresql://postgres:postgres@localhost:5433/postgres'
+// in an existing project, this may be setup in another module
+const client = createClient(process.env.POSTGRES_CONNECTION_STRING) // e.g. 'postgresql://postgres:postgres@localhost:5433/postgres'
 
-const migrator = new SlonikMigrator({
+const migrator = new Migrator({
   migrationsPath: __dirname + '/migrations',
   migrationTableName: 'migration',
-  slonik,
-  logger: SlonikMigrator.prettyLogger,
+  client,
+  logger: Migrator.prettyLogger,
 })
 
 migrator.runAsCLI()
@@ -73,7 +73,7 @@ You can now edit the generated sql files to `create table users(name text)` for 
 
 ### JavaScript and TypeScript migrations
   
-These are expected to be modules with a required `up` export and an optional `down` export. Each of these functions will have an object passed to them with a `slonik` instance, and a `sql` tag function. You can see a [javascript](./test/generated/run/migrations/03.three.js) and a [typescript](./test/generated/run/migrations/04.four.ts) example in the tests.
+These are expected to be modules with a required `up` export and an optional `down` export. Each of these functions will have an object passed to them with a client instance, and a `sql` tag function. You can see a [javascript](./test/generated/run/migrations/03.three.js) and a [typescript](./test/generated/run/migrations/04.four.ts) example in the tests.
  
 Note: if writing migrations in typescript, you will likely want to use a tool like [ts-node](https://npmjs.com/package/ts-node) to enable loading typescript modules. You can either add `require('ts-node/register/transpile-only')` at the top of your `migrate.js` file, or run `node -r ts-node/register/transpile-only migrate ...` instead of `node migrate ...`.
 
@@ -130,7 +130,7 @@ See [commands](#commands) for more options, and [examples](#examples) to see how
 ```
 usage: node migrate [-h] <command> ...
 
-@slonik/migrator - PostgreSQL migration tool
+@pgkit/migrator - PostgreSQL migration tool
 
 Positional arguments:
   <command>
@@ -278,7 +278,7 @@ usage: node migrate repair [-h] [-d]
 
 If, for any reason, the hashes are incorrectly stored in the database, you 
 can recompute them using this command. Note that due to a bug in 
-@slonik/migrator v0.8.X-v0.9-X the hashes were incorrectly calculated, so 
+@pgkit/migrator v0.8.X-v0.9-X the hashes were incorrectly calculated, so 
 this command is recommended after upgrading to v0.10.
 
 Optional arguments:
@@ -292,9 +292,9 @@ Optional arguments:
 Assuming `migrate.js` is a script setup something like:
 
 ```js
-const {SlonikMigrator} = require('@slonik/migrator')
+const {Migrator} = require('@pgkit/migrator')
 
-const migrator = new SlonikMigrator(...)
+const migrator = new Migrator(...)
 migrator.runAsCLI()
 ```
 
@@ -345,30 +345,30 @@ module.exports.handler = () => require('./migrate').up()
 Or, you could write a script which seeds data in test environments:
 
 ```javascript
-import {migrator, slonik} from './migrate'
-import {sql} from 'slonik'
+import {migrator, client} from './migrate'
+import {sql} from '@pgkit/client'
 
 export const seed = async () => {
   const migrations = await migrator.up()
   if (migrations.some(m => m.file.endsWith('.users.sql'))) {
-    await slonik.query(sql`insert into users(name) values('foo')`)
+    await client.query(sql`insert into users(name) values('foo')`)
   }
 }
 ```
 
 ## Configuration
 
-parameters for the `SlonikMigrator` constructor:
+parameters for the `Migrator` constructor:
 
 | property | description | default value |
 |--------|------------|-------------|
-| `slonik` | slonik database pool instance, created by `createPool`. | N/A |
+| `client` | database pool instance, created by `createPool` or `createClient`. | N/A |
 | `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
 | `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. Set to an array to change the schema e.g. `['public', 'dbmigrations']` | N/A |
-| `logger` | how information about the migrations will be logged. You can set to `console` to log raw objects to console, `undefined` to prevent logs appearing at all, use `SlonikMigrator.prettyLogger` or supply a custom logger. | `undefined` |
+| `logger` | how information about the migrations will be logged. You can set to `console` to log raw objects to console, `undefined` to prevent logs appearing at all, use `Migrator.prettyLogger` or supply a custom logger. | `undefined` |
 
-`SlonikMigrator.prettyLogger` logs all messages to console. Known events are prettified to strings, unknown events or unexpected message properties in known events are logged as objects.
+`Migrator.prettyLogger` logs all messages to console. Known events are prettified to strings, unknown events or unexpected message properties in known events are logged as objects.
 
 ## Implementation
 
-Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom slonik-based storage implementation.
+Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom pgkit-based storage implementation.

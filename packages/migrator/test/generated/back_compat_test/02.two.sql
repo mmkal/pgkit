@@ -1,1 +1,0 @@
-create table migration_test_2(id int)
