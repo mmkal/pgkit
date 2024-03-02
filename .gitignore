@@ -1,8 +1,15 @@
 node_modules
 dist
+tmp
 coverage
 *.tgz
+
+# ignore non-pnpm lockfiles
+package-lock.json
+yarn.lock
+
+test/**/fixtures
+.DS_Store
 *.log
 *ignoreme*
-fixtures
-**/.DS_Store
+.turbo
