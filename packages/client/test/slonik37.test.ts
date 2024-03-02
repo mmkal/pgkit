@@ -1,5 +1,13 @@
-import {createPool, sql as _sql} from 'slonik37'
-import {beforeAll, beforeEach, expect, test} from 'vitest'
+import {
+  createPool,
+  sql as _sql,
+  createSqlTag,
+  SchemaValidationError,
+  QueryResultRow,
+  Interceptor,
+  createTypeParserPreset,
+} from 'slonik37'
+import {beforeAll, beforeEach, expect, expectTypeOf, test} from 'vitest'
 import z from 'zod'
 
 const sql = Object.assign(_sql.unsafe, _sql)
@@ -7,7 +15,35 @@ const sql = Object.assign(_sql.unsafe, _sql)
 let pool: Awaited<ReturnType<typeof createPool>>
 
 beforeAll(async () => {
-  pool = await createPool('postgresql://postgres:postgres@localhost:5432/postgres')
+  const createResultParserInterceptor = (): Interceptor => {
+    return {
+      // If you are not going to transform results using Zod, then you should use `afterQueryExecution` instead.
+      // Future versions of Zod will provide a more efficient parser when parsing without transformations.
+      // You can even combine the two – use `afterQueryExecution` to validate results, and (conditionally)
+      // transform results as needed in `transformRow`.
+      transformRow: (executionContext, actualQuery, row) => {
+        const {resultParser} = executionContext
+
+        if (!resultParser) {
+          return row
+        }
+
+        const validationResult = resultParser.safeParse(row)
+
+        if (!validationResult.success) {
+          // @ts-expect-error i don't think this should be an error, maybe strict null checks something?
+          throw new SchemaValidationError(actualQuery, row, validationResult.error.issues)
+        }
+
+        return validationResult.data as QueryResultRow
+      },
+    }
+  }
+
+  pool = await createPool('postgresql://postgres:postgres@localhost:5432/postgres', {
+    interceptors: [createResultParserInterceptor()],
+    typeParsers: [...createTypeParserPreset()],
+  })
 })
 
 // codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [query timeout]}
@@ -203,5 +239,22 @@ test('sql.type', async () => {
   await expect(pool.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchSnapshot()
 
   await expect(pool.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchSnapshot()
+})
+
+test('sql.typeAlias', async () => {
+  // eslint-disable-next-line mmkal/@typescript-eslint/no-shadow
+  const sql = createSqlTag({
+    typeAliases: {
+      foo: z.object({
+        foo: z.string(),
+      }),
+    },
+  })
+
+  const result = await pool.one(sql.typeAlias('foo')`select 'hi' as foo`)
+  expectTypeOf(result).toEqualTypeOf<{foo?: string}>()
+  expect(result).toMatchSnapshot()
+
+  await expect(pool.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchSnapshot()
 })
 // codegen:end

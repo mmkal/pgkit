@@ -1,6 +1,6 @@
-import {beforeAll, beforeEach, expect, test} from 'vitest'
+import {beforeAll, beforeEach, expect, expectTypeOf, test} from 'vitest'
 import {z} from 'zod'
-import {createClient, createPool, sql} from '../src'
+import {createClient, createPool, createSqlTag, sql} from '../src'
 
 let pool: Awaited<ReturnType<typeof createPool>>
 
@@ -268,6 +268,39 @@ test('sql.type', async () => {
           "foo"
         ],
         "message": "Expected number, received string"
+      }
+    ]]
+  `)
+})
+
+test('sql.typeAlias', async () => {
+  // eslint-disable-next-line mmkal/@typescript-eslint/no-shadow
+  const sql = createSqlTag({
+    typeAliases: {
+      foo: z.object({
+        foo: z.string(),
+      }),
+    },
+  })
+
+  const result = await pool.one(sql.typeAlias('foo')`select 'hi' as foo`)
+  expectTypeOf(result).toEqualTypeOf<{foo?: string}>()
+  expect(result).toMatchInlineSnapshot(`
+    {
+      "foo": "hi",
+    }
+  `)
+
+  await expect(pool.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchInlineSnapshot(`
+    [Error: [Query select_1534c96]: [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "foo"
+        ],
+        "message": "Expected string, received number"
       }
     ]]
   `)

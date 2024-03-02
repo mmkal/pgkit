@@ -307,6 +307,24 @@ export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.ass
   unnest: (...args) => ({token: 'unnest', args}),
 } satisfies SQLTagHelpers)
 
+export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any>>>(params: {
+  typeAliases: TypeAliases
+}) => {
+  const fn: typeof sqlFn = (...args) => sqlFn(...args)
+  return Object.assign(fn, sqlFn, {
+    params,
+    typeAlias<K extends keyof TypeAliases>(name: K) {
+      const type = params.typeAliases[name]
+      type Result = typeof type extends ZodesqueType<infer R> ? R : never
+      // eslint-disable-next-line mmkal/@typescript-eslint/no-unnecessary-type-assertion
+      return sql.type(type) as <Parameters extends SQLParameter[] = SQLParameter[]>(
+        strings: TemplateStringsArray,
+        ...parameters: Parameters
+      ) => SQLQuery<Result>
+    },
+  })
+}
+
 export class QueryError extends Error {
   cause!: {
     query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>
