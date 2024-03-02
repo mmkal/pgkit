@@ -14,7 +14,12 @@ const repoRoot = path.resolve(process.cwd(), '../..')
 expect.addSnapshotSerializer({
   test: (val: unknown) => typeof val === 'string' && val.includes(repoRoot),
   print: (val: any) =>
-    (val as string).replaceAll(repoRoot, '<repo>').replaceAll(/file:\/\/.*:\d+:\d+/g, '<file>:<line>:<col>'),
+    (val as string)
+      .replaceAll(repoRoot, '<repo>')
+      .replaceAll(/file:\/\/.*:\d+:\d+/g, '<file>:<line>:<col>')
+      .split('\n')
+      .filter(line => !line.includes('(node:'))
+      .join('\n'),
 })
 
 let pool: Awaited<ReturnType<typeof createPool>>
@@ -137,8 +142,7 @@ test('syntax error', async () => {
   expect(err.stack).toMatchInlineSnapshot(`
     Error: [Query select_fb83277]: syntax error at or near "frooom"
         at Object.query (<repo>/packages/client/src/index.ts:375:13)
-        at processTicksAndRejections (node:internal/process/task_queues:95:5)
-        at <repo>/packages/client/test/errors.test.ts:135:22
+        at <repo>/packages/client/test/errors.test.ts:140:22
         at runTest (<file>:<line>:<col>)
         at runSuite (<file>:<line>:<col>)
         at runFiles (<file>:<line>:<col>)
@@ -154,10 +158,5 @@ test('syntax error', async () => {
         at Parser.handlePacket (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:188:21)
         at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:103:30)
         at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:7:48)
-        at Socket.emit (node:events:514:28)
-        at addChunk (node:internal/streams/readable:376:12)
-        at readableAddChunk (node:internal/streams/readable:349:9)
-        at Socket.Readable.push (node:internal/streams/readable:286:10)
-        at TCP.onStreamRead (node:internal/stream_base_commons:190:23)
   `)
 })

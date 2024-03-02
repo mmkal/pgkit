@@ -32,7 +32,8 @@ test('any keyword', async () => {
 
 test('date', async () => {
   const result = await db.query(`select $1 as foo`, [new Date('2000-01-01T12:00:00Z')])
-  expect(result[0].foo).toMatchInlineSnapshot(`"2000-01-01T07:00:00.000-05:00"`)
+  expect(result[0].foo).toMatch(/2000-01-01T\d\d:00:00.000.*/)
+  expect(new Date(result[0].foo as string).toISOString()).toMatchInlineSnapshot(`"2000-01-01T12:00:00.000Z"`)
 })
 
 test('identifiers', async () => {

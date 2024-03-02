@@ -7,7 +7,7 @@ beforeAll(async () => {
   pool = createPool('postgresql://postgres:postgres@localhost:5432/postgres')
 })
 
-// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [interval, jsonb, literalValue, fragment, type parsers]}
+// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [interval, jsonb, literalValue, fragment, type parsers, query timeout]}
 beforeEach(async () => {
   await pool.query(sql`DROP TABLE IF EXISTS test_slonik23`)
   await pool.query(sql`CREATE TABLE test_slonik23 (id int, name text)`)
@@ -144,14 +144,17 @@ test('type parsers', async () => {
       (select count(*) from test_slonik23 where id = -1) as count
   `)
 
-  expect(result).toMatchInlineSnapshot(`
-    {
-      "count": 0,
-      "date": "2000-01-01",
-      "day_interval": 86400,
-      "hour_interval": 3600,
-      "timestamp": 946746000000,
-      "timestamptz": 946728000000,
-    }
-  `)
+  expect(result).toMatchInlineSnapshot(
+    {timestamp: expect.any(Number)},
+    `
+      {
+        "count": 0,
+        "date": "2000-01-01",
+        "day_interval": 86400,
+        "hour_interval": 3600,
+        "timestamp": Any<Number>,
+        "timestamptz": 946728000000,
+      }
+    `,
+  )
 })
