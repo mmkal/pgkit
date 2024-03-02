@@ -31,7 +31,6 @@ beforeAll(async () => {
         const validationResult = resultParser.safeParse(row)
 
         if (!validationResult.success) {
-          // @ts-expect-error i don't think this should be an error, maybe strict null checks something?
           throw new SchemaValidationError(actualQuery, row, validationResult.error.issues)
         }
 
@@ -42,7 +41,13 @@ beforeAll(async () => {
 
   pool = await createPool('postgresql://postgres:postgres@localhost:5432/postgres', {
     interceptors: [createResultParserInterceptor()],
-    typeParsers: [...createTypeParserPreset()],
+    typeParsers: [
+      ...createTypeParserPreset(),
+      {
+        name: 'int8',
+        parse: value => Number(value.toString().replace(/n$/, '')),
+      },
+    ],
   })
 })
 

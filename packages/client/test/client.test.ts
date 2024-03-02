@@ -284,12 +284,8 @@ test('sql.typeAlias', async () => {
   })
 
   const result = await pool.one(sql.typeAlias('foo')`select 'hi' as foo`)
-  expectTypeOf(result).toEqualTypeOf<{foo?: string}>()
-  expect(result).toMatchInlineSnapshot(`
-    {
-      "foo": "hi",
-    }
-  `)
+  expectTypeOf(result).toEqualTypeOf<{foo: string}>()
+  expect(result).toEqual({foo: 'hi'})
 
   await expect(pool.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchInlineSnapshot(`
     [Error: [Query select_1534c96]: [

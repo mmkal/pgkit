@@ -34,7 +34,7 @@ exports[`type parsers 1`] = `
     2,
     3,
   ],
-  "count": 0n,
+  "count": 0,
   "date": "2000-01-01",
   "day_interval": 86400,
   "float4": 0.4,

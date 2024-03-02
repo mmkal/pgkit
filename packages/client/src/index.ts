@@ -453,7 +453,10 @@ export const setRecommendedTypeParsers: SetTypeParsers = types => {
   types.setTypeParser(types.builtins.BOOL, value => value === 't')
 }
 
-export const setSlonik37TypeParsers: SetTypeParsers = (types: PGTypes) => {
+/**
+ * Equivalent of slonik type parsers in `createTypeParserPreset`. [Docs](https://www.npmjs.com/package/slonik#default-configuration)
+ */
+export const setSlonik37TypeParsers: SetTypeParsers = types => {
   types.setTypeParser(types.builtins.DATE, value => new Date(value))
   types.setTypeParser(types.builtins.TIMESTAMPTZ, value => new Date(value).getTime())
   types.setTypeParser(types.builtins.TIMESTAMP, value => new Date(value).getTime())
