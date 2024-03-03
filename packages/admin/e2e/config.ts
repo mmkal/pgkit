@@ -6,3 +6,7 @@ export const adminConnectionString = 'postgresql://postgres:postgres@localhost:5
 export const connectionString = 'postgresql://postgres:postgres@localhost:5432/admin_test'
 
 export const STORAGE_STATE = path.join(process.cwd(), 'playwright/.auth/user.json')
+
+export const demo = process.env.PLAYWRIGHT_DEMO
+  ? {slowMo: 200, typingDelay: 100} // slow down for demo video
+  : null

@@ -1,19 +1,20 @@
 /* eslint-disable no-empty-pattern */
 import {test as base} from '@playwright/test'
+import stripIndent from 'strip-indent'
 
 type Extensions = {
-  execute: (query: string) => Promise<void>
+  execute: (query: string, options?: {delay?: number}) => Promise<void>
   cell: (row: number, col: number) => string
 }
 
 export const test = base.extend<Extensions>({
   execute: async ({page}, use) => {
-    await use(async query => {
-      query = dedent(query)
+    await use(async (query, options) => {
+      query = stripIndent(query).trim()
       await page.locator('.cm-line').nth(0).click()
       await page.keyboard.press('Meta+A')
       await page.keyboard.press('Backspace')
-      await page.keyboard.type(query)
+      await page.keyboard.type(query, options)
       await page.keyboard.press('Meta+Enter')
     })
   },

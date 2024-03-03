@@ -28,6 +28,7 @@
     "dev:server": "tsx watch src/server/dev",
     "e2e:setup": "playwright install",
     "e2e": "playwright test",
+    "gifski": "PLAYWRIGHT_DEMO=1 pnpm e2e --headed && mkdir -p gifs && cd playwright-report/data && gifski --fps 32 -o ../../gifs/demo.gif $(ls . | head -n 1)",
     "test": "vitest run",
     "preview": "vite preview"
   },
@@ -63,6 +64,7 @@
     "@types/node": "^20.10.4",
     "@types/react": "^18.2.55",
     "@types/react-dom": "^18.2.15",
+    "strip-indent": "^4.0.0",
     "tsx": "^4.7.1",
     "typescript": "^5.2.2",
     "vite": "^5.0.0",

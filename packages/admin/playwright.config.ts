@@ -1,5 +1,5 @@
 import {defineConfig, devices} from '@playwright/test'
-import {STORAGE_STATE, appUrl} from './e2e/config'
+import {STORAGE_STATE, appUrl, demo} from './e2e/config'
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -38,6 +38,22 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         storageState: STORAGE_STATE,
+      },
+      dependencies: ['seed'],
+    },
+    {
+      name: 'chromium',
+      testMatch: '*.demo.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: STORAGE_STATE,
+        video: {
+          mode: 'on',
+          size: {width: 1920, height: 1080},
+        },
+        launchOptions: {
+          slowMo: demo?.slowMo,
+        },
       },
       dependencies: ['seed'],
     },

@@ -2,6 +2,8 @@
 
 A zero-config admin UI for running queries against PostgreSQL database, with autocomplete for tables, columns, views, functions etc.
 
+![demo](./gifs/demo.gif)
+
 ## Get started
 
 You can install and run either globally or locally.
