@@ -273,16 +273,16 @@ const otherHelpers: SQLMethodHelpers = {
     (strings, ...parameters) => {
       return {
         parse(input) {
-          if ('safeParse' in type) {
-            const parsed = type.safeParse(input)
-            if (!parsed.success) {
-              throw parsed.error
-            }
-
-            return parsed.data
+          if ('parse' in type) {
+            return type.parse(input)
           }
 
-          return type.parse(input)
+          const parsed = type.safeParse(input)
+          if (!parsed.success) {
+            throw parsed.error
+          }
+
+          return parsed.data
         },
         name: nameQuery(strings),
         sql: strings.join(''),
