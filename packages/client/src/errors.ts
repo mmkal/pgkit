@@ -1,3 +1,5 @@
+import {SQLQuery} from './types'
+
 // only used by eslint to generate error codes, but I guess you could use it too
 export const fetchErrorCodes: import('eslint-plugin-codegen').Preset<{}> = ({meta, dependencies: {child_process}}) => {
   const lastFetched = meta?.existingContent.split(/\r?\n/).find(line => /^\/\/ last fetched: (.*)$/.exec(line))
@@ -25,6 +27,34 @@ export const fetchErrorCodes: import('eslint-plugin-codegen').Preset<{}> = ({met
   }
 
   return meta.existingContent
+}
+
+export function errorFromUnknown(err: unknown) {
+  return err instanceof Error ? err : new Error(`Non error thrown: ${String(err)}`, {cause: err})
+}
+
+export class QueryError extends Error {
+  cause!: {
+    query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>
+    error?: Error
+    result?: {rows: any[]}
+  }
+
+  constructor(message: string, {cause}: {cause: QueryError['cause']}) {
+    super(`[Query ${cause.query.name}]: ${message}`, {cause})
+    this.cause = cause
+  }
+
+  /** Get the PostgreSQL error code, if this was caused by an underlying pg error. Docs: https://www.postgresql.org/docs/current/errcodes-appendix.html */
+  get pg_code(): number | undefined {
+    return (this.cause.error as {code?: number})?.code
+  }
+
+  /** Get the name for the PostgreSQL error code, if this was caused by an underlying pg error. Docs: https://www.postgresql.org/docs/current/errcodes-appendix.html */
+  get pg_code_name(): string | undefined {
+    const code = this.pg_code
+    return code ? pgErrorCodes[code] : undefined
+  }
 }
 
 // codegen:start {preset: custom, export: fetchErrorCodes}
