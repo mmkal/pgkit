@@ -2,6 +2,7 @@ import {Options, execa} from '@rebundled/execa'
 import {Listr, ListrTaskWrapper} from 'listr2'
 import * as fs from 'fs'
 import * as path from 'path'
+import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer'
 import * as assert from 'assert'
 import * as semver from 'semver'
 import {inspect} from 'util'
@@ -130,55 +131,48 @@ const main = async () => {
           )
         },
       },
-      // {
-      //     title: `Getting last published versions`,
-      //     rendererOptions: {persistentOutput: true},
-      //     task: (ctx, task) => {
-      //         return task.newListr(
-      //             ctx.packages.map(pkg => ({
-      //                 title: `Looking up ${pkg.name} version`,
-      //                 rendererOptions: {persistentOutput: true},
-      //                 enabled: () => !pkg.private,
-      //                 task: async (ctx, task) => {
-      //                     let pkgView = await pipeExeca(task, 'pnpm', ['view', pkg.name, 'versions', '--json'], {
-      //                         reject: false,
-      //                     })
-
-      //                     let json = pkgView.stdout.toString()
-      //                     if (!json.startsWith('[')) json = `[${json}]` // weird npm view bug
-
-      //                     if (json.includes(`"E404"`)) {
-      //                         task.output = 'No published versions'
-      //                         return
-      //                     }
-
-      //                     const list = JSON.parse(json) as string[]
-      //                     const latest = list.sort(semver.compare).at(-1)
-
-      //                     assert.ok(typeof latest === 'string', `Expected latest version to be a string, got ${inspect(latest)}`)
-
-      //                     pkg.lastPublishedVersion = latest
-      //                     task.output = latest
-      //                 },
-      //             })),
-      //             {
-      //                 rendererOptions: {collapseSubtasks: false},
-      //                 concurrent: true,
-      //             },
-      //         )
-      //     }
-      // },
       {
         title: 'Get version strategy',
         rendererOptions: {persistentOutput: true},
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const allVersions = [
             ...ctx.packages.map(pkg => pkg.version),
             ...(ctx.packages.map(pkg => loadRegistryPackageJson(pkg)?.version).filter(Boolean) as string[]),
           ]
           const maxVersion = allVersions.sort(semver.compare).at(-1)
           if (!maxVersion) throw new Error(`No versions found`)
-          const bumpedVersion = semver.inc(maxVersion, 'patch')!
+
+          let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+            type: 'Select',
+            message: `Select semver increment or specify new version (current latest is ${maxVersion})`,
+            choices: [
+              ...(['patch', 'minor', 'major', 'prepatch', 'preminor', 'premajor', 'prerelease'] as const).map(type => {
+                const result = semver.inc(maxVersion, type)!
+                return {
+                  message: `${type} ${result}`,
+                  value: result,
+                }
+              }),
+              {
+                message: 'Other (please specify)',
+                value: 'other',
+              },
+            ],
+          })
+
+          if (bumpedVersion === 'other') {
+            bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+              type: 'Input',
+              message: `Enter a custom version (must be greater than ${maxVersion})`,
+              validate: input => Boolean(semver.valid(input)) && semver.gt(input, maxVersion || '0.0.0'),
+            })
+          }
+
+          if (Math.random()) {
+            console.error({newBumpedVersion: bumpedVersion})
+            throw new Error('random error')
+          }
+
           // todo: use enquirer to ask
           ctx.versionStrategy = {type: 'fixed', version: bumpedVersion}
           task.output = inspect(ctx.versionStrategy)
@@ -291,8 +285,18 @@ const main = async () => {
       {
         title: 'Publish packages',
         skip: () => !process.argv.includes('--publish'),
-        task: (ctx, task) => {
+        task: async (ctx, task) => {
           const otpArgs = process.argv.filter((a, i, arr) => a.startsWith('--otp') || arr[i - 1] === '--otp')
+          if (otpArgs.length === 0) {
+            const otp = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+              message: 'Enter npm OTP (press enter to skip)',
+              type: 'Input',
+              validate: input => input === '' || /^[0-9]{6}$/.test(input),
+            })
+            if (otp) {
+              otpArgs.push('--otp', otp)
+            }
+          }
           if (otpArgs.length === 0) {
             task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
           }

@@ -7,11 +7,13 @@
         "test": "pnpm --recursive --workspace-concurrency 1 test"
     },
     "devDependencies": {
+        "@listr2/prompt-adapter-enquirer": "^2.0.2",
         "@parcel/transformer-typescript-types": "2.11.0",
         "@rebundled/execa": "8.0.2-next.0",
         "@types/node": "^20.11.21",
         "@types/semver": "^7.5.8",
         "assert": "^2.0.0",
+        "enquirer": "^2.4.1",
         "listr2": "^8.0.2",
         "process": "^0.11.10",
         "semver": "^7.6.0",
