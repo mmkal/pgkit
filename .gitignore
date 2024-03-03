@@ -7,6 +7,7 @@ coverage
 # ignore non-pnpm lockfiles
 package-lock.json
 yarn.lock
+lerna.json
 
 test/**/fixtures
 .DS_Store

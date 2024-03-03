@@ -257,9 +257,22 @@ test('sql.typeAlias', async () => {
   })
 
   const result = await pool.one(sql.typeAlias('foo')`select 'hi' as foo`)
-  expectTypeOf(result).toEqualTypeOf<{foo?: string}>()
-  expect(result).toMatchSnapshot()
+  expectTypeOf(result).toEqualTypeOf<{foo: string}>()
+  expect(result).toEqual({foo: 'hi'})
 
   await expect(pool.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchSnapshot()
 })
 // codegen:end
+
+test('raw query', async () => {
+  const query = 'select 1 as foo'
+
+  const result = await pool.one({
+    parser: z.any(),
+    sql: query,
+    type: 'SLONIK_TOKEN_QUERY',
+    values: [],
+  })
+
+  expect(result).toEqual({foo: 1})
+})

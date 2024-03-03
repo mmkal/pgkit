@@ -16,7 +16,8 @@
     "test",
     "*.js",
     ".*.*js",
-    "*.md"
+    "*.md",
+    "readme.md/*.js"
   ],
   "ts-node": {
     "transpileOnly": true

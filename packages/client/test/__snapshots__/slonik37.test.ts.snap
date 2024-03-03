@@ -14,13 +14,7 @@ exports[`sql.type 1`] = `
 
 exports[`sql.type 2`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
-exports[`sql.typeAlias 1`] = `
-{
-  "foo": "hi",
-}
-`;
-
-exports[`sql.typeAlias 2`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
+exports[`sql.typeAlias 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
 exports[`type parsers 1`] = `
 {

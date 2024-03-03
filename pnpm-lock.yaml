@@ -179,8 +179,8 @@ importers:
         specifier: ^8.56.0
         version: 8.56.0
       eslint-plugin-codegen:
-        specifier: ^0.23.0
-        version: 0.23.0(eslint@8.56.0)
+        specifier: ^0.24.1
+        version: 0.24.1(eslint@8.56.0)
       eslint-plugin-mmkal:
         specifier: 0.3.0-1
         version: 0.3.0-1(eslint@8.56.0)(typescript@5.3.3)
@@ -2151,7 +2151,7 @@ packages:
     resolution: {integrity: sha512-SEYeGAIQIQX8NN6LDKprLjbrd5dARM5EXsd8GI/A5l0apYI1fGMWgPHSe4ZKL4eozlAyI+doUE9XbYS4xCkQ1w==}
     dependencies:
       '@types/minimatch': 5.1.2
-      '@types/node': 20.11.20
+      '@types/node': 20.11.21
     dev: true
 
   /@types/glob@7.2.0:
@@ -4562,8 +4562,8 @@ packages:
       - supports-color
     dev: true
 
-  /eslint-plugin-codegen@0.23.0(eslint@8.56.0):
-    resolution: {integrity: sha512-7Vhe2ORu+qMiLTGZRyGMgkRHJe2yq59q8uzzc2ovJDw62+rY9nDKqL2MzE/eSQLar951GbD/gtE04MMbeOc5bw==}
+  /eslint-plugin-codegen@0.24.1(eslint@8.56.0):
+    resolution: {integrity: sha512-g0ckYFb4ao0uphUrNGy++jzd5u/oXKjXYQVehKZu/VPonmlCL8wQsl/h7mjPIZPpS1dDpWOa6A20cDpCsYomwg==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@babel/core': 7.23.9
@@ -4576,7 +4576,7 @@ packages:
       '@types/jest': 29.0.0
       '@types/js-yaml': 3.12.5
       '@types/lodash': 4.14.202
-      '@types/node': 20.11.20
+      '@types/node': 20.11.21
       dedent: 1.5.1
       eslint-plugin-markdown: 3.0.1(eslint@8.56.0)
       expect: 29.7.0
