@@ -34,7 +34,7 @@ test('pool', async () => {
   expect(result4).toEqual(result1)
 })
 
-test('params', async () => {
+test('sql.array', async () => {
   const result = await pool.any(sql`
     select *
     from test_pgsuite
@@ -46,7 +46,7 @@ test('params', async () => {
   ])
 })
 
-test('identifier', async () => {
+test('sql.identifier', async () => {
   const result = await pool.oneFirst(sql`
     select count(1)
     from ${sql.identifier(['public', 'test_pgsuite'])}
@@ -55,7 +55,7 @@ test('identifier', async () => {
   expect(Number(result)).toEqual(3)
 })
 
-test('unnest', async () => {
+test('sql.unnest', async () => {
   const entries = [
     {id: 1, name: 'one'},
     {id: 2, name: 'two'},
@@ -80,7 +80,7 @@ test('unnest', async () => {
   ])
 })
 
-test('join fragments', async () => {
+test('sql.join', async () => {
   const [result] = await pool.any(sql`
     update test_pgsuite
     set ${sql.join([sql`name = 'one hundred'`, sql`id = 100`], sql`, `)}
@@ -91,14 +91,14 @@ test('join fragments', async () => {
   expect(result).toEqual({id: 100, name: 'one hundred'})
 })
 
-test('fragment', async () => {
+test('sql.fragment', async () => {
   const condition = sql.fragment`id = 1`
 
   const result = await pool.one(sql`select * from test_pgsuite where ${condition}`)
   expect(result).toEqual({id: 1, name: 'one'})
 })
 
-test('interval', async () => {
+test('sql.interval', async () => {
   const result = await pool.oneFirst(sql`
     select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({
       days: 1,
@@ -112,14 +112,14 @@ test('interval', async () => {
   expect(interval).toMatchInlineSnapshot(`"1 day"`)
 })
 
-test('binary', async () => {
+test('sql.binary', async () => {
   const result = await pool.oneFirst(sql`
     select ${sql.binary(Buffer.from('hello'))} as b
   `)
   expect(result).toMatchInlineSnapshot(`"\\x68656c6c6f"`)
 })
 
-test('json', async () => {
+test('sql.json', async () => {
   await pool.query(sql`
     drop table if exists jsonb_test;
     create table jsonb_test (id int, data jsonb);
@@ -140,7 +140,7 @@ test('json', async () => {
   expect(insert3).toEqual(insert)
 })
 
-test('jsonb', async () => {
+test('sql.jsonb', async () => {
   const insert2 = await pool.one(sql`
     insert into jsonb_test values (1, ${sql.jsonb({foo: 'bar'})})
     returning *
@@ -149,7 +149,7 @@ test('jsonb', async () => {
   expect(insert2).toEqual(insert2)
 })
 
-test('literalValue', async () => {
+test('sql.literalValue', async () => {
   const result = await pool.transaction(async tx => {
     await tx.query(sql`set local search_path to ${sql.literalValue('abc')}`)
     return tx.one(sql`show search_path`)
