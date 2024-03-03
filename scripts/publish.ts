@@ -3,9 +3,9 @@ import {Listr, ListrTaskWrapper} from 'listr2'
 import * as fs from 'fs'
 import * as path from 'path'
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer'
-import * as assert from 'assert'
 import * as semver from 'semver'
 import {inspect} from 'util'
+import sortPackageJson from 'sort-package-json'
 
 const main = async () => {
   const packageJsonFilepath = (pkg: PkgMeta, type: 'local' | 'registry') =>
@@ -139,14 +139,17 @@ const main = async () => {
             ...ctx.packages.map(pkg => pkg.version),
             ...(ctx.packages.map(pkg => loadRegistryPackageJson(pkg)?.version).filter(Boolean) as string[]),
           ]
-          const maxVersion = allVersions.sort(semver.compare).at(-1)
+          const maxVersion = allVersions.sort(semver.compare).at(-1) || '0.0.0'
           if (!maxVersion) throw new Error(`No versions found`)
+
+          const releaseTypes: semver.ReleaseType[] = ['patch', 'minor', 'major', 'prepatch', 'preminor', 'premajor']
+          semver.prerelease(maxVersion) ? releaseTypes.unshift('prerelease') : releaseTypes.push('prerelease')
 
           let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
             type: 'Select',
             message: `Select semver increment or specify new version (current latest is ${maxVersion})`,
             choices: [
-              ...(['patch', 'minor', 'major', 'prepatch', 'preminor', 'premajor', 'prerelease'] as const).map(type => {
+              ...releaseTypes.map(type => {
                 const result = semver.inc(maxVersion, type)!
                 return {
                   message: `${type} ${result}`,
@@ -166,11 +169,6 @@ const main = async () => {
               message: `Enter a custom version (must be greater than ${maxVersion})`,
               validate: input => Boolean(semver.valid(input)) && semver.gt(input, maxVersion || '0.0.0'),
             })
-          }
-
-          if (Math.random()) {
-            console.error({newBumpedVersion: bumpedVersion})
-            throw new Error('random error')
           }
 
           // todo: use enquirer to ask
@@ -227,7 +225,10 @@ const main = async () => {
                   }
                 })
 
-                fs.writeFileSync(packageJsonFilepath(pkg, 'local'), JSON.stringify(packageJson, null, 2))
+                fs.writeFileSync(
+                  packageJsonFilepath(pkg, 'local'),
+                  sortPackageJson(JSON.stringify(packageJson, null, 2)),
+                )
               },
             })),
           )
