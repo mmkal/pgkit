@@ -118,13 +118,28 @@ const main = async () => {
               task: async (ctx, task) => {
                 const registryFolder = path.join(pkg.folder, 'registry')
                 fs.mkdirSync(registryFolder, {recursive: true})
-                // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing!
+                // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
                 await pipeExeca(task, 'npm', ['pack', pkg.name], {
+                  reject: false,
                   cwd: registryFolder,
                 })
 
-                const tgzFileName = fs.readdirSync(registryFolder).at(0)!
+                const tgzFileName = fs.readdirSync(registryFolder).at(0)
+                if (!tgzFileName) {
+                  return
+                }
+
                 await pipeExeca(task, 'tar', ['-xvzf', tgzFileName], {cwd: registryFolder})
+
+                const registryPackageJson = loadRegistryPackageJson(pkg)
+                if (registryPackageJson) {
+                  const registryPackageJsonPath = packageJsonFilepath(pkg, 'registry')
+                  // avoid churn on package.json field ordering, which npm seems to mess with
+                  fs.writeFileSync(
+                    registryPackageJsonPath,
+                    sortPackageJson(JSON.stringify(registryPackageJson, null, 2)),
+                  )
+                }
               },
             })),
             {concurrent: true},
@@ -290,7 +305,7 @@ const main = async () => {
           const otpArgs = process.argv.filter((a, i, arr) => a.startsWith('--otp') || arr[i - 1] === '--otp')
           if (otpArgs.length === 0) {
             const otp = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-              message: 'Enter npm OTP (press enter to skip)',
+              message: 'Enter npm OTP (press enter to try publishing without MFA)',
               type: 'Input',
               validate: input => input === '' || /^[0-9]{6}$/.test(input),
             })
