@@ -2,6 +2,8 @@
 
 A strongly-typed postgres client for node.js
 
+![](./images/logo.png)
+
 ## Contents
 
 <!-- codegen:start {preset: markdownTOC}-->
