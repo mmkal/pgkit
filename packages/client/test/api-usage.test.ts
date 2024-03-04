@@ -9,9 +9,11 @@ beforeAll(async () => {
 })
 
 beforeEach(async () => {
-  await client.query(sql`DROP TABLE IF EXISTS usage_test`)
-  await client.query(sql`CREATE TABLE usage_test (id int, name text)`)
-  await client.query(sql`INSERT INTO usage_test VALUES (1, 'one'), (2, 'two'), (3, 'three')`)
+  await client.query(sql`
+    drop table if exists usage_test;
+    create table usage_test(id int, name text);
+    insert into usage_test values (1, 'one'), (2, 'two'), (3, 'three');
+  `)
 })
 
 test('sql.array', async () => {
@@ -151,6 +153,29 @@ test('sub-transactions', async () => {
   })
 
   expect(result).toEqual({count1: 0, count2: 1})
+})
+
+test('transaction savepoints', async () => {
+  let error: Error | undefined
+  await client.transaction(async t1 => {
+    await t1.query(sql`insert into usage_test(id, name) values (10, 'ten')`)
+
+    await t1
+      .transaction(async t2 => {
+        await t2.query(sql`insert into usage_test(id, name) values (11, 'eleven')`)
+
+        throw new Error(`Uh-oh`)
+      })
+      .catch(e => {
+        error = e as Error
+      })
+  })
+
+  expect(error).toBeInstanceOf(Error)
+  expect(error).toMatchInlineSnapshot(`[Error: Uh-oh]`)
+
+  const newRecords = await client.any(sql`select * from usage_test where id >= 10`)
+  expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 })
 
 test('query timeout', async () => {

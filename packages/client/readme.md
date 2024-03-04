@@ -18,6 +18,7 @@ A strongly-typed postgres client for node.js
    - [sql.jsonb:](#sqljsonb)
    - [sql.literalValue:](#sqlliteralvalue)
    - [sub-transactions:](#sub-transactions)
+   - [transaction savepoints:](#transaction-savepoints)
    - [query timeout:](#query-timeout)
    - [sql.type:](#sqltype)
    - [sql.typeAlias:](#sqltypealias)
@@ -29,6 +30,11 @@ A strongly-typed postgres client for node.js
    - [`sql`](#sql)
    - [`sql.raw`](#sqlraw)
    - [Non-readonly output types](#non-readonly-output-types)
+   - [Errors](#errors)
+      - [one error:](#one-error)
+      - [maybeOne error:](#maybeone-error)
+      - [many error:](#many-error)
+      - [syntax error:](#syntax-error)
 - [Ecosystem](#ecosystem)
 - [👽 Future](#-future)
 <!-- codegen:end -->
@@ -195,6 +201,31 @@ const result = await client.transaction(async t1 => {
 })
 
 expect(result).toEqual({count1: 0, count2: 1})
+```
+
+### transaction savepoints:
+
+```typescript
+let error: Error | undefined
+await client.transaction(async t1 => {
+  await t1.query(sql`insert into usage_test(id, name) values (10, 'ten')`)
+
+  await t1
+    .transaction(async t2 => {
+      await t2.query(sql`insert into usage_test(id, name) values (11, 'eleven')`)
+
+      throw new Error(`Uh-oh`)
+    })
+    .catch(e => {
+      error = e as Error
+    })
+})
+
+expect(error).toBeInstanceOf(Error)
+expect(error).toMatchInlineSnapshot(`[Error: Uh-oh]`)
+
+const newRecords = await client.any(sql`select * from usage_test where id >= 10`)
+expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 ```
 
 ### query timeout:
@@ -374,10 +405,10 @@ const profiles = await client.any(sql.type(Profile)`select * from profile`)
 
 Generally, usage of a _client_ (or pool, to use the slonik term), should be identical. Initialization is likely different. Some differences which would likely require code changes if migrating from slonik:
 
-- Most slonik initialization options are removed. I haven't come across any abstractions which invented by slonik which don't have simpler implementations in the underlying layer or in pg-promise. Specifically:
+- Most slonik initialization options are not carried over. I haven't come across any abstractions which invented by slonik which don't have simpler implementations in the underlying layer or in pg-promise. Specifically:
 
 - type parsers: just use `pg.types.setTypeParser`. Some helper functions to achieve parity with slonik, and this library's recommendations are available, but they're trivial and you can just as easily implement them yourself.
-- interceptors: these don't exist. Instead you can wrap the core `query` function this library calls. For the other slonik interceptors, you can use `pg-promise` events.
+- interceptors: Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
 - custom errors: when a query produces an error, this library will throw an error with the corresponding message, along with a tag for the query which caused it. Slonik wraps each error type with a custom class. From a few years working with slonik, the re-thrown errors tend to make the useful information in the underlying error harder to find (less visible in Sentry, etc.). The purpose of the wrapper errors is to protect against potentially changing underlying errors, but there are dozens of breaking changes in Slonik every year, so pgkit opts to rely on the design and language chosen by PostgreSQL instead.
 
 ### Added features/improvements
@@ -438,6 +469,149 @@ const byEmailHost = groupBy(profiles, p => p.email.split('@')[1])
 
 It's fixable by making sure _all_ utility functions take readonly inputs, but this is a pain, and sometimes even leads to unnecessary calls to `.slice()`, or dangerous casting, in practice.
 
+### Errors
+
+Errors from the underlying driver are wrapped but the message is not changed. A prefix corresponding to the query name is added to the message.
+
+For errors based on the number of rows returned (for `one`, `oneFirst`, `many`, `manyFirst` etc.) the query and result are added to the `cause` property.
+
+<details>
+<summary>Here's what some sample errors look like</summary>
+
+<!-- codegen:start {preset: markdownFromTests, source: test/errors.test.ts, headerLevel: 4} -->
+#### one error:
+
+```typescript
+await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
+  `
+    {
+      "message": "[Query select-test_errors_36f5f64]: Expected one row",
+      "cause": {
+        "query": {
+          "name": "select-test_errors_36f5f64",
+          "sql": "select * from test_errors where id > 1",
+          "token": "sql",
+          "values": []
+        },
+        "result": {
+          "rows": [
+            {
+              "id": 2,
+              "name": "two"
+            },
+            {
+              "id": 3,
+              "name": "three"
+            }
+          ]
+        }
+      }
+    }
+  `,
+)
+```
+
+#### maybeOne error:
+
+```typescript
+await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(`
+  {
+    "message": "[Query select-test_errors_36f5f64]: Expected at most one row",
+    "cause": {
+      "query": {
+        "name": "select-test_errors_36f5f64",
+        "sql": "select * from test_errors where id > 1",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [
+          {
+            "id": 2,
+            "name": "two"
+          },
+          {
+            "id": 3,
+            "name": "three"
+          }
+        ]
+      }
+    }
+  }
+`)
+```
+
+#### many error:
+
+```typescript
+await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.toMatchInlineSnapshot(`
+  {
+    "message": "[Query select-test_errors_34cad85]: Expected at least one row",
+    "cause": {
+      "query": {
+        "name": "select-test_errors_34cad85",
+        "sql": "select * from test_errors where id > 100",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": []
+      }
+    }
+  }
+`)
+```
+
+#### syntax error:
+
+```typescript
+await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(`
+  {
+    "message": "[Query select_fb83277]: syntax error at or near \\"frooom\\"",
+    "pg_code": "42601",
+    "pg_code_name": "syntax_error",
+    "cause": {
+      "query": {
+        "name": "select_fb83277",
+        "sql": "select * frooom test_errors",
+        "token": "sql",
+        "values": []
+      },
+      "error": {
+        "length": 95,
+        "name": "error",
+        "severity": "ERROR",
+        "code": "42601",
+        "position": "10",
+        "file": "scan.l",
+        "line": "1145",
+        "routine": "scanner_yyerror",
+        "query": "select * frooom test_errors"
+      }
+    }
+  }
+`)
+
+const err: Error = await pool.query(sql`select * frooom test_errors`).catch(e => e)
+
+expect(err.stack).toMatchInlineSnapshot(`
+  Error: [Query select_fb83277]: syntax error at or near "frooom"
+      at Object.query (<repo>/packages/client/src/client.ts:<line>:<col>)
+      at <repo>/packages/client/test/errors.test.ts:<line>:<col>
+`)
+
+expect((err as QueryError).cause?.error?.stack).toMatchInlineSnapshot(`
+  error: syntax error at or near "frooom"
+      at Parser.parseErrorMessage (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+      at Parser.handlePacket (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+      at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+      at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:<line>:<col>)
+`)
+```
+<!-- codegen:end -->
+
+</details>
+
 ## Ecosystem
 
 @pgkit/client is the basis for these libraries:
@@ -459,3 +633,4 @@ Some features that will be added to @pgkit/client at some point, that may or may
 - support for specifying the types of parameters in SQL queries as well as results. For example, `` sql`select * from profile where id = ${x} and name = ${y} `` - we can add type-safety to ensure that `x` is a number, and `y` is a string (say)
 - first-class support for query **naming**. Read [Show Your Query You Love It By Naming It](https://www.honeycomb.io/blog/naming-queries-made-better) from the fantastic HoneyComb blog for some context on this.
 - a `pgkit` monopackage, which exposes this client, as well as the above packages, as a single dependency. TBD on how to keep package size manageable - or whether that's important given this will almost always be used in a server environment
+- equivalents to the ["Community interceptors" in the slonik docs](https://www.npmjs.com/package/slonik#community-interceptors) - mostly as an implementation guide of how they can be achieved, and to verify that there's no functional loss from not having interceptors.

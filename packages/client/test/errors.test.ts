@@ -16,9 +16,11 @@ expect.addSnapshotSerializer({
   print: (val: any) =>
     (val as string)
       .replaceAll(repoRoot, '<repo>')
+      .replaceAll(/(<repo>.*):\d+:\d+/g, '$1:<line>:<col>')
       .replaceAll(/file:\/\/.*:\d+:\d+/g, '<file>:<line>:<col>')
+      .replaceAll(/file:\/\/<repo>.*(node_modules\/.*:<line>:<col>)/g, '.../$1')
       .split('\n')
-      .filter(line => !line.includes('(node:'))
+      .filter(line => !line.includes('(node:') && !line.includes('vitest'))
       .join('\n'),
 })
 
@@ -141,22 +143,15 @@ test('syntax error', async () => {
 
   expect(err.stack).toMatchInlineSnapshot(`
     Error: [Query select_fb83277]: syntax error at or near "frooom"
-        at Object.query (<repo>/packages/client/src/client.ts:84:13)
-        at <repo>/packages/client/test/errors.test.ts:140:22
-        at runTest (<file>:<line>:<col>)
-        at runSuite (<file>:<line>:<col>)
-        at runFiles (<file>:<line>:<col>)
-        at startTests (<file>:<line>:<col>)
-        at <file>:<line>:<col>
-        at withEnv (<file>:<line>:<col>)
-        at run (<file>:<line>:<col>)
+        at Object.query (<repo>/packages/client/src/client.ts:<line>:<col>)
+        at <repo>/packages/client/test/errors.test.ts:<line>:<col>
   `)
 
   expect((err as QueryError).cause?.error?.stack).toMatchInlineSnapshot(`
     error: syntax error at or near "frooom"
-        at Parser.parseErrorMessage (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:369:69)
-        at Parser.handlePacket (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:188:21)
-        at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:103:30)
-        at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:7:48)
+        at Parser.parseErrorMessage (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+        at Parser.handlePacket (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+        at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+        at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:<line>:<col>)
   `)
 })

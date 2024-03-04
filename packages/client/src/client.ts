@@ -5,8 +5,8 @@ import {setRecommendedTypeParsers} from './type-parsers'
 import {Client, First, Queryable, SQLQueryResult, ClientOptions, Connection, Transaction} from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
-/** Intended for slonik <= 20 compatibility */
 
+/** Intended for slonik <= 28 compatibility */
 export const createPool = (connectionString: string): Client => {
   return createClient(connectionString)
 }
@@ -89,12 +89,15 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
 }
 
 export const createClient = (connectionString: string, options: ClientOptions = {}): Client => {
-  const {pgpOptions = {}, setTypeParsers = setRecommendedTypeParsers, wrapQueryFn = fn => fn} = options
+  const {pgpOptions = {}, setTypeParsers = setRecommendedTypeParsers, wrapQueryFn} = options
   const pgp = pgPromise(pgpOptions)
 
   setTypeParsers(pgp.pg.types)
 
-  const createWrappedQueryFn: typeof createQueryFn = queryable => wrapQueryFn(createQueryFn(queryable))
+  const createWrappedQueryFn: typeof createQueryFn = queryable => {
+    const queryFn = createQueryFn(queryable)
+    return wrapQueryFn ? wrapQueryFn(queryFn) : queryFn
+  }
 
   const client = pgp(connectionString)
 

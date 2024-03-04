@@ -57,6 +57,8 @@ export class QueryError extends Error {
   }
 }
 
+class QueryErrorMany extends QueryError {}
+
 // codegen:start {preset: custom, export: fetchErrorCodes}
 /** Source https://www.postgresql.org/docs/current/errcodes-appendix.html */
 // last fetched: 2024-01-29T01:47:28.343Z
