@@ -1,13 +1,26 @@
 # @pgkit/client
 
-A strongly-typed postgres client for node.js
+A strongly-typed postgres client for node.js. Allows you to just write SQL, safely.
+
+## Introduction
+
+@pgkit/client is a PostgreSQL client, to be used in any application that uses PostgreSQL as a database.
+
+The basic ideas is this: PostgreSQL is really, really well designed. SQL as as language has been refined over decades, and is clearly understood. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database. @pgkit/client allows you to write SQL queries - no matter how complex they may be, and whatever niche PostgreSQL features they may use - and get precise TypeScript types for the results, and protection against SQL injection attacks by parameterizing the inputs. See the [protections section](#protections) for more details.
+
+Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excellent SQL client, and the reasons for using it over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section.
 
 ![](./images/logo.png)
 
-## Contents
+# Contents
 
 <!-- codegen:start {preset: markdownTOC}-->
-- [Contents](#contents)
+- [Introduction](#introduction)
+- [Protections](#protections)
+   - [Protection against SQL injection](#protection-against-sql-injection)
+   - [Protection against hanging connections](#protection-against-hanging-connections)
+   - [Protection against hanging transactions](#protection-against-hanging-transactions)
+- [Get started](#get-started)
 - [API](#api)
    - [sql.array:](#sqlarray)
    - [sql.identifier:](#sqlidentifier)
@@ -23,7 +36,6 @@ A strongly-typed postgres client for node.js
    - [transaction savepoints:](#transaction-savepoints)
    - [sql.type:](#sqltype)
    - [sql.typeAlias:](#sqltypealias)
-- [Get started](#get-started)
 - [Types](#types)
    - [Zod](#zod)
 - [Recipes](#recipes)
@@ -34,17 +46,117 @@ A strongly-typed postgres client for node.js
    - [mocking:](#mocking)
 - [Comparison with slonik](#comparison-with-slonik)
    - [Added features/improvements](#added-featuresimprovements)
-   - [`sql`](#sql)
-   - [`sql.raw`](#sqlraw)
-   - [Non-readonly output types](#non-readonly-output-types)
-   - [Errors](#errors)
-      - [one error:](#one-error)
-      - [maybeOne error:](#maybeone-error)
-      - [many error:](#many-error)
-      - [syntax error:](#syntax-error)
+      - [`sql`](#sql)
+      - [`sql.raw`](#sqlraw)
+      - [Non-readonly output types](#non-readonly-output-types)
+      - [Errors](#errors)
+         - [one error:](#one-error)
+         - [maybeOne error:](#maybeone-error)
+         - [many error:](#many-error)
+         - [syntax error:](#syntax-error)
+   - [Missing features](#missing-features)
+      - [`connection.stream`](#connectionstream)
+      - [Interceptors](#interceptors)
 - [Ecosystem](#ecosystem)
 - [👽 Future](#-future)
 <!-- codegen:end -->
+
+## Protections
+
+### Protection against SQL injection
+
+@pgkit/client uses a tagged template literal, usually imported as `sql`, to prevent [SQL injection attacks](https://owasp.org/www-community/attacks/SQL_Injection). In a library like `pg`, or `pg-promise` (which, are dependencies of this library, and this is _not_ the recommended way to use them!), you would be able to do something like this:
+
+```ts
+await pgPromise.query(`
+  update profile
+  set name = '${req.body.name}'
+`)
+```
+
+Which will work fine for the majority of users. Until an [evil user](https://xkcd.com/327) sends a POST request looking something like `{ "name": "''; drop table profile" }`. (In fact, with the above code, even an innocent user with an apostrophe in their name might be unable to update their profile!)
+
+By contrast, here's how you would have to write this query in @pgkit/client:
+
+```ts
+await client.query(sql`
+  update profile
+  set name = ${req.body.name}
+`)
+```
+
+@pgkit/client will handle this without any problem, because the query that's actually run in the underlying layer is
+
+```ts
+await pgPromise.query('update profile set name = $1', req.body.name)
+```
+
+@pgkit/client doesn't actually let you pass a string to its `query` methods - you must pass the result returned by the `sql` tag. By design makes it _easy to do the right thing_, and _hard to do the wrong thing_. (Note: if you really have a use case for avoiding the template tag, it's your foot and, your gun. See the docs on [`sql.raw` for more info](#sqlraw)).
+
+### Protection against hanging connections
+
+Here's how you might connect to a pool in `pg` (taken directly from [their docs](https://node-postgres.com/features/connecting)):
+
+```ts
+await pgClient.connect()
+ 
+const res = await pgClient.query('SELECT NOW()')
+await pgClient.end()
+```
+
+This works fine for the above example, because you can be fairly sure that `SELECT NOW()` will always succeed. But what about when your query throws an error? The call to `await client.end()` will never run, and the connection will be left open. You can solve this by using `try`/`finally` every time you connect, but you might find your codebase quickly littered with boilerplate along these lines. And you are responsible for never forgetting to! Here's the equivalent in @pgkit/client:
+
+```ts
+const res = await client.connect(async connection => {
+  return connection.query(sql`SELECT NOW()`)
+})
+```
+
+This will automatically release the connection when the callback _either_ resolves or throws.
+
+### Protection against hanging transactions
+
+Similarly, transactions are automatically rolled back when they fail, and ended when they succeed:
+
+```ts
+await client.transaction(async tx => {
+  await tx.query(sql`update profile set name = ${req.body.name}`)
+  await tx.query(sql`update foo set bar = ${req.body.baz}`)
+})
+```
+
+See [sub-transactions](#sub-transactions) and [transaction savepoints](#transaction-savepoints) for more involved examples.
+
+## Get started
+
+```
+npm install @pgkit/client
+```
+
+```ts
+import {sql, createClient} from '@pgkit/client'
+
+const client = createClient('postgres://postgres:postgres@localhost:5432/postgres')
+
+export const getProfile = async (id: string) => {
+    const profile = await client.one(sql`select * from profile where id = ${id}`)
+    return {
+        name: profile.name,
+    }
+}
+
+export const updateProfileName = (id: string, name: string) => {
+    await client.transaction(async tx => {
+        const profile = await tx.one(sql`
+            update profile set name = ${name} where id = ${id} returning *
+        `)
+        await tx.query(sql`
+            insert into some_other_table (foo) values (${profile.foo})
+        `)
+    })
+}
+```
+
 
 ## API
 
@@ -290,36 +402,6 @@ await expect(client.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatc
 `)
 ```
 <!-- codegen:end -->
-
-## Get started
-
-```
-npm install @pgkit/client
-```
-
-```ts
-import {sql, createClient} from '@pgkit/client'
-
-const client = createClient('postgres://postgres:postgres@localhost:5432/postgres')
-
-export const getProfile = async (id: string) => {
-    const profile = await client.one(sql`select * from profile where id = ${id}`)
-    return {
-        name: profile.name,
-    }
-}
-
-export const updateProfileName = (id: string, name: string) => {
-    await client.transaction(async tx => {
-        const profile = await tx.one(sql`
-            update profile set name = ${name} where id = ${id} returning *
-        `)
-        await tx.query(sql`
-            insert into some_other_table (foo) values (${profile.foo})
-        `)
-    })
-}
-```
 
 ## Types
 
@@ -648,7 +730,7 @@ Generally, usage of a _client_ (or pool, to use the slonik term), should be iden
 
 ### Added features/improvements
 
-### `sql`
+#### `sql`
 
 Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-case](https://github.com/gajus/slonik/issues/527) [and](https://github.com/gajus/slonik/pull/512) [options](https://github.com/gajus/slonik/pull/512), but to no avail.
 
@@ -666,7 +748,7 @@ const profile = await client.one(sql<Profile>`select * from profile`)
 //    👆 has type `Profile`
 ```
 
-### `sql.raw`
+#### `sql.raw`
 
 Slonik doesn't let you do this, but there are certain cases when you need to run a SQL query directly. Note that, as the name implies, this is somewhat dangerous. Make sure you trust the query you pass into this.
 
@@ -688,7 +770,7 @@ const result = await pool.one({
 })
 ```
 
-### Non-readonly output types
+#### Non-readonly output types
 
 This one is my fault, really. I was the one who ported slonik to TypeScript, and I carried over some FlowType `readonly`s. Unfortunately, slonik's output types are marked `readonly`, which means [they're quite awkward to work with](https://github.com/gajus/slonik/issues/218). For example, you can't pass them to a normal utility function which hasn't marked its inputs as `readonly` (even if it doesn't mutate the array). For example:
 
@@ -704,7 +786,7 @@ const byEmailHost = groupBy(profiles, p => p.email.split('@')[1])
 
 It's fixable by making sure _all_ utility functions take readonly inputs, but this is a pain, and sometimes even leads to unnecessary calls to `.slice()`, or dangerous casting, in practice.
 
-### Errors
+#### Errors
 
 Errors from the underlying driver are wrapped but the message is not changed. A prefix corresponding to the query name is added to the message.
 
@@ -713,8 +795,8 @@ For errors based on the number of rows returned (for `one`, `oneFirst`, `many`, 
 <details>
 <summary>Here's what some sample errors look like</summary>
 
-<!-- codegen:start {preset: markdownFromTests, source: test/errors.test.ts, headerLevel: 4} -->
-#### one error:
+<!-- codegen:start {preset: markdownFromTests, source: test/errors.test.ts, headerLevel: 5} -->
+##### one error:
 
 ```typescript
 await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
@@ -746,7 +828,7 @@ await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMa
 )
 ```
 
-#### maybeOne error:
+##### maybeOne error:
 
 ```typescript
 await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(`
@@ -776,7 +858,7 @@ await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects
 `)
 ```
 
-#### many error:
+##### many error:
 
 ```typescript
 await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.toMatchInlineSnapshot(`
@@ -797,7 +879,7 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
 `)
 ```
 
-#### syntax error:
+##### syntax error:
 
 ```typescript
 await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(`
@@ -846,6 +928,16 @@ expect((err as QueryError).cause?.error?.stack).toMatchInlineSnapshot(`
 <!-- codegen:end -->
 
 </details>
+
+### Missing features
+
+#### `connection.stream`
+
+At time of writing, @pgkit/client does not support streaming queries yet. You can always drop down to the the pg-promise driving client to achieve this though.
+
+#### Interceptors
+
+Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
 
 ## Ecosystem
 
