@@ -178,32 +178,6 @@ test('transaction savepoints', async () => {
   expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 })
 
-test('query timeout', async () => {
-  const shortTimeout = 20
-  const impatient = createClient(client.connectionString() + '?shortTimeout', {
-    pgpOptions: {
-      connect: ({client}) => {
-        client.connectionParameters.query_timeout = shortTimeout
-      },
-    },
-  })
-  const patient = createClient(client.connectionString() + '?longTimeout', {
-    pgpOptions: {
-      connect: ({client}) => {
-        client.connectionParameters.query_timeout = shortTimeout * 3
-      },
-    },
-  })
-
-  const sleepMs = (shortTimeout * 2) / 1000
-  await expect(impatient.one(sql`select pg_sleep(${sleepMs})`)).rejects.toThrowErrorMatchingInlineSnapshot(
-    `[Error: [Query select_9dcc021]: Query read timeout]`,
-  )
-  await expect(patient.one(sql`select pg_sleep(${sleepMs})`)).resolves.toMatchObject({
-    pg_sleep: '',
-  })
-})
-
 test('sql.type', async () => {
   const Fooish = z.object({foo: z.number()})
   await expect(client.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchInlineSnapshot(`

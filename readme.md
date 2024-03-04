@@ -3,9 +3,11 @@
 <blockquote>
 🚧🚧🚧🚧 NOTE 🚧🚧🚧🚧
 
-This repo has been renamed from `slonik-tools` to `pgkit`. The two packages included in `slonik-tools` - `@slonik/migrator` and `@slonik/typegen` - are replaced by `@pgkit/migrator` and `@pgkit/typegen`.
+This repo is soon to be renamed from `slonik-tools` to `pgkit`. The two packages included in `slonik-tools` - `@slonik/migrator` and `@slonik/typegen` - are replaced by `@pgkit/migrator` and `@pgkit/typegen`.
 
 Both are almost entriely backwards-compatible with their `@slonik/` counterparts, but some reconfiguration may be required. They also now depend on `@pgkit/client` instead of slonik. See below for more details on each packages (as well as some new ones!)
+
+Right now, the default branch has been set to `pgkit`. You can still access slonik-tools on the `main` branch. Soon, the pgkit branch will be merged into main, the repo renamed, and the slonik-based libraries will live in a slonik-tools branch. Security updates will still be applied, and even feature requests will be considered if a need arises that isn't covered by pgkit.
 </blockquote>
 
 (almost) everything you need for working with postgres in node.js

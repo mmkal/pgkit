@@ -19,12 +19,17 @@ A strongly-typed postgres client for node.js
    - [sql.literalValue:](#sqlliteralvalue)
    - [sub-transactions:](#sub-transactions)
    - [transaction savepoints:](#transaction-savepoints)
-   - [query timeout:](#query-timeout)
    - [sql.type:](#sqltype)
    - [sql.typeAlias:](#sqltypealias)
 - [Get started](#get-started)
 - [Types](#types)
    - [Zod](#zod)
+- [Recipes](#recipes)
+   - [Inserting many rows with sql.unnest:](#inserting-many-rows-with-sqlunnest)
+   - [Query logging:](#query-logging)
+   - [query timeouts:](#query-timeouts)
+   - [switchable clients:](#switchable-clients)
+   - [mocking:](#mocking)
 - [Comparison with slonik](#comparison-with-slonik)
    - [Added features/improvements](#added-featuresimprovements)
    - [`sql`](#sql)
@@ -228,34 +233,6 @@ const newRecords = await client.any(sql`select * from usage_test where id >= 10`
 expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 ```
 
-### query timeout:
-
-```typescript
-const shortTimeout = 20
-const impatient = createClient(client.connectionString() + '?shortTimeout', {
-  pgpOptions: {
-    connect: ({client}) => {
-      client.connectionParameters.query_timeout = shortTimeout
-    },
-  },
-})
-const patient = createClient(client.connectionString() + '?longTimeout', {
-  pgpOptions: {
-    connect: ({client}) => {
-      client.connectionParameters.query_timeout = shortTimeout * 3
-    },
-  },
-})
-
-const sleepMs = (shortTimeout * 2) / 1000
-await expect(impatient.one(sql`select pg_sleep(${sleepMs})`)).rejects.toThrowErrorMatchingInlineSnapshot(
-  `[Error: [Query select_9dcc021]: Query read timeout]`,
-)
-await expect(patient.one(sql`select pg_sleep(${sleepMs})`)).resolves.toMatchObject({
-  pg_sleep: '',
-})
-```
-
 ### sql.type:
 
 ```typescript
@@ -398,6 +375,262 @@ const Profile = {
 
 const profiles = await client.any(sql.type(Profile)`select * from profile`)
 ```
+
+## Recipes
+
+<!-- codegen:start {preset: markdownFromTests, source: test/recipes.test.ts, headerLevel: 3} -->
+### Inserting many rows with sql.unnest:
+
+```typescript
+// Pass an array of rows to be inserted. There's only one variable in the generated SQL per column
+
+await client.query(sql`
+  insert into recipes_test(id, name)
+  select *
+  from ${sql.unnest(
+    [
+      [1, 'one'],
+      [2, 'two'],
+      [3, 'three'],
+    ],
+    ['int4', 'text'],
+  )}
+`)
+
+expect(sqlProduced).toMatchInlineSnapshot(`
+  [
+    {
+      "sql": "\\n    insert into recipes_test(id, name)\\n    select *\\n    from unnest($1::int4[], $2::text[])\\n  ",
+      "values": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          "one",
+          "two",
+          "three"
+        ]
+      ]
+    }
+  ]
+`)
+```
+
+### Query logging:
+
+```typescript
+// Simplistic way of logging query times. For more accurate results, use process.hrtime()
+const log = vi.fn()
+const client = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
+  wrapQueryFn: queryFn => {
+    return async query => {
+      const start = Date.now()
+      const result = await queryFn(query)
+      const end = Date.now()
+      log({start, end, took: end - start, query, result})
+      return result
+    }
+  },
+})
+
+await client.query(sql`select * from recipes_test`)
+
+expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
+  {
+    start: expect.any(Number),
+    end: expect.any(Number),
+    took: expect.any(Number),
+  },
+  `
+  {
+    "start": {
+      "inverse": false
+    },
+    "end": {
+      "inverse": false
+    },
+    "took": {
+      "inverse": false
+    },
+    "query": {
+      "name": "select-recipes_test_8d7ce25",
+      "sql": "select * from recipes_test",
+      "token": "sql",
+      "values": []
+    },
+    "result": {
+      "rows": [
+        {
+          "id": 1,
+          "name": "one"
+        },
+        {
+          "id": 2,
+          "name": "two"
+        },
+        {
+          "id": 3,
+          "name": "three"
+        }
+      ]
+    }
+  }
+`,
+)
+```
+
+### query timeouts:
+
+```typescript
+const shortTimeoutMs = 20
+const impatient = createClient(client.connectionString() + '?shortTimeout', {
+  pgpOptions: {
+    connect: ({client}) => {
+      client.connectionParameters.query_timeout = shortTimeoutMs
+    },
+  },
+})
+const patient = createClient(client.connectionString() + '?longTimeout', {
+  pgpOptions: {
+    connect: ({client}) => {
+      client.connectionParameters.query_timeout = shortTimeoutMs * 3
+    },
+  },
+})
+
+const sleepSeconds = (shortTimeoutMs * 2) / 1000
+await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
+  `
+  {
+    "cause": {
+      "query": {
+        "name": "select_9dcc021",
+        "sql": "select pg_sleep($1)",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
+      "error": {
+        "query": "select pg_sleep(0.04)"
+      }
+    }
+  }
+`,
+)
+await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
+  pg_sleep: '',
+})
+```
+
+### switchable clients:
+
+```typescript
+const shortTimeoutMs = 20
+const impatientClient = createClient(client.connectionString() + '?shortTimeout', {
+  pgpOptions: {
+    connect: ({client}) => {
+      client.connectionParameters.query_timeout = shortTimeoutMs
+    },
+  },
+})
+const patientClient = createClient(client.connectionString() + '?longTimeout', {
+  pgpOptions: {
+    connect: ({client}) => {
+      client.connectionParameters.query_timeout = shortTimeoutMs * 3
+    },
+  },
+})
+
+const appClient = createClient(client.connectionString(), {
+  wrapQueryFn: queryFn => {
+    return async query => {
+      let clientToUse = patientClient
+      try {
+        // use https://www.npmjs.com/package/pgsql-ast-parser - note that this is just an example, you may want to do something like route
+        // readonly queries to a readonly connection, and others to a readwrite connection.
+        const parsed = pgSqlAstParser.parse(query.sql)
+        if (parsed.every(statement => statement.type === 'select')) {
+          clientToUse = impatientClient
+        }
+      } catch {}
+
+      return clientToUse.query(query)
+    }
+  },
+})
+
+const sleepSeconds = (shortTimeoutMs * 2) / 1000
+
+await expect(
+  appClient.one(sql`
+    select pg_sleep(${sleepSeconds})
+  `),
+).rejects.toThrowErrorMatchingInlineSnapshot(`
+  {
+    "cause": {
+      "query": {
+        "name": "select_6289211",
+        "sql": "\\n      select pg_sleep($1)\\n    ",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
+      "error": {
+        "query": "\\n      select pg_sleep(0.04)\\n    "
+      }
+    }
+  }
+`)
+await expect(
+  appClient.one(sql`
+    with delay as (
+      select pg_sleep(${sleepSeconds})
+    )
+    insert into recipes_test (id, name)
+    values (10, 'ten')
+    returning *
+`),
+).resolves.toMatchObject({
+  id: 10,
+  name: 'ten',
+})
+```
+
+### mocking:
+
+```typescript
+const fakeDb = pgMem.newDb() // https://www.npmjs.com/package/pg-mem
+const client = createClient('postgresql://', {
+  wrapQueryFn: () => {
+    return async query => {
+      // not a great way to do pass to pg-mem, in search of a better one: https://github.com/oguimbal/pg-mem/issues/384
+      let statement = pgSqlAstParser.parse(query.sql)
+      statement = JSON.parse(JSON.stringify(statement), (key, value) => {
+        if (value?.type === 'parameter' && typeof value?.name === 'string') {
+          const literalValue = query.values[Number(value.name.slice(1)) - 1]
+          return {type: 'string', value: literalValue}
+        }
+        return value
+      })
+      console.dir({statement}, {depth: 100})
+      return fakeDb.public.query(statement)
+    }
+  },
+})
+
+await client.query(sql`create table recipes_test(id int, name text)`)
+
+const insert = await client.one(sql`insert into recipes_test(id, name) values (${10}, 'ten') returning *`)
+expect(insert).toMatchObject({id: 10, name: 'ten'})
+
+const select = await client.any(sql`select name from recipes_test`)
+expect(select).toMatchObject([{name: 'ten'}])
+```
+<!-- codegen:end -->
 
 ## Comparison with slonik
 
