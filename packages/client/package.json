@@ -12,7 +12,13 @@
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
   },
-  "keywords": ["postgresql", "sql", "client", "typescript", "node.js"],
+  "keywords": [
+    "postgresql",
+    "sql",
+    "client",
+    "typescript",
+    "node.js"
+  ],
   "author": "mmkal",
   "repository": {
     "type": "git",
@@ -45,6 +51,7 @@
     "toposort": "^2.0.2",
     "ts-node": "^10.9.2",
     "tsup": "^8.0.1",
+    "typescript-eslint": "^7.1.0",
     "vitest": "^1.2.2",
     "zod": "^3.22.4"
   },

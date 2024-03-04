@@ -63,7 +63,7 @@ const createQueryable = (query: Queryable['query']): Queryable => {
     async oneFirst(input) {
       const result = await query(input)
       if (result.rows.length !== 1) throw new QueryError('Expected one row', {cause: {query: input, result}})
-      // eslint-disable-next-line mmkal/@typescript-eslint/no-unsafe-argument
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
       return Object.values(result.rows[0] as any)[0] as any
     },
   }
@@ -130,7 +130,7 @@ export const createClient = (connectionString: string, options: ClientOptions = 
     pgp: client,
     pgpOptions,
     ...createQueryable(createWrappedQueryFn(client)),
-    // eslint-disable-next-line mmkal/@typescript-eslint/no-base-to-string
+    // eslint-disable-next-line @typescript-eslint/no-base-to-string
     connectionString: () => client.$cn.toString(),
     end: async () => client.$pool.end(),
     connect,

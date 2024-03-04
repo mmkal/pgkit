@@ -142,7 +142,7 @@ test('syntax error', async () => {
   expect(err.stack).toMatchInlineSnapshot(`
     Error: [Query select_fb83277]: syntax error at or near "frooom"
         at Object.query (<repo>/packages/client/src/client.ts:84:13)
-        at <repo>/packages/client/test/errors.test.ts:142:22
+        at <repo>/packages/client/test/errors.test.ts:140:22
         at runTest (<file>:<line>:<col>)
         at runSuite (<file>:<line>:<col>)
         at runFiles (<file>:<line>:<col>)

@@ -2,6 +2,285 @@
 
 A strongly-typed postgres client for node.js
 
+## Contents
+
+<!-- codegen:start {preset: markdownTOC}-->
+- [Contents](#contents)
+- [API](#api)
+   - [sql.array:](#sqlarray)
+   - [sql.identifier:](#sqlidentifier)
+   - [sql.unnest:](#sqlunnest)
+   - [sql.join:](#sqljoin)
+   - [sql.fragment:](#sqlfragment)
+   - [sql.interval:](#sqlinterval)
+   - [sql.binary:](#sqlbinary)
+   - [sql.json:](#sqljson)
+   - [sql.jsonb:](#sqljsonb)
+   - [sql.literalValue:](#sqlliteralvalue)
+   - [sub-transactions:](#sub-transactions)
+   - [query timeout:](#query-timeout)
+   - [sql.type:](#sqltype)
+   - [sql.typeAlias:](#sqltypealias)
+- [Get started](#get-started)
+- [Types](#types)
+   - [Zod](#zod)
+- [Comparison with slonik](#comparison-with-slonik)
+   - [Added features/improvements](#added-featuresimprovements)
+   - [`sql`](#sql)
+   - [`sql.raw`](#sqlraw)
+   - [Non-readonly output types](#non-readonly-output-types)
+- [Ecosystem](#ecosystem)
+- [👽 Future](#-future)
+<!-- codegen:end -->
+
+## API
+
+<!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3} -->
+### sql.array:
+
+```typescript
+const result = await client.any(sql`
+  select *
+  from usage_test
+  where name = any(${sql.array(['one', 'two'], 'text')})
+`)
+expect(result).toEqual([
+  {id: 1, name: 'one'},
+  {id: 2, name: 'two'},
+])
+```
+
+### sql.identifier:
+
+```typescript
+const result = await client.oneFirst(sql`
+  select count(1)
+  from ${sql.identifier(['public', 'usage_test'])}
+`)
+
+expect(Number(result)).toEqual(3)
+```
+
+### sql.unnest:
+
+```typescript
+const entries = [
+  {id: 1, name: 'one'},
+  {id: 2, name: 'two'},
+  {id: 3, name: 'three'},
+  {id: 4, name: 'four'},
+]
+const result = await client.any(sql`
+  insert into usage_test(id, name)
+  select *
+  from ${sql.unnest(
+    entries.map(({id, name}) => [id, name]),
+    ['int4', 'text'],
+  )}
+  returning *
+`)
+
+expect(result).toEqual([
+  {id: 1, name: 'one'},
+  {id: 2, name: 'two'},
+  {id: 3, name: 'three'},
+  {id: 4, name: 'four'},
+])
+```
+
+### sql.join:
+
+```typescript
+const [result] = await client.any(sql`
+  update usage_test
+  set ${sql.join([sql`name = 'one hundred'`, sql`id = 100`], sql`, `)}
+  where id = 1
+  returning *
+`)
+
+expect(result).toEqual({id: 100, name: 'one hundred'})
+```
+
+### sql.fragment:
+
+```typescript
+const condition = sql.fragment`id = 1`
+
+const result = await client.one(sql`select * from usage_test where ${condition}`)
+expect(result).toEqual({id: 1, name: 'one'})
+```
+
+### sql.interval:
+
+```typescript
+const result = await client.oneFirst(sql`
+  select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({
+    days: 1,
+    hours: 1,
+  })} as ts
+`)
+expect(result).toBeInstanceOf(Date)
+expect(result).toMatchInlineSnapshot(`2000-01-02T13:00:00.000Z`)
+
+const interval = await client.oneFirst(sql`select ${sql.interval({days: 1})}`)
+expect(interval).toMatchInlineSnapshot(`"1 day"`)
+```
+
+### sql.binary:
+
+```typescript
+const result = await client.oneFirst(sql`
+  select ${sql.binary(Buffer.from('hello'))} as b
+`)
+expect(result).toMatchInlineSnapshot(`"\\x68656c6c6f"`)
+```
+
+### sql.json:
+
+```typescript
+await client.query(sql`
+  drop table if exists jsonb_test;
+  create table jsonb_test (id int, data jsonb);
+`)
+
+const insert = await client.one(sql`
+  insert into jsonb_test values (1, ${sql.json({foo: 'bar'})})
+  returning *
+`)
+
+expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+
+const insert3 = await client.one(sql`
+  insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
+  returning *
+`)
+
+expect(insert3).toEqual(insert)
+```
+
+### sql.jsonb:
+
+```typescript
+const insert2 = await client.one(sql`
+  insert into jsonb_test values (1, ${sql.jsonb({foo: 'bar'})})
+  returning *
+`)
+
+expect(insert2).toEqual(insert2)
+```
+
+### sql.literalValue:
+
+```typescript
+const result = await client.transaction(async tx => {
+  await tx.query(sql`set local search_path to ${sql.literalValue('abc')}`)
+  return tx.one(sql`show search_path`)
+})
+
+expect(result).toEqual({search_path: 'abc'})
+const result2 = await client.one(sql`show search_path`)
+expect(result2).toEqual({search_path: '"$user", public'})
+```
+
+### sub-transactions:
+
+```typescript
+const result = await client.transaction(async t1 => {
+  const count1 = await t1.oneFirst(sql`select count(1) from usage_test where id > 3`)
+  const count2 = await t1.transaction(async t2 => {
+    await t2.query(sql`insert into usage_test(id, name) values (5, 'five')`)
+    return t2.oneFirst(sql`select count(1) from usage_test where id > 3`)
+  })
+  return {count1, count2}
+})
+
+expect(result).toEqual({count1: 0, count2: 1})
+```
+
+### query timeout:
+
+```typescript
+const shortTimeout = 20
+const impatient = createClient(client.connectionString() + '?shortTimeout', {
+  pgpOptions: {
+    connect: ({client}) => {
+      client.connectionParameters.query_timeout = shortTimeout
+    },
+  },
+})
+const patient = createClient(client.connectionString() + '?longTimeout', {
+  pgpOptions: {
+    connect: ({client}) => {
+      client.connectionParameters.query_timeout = shortTimeout * 3
+    },
+  },
+})
+
+const sleepMs = (shortTimeout * 2) / 1000
+await expect(impatient.one(sql`select pg_sleep(${sleepMs})`)).rejects.toThrowErrorMatchingInlineSnapshot(
+  `[Error: [Query select_9dcc021]: Query read timeout]`,
+)
+await expect(patient.one(sql`select pg_sleep(${sleepMs})`)).resolves.toMatchObject({
+  pg_sleep: '',
+})
+```
+
+### sql.type:
+
+```typescript
+const Fooish = z.object({foo: z.number()})
+await expect(client.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchInlineSnapshot(`
+  {
+    "foo": 1,
+  }
+`)
+
+await expect(client.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchInlineSnapshot(`
+  [Error: [Query select_c2b3cb1]: [
+    {
+      "code": "invalid_type",
+      "expected": "number",
+      "received": "string",
+      "path": [
+        "foo"
+      ],
+      "message": "Expected number, received string"
+    }
+  ]]
+`)
+```
+
+### sql.typeAlias:
+
+```typescript
+const sql = createSqlTag({
+  typeAliases: {
+    foo: z.object({
+      foo: z.string(),
+    }),
+  },
+})
+
+const result = await client.one(sql.typeAlias('foo')`select 'hi' as foo`)
+expectTypeOf(result).toEqualTypeOf<{foo: string}>()
+expect(result).toEqual({foo: 'hi'})
+
+await expect(client.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchInlineSnapshot(`
+  [Error: [Query select_1534c96]: [
+    {
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "number",
+      "path": [
+        "foo"
+      ],
+      "message": "Expected string, received number"
+    }
+  ]]
+`)
+```
+<!-- codegen:end -->
+
 ## Get started
 
 ```
