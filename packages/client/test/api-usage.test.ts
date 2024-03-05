@@ -113,22 +113,24 @@ test('sql.json', async () => {
   `)
 
   expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
-
-  const insert3 = await client.one(sql`
-    insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
-    returning *
-  `)
-
-  expect(insert3).toEqual(insert)
 })
 
 test('sql.jsonb', async () => {
-  const insert2 = await client.one(sql`
+  const insert = await client.one(sql`
     insert into jsonb_test values (1, ${sql.jsonb({foo: 'bar'})})
     returning *
   `)
 
-  expect(insert2).toEqual(insert2)
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+})
+
+test('JSON.stringify', async () => {
+  const insert = await client.one(sql`
+    insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
+    returning *
+  `)
+
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
 })
 
 test('sql.literalValue', async () => {

@@ -1,16 +1,18 @@
 # @pgkit/client
 
-A strongly-typed postgres client for node.js. Allows you to just write SQL, safely.
+A strongly-typed postgres client for node.js. Lets you just write SQL, safely.
+
+<img src="./images/logo.png" alt="Logo" width="200"/>
 
 ## Introduction
 
-@pgkit/client is a PostgreSQL client, to be used in any application that uses PostgreSQL as a database.
+@pgkit/client is a PostgreSQL client, to be used in any application with a PostgreSQL database.
 
-The basic ideas is this: PostgreSQL is really, really well designed. SQL as as language has been refined over decades, and is clearly understood. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database. @pgkit/client allows you to write SQL queries - no matter how complex they may be, and whatever niche PostgreSQL features they may use - and get precise TypeScript types for the results, and protection against SQL injection attacks by parameterizing the inputs. See the [protections section](#protections) for more details.
+The basic ideas is this: PostgreSQL is well designed. SQL as as language has been refined over decades, and its strengths, weaknesses and tradeoffs are widely known. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database.
+
+@pgkit/client allows you to write SQL queries - no matter how complex they may be, and whatever niche PostgreSQL features they may use. You will get precise TypeScript types for the results, without sacrificing the protection against SQL injection attacks that ORMs offer. See the [types](#types) and [protections](#protections) sections for more details on how.
 
 Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excellent SQL client, and the reasons for using it over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section.
-
-![](./images/logo.png)
 
 # Contents
 
@@ -21,7 +23,7 @@ Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excel
    - [Protection against hanging connections](#protection-against-hanging-connections)
    - [Protection against hanging transactions](#protection-against-hanging-transactions)
 - [Get started](#get-started)
-- [API](#api)
+- [`sql` API](#sql-api)
    - [sql.array:](#sqlarray)
    - [sql.identifier:](#sqlidentifier)
    - [sql.unnest:](#sqlunnest)
@@ -31,6 +33,7 @@ Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excel
    - [sql.binary:](#sqlbinary)
    - [sql.json:](#sqljson)
    - [sql.jsonb:](#sqljsonb)
+   - [JSON.stringify:](#jsonstringify)
    - [sql.literalValue:](#sqlliteralvalue)
    - [sub-transactions:](#sub-transactions)
    - [transaction savepoints:](#transaction-savepoints)
@@ -85,26 +88,30 @@ await client.query(sql`
 `)
 ```
 
-@pgkit/client will handle this without any problem, because the query that's actually run in the underlying layer is
+@pgkit/client will handle Bobby Tables and Adrian O'Grady without any problem, because the query that's actually run in the underlying layer is:
 
 ```ts
 await pgPromise.query('update profile set name = $1', req.body.name)
 ```
 
-@pgkit/client doesn't actually let you pass a string to its `query` methods - you must pass the result returned by the `sql` tag. By design makes it _easy to do the right thing_, and _hard to do the wrong thing_. (Note: if you really have a use case for avoiding the template tag, it's your foot and, your gun. See the docs on [`sql.raw` for more info](#sqlraw)).
+@pgkit/client doesn't let you pass a string to its various `query` methods - you must pass the result returned by the `sql` tag.
+
+By design it aims to make _easy to do the right thing_, and _hard to do the wrong thing_.
+
+(Note: if you really have a use case for avoiding the template tag, it's your foot and, your gun. See the docs on [`sql.raw` for more info](#sqlraw)).
 
 ### Protection against hanging connections
 
 Here's how you might connect to a pool in `pg` (taken directly from [their docs](https://node-postgres.com/features/connecting)):
 
 ```ts
-await pgClient.connect()
+await pg.connect()
  
-const res = await pgClient.query('SELECT NOW()')
-await pgClient.end()
+const res = await pg.query('SELECT NOW()')
+await pg.end()
 ```
 
-This works fine for the above example, because you can be fairly sure that `SELECT NOW()` will always succeed. But what about when your query throws an error? The call to `await client.end()` will never run, and the connection will be left open. You can solve this by using `try`/`finally` every time you connect, but you might find your codebase quickly littered with boilerplate along these lines. And you are responsible for never forgetting to! Here's the equivalent in @pgkit/client:
+This works fine for the above example, because you can be pretty sure that `SELECT NOW()` will always succeed. But what about when your query throws an error? The call to `await client.end()` will never run, and the connection will be left open. You can solve this by using `try`/`finally` every time you connect, but you might find your codebase quickly littered with boilerplate along these lines. And you are responsible for never forgetting to! Here's the equivalent in @pgkit/client:
 
 ```ts
 const res = await client.connect(async connection => {
@@ -129,9 +136,13 @@ See [sub-transactions](#sub-transactions) and [transaction savepoints](#transact
 
 ## Get started
 
+Install as a dependency using npm (or yarn, or pnpm, or bun):
+
 ```
 npm install @pgkit/client
 ```
+
+Create a client and start querying with it:
 
 ```ts
 import {sql, createClient} from '@pgkit/client'
@@ -139,26 +150,36 @@ import {sql, createClient} from '@pgkit/client'
 const client = createClient('postgres://postgres:postgres@localhost:5432/postgres')
 
 export const getProfile = async (id: string) => {
-    const profile = await client.one(sql`select * from profile where id = ${id}`)
-    return {
-        name: profile.name,
-    }
+  const profile = await client.one(sql`select * from profile where id = ${id}`)
+  return {
+    name: profile.name,
+  }
 }
 
 export const updateProfileName = (id: string, name: string) => {
-    await client.transaction(async tx => {
-        const profile = await tx.one(sql`
-            update profile set name = ${name} where id = ${id} returning *
-        `)
-        await tx.query(sql`
-            insert into some_other_table (foo) values (${profile.foo})
-        `)
-    })
+  await client.transaction(async tx => {
+    const profile = await tx.one(sql`
+      update profile set name = ${name} where id = ${id} returning *
+    `)
+    await tx.query(sql`
+      insert into some_other_table (foo) values (${profile.foo})
+    `)
+  })
 }
 ```
 
 
-## API
+## `sql` API
+
+The export you'll work with the most is the `sql` tag. This doubles as a a tagged template function, as well as a collection of helpers exposed as properties on the `sql` export.
+
+The simplest usage is as above, just using `sql` as a tagged template function:
+
+```ts
+await client.query(sql`insert into profile (id, name) values (1, 'one')`)
+```
+
+Here's a usage example for each of the `sql...` methods:
 
 <!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3} -->
 ### sql.array:
@@ -274,24 +295,28 @@ const insert = await client.one(sql`
 `)
 
 expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
-
-const insert3 = await client.one(sql`
-  insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
-  returning *
-`)
-
-expect(insert3).toEqual(insert)
 ```
 
 ### sql.jsonb:
 
 ```typescript
-const insert2 = await client.one(sql`
+const insert = await client.one(sql`
   insert into jsonb_test values (1, ${sql.jsonb({foo: 'bar'})})
   returning *
 `)
 
-expect(insert2).toEqual(insert2)
+expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+```
+
+### JSON.stringify:
+
+```typescript
+const insert = await client.one(sql`
+  insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
+  returning *
+`)
+
+expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
 ```
 
 ### sql.literalValue:
@@ -440,7 +465,10 @@ const profiles = await client.any(sql<{id: string; name: string}>`select * from 
 If you like, you can use [zod](https://npmjs.com/package/zod) to parse query results:
 
 ```ts
-const Profile = z.object({id: z.string(), name: z.string()})
+const Profile = z.object({
+  id: z.string(),
+  name: z.string(),
+})
 
 const profiles = await client.any(sql.type(Profile)`select * from profile`)
 ```
@@ -452,13 +480,104 @@ Note that zod is not a dependency of this library, nor even a peer dependency. I
 ```ts
 import * as v from 'valibot'
 
-const ProfileSchema = v.object({id: v.string(), name: v.string()})
+const ProfileSchema = v.object({
+  id: v.string(),
+  name: v.string(),
+})
 const Profile = {
-    parse: (input: unknown) => v.parse(ProfileSchema, input),
+  parse: (input: unknown) => v.parse(ProfileSchema, input),
 }
 
 const profiles = await client.any(sql.type(Profile)`select * from profile`)
 ```
+
+You can use any zod features here. For example:
+
+<!-- codegen:start {preset: markdownFromTests, source: test/zod.test.ts} -->
+Transform rows:
+
+```typescript
+const Row = z.object({
+  id: z.number(),
+  location: z
+    .string()
+    .regex(/^-?\d+,-?\d+$/)
+    .transform(s => {
+      const [lat, lon] = s.split(',')
+      return {lat: Number(lat), lon: Number(lon)}
+    }),
+})
+
+const result = await client.any(sql.type(Row)`
+  select * from zod_test
+`)
+
+expect(result).toMatchInlineSnapshot(`
+  [
+    {
+      "id": 1,
+      "location": {
+        "lat": 70,
+        "lon": -108
+      }
+    },
+    {
+      "id": 2,
+      "location": {
+        "lat": 71,
+        "lon": -102
+      }
+    },
+    {
+      "id": 3,
+      "location": {
+        "lat": 66,
+        "lon": -90
+      }
+    }
+  ]
+`)
+```
+
+Refine schemas:
+
+```typescript
+const Row = z.object({
+  id: z.number().refine(n => n % 2 === 0, {message: 'id must be even'}),
+  name: z.string(),
+})
+
+const getResult = () =>
+  client.any(sql.type(Row)`
+    select * from recipes_test
+  `)
+
+await expect(getResult()).rejects.toMatchInlineSnapshot(`
+  {
+    "cause": {
+      "query": {
+        "name": "select-recipes_test_6e1b6e6",
+        "sql": "\\n      select * from recipes_test\\n    ",
+        "token": "sql",
+        "values": []
+      },
+      "error": {
+        "issues": [
+          {
+            "code": "custom",
+            "message": "id must be even",
+            "path": [
+              "id"
+            ]
+          }
+        ],
+        "name": "ZodError"
+      }
+    }
+  }
+`)
+```
+<!-- codegen:end -->
 
 ## Recipes
 
@@ -936,6 +1055,7 @@ expect((err as QueryError).cause?.error?.stack).toMatchInlineSnapshot(`
 At time of writing, @pgkit/client does not support streaming queries yet. You can always drop down to the the pg-promise driving client to achieve this though.
 
 #### Interceptors
+
 
 Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
 
