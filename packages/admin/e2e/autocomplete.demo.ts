@@ -4,6 +4,11 @@ import {test, dedent} from './helpers'
 test('autocomplete', async ({page, cell}) => {
   await page.goto(appUrl)
   const delay = demo?.typingDelay
+
+  const demoPause = async (ms: number) => {
+    if (demo) await new Promise(r => setTimeout(r, ms))
+  }
+
   const autocomplete = async (text: string) => {
     text = dedent(text)
     await page.locator('.cm-line').nth(0).click()
@@ -13,6 +18,7 @@ test('autocomplete', async ({page, cell}) => {
     await page.keyboard.press('Meta+Space')
   }
 
+  await demoPause(3000)
   await autocomplete('select * from pro')
   await page.locator('.cm-completionLabel:has-text("products")').click()
   await page.keyboard.type(' where price < 250', {delay})
@@ -21,5 +27,5 @@ test('autocomplete', async ({page, cell}) => {
 
   await page.locator(cell(2, 2), {hasText: 'banana'}).waitFor()
 
-  if (demo) await new Promise(r => setTimeout(r, 2000))
+  await demoPause(2000)
 })
