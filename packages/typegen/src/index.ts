@@ -17,6 +17,12 @@ import {changedFiles, checkClean, containsIgnoreComment, globList, maybeDo, tryO
 
 export type {Options} from './types'
 
+const groupBy = <T>(list: T[], fn: (item: T) => string) => {
+  const groups = {} as Record<string, T[]>
+  list.forEach(item => (groups[fn(item)] ||= []).push(item))
+  return groups
+}
+
 export const generate = async (params: Partial<Options>) => {
   const {
     psqlCommand,

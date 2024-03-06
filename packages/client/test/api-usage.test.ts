@@ -43,7 +43,7 @@ test('sql.identifier', async () => {
 
 /**
  * `sql.unnest` lets you add many rows in a single query, without generating large SQL statements.
- * It also lets you pass arrays of rows rather, which is more intuitive than arrays of columns.
+ * It also lets you pass arrays of rows, which is more intuitive than arrays of columns.
  */
 test('sql.unnest', async () => {
   const values = [
@@ -85,7 +85,7 @@ test('sql.join', async () => {
 })
 
 /**
- * Lets you create reusable SQL fragments, for example a where clause.
+ * Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
  */
 test('sql.fragment', async () => {
   const condition = sql.fragment`id = 1`
@@ -99,10 +99,7 @@ test('sql.fragment', async () => {
  */
 test('sql.interval', async () => {
   const result = await client.oneFirst(sql`
-    select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({
-      days: 1,
-      hours: 1,
-    })} as ts
+    select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({days: 1, hours: 1})} as ts
   `)
   expect(result).toBeInstanceOf(Date)
   expect(result).toMatchInlineSnapshot(`2000-01-02T13:00:00.000Z`)
@@ -189,7 +186,7 @@ test('transaction savepoints', async () => {
       .transaction(async t2 => {
         await t2.query(sql`insert into usage_test(id, name) values (11, 'eleven')`)
 
-        log('count 2', await t1.oneFirst(sql`select count(1) from usage_test`))
+        log('count 2', await t2.oneFirst(sql`select count(1) from usage_test`))
 
         throw new Error(`Uh-oh`)
       })

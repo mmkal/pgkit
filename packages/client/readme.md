@@ -210,7 +210,7 @@ expect(Number(result)).toEqual(3)
 
 ### sql.unnest
 
-`sql.unnest` lets you add many rows in a single query, without generating large SQL statements. It also lets you pass arrays of rows rather, which is more intuitive than arrays of columns.
+`sql.unnest` lets you add many rows in a single query, without generating large SQL statements. It also lets you pass arrays of rows, which is more intuitive than arrays of columns.
 
 ```typescript
 const values = [
@@ -254,7 +254,7 @@ expect(result).toEqual({id: 100, name: 'one hundred'})
 
 ### sql.fragment
 
-Lets you create reusable SQL fragments, for example a where clause.
+Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
 
 ```typescript
 const condition = sql.fragment`id = 1`
@@ -269,10 +269,7 @@ A strongly typed helper for creating a PostgreSQL interval. Note that you could 
 
 ```typescript
 const result = await client.oneFirst(sql`
-  select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({
-    days: 1,
-    hours: 1,
-  })} as ts
+  select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({days: 1, hours: 1})} as ts
 `)
 expect(result).toBeInstanceOf(Date)
 expect(result).toMatchInlineSnapshot(`2000-01-02T13:00:00.000Z`)
@@ -366,7 +363,7 @@ await client.transaction(async t1 => {
     .transaction(async t2 => {
       await t2.query(sql`insert into usage_test(id, name) values (11, 'eleven')`)
 
-      log('count 2', await t1.oneFirst(sql`select count(1) from usage_test`))
+      log('count 2', await t2.oneFirst(sql`select count(1) from usage_test`))
 
       throw new Error(`Uh-oh`)
     })
@@ -840,7 +837,6 @@ const client = createClient('postgresql://', {
         }
         return value
       })
-      console.dir({statement}, {depth: 100})
       return fakeDb.public.query(statement)
     }
   },
@@ -872,16 +868,18 @@ Generally, usage of a _client_ (or pool, to use the slonik term), should be iden
 
 #### `sql`
 
-Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-case](https://github.com/gajus/slonik/issues/527) [and](https://github.com/gajus/slonik/pull/512) [options](https://github.com/gajus/slonik/pull/512), but to no avail.
+Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-cases](https://github.com/gajus/slonik/issues/527) [and](https://github.com/gajus/slonik/pull/512) [options](https://github.com/gajus/slonik/pull/512), but to no avail.
 
-In slonik, you need to use `sql.unsafe`, which is untyped. Note that recommendation is never to use it, and there's been some indication that even this will go away, but there are many examples of its usage in the slonik readme:
+In slonik, you need to use `sql.unsafe`, which is untyped. Note that recommendation is never to use it, and there's been some indication that even this will go away, but there are many examples of its usage in the slonik readme.
+
+With slonik:
 
 ```ts
-const profile = await client.one(sql.unsafe`select * from profile`)
+const profile = await slonik.one(sql.unsafe`select * from profile`)
 //    👆 has type `any`                    👆 no generic typearg supported
 ```
 
-In @pgkit/client:
+With @pgkit/client:
 
 ```ts
 const profile = await client.one(sql<Profile>`select * from profile`)
@@ -912,19 +910,22 @@ const result = await pool.one({
 
 #### Non-readonly output types
 
-This one is my fault, really. I was the one who ported slonik to TypeScript, and I carried over some FlowType `readonly`s. Unfortunately, slonik's output types are marked `readonly`, which means [they're quite awkward to work with](https://github.com/gajus/slonik/issues/218). For example, you can't pass them to a normal utility function which hasn't marked its inputs as `readonly` (even if it doesn't mutate the array). For example:
+Unfortunately, slonik's output types are marked `readonly`, which means [they're unnecessarily awkward to work with](https://github.com/gajus/slonik/issues/218). For example, you can't pass them to a normal utility function which hasn't marked its inputs as `readonly` (even if it doesn't mutate the array). For example:
 
 ```ts
 const groupBy = <T>(list: T[], fn: (item: T) => string) => {
-    // ...groupBy implementation
+  const groups = {} as Record<string, T[]>
+  list.forEach(item => (groups[fn(item)] ||= []).push(item))
+  return groups
 }
-const profiles = await client.any(sql.type(Profile)`select * from profile`)
+
+const profiles = await slonik.any(sql.type(Profile)`select * from profile`)
 
 const byEmailHost = groupBy(profiles, p => p.email.split('@')[1])
 //                          👆 type error: `profiles` is readonly, but groupBy accepts a regular array.
 ```
 
-It's fixable by making sure _all_ utility functions take readonly inputs, but this is a pain, and sometimes even leads to unnecessary calls to `.slice()`, or dangerous casting, in practice.
+It's avoidable by making sure _all_ utility functions take readonly inputs, but this is a pain, and not always practical when the utility function comes from a separate library, and sometimes even leads to unnecessary calls to `.slice()`, or dangerous casting, in practice.
 
 #### Errors
 

@@ -1,10 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`binary 1`] = `"hello"`;
+exports[`createSqlTag + sql.typeAlias 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
-exports[`interval 1`] = `2000-01-02T13:00:00.000Z`;
+exports[`createSqlTag + sql.typeAlias 2`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
-exports[`interval 2`] = `86400`;
+exports[`sql.binary 1`] = `"hello"`;
+
+exports[`sql.binary 2`] = `"hello"`;
+
+exports[`sql.interval 1`] = `946818000000`;
+
+exports[`sql.interval 2`] = `86400`;
+
+exports[`sql.interval 3`] = `946818000000`;
+
+exports[`sql.interval 4`] = `86400`;
 
 exports[`sql.type 1`] = `
 {
@@ -14,35 +24,10 @@ exports[`sql.type 1`] = `
 
 exports[`sql.type 2`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
-exports[`sql.typeAlias 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
-
-exports[`type parsers 1`] = `
+exports[`sql.type 3`] = `
 {
-  "arr": [
-    "a",
-    "b",
-    "c",
-  ],
-  "arr2": [
-    1,
-    2,
-    3,
-  ],
-  "count": 0,
-  "date": "2000-01-01",
-  "day_interval": 86400,
-  "float4": 0.4,
-  "float8": 0.8,
-  "hour_interval": 3600,
-  "json": {
-    "a": 1,
-  },
-  "jsonb": {
-    "a": 1,
-  },
-  "not_so": false,
-  "so": true,
-  "timestamp": 946728000000,
-  "timestamptz": 946728000000,
+  "foo": 1,
 }
 `;
+
+exports[`sql.type 4`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;

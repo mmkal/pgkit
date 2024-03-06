@@ -258,7 +258,6 @@ test('mocking', async () => {
           }
           return value
         })
-        console.dir({statement}, {depth: 100})
         return fakeDb.public.query(statement)
       }
     },

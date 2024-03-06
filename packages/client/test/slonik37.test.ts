@@ -7,12 +7,12 @@ import {
   Interceptor,
   createTypeParserPreset,
 } from 'slonik37'
-import {beforeAll, beforeEach, expect, expectTypeOf, test} from 'vitest'
+import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import z from 'zod'
 
 const sql = Object.assign(_sql.unsafe, _sql)
 
-let pool: Awaited<ReturnType<typeof createPool>>
+let client: Awaited<ReturnType<typeof createPool>>
 
 beforeAll(async () => {
   const createResultParserInterceptor = (): Interceptor => {
@@ -39,7 +39,7 @@ beforeAll(async () => {
     }
   }
 
-  pool = await createPool('postgresql://postgres:postgres@localhost:5432/postgres', {
+  client = await createPool('postgresql://postgres:postgres@localhost:5432/postgres', {
     interceptors: [createResultParserInterceptor()],
     typeParsers: [
       ...createTypeParserPreset(),
@@ -53,33 +53,15 @@ beforeAll(async () => {
 
 // codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [query timeout]}
 beforeEach(async () => {
-  await pool.query(sql`DROP TABLE IF EXISTS test_slonik37`)
-  await pool.query(sql`CREATE TABLE test_slonik37 (id int, name text)`)
-  await pool.query(sql`INSERT INTO test_slonik37 VALUES (1, 'one'), (2, 'two'), (3, 'three')`)
+  await client.query(sql`
+    drop table if exists test_slonik37;
+    create table test_slonik37(id int, name text);
+    insert into test_slonik37 values (1, 'one'), (2, 'two'), (3, 'three');
+  `)
 })
 
-test('pool', async () => {
-  const result1 = await pool.one(sql`SELECT 1 as foo`)
-  expect(result1).toEqual({foo: 1})
-
-  const result2 = await pool.connect(async connection => {
-    return connection.one(sql`SELECT 1 as foo`)
-  })
-  expect(result2).toEqual(result1)
-  const result3 = await pool.transaction(async tx => {
-    return tx.one(sql`SELECT 1 as foo`)
-  })
-  expect(result3).toEqual(result1)
-  const result4 = await pool.connect(async conn => {
-    return conn.transaction(async tx => {
-      return tx.one(sql`SELECT 1 as foo`)
-    })
-  })
-  expect(result4).toEqual(result1)
-})
-
-test('params', async () => {
-  const result = await pool.any(sql`
+test('sql.array', async () => {
+  const result = await client.any(sql`
     select *
     from test_slonik37
     where name = any(${sql.array(['one', 'two'], 'text')})
@@ -90,8 +72,12 @@ test('params', async () => {
   ])
 })
 
-test('identifier', async () => {
-  const result = await pool.oneFirst(sql`
+/**
+ * String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc.
+ * you can use `sql.identifier`.
+ */
+test('sql.identifier', async () => {
+  const result = await client.oneFirst(sql`
     select count(1)
     from ${sql.identifier(['public', 'test_slonik37'])}
   `)
@@ -99,18 +85,22 @@ test('identifier', async () => {
   expect(Number(result)).toEqual(3)
 })
 
-test('unnest', async () => {
-  const entries = [
+/**
+ * `sql.unnest` lets you add many rows in a single query, without generating large SQL statements.
+ * It also lets you pass arrays of rows, which is more intuitive than arrays of columns.
+ */
+test('sql.unnest', async () => {
+  const values = [
     {id: 1, name: 'one'},
     {id: 2, name: 'two'},
     {id: 3, name: 'three'},
     {id: 4, name: 'four'},
   ]
-  const result = await pool.any(sql`
+  const result = await client.any(sql`
     insert into test_slonik37(id, name)
     select *
     from ${sql.unnest(
-      entries.map(({id, name}) => [id, name]),
+      values.map(({id, name}) => [id, name]),
       ['int4', 'text'],
     )}
     returning *
@@ -124,8 +114,11 @@ test('unnest', async () => {
   ])
 })
 
-test('join fragments', async () => {
-  const [result] = await pool.any(sql`
+/**
+ * `sql.join` lets you join multiple SQL fragments with a separator.
+ */
+test('sql.join', async () => {
+  const [result] = await client.any(sql`
     update test_slonik37
     set ${sql.join([sql`name = 'one hundred'`, sql`id = 100`], sql`, `)}
     where id = 1
@@ -135,139 +128,385 @@ test('join fragments', async () => {
   expect(result).toEqual({id: 100, name: 'one hundred'})
 })
 
-test('fragment', async () => {
+/**
+ * Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
+ */
+test('sql.fragment', async () => {
   const condition = sql.fragment`id = 1`
 
-  const result = await pool.one(sql`select * from test_slonik37 where ${condition}`)
+  const result = await client.one(sql`select * from test_slonik37 where ${condition}`)
   expect(result).toEqual({id: 1, name: 'one'})
 })
 
-test('interval', async () => {
-  const result = await pool.oneFirst(sql`
-    select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({
-      days: 1,
-      hours: 1,
-    })} as ts
+/**
+ * A strongly typed helper for creating a PostgreSQL interval. Note that you could also do something like `'1 day'::interval`, but this way avoids a cast and offers typescript types.
+ */
+test('sql.interval', async () => {
+  const result = await client.oneFirst(sql`
+    select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({days: 1, hours: 1})} as ts
   `)
-  // expect(result).toBeInstanceOf(Date)
-  expect(new Date(result as string)).toMatchSnapshot()
+  expect(new Date(result)).toBeInstanceOf(Date)
+  expect(result).toMatchSnapshot()
 
-  const interval = await pool.oneFirst(sql`select ${sql.interval({days: 1})}`)
+  const interval = await client.oneFirst(sql`select ${sql.interval({days: 1})}`)
   expect(interval).toMatchSnapshot()
 })
 
-test('binary', async () => {
-  const result = await pool.oneFirst(sql`
+/**
+ * Pass a buffer value from JavaScript to PostgreSQL.
+ */
+test('sql.binary', async () => {
+  const result = await client.oneFirst(sql`
     select ${sql.binary(Buffer.from('hello'))} as b
   `)
   expect(result).toMatchSnapshot()
 })
 
-test('json', async () => {
-  await pool.query(sql`
+test('sql.json', async () => {
+  await client.query(sql`
     drop table if exists jsonb_test;
     create table jsonb_test (id int, data jsonb);
   `)
 
-  const insert = await pool.one(sql`
+  const insert = await client.one(sql`
     insert into jsonb_test values (1, ${sql.json({foo: 'bar'})})
     returning *
   `)
 
   expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
-
-  const insert3 = await pool.one(sql`
-    insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
-    returning *
-  `)
-
-  expect(insert3).toEqual(insert)
 })
 
-test('jsonb', async () => {
-  const insert2 = await pool.one(sql`
+test('sql.jsonb', async () => {
+  const insert = await client.one(sql`
     insert into jsonb_test values (1, ${sql.jsonb({foo: 'bar'})})
     returning *
   `)
 
-  expect(insert2).toEqual(insert2)
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
 })
 
-test('literalValue', async () => {
-  const result = await pool.transaction(async tx => {
+test('JSON.stringify', async () => {
+  const insert = await client.one(sql`
+    insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
+    returning *
+  `)
+
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+})
+
+/**
+ * Use `sql.literal` to inject a raw SQL string into a query. It is escaped, so safe from SQL injection, but it's not parameterized, so
+ * should only be used where parameters are not possible, i.e. for non-optimizeable SQL commands.
+ *
+ * From the [PostgreSQL documentation](https://www.postgresql.org/docs/current/plpgsql-statements.html):
+ *
+ * >PL/pgSQL variable values can be automatically inserted into optimizable SQL commands, which are SELECT, INSERT, UPDATE, DELETE, MERGE, and certain utility commands that incorporate one of these, such as EXPLAIN and CREATE TABLE ... AS SELECT. In these commands, any PL/pgSQL variable name appearing in the command text is replaced by a query parameter, and then the current value of the variable is provided as the parameter value at run time. This is exactly like the processing described earlier for expressions.
+ *
+ * For other statements, such as the below, you'll need to use `sql.literalValue`.
+ */
+test('sql.literalValue', async () => {
+  const result = await client.transaction(async tx => {
     await tx.query(sql`set local search_path to ${sql.literalValue('abc')}`)
     return tx.one(sql`show search_path`)
   })
 
   expect(result).toEqual({search_path: 'abc'})
-  const result2 = await pool.one(sql`show search_path`)
+  const result2 = await client.one(sql`show search_path`)
   expect(result2).toEqual({search_path: '"$user", public'})
 })
 
-test('type parsers', async () => {
-  const result = await pool.one(sql`
-    select
-      ${sql.interval({days: 1})} as day_interval,
-      ${sql.interval({hours: 1})} as hour_interval,
-      true as so,
-      false as not_so,
-      0.4::float4 as float4,
-      0.8::float8 as float8,
-      '{"a":1}'::json as json,
-      '{"a":1}'::jsonb as jsonb,
-      '{a,b,c}'::text[] as arr,
-      array(select id from test_slonik37) as arr2,
-      '2000-01-01T12:00:00Z'::timestamptz as timestamptz,
-      '2000-01-01T12:00:00Z'::timestamp as timestamp,
-      '2000-01-01T12:00:00Z'::date as date,
-      (select count(*) from test_slonik37 where id = -1) as count
-  `)
+/**
+ * A sub-transaction can be created from within another transaction. Under the hood, @pgkit/client
+ * will generate `savepoint` statements, so that the sub-transactions can roll back if necessary.
+ */
+test('transaction savepoints', async () => {
+  const log = vi.fn() // mock logger
+  await client.transaction(async t1 => {
+    await t1.query(sql`delete from test_slonik37`)
+    await t1.query(sql`insert into test_slonik37(id, name) values (10, 'ten')`)
+    log('count 1', await t1.oneFirst(sql`select count(1) from test_slonik37`))
 
-  expect(result).toMatchSnapshot()
-})
+    await t1
+      .transaction(async t2 => {
+        await t2.query(sql`insert into test_slonik37(id, name) values (11, 'eleven')`)
 
-test('sub-transactions', async () => {
-  const result = await pool.transaction(async t1 => {
-    const count1 = await t1.oneFirst(sql`select count(1) from test_slonik37 where id > 3`)
-    const count2 = await t1.transaction(async t2 => {
-      await t2.query(sql`insert into test_slonik37(id, name) values (5, 'five')`)
-      return t2.oneFirst(sql`select count(1) from test_slonik37 where id > 3`)
-    })
-    return {count1, count2}
+        log('count 2', await t2.oneFirst(sql`select count(1) from test_slonik37`))
+
+        throw new Error(`Uh-oh`)
+      })
+      .catch(e => {
+        log('error', e)
+      })
   })
 
-  expect(result).toEqual({count1: 0, count2: 1})
-})
+  log('count 3', await client.oneFirst(sql`select count(1) from test_slonik37`))
 
+  expect(log.mock.calls).toEqual([
+    ['count 1', 1], // after initial insert
+    ['count 2', 2], // after insert in sub-transaction
+    ['error', expect.objectContaining({message: 'Uh-oh'})], // error causing sub-transaciton rollback
+    ['count 3', 1], // back to count after initial insert - sub-transaction insert was rolled back to the savepoint
+  ])
+
+  const newRecords = await client.any(sql`select * from test_slonik37 where id >= 10`)
+  expect(newRecords).toEqual([{id: 10, name: 'ten'}])
+})
+/**
+ * `sql.type` lets you use a zod schema (or another type validator) to validate the result of a query. See the [Zod](#zod) section for more details.
+ */
 test('sql.type', async () => {
   const Fooish = z.object({foo: z.number()})
-  await expect(pool.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchSnapshot()
+  await expect(client.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchSnapshot()
 
-  await expect(pool.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchSnapshot()
+  await expect(client.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchSnapshot()
 })
 
-test('sql.typeAlias', async () => {
-  // eslint-disable-next-line mmkal/@typescript-eslint/no-shadow
+/**
+ * `createSqlTag` lets you create your own `sql` tag, which you can export and use instead of the deafult one,
+ * to add commonly-used schemas, which can be referred to by their key in the `createSqlTag` definition.
+ */
+test('createSqlTag + sql.typeAlias', async () => {
   const sql = createSqlTag({
     typeAliases: {
-      foo: z.object({
-        foo: z.string(),
+      Profile: z.object({
+        name: z.string(),
       }),
     },
   })
 
-  const result = await pool.one(sql.typeAlias('foo')`select 'hi' as foo`)
-  expectTypeOf(result).toEqualTypeOf<{foo: string}>()
-  expect(result).toEqual({foo: 'hi'})
+  const result = await client.one(sql.typeAlias('Profile')`select 'Bob' as name`)
+  expectTypeOf(result).toEqualTypeOf<{name: string}>()
+  expect(result).toEqual({name: 'Bob'})
 
-  await expect(pool.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchSnapshot()
+  await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.toMatchSnapshot()
+})
+
+test('sql.array', async () => {
+  const result = await client.any(sql`
+    select *
+    from test_slonik37
+    where name = any(${sql.array(['one', 'two'], 'text')})
+  `)
+  expect(result).toEqual([
+    {id: 1, name: 'one'},
+    {id: 2, name: 'two'},
+  ])
+})
+
+/**
+ * String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc.
+ * you can use `sql.identifier`.
+ */
+test('sql.identifier', async () => {
+  const result = await client.oneFirst(sql`
+    select count(1)
+    from ${sql.identifier(['public', 'test_slonik37'])}
+  `)
+
+  expect(Number(result)).toEqual(3)
+})
+
+/**
+ * `sql.unnest` lets you add many rows in a single query, without generating large SQL statements.
+ * It also lets you pass arrays of rows, which is more intuitive than arrays of columns.
+ */
+test('sql.unnest', async () => {
+  const values = [
+    {id: 1, name: 'one'},
+    {id: 2, name: 'two'},
+    {id: 3, name: 'three'},
+    {id: 4, name: 'four'},
+  ]
+  const result = await client.any(sql`
+    insert into test_slonik37(id, name)
+    select *
+    from ${sql.unnest(
+      values.map(({id, name}) => [id, name]),
+      ['int4', 'text'],
+    )}
+    returning *
+  `)
+
+  expect(result).toEqual([
+    {id: 1, name: 'one'},
+    {id: 2, name: 'two'},
+    {id: 3, name: 'three'},
+    {id: 4, name: 'four'},
+  ])
+})
+
+/**
+ * `sql.join` lets you join multiple SQL fragments with a separator.
+ */
+test('sql.join', async () => {
+  const [result] = await client.any(sql`
+    update test_slonik37
+    set ${sql.join([sql`name = 'one hundred'`, sql`id = 100`], sql`, `)}
+    where id = 1
+    returning *
+  `)
+
+  expect(result).toEqual({id: 100, name: 'one hundred'})
+})
+
+/**
+ * Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
+ */
+test('sql.fragment', async () => {
+  const condition = sql.fragment`id = 1`
+
+  const result = await client.one(sql`select * from test_slonik37 where ${condition}`)
+  expect(result).toEqual({id: 1, name: 'one'})
+})
+
+/**
+ * A strongly typed helper for creating a PostgreSQL interval. Note that you could also do something like `'1 day'::interval`, but this way avoids a cast and offers typescript types.
+ */
+test('sql.interval', async () => {
+  const result = await client.oneFirst(sql`
+    select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({days: 1, hours: 1})} as ts
+  `)
+  expect(new Date(result)).toBeInstanceOf(Date)
+  expect(result).toMatchSnapshot()
+
+  const interval = await client.oneFirst(sql`select ${sql.interval({days: 1})}`)
+  expect(interval).toMatchSnapshot()
+})
+
+/**
+ * Pass a buffer value from JavaScript to PostgreSQL.
+ */
+test('sql.binary', async () => {
+  const result = await client.oneFirst(sql`
+    select ${sql.binary(Buffer.from('hello'))} as b
+  `)
+  expect(result).toMatchSnapshot()
+})
+
+test('sql.json', async () => {
+  await client.query(sql`
+    drop table if exists jsonb_test;
+    create table jsonb_test (id int, data jsonb);
+  `)
+
+  const insert = await client.one(sql`
+    insert into jsonb_test values (1, ${sql.json({foo: 'bar'})})
+    returning *
+  `)
+
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+})
+
+test('sql.jsonb', async () => {
+  const insert = await client.one(sql`
+    insert into jsonb_test values (1, ${sql.jsonb({foo: 'bar'})})
+    returning *
+  `)
+
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+})
+
+test('JSON.stringify', async () => {
+  const insert = await client.one(sql`
+    insert into jsonb_test values (1, ${JSON.stringify({foo: 'bar'})})
+    returning *
+  `)
+
+  expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
+})
+
+/**
+ * Use `sql.literal` to inject a raw SQL string into a query. It is escaped, so safe from SQL injection, but it's not parameterized, so
+ * should only be used where parameters are not possible, i.e. for non-optimizeable SQL commands.
+ *
+ * From the [PostgreSQL documentation](https://www.postgresql.org/docs/current/plpgsql-statements.html):
+ *
+ * >PL/pgSQL variable values can be automatically inserted into optimizable SQL commands, which are SELECT, INSERT, UPDATE, DELETE, MERGE, and certain utility commands that incorporate one of these, such as EXPLAIN and CREATE TABLE ... AS SELECT. In these commands, any PL/pgSQL variable name appearing in the command text is replaced by a query parameter, and then the current value of the variable is provided as the parameter value at run time. This is exactly like the processing described earlier for expressions.
+ *
+ * For other statements, such as the below, you'll need to use `sql.literalValue`.
+ */
+test('sql.literalValue', async () => {
+  const result = await client.transaction(async tx => {
+    await tx.query(sql`set local search_path to ${sql.literalValue('abc')}`)
+    return tx.one(sql`show search_path`)
+  })
+
+  expect(result).toEqual({search_path: 'abc'})
+  const result2 = await client.one(sql`show search_path`)
+  expect(result2).toEqual({search_path: '"$user", public'})
+})
+
+/**
+ * A sub-transaction can be created from within another transaction. Under the hood, @pgkit/client
+ * will generate `savepoint` statements, so that the sub-transactions can roll back if necessary.
+ */
+test('transaction savepoints', async () => {
+  const log = vi.fn() // mock logger
+  await client.transaction(async t1 => {
+    await t1.query(sql`delete from test_slonik37`)
+    await t1.query(sql`insert into test_slonik37(id, name) values (10, 'ten')`)
+    log('count 1', await t1.oneFirst(sql`select count(1) from test_slonik37`))
+
+    await t1
+      .transaction(async t2 => {
+        await t2.query(sql`insert into test_slonik37(id, name) values (11, 'eleven')`)
+
+        log('count 2', await t2.oneFirst(sql`select count(1) from test_slonik37`))
+
+        throw new Error(`Uh-oh`)
+      })
+      .catch(e => {
+        log('error', e)
+      })
+  })
+
+  log('count 3', await client.oneFirst(sql`select count(1) from test_slonik37`))
+
+  expect(log.mock.calls).toEqual([
+    ['count 1', 1], // after initial insert
+    ['count 2', 2], // after insert in sub-transaction
+    ['error', expect.objectContaining({message: 'Uh-oh'})], // error causing sub-transaciton rollback
+    ['count 3', 1], // back to count after initial insert - sub-transaction insert was rolled back to the savepoint
+  ])
+
+  const newRecords = await client.any(sql`select * from test_slonik37 where id >= 10`)
+  expect(newRecords).toEqual([{id: 10, name: 'ten'}])
+})
+/**
+ * `sql.type` lets you use a zod schema (or another type validator) to validate the result of a query. See the [Zod](#zod) section for more details.
+ */
+test('sql.type', async () => {
+  const Fooish = z.object({foo: z.number()})
+  await expect(client.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchSnapshot()
+
+  await expect(client.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchSnapshot()
+})
+
+/**
+ * `createSqlTag` lets you create your own `sql` tag, which you can export and use instead of the deafult one,
+ * to add commonly-used schemas, which can be referred to by their key in the `createSqlTag` definition.
+ */
+test('createSqlTag + sql.typeAlias', async () => {
+  const sql = createSqlTag({
+    typeAliases: {
+      Profile: z.object({
+        name: z.string(),
+      }),
+    },
+  })
+
+  const result = await client.one(sql.typeAlias('Profile')`select 'Bob' as name`)
+  expectTypeOf(result).toEqualTypeOf<{name: string}>()
+  expect(result).toEqual({name: 'Bob'})
+
+  await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.toMatchSnapshot()
 })
 // codegen:end
 
 test('raw query', async () => {
   const query = 'select 1 as foo'
 
-  const result = await pool.one({
+  const result = await client.one({
     parser: z.any(),
     sql: query,
     type: 'SLONIK_TOKEN_QUERY',
