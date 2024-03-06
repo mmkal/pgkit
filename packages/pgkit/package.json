@@ -1,0 +1,36 @@
+{
+  "name": "pgkit",
+  "version": "0.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "description": "Bundled package of all the pgkit libraries",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "client": {
+      "import": "./dist/client.js",
+      "require": "./dist/client.js",
+      "types": "./dist/client.d.ts"
+    }
+  },
+  "author": "mmkal",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mmkal/slonik-tools",
+    "directory": "packages/pgkit"
+  },
+  "scripts": {
+    "prepare": "pnpm build",
+    "build": "tsc --sourceMap -p tsconfig.lib.json",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.20",
+    "eslint": "^8.56.0",
+    "vitest": "^1.2.2"
+  },
+  "dependencies": {
+    "@pgkit/client": "workspace:0.0.2-1"
+  }
+}
