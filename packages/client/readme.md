@@ -24,39 +24,38 @@ Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excel
    - [Protection against hanging transactions](#protection-against-hanging-transactions)
 - [Get started](#get-started)
 - [`sql` API](#sql-api)
-   - [sql.array:](#sqlarray)
-   - [sql.identifier:](#sqlidentifier)
-   - [sql.unnest:](#sqlunnest)
-   - [sql.join:](#sqljoin)
-   - [sql.fragment:](#sqlfragment)
-   - [sql.interval:](#sqlinterval)
-   - [sql.binary:](#sqlbinary)
-   - [sql.json:](#sqljson)
-   - [sql.jsonb:](#sqljsonb)
-   - [JSON.stringify:](#jsonstringify)
-   - [sql.literalValue:](#sqlliteralvalue)
-   - [sub-transactions:](#sub-transactions)
-   - [transaction savepoints:](#transaction-savepoints)
-   - [sql.type:](#sqltype)
-   - [sql.typeAlias:](#sqltypealias)
+   - [sql.array](#sqlarray)
+   - [sql.identifier](#sqlidentifier)
+   - [sql.unnest](#sqlunnest)
+   - [sql.join](#sqljoin)
+   - [sql.fragment](#sqlfragment)
+   - [sql.interval](#sqlinterval)
+   - [sql.binary](#sqlbinary)
+   - [sql.json](#sqljson)
+   - [sql.jsonb](#sqljsonb)
+   - [JSON.stringify](#jsonstringify)
+   - [sql.literalValue](#sqlliteralvalue)
+   - [transaction savepoints](#transaction-savepoints)
+   - [sql.type](#sqltype)
+   - [createSqlTag + sql.typeAlias](#createsqltag--sqltypealias)
 - [Types](#types)
    - [Zod](#zod)
 - [Recipes](#recipes)
-   - [Inserting many rows with sql.unnest:](#inserting-many-rows-with-sqlunnest)
-   - [Query logging:](#query-logging)
-   - [query timeouts:](#query-timeouts)
-   - [switchable clients:](#switchable-clients)
-   - [mocking:](#mocking)
+   - [Inserting many rows with sql.unnest](#inserting-many-rows-with-sqlunnest)
+   - [Query logging](#query-logging)
+   - [query timeouts](#query-timeouts)
+   - [switchable clients](#switchable-clients)
+   - [mocking](#mocking)
 - [Comparison with slonik](#comparison-with-slonik)
    - [Added features/improvements](#added-featuresimprovements)
       - [`sql`](#sql)
       - [`sql.raw`](#sqlraw)
       - [Non-readonly output types](#non-readonly-output-types)
       - [Errors](#errors)
-         - [one error:](#one-error)
-         - [maybeOne error:](#maybeone-error)
-         - [many error:](#many-error)
-         - [syntax error:](#syntax-error)
+         - [one error](#one-error)
+         - [maybeOne error](#maybeone-error)
+         - [many error](#many-error)
+         - [syntax error](#syntax-error)
    - [Missing features](#missing-features)
       - [`connection.stream`](#connectionstream)
       - [Interceptors](#interceptors)
@@ -182,7 +181,7 @@ await client.query(sql`insert into profile (id, name) values (1, 'one')`)
 Here's a usage example for each of the `sql...` methods:
 
 <!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3} -->
-### sql.array:
+### sql.array
 
 ```typescript
 const result = await client.any(sql`
@@ -196,7 +195,9 @@ expect(result).toEqual([
 ])
 ```
 
-### sql.identifier:
+### sql.identifier
+
+String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc. you can use `sql.identifier`.
 
 ```typescript
 const result = await client.oneFirst(sql`
@@ -207,10 +208,12 @@ const result = await client.oneFirst(sql`
 expect(Number(result)).toEqual(3)
 ```
 
-### sql.unnest:
+### sql.unnest
+
+`sql.unnest` lets you add many rows in a single query, without generating large SQL statements. It also lets you pass arrays of rows rather, which is more intuitive than arrays of columns.
 
 ```typescript
-const entries = [
+const values = [
   {id: 1, name: 'one'},
   {id: 2, name: 'two'},
   {id: 3, name: 'three'},
@@ -220,7 +223,7 @@ const result = await client.any(sql`
   insert into usage_test(id, name)
   select *
   from ${sql.unnest(
-    entries.map(({id, name}) => [id, name]),
+    values.map(({id, name}) => [id, name]),
     ['int4', 'text'],
   )}
   returning *
@@ -234,7 +237,9 @@ expect(result).toEqual([
 ])
 ```
 
-### sql.join:
+### sql.join
+
+`sql.join` lets you join multiple SQL fragments with a separator.
 
 ```typescript
 const [result] = await client.any(sql`
@@ -247,7 +252,9 @@ const [result] = await client.any(sql`
 expect(result).toEqual({id: 100, name: 'one hundred'})
 ```
 
-### sql.fragment:
+### sql.fragment
+
+Lets you create reusable SQL fragments, for example a where clause.
 
 ```typescript
 const condition = sql.fragment`id = 1`
@@ -256,7 +263,9 @@ const result = await client.one(sql`select * from usage_test where ${condition}`
 expect(result).toEqual({id: 1, name: 'one'})
 ```
 
-### sql.interval:
+### sql.interval
+
+A strongly typed helper for creating a PostgreSQL interval. Note that you could also do something like `'1 day'::interval`, but this way avoids a cast and offers typescript types.
 
 ```typescript
 const result = await client.oneFirst(sql`
@@ -272,7 +281,9 @@ const interval = await client.oneFirst(sql`select ${sql.interval({days: 1})}`)
 expect(interval).toMatchInlineSnapshot(`"1 day"`)
 ```
 
-### sql.binary:
+### sql.binary
+
+Pass a buffer value from JavaScript to PostgreSQL.
 
 ```typescript
 const result = await client.oneFirst(sql`
@@ -281,7 +292,7 @@ const result = await client.oneFirst(sql`
 expect(result).toMatchInlineSnapshot(`"\\x68656c6c6f"`)
 ```
 
-### sql.json:
+### sql.json
 
 ```typescript
 await client.query(sql`
@@ -297,7 +308,7 @@ const insert = await client.one(sql`
 expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
 ```
 
-### sql.jsonb:
+### sql.jsonb
 
 ```typescript
 const insert = await client.one(sql`
@@ -308,7 +319,7 @@ const insert = await client.one(sql`
 expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
 ```
 
-### JSON.stringify:
+### JSON.stringify
 
 ```typescript
 const insert = await client.one(sql`
@@ -319,7 +330,15 @@ const insert = await client.one(sql`
 expect(insert).toEqual({data: {foo: 'bar'}, id: 1})
 ```
 
-### sql.literalValue:
+### sql.literalValue
+
+Use `sql.literal` to inject a raw SQL string into a query. It is escaped, so safe from SQL injection, but it's not parameterized, so should only be used where parameters are not possible, i.e. for non-optimizeable SQL commands.
+
+From the [PostgreSQL documentation](https://www.postgresql.org/docs/current/plpgsql-statements.html):
+
+>PL/pgSQL variable values can be automatically inserted into optimizable SQL commands, which are SELECT, INSERT, UPDATE, DELETE, MERGE, and certain utility commands that incorporate one of these, such as EXPLAIN and CREATE TABLE ... AS SELECT. In these commands, any PL/pgSQL variable name appearing in the command text is replaced by a query parameter, and then the current value of the variable is provided as the parameter value at run time. This is exactly like the processing described earlier for expressions.
+
+For other statements, such as the below, you'll need to use `sql.literalValue`.
 
 ```typescript
 const result = await client.transaction(async tx => {
@@ -332,47 +351,46 @@ const result2 = await client.one(sql`show search_path`)
 expect(result2).toEqual({search_path: '"$user", public'})
 ```
 
-### sub-transactions:
+### transaction savepoints
+
+A sub-transaction can be created from within another transaction. Under the hood, @pgkit/client will generate `savepoint` statements, so that the sub-transactions can roll back if necessary.
 
 ```typescript
-const result = await client.transaction(async t1 => {
-  const count1 = await t1.oneFirst(sql`select count(1) from usage_test where id > 3`)
-  const count2 = await t1.transaction(async t2 => {
-    await t2.query(sql`insert into usage_test(id, name) values (5, 'five')`)
-    return t2.oneFirst(sql`select count(1) from usage_test where id > 3`)
-  })
-  return {count1, count2}
-})
-
-expect(result).toEqual({count1: 0, count2: 1})
-```
-
-### transaction savepoints:
-
-```typescript
-let error: Error | undefined
+const log = vi.fn() // mock logger
 await client.transaction(async t1 => {
+  await t1.query(sql`delete from usage_test`)
   await t1.query(sql`insert into usage_test(id, name) values (10, 'ten')`)
+  log('count 1', await t1.oneFirst(sql`select count(1) from usage_test`))
 
   await t1
     .transaction(async t2 => {
       await t2.query(sql`insert into usage_test(id, name) values (11, 'eleven')`)
 
+      log('count 2', await t1.oneFirst(sql`select count(1) from usage_test`))
+
       throw new Error(`Uh-oh`)
     })
     .catch(e => {
-      error = e as Error
+      log('error', e)
     })
 })
 
-expect(error).toBeInstanceOf(Error)
-expect(error).toMatchInlineSnapshot(`[Error: Uh-oh]`)
+log('count 3', await client.oneFirst(sql`select count(1) from usage_test`))
+
+expect(log.mock.calls).toEqual([
+  ['count 1', 1], // after initial insert
+  ['count 2', 2], // after insert in sub-transaction
+  ['error', expect.objectContaining({message: 'Uh-oh'})], // error causing sub-transaciton rollback
+  ['count 3', 1], // back to count after initial insert - sub-transaction insert was rolled back to the savepoint
+])
 
 const newRecords = await client.any(sql`select * from usage_test where id >= 10`)
 expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 ```
 
-### sql.type:
+### sql.type
+
+`sql.type` lets you use a zod schema (or another type validator) to validate the result of a query. See the [Zod](#zod) section for more details.
 
 ```typescript
 const Fooish = z.object({foo: z.number()})
@@ -397,29 +415,31 @@ await expect(client.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatc
 `)
 ```
 
-### sql.typeAlias:
+### createSqlTag + sql.typeAlias
+
+`createSqlTag` lets you create your own `sql` tag, which you can export and use instead of the deafult one, to add commonly-used schemas, which can be referred to by their key in the `createSqlTag` definition.
 
 ```typescript
 const sql = createSqlTag({
   typeAliases: {
-    foo: z.object({
-      foo: z.string(),
+    Profile: z.object({
+      name: z.string(),
     }),
   },
 })
 
-const result = await client.one(sql.typeAlias('foo')`select 'hi' as foo`)
-expectTypeOf(result).toEqualTypeOf<{foo: string}>()
-expect(result).toEqual({foo: 'hi'})
+const result = await client.one(sql.typeAlias('Profile')`select 'Bob' as name`)
+expectTypeOf(result).toEqualTypeOf<{name: string}>()
+expect(result).toEqual({name: 'Bob'})
 
-await expect(client.one(sql.typeAlias('foo')`select 123 as foo`)).rejects.toMatchInlineSnapshot(`
-  [Error: [Query select_1534c96]: [
+await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.toMatchInlineSnapshot(`
+  [Error: [Query select_245d49b]: [
     {
       "code": "invalid_type",
       "expected": "string",
       "received": "number",
       "path": [
-        "foo"
+        "name"
       ],
       "message": "Expected string, received number"
     }
@@ -452,6 +472,7 @@ declare namespace queries {
     }
 }
 ```
+
 
 Alternatively, you can manually define the type for a query:
 
@@ -582,7 +603,7 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
 ## Recipes
 
 <!-- codegen:start {preset: markdownFromTests, source: test/recipes.test.ts, headerLevel: 3} -->
-### Inserting many rows with sql.unnest:
+### Inserting many rows with sql.unnest
 
 ```typescript
 // Pass an array of rows to be inserted. There's only one variable in the generated SQL per column
@@ -621,7 +642,7 @@ expect(sqlProduced).toMatchInlineSnapshot(`
 `)
 ```
 
-### Query logging:
+### Query logging
 
 ```typescript
 // Simplistic way of logging query times. For more accurate results, use process.hrtime()
@@ -684,7 +705,7 @@ expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
 )
 ```
 
-### query timeouts:
+### query timeouts
 
 ```typescript
 const shortTimeoutMs = 20
@@ -728,7 +749,7 @@ await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatc
 })
 ```
 
-### switchable clients:
+### switchable clients
 
 ```typescript
 const shortTimeoutMs = 20
@@ -803,7 +824,7 @@ await expect(
 })
 ```
 
-### mocking:
+### mocking
 
 ```typescript
 const fakeDb = pgMem.newDb() // https://www.npmjs.com/package/pg-mem
@@ -915,7 +936,7 @@ For errors based on the number of rows returned (for `one`, `oneFirst`, `many`, 
 <summary>Here's what some sample errors look like</summary>
 
 <!-- codegen:start {preset: markdownFromTests, source: test/errors.test.ts, headerLevel: 5} -->
-##### one error:
+##### one error
 
 ```typescript
 await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
@@ -947,7 +968,7 @@ await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMa
 )
 ```
 
-##### maybeOne error:
+##### maybeOne error
 
 ```typescript
 await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(`
@@ -977,7 +998,7 @@ await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects
 `)
 ```
 
-##### many error:
+##### many error
 
 ```typescript
 await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.toMatchInlineSnapshot(`
@@ -998,7 +1019,7 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
 `)
 ```
 
-##### syntax error:
+##### syntax error
 
 ```typescript
 await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(`

@@ -191,8 +191,8 @@ importers:
         specifier: ^8.56.0
         version: 8.56.0
       eslint-plugin-codegen:
-        specifier: ^0.24.1
-        version: 0.24.1(eslint@8.56.0)
+        specifier: ^0.25.0
+        version: 0.25.0(eslint@8.56.0)
       eslint-plugin-mmkal:
         specifier: 0.3.0-1
         version: 0.3.0-1(eslint@8.56.0)(typescript@5.3.3)
@@ -4743,8 +4743,8 @@ packages:
       - supports-color
     dev: true
 
-  /eslint-plugin-codegen@0.24.1(eslint@8.56.0):
-    resolution: {integrity: sha512-g0ckYFb4ao0uphUrNGy++jzd5u/oXKjXYQVehKZu/VPonmlCL8wQsl/h7mjPIZPpS1dDpWOa6A20cDpCsYomwg==}
+  /eslint-plugin-codegen@0.25.0(eslint@8.56.0):
+    resolution: {integrity: sha512-EmHYWF7Cne0N7NJfzyeonpUZ4Z9lUEs82U3lAY7xVsPTbu4wGdihtmg+dZYosnrwXvZJatFepDdXnBsVIMuy1w==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@babel/core': 7.23.9
