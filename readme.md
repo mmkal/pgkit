@@ -15,11 +15,11 @@ Right now, the default branch has been set to `pgkit`. You can still access slon
 <!-- codegen:start {preset: monorepoTOC} -->
 - [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A no-config admin UI for running queries against PostgreSQL database, with autocomplete for tables, columns, views, functions etc.
 - [@pgkit/client](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/client#readme) - A strongly-typed postgres client for node.js. Lets you just write SQL, safely.
-- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A port of @djrobstep's [python migra library](https://github.com/djrobstep/migra).
+- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A schema diff tool for PostgreSQL, written in TypeScript. Generates SQL scripts to migrate a database to a target state.
 - [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
-- [@pgkit/schemainspect](./packages/schemainspect) - A port of @djrobstep's [python schemainspect library](https://github.com/djrobstep/schemainspect).
+- [@pgkit/schemainspect](./packages/schemainspect) - Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions. Handles table partitioning and inheritance.
 - [@pgkit/typegen](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme) - A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql queries.
-- [pgkit](./packages/pgkit) - Bundled package of:
+- [pgkit](./packages/pgkit) - Monopackage for the [pgkit](https://github.com/mmkal/slonik-tools) family.
 <!-- codegen:end -->
 
 Intended to include:

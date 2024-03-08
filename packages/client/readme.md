@@ -14,10 +14,26 @@ The basic ideas is this: PostgreSQL is well designed. SQL as as language has bee
 
 Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excellent SQL client, and the reasons for using it over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section.
 
+## Ecosystem
+
+@pgkit/client is the basis for these libraries:
+
+<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*client)"} -->
+- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
+- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
+- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - PostgeSQL migration tool
+- [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
+- [@pgkit/typegen](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme) - Automatically generates typescript types from SQL queries
+- [pgkit](./packages/pgkit) - Bundled package of all the pgkit libraries
+<!-- codegen:end -->
+
+Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python equivalents. They are fantastically useful, and hopefully more and more can be built on top of them in the future.
+
 # Contents
 
 <!-- codegen:start {preset: markdownTOC}-->
 - [Introduction](#introduction)
+- [Ecosystem](#ecosystem)
 - [Protections](#protections)
    - [Protection against SQL injection](#protection-against-sql-injection)
    - [Protection against hanging connections](#protection-against-hanging-connections)
@@ -59,7 +75,6 @@ Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excel
    - [Missing features](#missing-features)
       - [`connection.stream`](#connectionstream)
       - [Interceptors](#interceptors)
-- [Ecosystem](#ecosystem)
 - [👽 Future](#-future)
 <!-- codegen:end -->
 
@@ -1080,18 +1095,6 @@ At time of writing, @pgkit/client does not support streaming queries yet. You ca
 
 
 Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
-
-## Ecosystem
-
-@pgkit/client is the basis for these libraries:
-
-- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A zero-config admin UI for running queries against PostgreSQL database, with autocomplete for tables, columns, views, functions etc.
-- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A port of @djrobstep's [python migra library](https://github.com/djrobstep/migra).
-- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
-- [@pgkit/schemainspect](./packages/schemainspect) - A port of @djrobstep's [python schemainspect library](https://github.com/djrobstep/schemainspect).
-- [@pgkit/typegen](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme) - A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql
-
-Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python equivalents. They are fantastically useful, and hopefully more and more can be built on top of them in the future.
 
 ## 👽 Future
 

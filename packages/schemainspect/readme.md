@@ -1,8 +1,8 @@
 # `schemainspect`: SQL Schema Inspection for PostgreSQL
 
-A port of @djrobstep's [python schemainspect library](https://github.com/djrobstep/schemainspect).
-
 Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions. Handles table partitioning and inheritance.
+
+A port of @djrobstep's [python schemainspect library](https://github.com/djrobstep/schemainspect).
 
 **Limitations:** Function inspection only confirmed to work with SQL/PLPGSQL languages so far.
 

@@ -1,5 +1,7 @@
 # pgkit
 
+Monopackage for the [pgkit](https://github.com/mmkal/slonik-tools) family.
+
 Bundled package of:
 
 - [@pgkit/client](https://npmjs.com/package/@pgkit/client)

@@ -1,5 +1,7 @@
 # migra: Like diff but for Postgres schemas
 
+A schema diff tool for PostgreSQL, written in TypeScript. Generates SQL scripts to migrate a database to a target state.
+
 A port of @djrobstep's [python migra library](https://github.com/djrobstep/migra).
 
 - ## compare schemas
@@ -7,7 +9,7 @@ A port of @djrobstep's [python migra library](https://github.com/djrobstep/migra
 - ## autosync your development database from your application models
 - ## make your schema changes testable, robust, and (mostly) automatic
 
-`migra` is a schema diff tool for PostgreSQL, written in TypeScript. Use it in your nodejs scripts, or from the command line like this:
+Use it in your nodejs scripts, or from the command line like this:
 
 ```
 npm install --global @pgkit/migra
