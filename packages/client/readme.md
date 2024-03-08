@@ -55,6 +55,7 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.type](#sqltype)
    - [createSqlTag + sql.typeAlias](#createsqltag--sqltypealias)
 - [Types](#types)
+- [Automatic type generation](#automatic-type-generation)
    - [Zod](#zod)
 - [Recipes](#recipes)
    - [Inserting many rows with sql.unnest](#inserting-many-rows-with-sqlunnest)
@@ -462,7 +463,29 @@ await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.t
 
 ## Types
 
-The companion library [@pgkit/typegen](https://npmjs.com/package/@pgkit/typegen) will add typescript types to your queries. This offers a pretty unique developer experience. You get the type-safety of an ORM, but without any of the tradeoffs: no vendor lock-in, no having to learn how to use the ORM rather than PostgreSQL, no non-performant queries, no limitations on the queries you can run.
+You can define the type for a query:
+
+```ts
+const profiles = await client.any(sql<{id: string; name: string}>`select * from profile`)
+//    👆 will have type `Array<{id: string; name: string}>`
+```
+
+It is also possible to supply a generic type argument to the `.any<...>` method, but it's better to apply it to the query itself (i.e. `` sql<...>`select ...` ``) since that decouples it from the query method you use:
+
+```ts
+type Profile = {id: string; name: string}
+const profileQuery = sql<Profile>`select id, name from profile`
+
+const profiles = await client.any(profileQuery) // has type Profile[]
+const profiles = await client.many(profileQuery) // has type Profile[]
+const queryResult = await client.query(profileQuery) // has type {rows: Profile[]}
+const profile = await client.one(profileQuery) // has type Profile
+const maybeProfile = await client.maybeOne(profileQuery) // has type Profile | null
+```
+
+## Automatic type generation
+
+The companion library [@pgkit/typegen](https://npmjs.com/package/@pgkit/typegen) will automatically typescript types to your queries, by analyzing the SQL. This offers a pretty unique developer experience. You get the type-safety of an ORM, but without any of the tradeoffs: no vendor lock-in, no having to learn how to use the ORM rather than PostgreSQL, no non-performant queries, no limitations on the queries you can run.
 
 Check out the typegen package for more details, but essentially it will analyse your SQL queries, and map PostgreSQL types to TypeScript, to transform code like this:
 
@@ -483,14 +506,6 @@ declare namespace queries {
         name: string | null
     }
 }
-```
-
-
-Alternatively, you can manually define the type for a query:
-
-```ts
-const profiles = await client.any(sql<{id: string; name: string}>`select * from profile`)
-//    👆 will have type `Array<{id: string; name: string}>`
 ```
 
 ### Zod
