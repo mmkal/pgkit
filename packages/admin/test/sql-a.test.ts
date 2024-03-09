@@ -11,6 +11,7 @@ test('table suggestion', async () => {
     {
       "errors": [],
       "suggestAggregateFunctions": true,
+      "suggestDatabases": false,
       "suggestFunctions": true,
       "suggestIndexes": false,
       "suggestKeywords": [
@@ -27,7 +28,11 @@ test('table suggestion', async () => {
           "value": "LATERAL",
         },
       ],
+      "suggestRoles": false,
+      "suggestSchemas": false,
+      "suggestSequences": false,
       "suggestTemplates": false,
+      "suggestTriggers": false,
       "suggestViewsOrTables": "ALL",
     }
   `)
@@ -54,7 +59,6 @@ test('column suggestions', async () => {
         },
       ],
       "suggestAggregateFunctions": true,
-      "suggestColumnAliases": undefined,
       "suggestColumns": {
         "tables": [
           {
@@ -63,6 +67,7 @@ test('column suggestions', async () => {
           },
         ],
       },
+      "suggestDatabases": false,
       "suggestFunctions": true,
       "suggestIndexes": false,
       "suggestKeywords": [
@@ -115,7 +120,11 @@ test('column suggestions', async () => {
           "value": "INTO",
         },
       ],
+      "suggestRoles": false,
+      "suggestSchemas": false,
+      "suggestSequences": false,
       "suggestTemplates": false,
+      "suggestTriggers": false,
       "suggestViewsOrTables": undefined,
     }
   `)

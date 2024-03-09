@@ -422,7 +422,6 @@ test('parse cte', async () => {
           },
         ],
         "suggestAggregateFunctions": true,
-        "suggestColumnAliases": undefined,
         "suggestColumns": {
           "tables": [
             {
@@ -431,6 +430,7 @@ test('parse cte', async () => {
             },
           ],
         },
+        "suggestDatabases": false,
         "suggestFunctions": true,
         "suggestIndexes": false,
         "suggestKeywords": [
@@ -463,7 +463,11 @@ test('parse cte', async () => {
           },
           "...",
         ],
+        "suggestRoles": false,
+        "suggestSchemas": false,
+        "suggestSequences": false,
         "suggestTemplates": false,
+        "suggestTriggers": false,
         "suggestViewsOrTables": undefined,
       },
     }
@@ -500,6 +504,7 @@ test('parse function call', async () => {
           },
         ],
         "suggestAggregateFunctions": true,
+        "suggestDatabases": false,
         "suggestFunctions": true,
         "suggestIndexes": false,
         "suggestKeywords": [
@@ -532,7 +537,11 @@ test('parse function call', async () => {
           },
           "...",
         ],
+        "suggestRoles": false,
+        "suggestSchemas": false,
+        "suggestSequences": false,
         "suggestTemplates": false,
+        "suggestTriggers": false,
         "suggestViewsOrTables": "ALL",
       },
     }
@@ -602,7 +611,6 @@ test('parse column', async () => {
           },
         ],
         "suggestAggregateFunctions": true,
-        "suggestColumnAliases": undefined,
         "suggestColumns": {
           "tables": [
             {
@@ -611,6 +619,7 @@ test('parse column', async () => {
             },
           ],
         },
+        "suggestDatabases": false,
         "suggestFunctions": true,
         "suggestIndexes": false,
         "suggestKeywords": [
@@ -643,7 +652,11 @@ test('parse column', async () => {
           },
           "...",
         ],
+        "suggestRoles": false,
+        "suggestSchemas": false,
+        "suggestSequences": false,
         "suggestTemplates": false,
+        "suggestTriggers": false,
         "suggestViewsOrTables": undefined,
       },
     }
@@ -713,6 +726,7 @@ test('suggest table', async () => {
           },
         ],
         "suggestAggregateFunctions": true,
+        "suggestDatabases": false,
         "suggestFunctions": true,
         "suggestIndexes": false,
         "suggestKeywords": [
@@ -729,7 +743,11 @@ test('suggest table', async () => {
             "value": "LATERAL",
           },
         ],
+        "suggestRoles": false,
+        "suggestSchemas": false,
+        "suggestSequences": false,
         "suggestTemplates": false,
+        "suggestTriggers": false,
         "suggestViewsOrTables": "ALL",
       },
     }
@@ -768,6 +786,7 @@ test('parse', async () => {
           },
         ],
         "suggestAggregateFunctions": false,
+        "suggestDatabases": false,
         "suggestFunctions": false,
         "suggestIndexes": false,
         "suggestKeywords": [
@@ -800,7 +819,11 @@ test('parse', async () => {
           },
           "...",
         ],
+        "suggestRoles": false,
+        "suggestSchemas": false,
+        "suggestSequences": false,
         "suggestTemplates": false,
+        "suggestTriggers": false,
         "suggestViewsOrTables": undefined,
       },
     }
