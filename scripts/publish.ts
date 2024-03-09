@@ -5,7 +5,7 @@ import * as path from 'path'
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer'
 import * as semver from 'semver'
 import {inspect} from 'util'
-import sortPackageJson from 'sort-package-json'
+import {sortPackageJson} from 'sort-package-json'
 
 const main = async () => {
   const packageJsonFilepath = (pkg: PkgMeta, type: 'local' | 'registry') =>
@@ -19,6 +19,15 @@ const main = async () => {
     if (!fs.existsSync(filepath)) return null
     return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
   }
+  const allReleaseTypes: readonly semver.ReleaseType[] = [
+    'patch',
+    'minor',
+    'major',
+    'prepatch',
+    'preminor',
+    'premajor',
+    'prerelease',
+  ]
   type Ctx = {
     tempDir: string
     versionStrategy: {type: 'fixed'; version: string} | {type: 'independent'}
@@ -157,7 +166,7 @@ const main = async () => {
           const maxVersion = allVersions.sort(semver.compare).at(-1) || '0.0.0'
           if (!maxVersion) throw new Error(`No versions found`)
 
-          const releaseTypes: semver.ReleaseType[] = ['patch', 'minor', 'major', 'prepatch', 'preminor', 'premajor']
+          let releaseTypes = allReleaseTypes.filter(r => r !== 'prerelease')
           semver.prerelease(maxVersion) ? releaseTypes.unshift('prerelease') : releaseTypes.push('prerelease')
 
           let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
@@ -175,19 +184,24 @@ const main = async () => {
                 message: 'Other (please specify)',
                 value: 'other',
               },
+              {
+                message: 'Independent (each package will have its own version)',
+                value: 'independent',
+              },
             ],
           })
 
-          if (bumpedVersion === 'other') {
+          if (bumpedVersion === 'independent') {
+            ctx.versionStrategy = {type: 'independent'}
+          } else if (bumpedVersion === 'other') {
             bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
               type: 'Input',
               message: `Enter a custom version (must be greater than ${maxVersion})`,
               validate: input => Boolean(semver.valid(input)) && semver.gt(input, maxVersion || '0.0.0'),
             })
+          } else {
+            ctx.versionStrategy = {type: 'fixed', version: bumpedVersion}
           }
-
-          // todo: use enquirer to ask
-          ctx.versionStrategy = {type: 'fixed', version: bumpedVersion}
           task.output = inspect(ctx.versionStrategy)
         },
       },
@@ -285,12 +299,12 @@ const main = async () => {
                 }
 
                 if (localRef && registryRef) {
-                  // await execa('git', ['diff', registryRef, localRef, '--', '.'], {
-                  //   cwd: pkg.path,
-                  //   stdout: {
-                  //     file: path.join(changesFolder, 'source.diff'),
-                  //   },
-                  // })
+                  await execa('git', ['diff', registryRef, localRef, '--', '.'], {
+                    cwd: pkg.path,
+                    stdout: {
+                      file: path.join(changesFolder, 'source.diff'),
+                    },
+                  })
                 }
               },
             })),

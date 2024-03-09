@@ -12,18 +12,18 @@ The basic ideas is this: PostgreSQL is well designed. SQL as as language has bee
 
 @pgkit/client allows you to write SQL queries - no matter how complex they may be, and whatever niche PostgreSQL features they may use. You will get precise TypeScript types for the results, without sacrificing the protection against SQL injection attacks that ORMs offer. See the [types](#types) and [protections](#protections) sections for more details on how.
 
-Its API design is based on [slonik](https://npmjs.com/package/slonik) - an excellent SQL client, and the reasons for using it over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section.
+The API design is based on [slonik](https://npmjs.com/package/slonik) - an excellent SQL client, and the reasons for using it over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section. The driver for @pgkit/client is [pg-promise](https://npmjs.com/package/pg-promise).
 
 ## Ecosystem
 
 @pgkit/client is the basis for these libraries:
 
-<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(client|^pgkit$))"} -->
-- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
-- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
-- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - PostgeSQL migration tool
-- [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
+<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(client|^pgkit$))", sort: topological} -->
 - [@pgkit/typegen](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme) - Automatically generates typescript types from SQL queries
+- [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
+- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
+- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
+- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - PostgeSQL migration tool
 <!-- codegen:end -->
 
 Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python equivalents. They are fantastically useful, and hopefully more and more can be built on top of them in the future.
@@ -82,7 +82,7 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
 
 ### Protection against SQL injection
 
-@pgkit/client uses a tagged template literal, usually imported as `sql`, to prevent [SQL injection attacks](https://owasp.org/www-community/attacks/SQL_Injection). In a library like `pg`, or `pg-promise` (which, are dependencies of this library, and this is _not_ the recommended way to use them!), you would be able to do something like this:
+@pgkit/client uses a tagged template literal, usually imported as `sql`, to prevent [SQL injection attacks](https://owasp.org/www-community/attacks/SQL_Injection). In a library like `pg`, or `pg-promise` (which are dependencies of this library, and this is _not_ the recommended way to use them!), you would be able to do something like this:
 
 ```ts
 await pgPromise.query(`
@@ -91,7 +91,7 @@ await pgPromise.query(`
 `)
 ```
 
-Which will work fine for the majority of users. Until an [evil user](https://xkcd.com/327) sends a POST request looking something like `{ "name": "''; drop table profile" }`. (In fact, with the above code, even an innocent user with an apostrophe in their name might be unable to update their profile!)
+Which will work for some users. Until an [evil user](https://xkcd.com/327) sends a POST request looking something like `{ "name": "''; drop table profile" }`. (In fact, with the above code, even an innocent user with an apostrophe in their name might be unable to update their profile!)
 
 By contrast, here's how you would have to write this query in @pgkit/client:
 
@@ -108,9 +108,9 @@ await client.query(sql`
 await pgPromise.query('update profile set name = $1', req.body.name)
 ```
 
-@pgkit/client doesn't let you pass a string to its various `query` methods - you must pass the result returned by the `sql` tag.
+The above is more like the recommended way of using `pg-promise`. @pgkit/client doesn't let you pass a string to its various `query` methods - you must pass the result returned by the `sql` tag.
 
-By design it aims to make _easy to do the right thing_, and _hard to do the wrong thing_.
+The idea is to make it _easy to do the right thing_, and _hard to do the wrong thing_.
 
 (Note: if you really have a use case for avoiding the template tag, it's your foot and, your gun. See the docs on [`sql.raw` for more info](#sqlraw)).
 

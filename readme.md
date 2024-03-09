@@ -12,16 +12,16 @@ Right now, the default branch has been set to `pgkit`. You can still access slon
 
 (almost) everything you need for working with postgres in node.js
 
-<!-- codegen:start {preset: monorepoTOC} -->
-- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A no-config admin UI for running queries against PostgreSQL database, with autocomplete for tables, columns, views, functions etc.
+<!-- codegen:start {preset: monorepoTOC, sort: topological, filter: '@pgkit'} -->
 - [@pgkit/client](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/client#readme) - A strongly-typed postgres client for node.js. Lets you just write SQL, safely.
-- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A schema diff tool for PostgreSQL, written in TypeScript. Generates SQL scripts to migrate a database to a target state.
-- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
-- [@pgkit/schemainspect](./packages/schemainspect) - Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions. Handles table partitioning and inheritance.
 - [@pgkit/typegen](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme) - A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql queries.
-- [pgkit](./packages/pgkit) - Monopackage for the [pgkit](https://github.com/mmkal/slonik-tools) family.
+- [@pgkit/schemainspect](./packages/schemainspect) - Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions. Handles table partitioning and inheritance.
+- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A schema diff tool for PostgreSQL, written in TypeScript. Generates SQL scripts to migrate a database to a target state.
+- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A no-config admin UI for running queries against PostgreSQL database, with autocomplete for tables, columns, views, functions etc.
+- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
 <!-- codegen:end -->
 
-Intended to include:
+Intended to include, some day:
 
-- A SQL formatter
+- A SQL formatter - [sql-formatter](https://www.npmjs.com/package/sql-formatter) and [@sqltools/formatter](https://www.npmjs.com/package/@sqltools/formatter) are good options, but produce pretty verbose statements. [prettier-plugin-sql-cst](https://github.com/nene/prettier-plugin-sql-cst) is fantastic, but requires prettier.
+- A barrel package of all the above, for convenient installation

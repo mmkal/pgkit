@@ -154,8 +154,8 @@ importers:
         specifier: ^8.56.0
         version: 8.56.0
       eslint-plugin-codegen:
-        specifier: ^0.25.0
-        version: 0.25.0(eslint@8.56.0)
+        specifier: ^0.26.0
+        version: 0.26.0(eslint@8.56.0)
       strip-indent:
         specifier: ^4.0.0
         version: 4.0.0
@@ -203,8 +203,8 @@ importers:
         specifier: ^8.56.0
         version: 8.56.0
       eslint-plugin-codegen:
-        specifier: ^0.25.0
-        version: 0.25.0(eslint@8.56.0)
+        specifier: ^0.26.0
+        version: 0.26.0(eslint@8.56.0)
       eslint-plugin-mmkal:
         specifier: 0.3.0-1
         version: 0.3.0-1(eslint@8.56.0)(typescript@5.3.3)
@@ -1667,6 +1667,11 @@ packages:
   /@pnpm/config.env-replace@1.1.0:
     resolution: {integrity: sha512-htyl8TWnKL7K/ESFa1oW2UB5lVDxuF5DpM7tBi6Hu2LNL3mWkIzNLG6N4zoCUP1lCKNxWy/3iu8mS8MvToGd6w==}
     engines: {node: '>=12.22.0'}
+    dev: true
+
+  /@pnpm/deps.graph-sequencer@1.0.0:
+    resolution: {integrity: sha512-vWWVbYYBBN/kweokmURicokyg7crzcDZo9/naziv8B8RSWrLWFpq5Xl0ro6QCQKgRmb6O78Qy9uQT+Fp79RxsA==}
+    engines: {node: '>=16.14'}
     dev: true
 
   /@pnpm/network.ca-file@1.0.2:
@@ -4771,14 +4776,15 @@ packages:
       - supports-color
     dev: true
 
-  /eslint-plugin-codegen@0.25.0(eslint@8.56.0):
-    resolution: {integrity: sha512-EmHYWF7Cne0N7NJfzyeonpUZ4Z9lUEs82U3lAY7xVsPTbu4wGdihtmg+dZYosnrwXvZJatFepDdXnBsVIMuy1w==}
+  /eslint-plugin-codegen@0.26.0(eslint@8.56.0):
+    resolution: {integrity: sha512-KC6+RYVR9U2mVrxeyE4XMrAQun3R8m8RtOB1PVeV5/4McUq4r1b0L9lxyZ5CUlbwCraupH+LlQYxkPFyXnc5tg==}
     engines: {node: '>=12.0.0'}
     dependencies:
       '@babel/core': 7.23.9
       '@babel/generator': 7.12.17
       '@babel/parser': 7.23.9
       '@babel/traverse': 7.23.9
+      '@pnpm/deps.graph-sequencer': 1.0.0
       '@types/dedent': 0.7.0
       '@types/eslint': 8.56.2
       '@types/glob': 7.1.3
