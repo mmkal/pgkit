@@ -30,6 +30,7 @@ A no-config admin UI for running queries against PostgreSQL database, with autoc
 - results which can be copy-pasted directly into Excel or Google Sheets (using [reactgrid](https://reactgrid.com))
 - [schemainspect](https://npmjs.com/package/@pgkit/schemainstpect) explorer of the full schema
 - Simple but informative error reporting
+- Multi-statement handling - each query gets a collapsible result table
 - Queries stored in `localStorage` so your work is saved between sessions
 
 ### What about pgAdmin
