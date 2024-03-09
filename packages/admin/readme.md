@@ -105,7 +105,7 @@ import express from 'express'
 
 const authMiddleware = getMyAuthMiddlewareSomehow() // e.g. https://authjs.dev/reference/express or https://clerk.com/docs/backend-requests/handling/nodejs
 
-const client = createClient(process.env.PG_CONNECTION_STRING!)
+const client = createClient(process.env.PG_CONNECTION_STRING)
 
 const apiMiddleware = createExpressMiddleware({
   router: appRouter,
