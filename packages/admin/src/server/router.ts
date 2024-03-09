@@ -1,4 +1,4 @@
-import {createClient, sql} from '@pgkit/client'
+import {sql} from '@pgkit/client'
 import {PostgreSQL} from '@pgkit/schemainspect'
 import {z} from 'zod'
 import {runQuery} from './query.js'
@@ -14,7 +14,7 @@ export const appRouter = trpc.router({
     )
     .mutation(async ({input, ctx}) => {
       return {
-        results: await runQuery(input.query, ctx.connectionString),
+        results: await runQuery(input.query, ctx),
       }
     }),
   inspect: publicProcedure
@@ -25,7 +25,7 @@ export const appRouter = trpc.router({
       }),
     )
     .query(async ({input, ctx}) => {
-      const client = createClient(ctx.connectionString)
+      const client = ctx.connection
       const inspector = await PostgreSQL.create(client)
       const searchPath = await client.oneFirst<{search_path: string}>(sql`show search_path`)
       return {

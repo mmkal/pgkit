@@ -1,13 +1,10 @@
-import {Client, Queryable, createClient, nameQuery, sql} from '@pgkit/client'
+import {Queryable, nameQuery, sql} from '@pgkit/client'
 import * as parser from 'pgsql-ast-parser'
+import {type ServerContext} from './context.js'
 
-const clients = {} as Record<string, Client>
-export const runQuery = async (query: string, connectionString: string) => {
-  clients[connectionString] ||= createClient(connectionString)
-  const client = clients[connectionString]
-
+export const runQuery = async (query: string, {connection}: ServerContext) => {
   if (query.startsWith('--no-parse\n')) {
-    return [await runOneQuery(query, client)]
+    return [await runOneQuery(query, connection)]
   }
 
   let parsed: parser.Statement[]
@@ -25,7 +22,7 @@ export const runQuery = async (query: string, connectionString: string) => {
   }
 
   const results = [] as QueryResult[]
-  await client
+  await connection
     .transaction(async tx => {
       for (const stmt of parsed) {
         const statementSql = stmt._location
@@ -45,7 +42,7 @@ export const runQuery = async (query: string, connectionString: string) => {
       }
     })
     .catch((e: unknown) => {
-      const error = new Error(`Transaction rolled back`, {cause: e})
+      const error = new Error(`Transaction failed`, {cause: e})
       makeJsonable(error)
       results.push({query: nameQuery([query]), original: query, error, result: null})
     })

@@ -89,6 +89,9 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
 }
 
 export const createClient = (connectionString: string, options: ClientOptions = {}): Client => {
+  if (typeof connectionString !== 'string') throw new Error(`Expected connectionString, got ${typeof connectionString}`)
+  if (!connectionString) throw new Error(`Expected a valid connectionString, got "${connectionString}"`)
+
   const {pgpOptions = {}, setTypeParsers = setRecommendedTypeParsers, wrapQueryFn} = options
   const pgp = pgPromise(pgpOptions)
 

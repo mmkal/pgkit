@@ -1,8 +1,5 @@
 import {initTRPC} from '@trpc/server'
-
-export interface ServerContext {
-  connectionString: string
-}
+import {ServerContext} from './context.js'
 
 export const trpc = initTRPC.context<ServerContext>().create()
 

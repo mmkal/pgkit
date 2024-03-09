@@ -23,3 +23,4 @@ export const getExpressRouter = (): express.RequestHandler => {
 export {appRouter, type AppRouter} from './router.js'
 export {apiMiddleware} from './middleware.js'
 export const clientMiddleware: express.RequestHandler = express.static(path.join(__dirname, '../client'))
+export * from './context.js'

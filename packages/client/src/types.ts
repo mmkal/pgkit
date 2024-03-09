@@ -33,10 +33,12 @@ export interface Queryable {
   manyFirst<Result>(query: SQLQuery<Result>): Promise<Array<First<Result>>>
 }
 
-export interface Connection extends Queryable {
+export interface Transactable extends Queryable {
+  transaction<T>(callback: (connection: Transaction) => Promise<T>): Promise<T>
+}
+export interface Connection extends Transactable {
   // todo: consolidate this with `transactionInfo`, and include a nullable `parent` property
   connectionInfo: {pgp: pgPromise.ITask<unknown> | pgPromise.IDatabase<unknown>}
-  transaction<T>(callback: (connection: Transaction) => Promise<T>): Promise<T>
 }
 
 export interface Transaction extends Connection {

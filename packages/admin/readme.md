@@ -13,7 +13,8 @@ A no-config admin UI for running queries against PostgreSQL database, with autoc
    - [What about pgAdmin](#what-about-pgadmin)
 - [Get started](#get-started)
 - [Use as a library](#use-as-a-library)
-- [Auth](#auth)
+- [Deployment](#deployment)
+   - [Auth](#auth)
 - [👽 Future](#-future)
 <!-- codegen:end -->
 
@@ -76,34 +77,39 @@ app.use(getExpressRouter())
 app.listen(5050)
 ```
 
-For lower-level control, you can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
+## Deployment
+
+If you would like to deploy the UI - for example, to an internal admin site - you can use it as a library from node.js. You can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
 
 ```ts
-import {apiMiddleware, clientMiddleware, appRouter} from '@pgkit/admin'
+import {apiMiddleware, clientMiddleware} from '@pgkit/admin'
+import express from 'express'
+
+const app = express()
+
+app.use(clientMiddleware)
+app.use(apiMiddleware)
 ```
 
-## Auth
+### Auth
 
-Auth isn't built in. @pgkit/admin was built primarily with a dev use case in mind, running against localhost. If you want to use it against a production database, you are responsible for authenticating database calls.
+Auth isn't built in, but is easy to add using almost any auth solution for node.js. @pgkit/admin can run against a local database with no setup needed. If you want to use it against a production database, you are responsible for authenticating database calls.
 
-The simplest usage for local development is to send a `connection-string` header, which is fine for a local db, where the value might be something like `connection-string: postgresql://postgres:postgres@localhost:5432/postgres`. However headers sent to the backend are stored in localStorage on the client. So you likely wouldn't want to use this method for production. Instead, you can perform whatever auth checks necessary in a middleware in the backend, and use trpc to create your own middleware, which doesn't get the connection string from headers.
+The simplest usage for local development is to use the UI to set a `connection-string` header, which will be used by the local server to connect to the database. This is fine for a local db, where the value might be something you're not worried about storing in your browser's `localStorage` like `connection-string: postgresql://`. But you likely wouldn't want to (or couldn't) use this method for production. Instead, you can create a server middleware, perform whatever auth checks necessary in a middleware in the backend, and use trpc to create your own middleware, which doesn't get the connection string from headers.
 
 ```ts
 import {createExpressMiddleware} from '@trpc/server/adapters/express'
 import {appRouter, clientMiddleware} from '@pgkit/admin'
+import {createClient} from '@pgkit/admin'
 import express from 'express'
 
-const authMiddleware = getMyAuthMiddlewareSomehow() // e.g. https://authjs.dev/reference/express
+const authMiddleware = getMyAuthMiddlewareSomehow() // e.g. https://authjs.dev/reference/express or https://clerk.com/docs/backend-requests/handling/nodejs
+
+const client = createClient(process.env.PG_CONNECTION_STRING!)
 
 const apiMiddleware = createExpressMiddleware({
   router: appRouter,
-  createContext: ({req}) => {
-    const connectionString = process.env.PG_CONNECTION_STRING
-    if (!connectionString) {
-        throw new Error(`Missing connection string in env`)
-    }
-    return {connectionString}
-  },
+  createContext: () => ({connection: client}),
 })
 
 const app = express()
@@ -114,6 +120,8 @@ app.use(apiMiddleware)
 
 app.listen(7003)
 ```
+
+`express` is not a dependency. You can use adapters for any server framework (including a standalone node.js server) with the trpc router. See [trpc docs on adapters](https://trpc.io/docs/server/adapters) for examples of how to use with fastify, Next.js, AWS lambda, and edge runtimes.
 
 ## 👽 Future
 
