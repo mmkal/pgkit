@@ -10,4 +10,3 @@ export * as pg from './pg'
 export * as misc from './misc'
 
 export * from './isa-asa'
-export * from './sqlbag'

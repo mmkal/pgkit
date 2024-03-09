@@ -2,7 +2,7 @@ import {createClient, createPool, sql} from '@pgkit/client'
 import * as fs from 'fs'
 import * as path from 'path'
 import {beforeAll, expect, test} from 'vitest'
-import {PostgreSQL, SqlbagS} from '../src'
+import {PostgreSQL} from '../src'
 
 export let admin: Awaited<ReturnType<typeof createPool>>
 
@@ -25,7 +25,7 @@ test.sequential.each([['collations'], ['everything']] as const)(
 
     await client.query(sql.raw(await fs.promises.readFile(sqlFile, 'utf8')))
 
-    const inspector = await PostgreSQL.create(new SqlbagS(connectionString))
+    const inspector = await PostgreSQL.create(client)
 
     const json = JSON.parse(JSON.stringify(inspector.toJSON()))
 
@@ -35,7 +35,7 @@ test.sequential.each([['collations'], ['everything']] as const)(
     const code = `${JSON.stringify(json, null, 2)}\n`
     await expect(code).toMatchFileSnapshot(`./__snapshots__/${name}.json`)
 
-    // const migration = await Migration.create(clone, new SqlbagS(b), {})
+    // const migration = await Migration.create(clone, b, {})
     // migration.set_safety(false)
     // migration.add_all_changes()
 

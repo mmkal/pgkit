@@ -1,5 +1,5 @@
 import {createClient, sql} from '@pgkit/client'
-import {PostgreSQL, SqlbagS} from '@pgkit/schemainspect'
+import {PostgreSQL} from '@pgkit/schemainspect'
 import {readFileSync} from 'fs'
 import {expect, test} from 'vitest'
 
@@ -15,7 +15,7 @@ test('seed', async () => {
 
   await client.query(sql.raw(query))
 
-  const inspector = await PostgreSQL.create(new SqlbagS(client.connectionString()))
+  const inspector = await PostgreSQL.create(client)
   const json = JSON.stringify(inspector, null, 2)
 
   await expect(json).toMatchFileSnapshot('__snapshots__/seed.json')

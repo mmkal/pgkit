@@ -1,4 +1,5 @@
-import {SqlbagS, PostgreSQL} from '@pgkit/schemainspect'
+import {createClient} from '@pgkit/client'
+import {PostgreSQL} from '@pgkit/schemainspect'
 import {readFile} from 'fs/promises'
 import {Migration} from './migra'
 
@@ -19,7 +20,7 @@ const argContext = async (x: string) => {
     return PostgreSQL.fromJSON(await response.json())
   }
 
-  return new SqlbagS(x)
+  return createClient(x)
 }
 
 export type Flags = Partial<CLI['flags']>

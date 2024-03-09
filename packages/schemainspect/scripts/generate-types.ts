@@ -3,7 +3,7 @@ import {createClient, sql} from '@pgkit/client'
 import * as fs from 'fs'
 import * as path from 'path'
 import * as quicktype from 'quicktype-core'
-import {PostgreSQL, SqlbagS} from '../src'
+import {PostgreSQL} from '../src'
 
 const main = async () => {
   const samples = [] as Array<{}>
@@ -25,8 +25,7 @@ const main = async () => {
     const client = createClient(connectionString)
     await client.query(sql.raw(await fs.promises.readFile(sqlFile, 'utf8')))
 
-    const bag = new SqlbagS(connectionString)
-    const inspector = await PostgreSQL.create(bag)
+    const inspector = await PostgreSQL.create(client)
 
     samples.push(inspector.queryResults)
 

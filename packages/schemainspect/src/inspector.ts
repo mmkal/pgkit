@@ -1,4 +1,4 @@
-import {SqlbagS} from './sqlbag'
+import {Queryable} from '@pgkit/client'
 
 export type SqlaDialect = {
   ischema_names: Record<string, () => {python_type: string}>
@@ -13,9 +13,9 @@ export abstract class DBInspector {
   engine: unknown
   dialect: SqlaDialect
   include_internal: boolean
-  c: SqlbagS
+  c: Queryable
   constructor(
-    c: SqlbagS,
+    c: Queryable,
     {include_internal = false}: {include_internal?: boolean; i_remembered_to_call_initialize_super: true},
   ) {
     this.c = c

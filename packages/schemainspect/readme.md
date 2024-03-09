@@ -17,10 +17,9 @@ npm install @pgkit/schemainspect
 Get an inspection object from an already opened SQLAlchemy session or connection as follows:
 
 ```ts
-import {SqlbagS, PostgreSQL} from '@pgkit/schemainspect'
+import {PostgreSQL} from '@pgkit/schemainspect'
 
-const connectionString = 'postgres:postgres:postgres@localhost:5432/postgres'
-const inspector = await PostgreSQL.create(new SqlbagS(connectionString))
+const inspector = await PostgreSQL.create('postgresql://')
 
 console.log(inspector.tables)
 console.log(inspector.views)

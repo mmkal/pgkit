@@ -1,5 +1,5 @@
-import {sql} from '@pgkit/client'
-import {PostgreSQL, SqlbagS} from '@pgkit/schemainspect'
+import {createClient, sql} from '@pgkit/client'
+import {PostgreSQL} from '@pgkit/schemainspect'
 import {z} from 'zod'
 import {runQuery} from './query.js'
 import {publicProcedure, trpc} from './trpc.js'
@@ -25,9 +25,8 @@ export const appRouter = trpc.router({
       }),
     )
     .query(async ({input, ctx}) => {
-      const sqlBag = new SqlbagS(ctx.connectionString)
-      const inspector = await PostgreSQL.create(sqlBag)
-      const client = await sqlBag.getClient()
+      const client = createClient(ctx.connectionString)
+      const inspector = await PostgreSQL.create(client)
       const searchPath = await client.oneFirst<{search_path: string}>(sql`show search_path`)
       return {
         inspected: filterInspected(inspector.toJSON(), input),

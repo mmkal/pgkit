@@ -9,6 +9,7 @@
 // No direct equivalent for textwrap in TypeScript. You might need a custom function or a library for similar functionality.
 
 // Assuming these are local files that export the corresponding classes or functions
+import {Queryable, createClient, sql} from '@pgkit/client'
 import * as path from 'path'
 import {AutoThisAssigner} from '../auto-this'
 import {TopologicalSorter} from '../graphlib'
@@ -16,7 +17,6 @@ import {ColumnInfo, Inspected, BaseInspectedSelectable, TableRelated, getQuotedF
 import {DBInspector} from '../inspector'
 import {asa, isa} from '../isa-asa'
 import {quoted_identifier, getResourceText} from '../misc'
-import {SqlbagS} from '../sqlbag'
 import {Queries} from '../types'
 import {groupBy, isEqual} from '../util'
 
@@ -1128,7 +1128,7 @@ export class PostgreSQL extends DBInspector {
 
   queryResults: Record<string, unknown[]> = {}
 
-  private constructor(c: SqlbagS, options: PostgreSQLOptions = {}) {
+  private constructor(c: Queryable, options: PostgreSQLOptions = {}) {
     super(c, {include_internal: options.include_internal, i_remembered_to_call_initialize_super: true})
 
     this.is_raw_psyco_connection = false
@@ -1198,7 +1198,8 @@ export class PostgreSQL extends DBInspector {
     this.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
   }
 
-  static async create(c: SqlbagS, props?: PostgreSQLOptions): Promise<PostgreSQL> {
+  static async create(connection: Queryable | string, props?: PostgreSQLOptions): Promise<PostgreSQL> {
+    const c = typeof connection === 'string' ? createClient(connection) : connection
     const instance = new PostgreSQL(c, props)
     await instance.load_all_async()
     return instance
@@ -1207,7 +1208,7 @@ export class PostgreSQL extends DBInspector {
   // deviation: pass the name of a query instead of the query itself - helps with type safety
   async execute<Name extends keyof Queries>(name: Name): Promise<Queries[Name]> {
     const query = this[name]
-    let result = await this.c.executeAsync<Queries[Name][number]>(query)
+    let result = await this.c.any<Queries[Name][number]>(sql.raw(query))
 
     if (!result) {
       // deviation: don't know what c.fetchall() is supposed to do

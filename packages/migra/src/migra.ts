@@ -1,5 +1,6 @@
 /* eslint-disable mmkal/@typescript-eslint/no-unsafe-argument */
-import {raw_execute, SqlbagS, PostgreSQL, get_inspector} from '@pgkit/schemainspect'
+import {Queryable, sql} from '@pgkit/client'
+import {PostgreSQL, get_inspector} from '@pgkit/schemainspect'
 import {Changes} from './changes'
 import {Statements} from './statements'
 
@@ -8,16 +9,16 @@ export class Migration {
   changes: Changes
   schema: string | null
   exclude_schema: string | null
-  s_from: SqlbagS | PostgreSQL
-  s_target: SqlbagS | PostgreSQL
+  s_from: Queryable | PostgreSQL
+  s_target: Queryable | PostgreSQL
 
   private constructor() {
     this.statements = new Statements()
   }
 
   static async create(
-    x_from: SqlbagS | PostgreSQL,
-    x_target: SqlbagS | PostgreSQL,
+    x_from: Queryable | PostgreSQL,
+    x_target: Queryable | PostgreSQL,
     {schema = null as string | null, exclude_schema = null as string | null, ignore_extension_versions = false},
   ) {
     // deviation: python code checked if x_from and x_target were instances of DBInspector. This just insists on being passed valid SqlbagS instances
@@ -48,7 +49,7 @@ export class Migration {
   async apply() {
     for (const stmt of this.statements) {
       const bag = this.s_from instanceof PostgreSQL ? this.s_from.c : this.s_from
-      await raw_execute(bag, stmt)
+      await bag.query(sql.raw(stmt))
     }
 
     this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schema)
@@ -61,8 +62,8 @@ export class Migration {
     this.statements.add(statements)
   }
 
-  add_sql(sql: string) {
-    this.statements.add(new Statements(sql))
+  add_sql(statement: string) {
+    this.statements.add(new Statements(statement))
   }
 
   set_safety(safety_on: boolean) {

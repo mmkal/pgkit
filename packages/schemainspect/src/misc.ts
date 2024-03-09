@@ -1,7 +1,7 @@
+import {Queryable} from '@pgkit/client'
 import {readFileSync} from 'fs'
-import {SqlbagS} from './sqlbag'
 
-export const connection_from_s_or_c = (s_or_c: SqlbagS): SqlbagS => {
+export const connection_from_s_or_c = (s_or_c: Queryable) => {
   // deviating from python: I don't understand the crazy way they build a sqlbag object so just demand one as an input and return in
   // return s_or_c.engine ? s_or_c : s_or_c.connection?.() || s_or_c
   return s_or_c
