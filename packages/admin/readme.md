@@ -100,7 +100,7 @@ The simplest usage for local development is to use the UI to set a `connection-s
 ```ts
 import {createExpressMiddleware} from '@trpc/server/adapters/express'
 import {appRouter, clientMiddleware} from '@pgkit/admin'
-import {createClient} from '@pgkit/admin'
+import {createClient} from '@pgkit/client'
 import express from 'express'
 
 const authMiddleware = getMyAuthMiddlewareSomehow() // e.g. https://authjs.dev/reference/express or https://clerk.com/docs/backend-requests/handling/nodejs
