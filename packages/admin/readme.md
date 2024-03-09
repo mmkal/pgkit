@@ -34,13 +34,13 @@ A no-config admin UI for running queries against PostgreSQL database, with autoc
 
 ### What about pgAdmin
 
-Well, mostly because pgAdmin can be a pain to configure. It (usually) requires a custom docker setup, and requires lots of laborious clicking and form-filling to create a connection to a server. It also requires login by default, even for localhost-only dev setups. Once all that's done, it still takes a fair amount of drilling-down and right clicking to just start writing a query.
+pgAdmin is great, but when all you want is a query tool it can be a pain to configure. It (usually) requires a custom docker setup, and requires lots of laborious clicking and form-filling to create a connection to a server. It also requires login by default, even for localhost-only dev setups. Once all that's done, it still takes a fair amount of drilling-down and right clicking to just start writing a query.
 
 It also became cleare that, after porting [schemainspect](https://npmjs.com/package/@pgkit/schemainstpect), it would be possible to build a tool using fresh(er) UI components* which has more useful autocomplete.
 
 It can also be more easily deployed as an internal admin tool against deployed databases, for existing stacks with a node.js backend (e.g. using express or similar). See the [library usage section](#use-as-a-library).
 
-Finally, there are plenty more features that can be added to this. It's open source, and it's a simple react app. Take a look at the [future](#future) section and feel free to open a pull request, or create an issue, if you have an idea of something you'd like added.
+Finally, there is a lot that pgAdmin does that this library doesn't. Right now, @pgkit/admin doesn't run shell scripts, visualise query plans, have any special features around auto-vacuum, etc. Having said that, there are plenty more features that can be added to this. It's open source, and it's a simple react app. Take a look at the [future](#future) section and feel free to open a pull request, or create an issue, if you have an idea of something you'd like added.
 
 *[codemirror](https://codemirror.net) and [reactgrid](https://reactgrid.com) do the heavy UI lifting.
 
