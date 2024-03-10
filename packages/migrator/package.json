@@ -33,7 +33,7 @@
     "vitest": "^1.2.2"
   },
   "dependencies": {
-    "@pgkit/client": "workspace:0.0.2-1",
+    "@pgkit/client": "workspace:^",
     "@pgkit/migra": "workspace:^",
     "@rushstack/ts-command-line": "^4.17.1",
     "umzug": "^3.7.0"

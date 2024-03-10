@@ -28,6 +28,6 @@
     "vitest": "^1.2.2"
   },
   "dependencies": {
-    "@pgkit/client": "workspace:0.0.2-1"
+    "@pgkit/client": "workspace:^"
   }
 }

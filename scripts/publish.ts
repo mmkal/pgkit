@@ -399,7 +399,8 @@ const main = async () => {
         // if the expected version is already satisfied by the registry version, then we don't need to bump it
         return
       }
-      const prefix = registryDependencyVersion?.match(/^[~^]/)?.[0] || ''
+      const prefix =
+        parseWorkspaceDependencyString(version).prefix || registryDependencyVersion?.match(/^[~^]/)?.[0] || ''
 
       newDependencies[name] = prefix + expected
       updated[name] = `${registryDependencyVersion} -> ${newDependencies[name]}`
@@ -413,6 +414,11 @@ const main = async () => {
     return {updated, dependencies: newDependencies}
   }
 
+  function parseWorkspaceDependencyString(version: string) {
+    const prefix = version.match(/^workspace:([~\^\*])/)?.[1]?.replace('*', '^') || ''
+    return {prefix}
+  }
+
   async function getPackageRevList(pkg: Pkg) {
     const fromRef = await getPackageLastPublishRef(pkg)
 
@@ -422,7 +428,11 @@ const main = async () => {
       ['rev-list', '--ancestry-path', `${fromRef}..${localRef}`, '--format=oneline', '--abbrev-commit', '--', '.'],
       {cwd: pkg.path},
     )
-    return stdout
+    const {stdout: uncommitedChanges} = await execa('git', ['status', '--porcelain', '--', '.'], {
+      cwd: pkg.path,
+    })
+    const sections = [stdout, uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges]
+    return sections.filter(Boolean).join('\n')
   }
 
   async function gatherPackageChanges(ctx: Ctx, getExpectedVersion: GetExpectedVersion) {
@@ -531,7 +541,7 @@ const main = async () => {
 
 const toBullets = (s: string) => {
   const lines = s.split('\n')
-  return lines.map(s => `- ${s}`).join('\n')
+  return lines.map(s => (s.trim() ? `- ${s}` : s)).join('\n')
 }
 
 const allReleaseTypes: readonly semver.ReleaseType[] = [

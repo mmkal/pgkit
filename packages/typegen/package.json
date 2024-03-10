@@ -29,7 +29,7 @@
     "typescript": "*"
   },
   "dependencies": {
-    "@pgkit/client": "workspace:0.0.2-1",
+    "@pgkit/client": "workspace:^",
     "@rebundled/execa": "8.0.2-next.0",
     "@rushstack/ts-command-line": "^4.11.0",
     "chokidar": "^3.5.3",

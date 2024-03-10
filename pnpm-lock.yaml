@@ -75,10 +75,10 @@ importers:
         specifier: ^6.24.1
         version: 6.24.1
       '@pgkit/client':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../client
       '@pgkit/schemainspect':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../schemainspect
       '@silevis/reactgrid':
         specifier: ^4.1.3
@@ -269,10 +269,10 @@ importers:
   packages/migra:
     dependencies:
       '@pgkit/client':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../client
       '@pgkit/schemainspect':
-        specifier: workspace:*
+        specifier: workspace:^
         version: link:../schemainspect
       meow:
         specifier: ^13.1.0
@@ -312,7 +312,7 @@ importers:
   packages/migrator:
     dependencies:
       '@pgkit/client':
-        specifier: workspace:0.0.2-1
+        specifier: workspace:^
         version: link:../client
       '@pgkit/migra':
         specifier: workspace:^
@@ -367,7 +367,7 @@ importers:
   packages/pgkit:
     dependencies:
       '@pgkit/client':
-        specifier: workspace:0.0.2-1
+        specifier: workspace:^
         version: link:../client
     devDependencies:
       '@types/node':
@@ -383,7 +383,7 @@ importers:
   packages/schemainspect:
     dependencies:
       '@pgkit/client':
-        specifier: workspace:0.0.2-1
+        specifier: workspace:^
         version: link:../client
     devDependencies:
       '@types/node':
@@ -405,7 +405,7 @@ importers:
   packages/typegen:
     dependencies:
       '@pgkit/client':
-        specifier: workspace:0.0.2-1
+        specifier: workspace:^
         version: link:../client
       '@rebundled/execa':
         specifier: 8.0.2-next.0
