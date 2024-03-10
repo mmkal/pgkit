@@ -151,6 +151,7 @@ const main = async () => {
             const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
               type: 'MultiSelect',
               message: 'Select packages',
+              hint: '(Press <space> to toggle, <a> to toggle all, <i> to invert selection)',
               initial: changes.flatMap((c, i) => (c.changes ? [i] : [])),
               choices: changes.map(c => ({
                 name: `${c.pkg.name} ${c.changes ? `(changes: ${[...c.changeTypes].join('/')})` : '(unchanged)'}`.trim(),
