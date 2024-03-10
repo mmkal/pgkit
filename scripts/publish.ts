@@ -139,44 +139,21 @@ const main = async () => {
           })
 
           if (bumpedVersion === 'independent') {
-            const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | null>({
+            const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | 'ask'>({
               type: 'Select',
               message: 'Select semver increment for each package',
               choices: [
                 ...allReleaseTypes.map(type => ({message: type, value: type})),
                 {
                   message: 'Ask for each package',
-                  value: null,
+                  value: 'ask',
                 },
               ],
             })
 
-            const rawChanges = await gatherPackageChanges(ctx)
-            const changes = rawChanges.map(c => {
-              fs.mkdirSync(path.join(c.pkg.folder, 'changes'), {recursive: true})
-              if (c.changes) {
-                const changelog = path.join(c.pkg.folder, 'changes/changelog.md')
-                fs.writeFileSync(changelog, c.changes || 'No changes')
-                return {...c, changelog}
-              }
-              return {...c, changelog: null}
-            })
-
-            const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
-              type: 'MultiSelect',
-              message: 'Select packages',
-              hint: '(Press <space> to toggle, <a> to toggle all, <i> to invert selection)',
-              initial: changes.flatMap((c, i) => (c.changes ? [i] : [])),
-              choices: changes.map(c => ({
-                name: `${c.pkg.name} ${c.changes ? `(changes: ${[...c.changeTypes].join('/')})` : '(unchanged)'}`.trim(),
-                value: c.pkg.name,
-              })),
-            })
-
             ctx.versionStrategy = {
               type: 'independent',
-              include,
-              bump: bumpMethod,
+              bump: bumpMethod === 'ask' ? null : bumpMethod,
             }
           } else if (bumpedVersion === 'other') {
             bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
@@ -185,9 +162,46 @@ const main = async () => {
               validate: input => Boolean(semver.valid(input)) && semver.gt(input, maxVersion || '0.0.0'),
             })
           } else {
-            ctx.versionStrategy = {type: 'fixed', version: bumpedVersion}
+            ctx.versionStrategy = {
+              type: 'fixed',
+              version: bumpedVersion,
+            }
           }
           task.output = inspect(ctx.versionStrategy)
+        },
+      },
+      {
+        title: 'Generate changelogs and filter packages',
+        task: async (ctx, task) => {
+          const rawChanges = await gatherPackageChanges(ctx)
+          const changes = rawChanges.map(c => {
+            fs.mkdirSync(path.join(c.pkg.folder, 'changes'), {recursive: true})
+            if (c.changes) {
+              const changelog = path.join(c.pkg.folder, 'changes/changelog.md')
+              fs.writeFileSync(changelog, c.changes || 'No changes')
+              return {...c, changelog}
+            }
+            return {...c, changelog: null}
+          })
+
+          if (ctx.versionStrategy.type === 'fixed') return
+
+          const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
+            type: 'MultiSelect',
+            message: 'Select packages',
+            hint: '(Press <space> to toggle, <a> to toggle all, <i> to invert selection)',
+            initial: changes.flatMap((c, i) => (c.changes ? [i] : [])),
+            choices: changes.map(c => ({
+              name: `${c.pkg.name} ${c.changes ? `(changes: ${[...c.changeTypes].join('/')})` : '(unchanged)'}`.trim(),
+              value: c.pkg.name,
+            })),
+          })
+
+          const includeSet = new Set(include.map(name => name.split(' ')[0])) // not sure why it's using `name` not `value`?)
+
+          ctx.packages = ctx.packages.filter(pkg => {
+            return includeSet.has(pkg.name)
+          })
         },
       },
       {
@@ -236,12 +250,16 @@ const main = async () => {
           return task.newListr<Ctx>(
             ctx.packages.map(pkg => ({
               title: `Modify ${pkg.name}`,
-              enabled: () => !pkg.private,
               task: async (ctx, task) => {
+                if (!semver.valid(pkg.targetVersion)) {
+                  throw new Error(`Invalid version for ${pkg.name}: ${pkg.targetVersion}`)
+                }
+
                 const sha = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'], {
                   cwd: pkg.path,
                 })
                 const packageJson = loadLocalPackageJson(pkg)
+
                 packageJson.version = pkg.targetVersion
                 packageJson.git = {
                   ...(packageJson.git as {}),
@@ -291,7 +309,7 @@ const main = async () => {
           return task.newListr(
             ctx.packages.map(pkg => ({
               title: `Publish ${pkg.name}`,
-              enabled: () => !pkg.private,
+              skip: () => pkg.private || pkg.targetVersion === loadRegistryPackageJson(pkg)?.version,
               task: async (ctx, task) => {
                 await pipeExeca(task, 'pnpm', ['publish', '--access', 'public', ...otpArgs], {
                   cwd: path.dirname(packageJsonFilepath(pkg, 'local')),
@@ -307,12 +325,20 @@ const main = async () => {
 
   const packageJsonFilepath = (pkg: PkgMeta, type: 'local' | 'registry') =>
     path.join(pkg.folder, type, 'package', 'package.json')
+
   const loadLocalPackageJson = (pkg: PkgMeta) => {
     const filepath = packageJsonFilepath(pkg, 'local')
     return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
   }
   const loadRegistryPackageJson = (pkg: PkgMeta) => {
     const filepath = packageJsonFilepath(pkg, 'registry')
+    if (!fs.existsSync(path.dirname(filepath))) {
+      // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
+      throw new Error(
+        `Registry package.json folder for ${filepath} doesn't exist yet. Has the "Pull registry packages" step run yet?`,
+      )
+    }
+
     if (!fs.existsSync(filepath)) return null
     return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
   }
@@ -336,18 +362,63 @@ const main = async () => {
     ]
   }
 
-  async function getPackageRevList(pkg: Pkg) {
+  /** Pessimistic comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
+  async function getPackageLastPublishRef(pkg: Pkg) {
     const registryRef = loadRegistryPackageJson(pkg)?.git?.sha
+    if (registryRef) return registryRef
+
+    const {stdout: firstRef} = await execa('git', ['log', '--reverse', '-n', '1', '--pretty=format:%h', '--', '.'], {
+      cwd: pkg.path,
+    })
+    return firstRef
+  }
+
+  function getBumpedDependencies(
+    ctx: Ctx,
+    params: {
+      pkg: Pkg
+      expectedVersion: (dependency: Pkg) => string
+    },
+  ) {
+    const packageJson = loadLocalPackageJson(params.pkg)
+    const newDependencies = Object.fromEntries(
+      Object.entries(packageJson.dependencies || {}).map(([name, version]) => {
+        const found = ctx.packages.find(other => {
+          return other.name === name && other.version === version
+        })
+        if (!found) return [name, version] as const
+
+        const expected = params.expectedVersion(found)
+        const registryVersion = loadRegistryPackageJson(params.pkg).dependencies?.[name]
+
+        if (semver.satisfies(expected, registryVersion)) {
+          return [name, version] as const
+        }
+
+        return [name, expected] as const
+      }),
+    )
+
+    if (JSON.stringify(newDependencies) === JSON.stringify(packageJson.dependencies)) {
+      return null
+    }
+
+    return newDependencies
+  }
+
+  async function getPackageRevList(pkg: Pkg) {
+    const fromRef = await getPackageLastPublishRef(pkg)
+
     const {stdout: localRef} = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'])
     const {stdout} = await execa(
       'git',
-      ['rev-list', '--ancestry-path', `${registryRef}..${localRef}`, '--format=oneline', '--abbrev-commit', '--', '.'],
+      ['rev-list', '--ancestry-path', `${fromRef}..${localRef}`, '--format=oneline', '--abbrev-commit', '--', '.'],
       {cwd: pkg.path},
     )
     return stdout
   }
 
-  async function gatherPackageChanges(ctx: Ctx) {
+  async function gatherPackageChanges(ctx: Ctx, expectedBump: semver.ReleaseType = 'minor') {
     const withSourceChanges = await Promise.all(
       ctx.packages.map(async pkg => {
         const changes = await getPackageRevList(pkg)
@@ -371,6 +442,7 @@ const main = async () => {
         for (const dep of Object.keys(c.pkg.dependencies || {})) {
           const depPkg = pkgDict[dep]
           if (!depPkg) continue
+
           if (depPkg.changes) {
             const newMessage = [
               `<details>`,
@@ -476,12 +548,8 @@ type Pkg = PkgMeta & {
 type Ctx = {
   tempDir: string
   versionStrategy:
-    | {type: 'fixed'; version: string}
-    | {
-        type: 'independent'
-        include: string[]
-        bump: semver.ReleaseType | null
-      }
+    | Readonly<{type: 'fixed'; version: string}>
+    | Readonly<{type: 'independent'; bump: semver.ReleaseType | null}>
   publishTag: string
   packages: Array<Pkg>
 }
