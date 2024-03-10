@@ -484,7 +484,7 @@ const maybeProfile = await client.maybeOne(profileQuery) // has type Profile | n
 
 ## Automatic type generation
 
-The companion library [@pgkit/typegen](https://npmjs.com/package/@pgkit/typegen) will automatically typescript types to your queries, by analyzing the SQL. This offers a pretty unique developer experience. You get the type-safety of an ORM, but without any of the tradeoffs: no vendor lock-in, no having to learn how to use the ORM rather than PostgreSQL, no non-performant queries, no limitations on the queries you can run.
+The companion library [@pgkit/typegen](https://npmjs.com/package/@pgkit/typegen) will automatically typescript types to your queries, by analyzing the SQL. This offers a pretty unique developer experience. You get the type-safety of an ORM, but without the tradeoffs: no vendor lock-in, no having to learn how to use the ORM rather than PostgreSQL, no auto-generated slow queries, no arbitrary limitations on the queries you can run.
 
 Check out the typegen package for more details, but essentially it will analyse your SQL queries, and map PostgreSQL types to TypeScript, to transform code like this:
 
