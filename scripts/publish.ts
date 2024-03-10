@@ -153,7 +153,7 @@ const main = async () => {
               message: 'Select packages',
               initial: changes.flatMap((c, i) => (c.changes ? [i] : [])),
               choices: changes.map(c => ({
-                name: `${c.pkg.name} ${c.changes ? `(changelog: ${c.changelog})` : ''}`.trim(),
+                name: `${c.pkg.name} ${c.changes ? `(changes: ${[...c.changeTypes].join('/')})` : '(unchanged)'}`.trim(),
                 value: c.pkg.name,
               })),
             })
@@ -348,6 +348,7 @@ const main = async () => {
         const changes = await getPackageRevList(pkg)
         return {
           pkg,
+          changeTypes: new Set(changes ? ['source'] : []),
           /** Summary of changes in markdown format. `null` if there are no changes to the package or any of its workspace dependencies. */
           changes: changes ? toBullets(changes) : null,
         }
@@ -376,6 +377,7 @@ const main = async () => {
               '</details>',
             ].join('\n')
             if (c.changes?.includes(newMessage)) continue
+            c.changeTypes.add('dependencies')
             c.changes = [c.changes, newMessage].filter(Boolean).join('\n\n')
             changed = true
           }
