@@ -173,7 +173,12 @@ const main = async () => {
       {
         title: 'Generate changelogs and filter packages',
         task: async (ctx, task) => {
-          const rawChanges = await gatherPackageChanges(ctx)
+          const rawChanges = await gatherPackageChanges(ctx, dep => {
+            if (ctx.versionStrategy.type === 'fixed') return ctx.versionStrategy.version
+
+            // todo: if using 'ask' for bumping, maybe just ask here, and store the answer? Rather than defaulting to minor.
+            return semver.inc(dep.packageJson.version, ctx.versionStrategy.bump || 'minor')
+          })
           const changes = rawChanges.map(c => {
             fs.mkdirSync(path.join(c.pkg.folder, 'changes'), {recursive: true})
             if (c.changes) {
@@ -266,14 +271,15 @@ const main = async () => {
                   sha: sha.stdout,
                 }
 
-                Object.entries(packageJson.dependencies || {}).forEach(([name, version]) => {
-                  const found = ctx.packages.find(other => {
-                    return other.name === name && other.version === version
-                  })
-                  if (found) {
-                    packageJson.dependencies![name] = found.targetVersion || found.version
-                  }
-                })
+                packageJson.dependencies = getBumpedDependencies(ctx, {
+                  pkg,
+                  expectedVersion: dep => {
+                    if (!dep.pkg.targetVersion) {
+                      throw new Error(`Can't set ${dep.pkg.name} dependency for ${pkg.name} - no target version set`)
+                    }
+                    return dep.pkg.targetVersion
+                  },
+                }).dependencies
 
                 fs.writeFileSync(
                   packageJsonFilepath(pkg, 'local'),
@@ -373,37 +379,38 @@ const main = async () => {
     return firstRef
   }
 
-  function getBumpedDependencies(
-    ctx: Ctx,
-    params: {
-      pkg: Pkg
-      expectedVersion: (dependency: Pkg) => string
-    },
-  ) {
+  type GetExpectedVersion = (params: {pkg: Pkg; packageJson: PackageJson}) => string
+
+  function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg; expectedVersion: GetExpectedVersion}) {
     const packageJson = loadLocalPackageJson(params.pkg)
-    const newDependencies = Object.fromEntries(
-      Object.entries(packageJson.dependencies || {}).map(([name, version]) => {
-        const found = ctx.packages.find(other => {
-          return other.name === name && other.version === version
-        })
-        if (!found) return [name, version] as const
+    const newDependencies = {...packageJson.dependencies}
+    const updated: Record<string, string> = {}
+    Object.entries(packageJson.dependencies || {}).forEach(([name, version]) => {
+      const found = ctx.packages.find(other => {
+        return other.name === name && other.version === version
+      })
+      if (!found) return
 
-        const expected = params.expectedVersion(found)
-        const registryVersion = loadRegistryPackageJson(params.pkg).dependencies?.[name]
+      const registryPackageJson = loadRegistryPackageJson(params.pkg)
+      const registryDependencyVersion = registryPackageJson.dependencies?.[name]
+      const expected = params.expectedVersion({pkg: found, packageJson: registryPackageJson})
 
-        if (semver.satisfies(expected, registryVersion)) {
-          return [name, version] as const
-        }
+      if (registryDependencyVersion && semver.satisfies(expected, version)) {
+        // if the expected version is already satisfied by the registry version, then we don't need to bump it
+        return
+      }
+      const prefix = registryDependencyVersion?.match(/^[~^]/)?.[0] || ''
 
-        return [name, expected] as const
-      }),
-    )
+      newDependencies[name] = prefix + expected
+      updated[name] = `${registryDependencyVersion} -> ${newDependencies[name]}`
+    })
 
-    if (JSON.stringify(newDependencies) === JSON.stringify(packageJson.dependencies)) {
-      return null
+    if (Object.keys(updated).length === 0) {
+      // keep reference equality, avoid `undefined` -> `{}`
+      return {updated, dependencies: packageJson.dependencies}
     }
 
-    return newDependencies
+    return {updated, dependencies: newDependencies}
   }
 
   async function getPackageRevList(pkg: Pkg) {
@@ -418,7 +425,7 @@ const main = async () => {
     return stdout
   }
 
-  async function gatherPackageChanges(ctx: Ctx, expectedBump: semver.ReleaseType = 'minor') {
+  async function gatherPackageChanges(ctx: Ctx, getExpectedVersion: GetExpectedVersion) {
     const withSourceChanges = await Promise.all(
       ctx.packages.map(async pkg => {
         const changes = await getPackageRevList(pkg)
@@ -431,22 +438,29 @@ const main = async () => {
       }),
     )
     const pkgDict = Object.fromEntries(withSourceChanges.map(c => [c.pkg.name, c]))
-    let changed: boolean
-    let loops = 0
+    const state = {changed: false, loops: 0}
     do {
-      if (loops++ > 1000) {
+      if (state.loops++ > 1000) {
         throw new Error(`Too many loops, maybe there's a circular dependency?`, {cause: withSourceChanges})
       }
-      changed = false
+      state.changed = false
       for (const c of withSourceChanges) {
+        const bumpedDeps = getBumpedDependencies(ctx, {
+          pkg: c.pkg,
+          expectedVersion: dep =>
+            pkgDict[dep.pkg.name]?.changes && dep.packageJson?.version
+              ? getExpectedVersion(dep)
+              : dep.packageJson.version,
+        })
+
         for (const dep of Object.keys(c.pkg.dependencies || {})) {
           const depPkg = pkgDict[dep]
           if (!depPkg) continue
 
-          if (depPkg.changes) {
+          if (bumpedDeps.updated[dep]) {
             const newMessage = [
               `<details>`,
-              `<summary>Dependency ${depPkg.pkg.name} changed</summary>`,
+              `<summary>Dependency ${depPkg.pkg.name} changed (${bumpedDeps.updated[dep]})</summary>`,
               '',
               '<blockquote>',
               depPkg.changes,
@@ -456,11 +470,11 @@ const main = async () => {
             if (c.changes?.includes(newMessage)) continue
             c.changeTypes.add('dependencies')
             c.changes = [c.changes, newMessage].filter(Boolean).join('\n\n')
-            changed = true
+            state.changed = true
           }
         }
       }
-    } while (changed)
+    } while (state.changed)
 
     return withSourceChanges
   }
@@ -574,14 +588,6 @@ const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, ar
   const cmd = execa(file, args, options)
   cmd.stdout.pipe(task.stdout())
   return cmd
-}
-
-const maxBy = <T>(list: T[], fn: (x: T) => number) => {
-  const result = list.reduce<{item: T; value: number} | null>((max, item) => {
-    const value = fn(item)
-    return !max || value > max.value ? {item, value} : max
-  }, null)
-  return result?.item
 }
 
 if (require.main === module) {
