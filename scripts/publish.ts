@@ -41,7 +41,7 @@ const main = async () => {
 
           ctx.packages = JSON.parse(list.stdout)
 
-          const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd'])
+          const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd']) // use `pnpm recursive exec` to get the correct topological sort order // https://github.com/pnpm/pnpm/issues/7716
           const pwds = pwdsCommand.stdout
             .split('\n')
             .map(s => s.trim())
@@ -127,7 +127,8 @@ const main = async () => {
 
           let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
             type: 'Select',
-            message: `Select semver increment or specify new version (current latest is ${maxVersion})`,
+            message: `Select semver increment for all packages, specify new version, or publish packages independently`,
+            hint: `Current latest version across all packageas is ${maxVersion}`,
             choices: [
               ...bumpChoices(maxVersion),
               {
@@ -138,6 +139,18 @@ const main = async () => {
           })
 
           if (bumpedVersion === 'independent') {
+            const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | null>({
+              type: 'Select',
+              message: 'Select semver increment for each package',
+              choices: [
+                ...allReleaseTypes.map(type => ({message: type, value: type})),
+                {
+                  message: 'Ask for each package',
+                  value: null,
+                },
+              ],
+            })
+
             const rawChanges = await gatherPackageChanges(ctx)
             const changes = rawChanges.map(c => {
               fs.mkdirSync(path.join(c.pkg.folder, 'changes'), {recursive: true})
@@ -148,6 +161,7 @@ const main = async () => {
               }
               return {...c, changelog: null}
             })
+
             const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
               type: 'MultiSelect',
               message: 'Select packages',
@@ -158,21 +172,11 @@ const main = async () => {
                 value: c.pkg.name,
               })),
             })
-            const bump = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | 'ask'>({
-              type: 'Select',
-              message: 'Select semver increment for each package',
-              choices: [
-                ...allReleaseTypes.map(type => ({message: type, value: type})),
-                {
-                  message: 'Ask for each package',
-                  value: 'ask',
-                },
-              ],
-            })
+
             ctx.versionStrategy = {
               type: 'independent',
               include,
-              bump: bump === 'ask' ? null : bump,
+              bump: bumpMethod,
             }
           } else if (bumpedVersion === 'other') {
             bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
