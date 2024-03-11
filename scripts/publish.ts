@@ -171,83 +171,89 @@ const main = async () => {
         },
       },
       {
-        title: 'Generate changelogs and filter packages',
-        task: async function generateChangeLogsAndFilterPackages(ctx, task) {
-          const rawChanges = await gatherPackageChanges(ctx, async dep => {
-            if (ctx.versionStrategy.type === 'fixed') return ctx.versionStrategy.version
-
-            // todo: if using 'ask' for bumping, maybe just ask here, and store the answer? Rather than defaulting to minor.
-            return semver.inc(dep.packageJson.version, ctx.versionStrategy.bump || 'minor')
-          })
-          const changes = rawChanges.map(c => {
-            fs.mkdirSync(path.join(c.pkg.folder, 'changes'), {recursive: true})
-            if (c.changes) {
-              const changelog = path.join(c.pkg.folder, 'changes/changelog.md')
-              fs.writeFileSync(changelog, c.changes || 'No changes')
-              return {...c, changelog}
+        title: 'Set target versions',
+        task: async function setTargetVersions(ctx, task) {
+          for (const pkg of ctx.packages) {
+            const changelog = await getOrCreateChangelog(ctx, pkg)
+            if (ctx.versionStrategy.type === 'fixed') {
+              pkg.targetVersion = ctx.versionStrategy.version
+              continue
             }
-            return {...c, changelog: null}
-          })
+
+            const currentVersion = [loadRegistryPackageJson(pkg)?.version, pkg.version].sort(semver.compare).at(-1)
+
+            if (ctx.versionStrategy.bump) {
+              pkg.targetVersion = semver.inc(currentVersion, ctx.versionStrategy.bump)
+              continue
+            }
+
+            const choices = bumpChoices(currentVersion)
+            if (changelog) {
+              choices.push({message: `Do not publish (note: package is changed)`, value: 'none'})
+            } else {
+              choices.unshift({message: `Do not publish (package is unchanged)`, value: 'none'})
+            }
+
+            let newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+              type: 'Select',
+              message: `Select semver increment for ${pkg.name} or specify new version (current latest is ${currentVersion})`,
+              choices,
+            })
+            if (newVersion === 'none') {
+              continue
+            }
+            if (newVersion === 'other') {
+              newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+                type: 'Input',
+                message: `Enter a custom version (must be greater than ${currentVersion})`,
+                validate: input => Boolean(semver.valid(input)) && semver.gt(input, currentVersion),
+              })
+            }
+
+            pkg.targetVersion = newVersion
+          }
+          const packagesWithChanges = ctx.packages.map(pkg => ({
+            pkg,
+            changes: fs.readFileSync(changelogFilepath(pkg)).toString(),
+          }))
 
           if (ctx.versionStrategy.type === 'fixed') return
+
+          if (ctx.versionStrategy.type === 'independent' && !ctx.versionStrategy.bump) return
 
           const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
             type: 'MultiSelect',
             message: 'Select packages',
-            hint: '(Press <space> to toggle, <a> to toggle all, <i> to invert selection)',
-            initial: changes.flatMap((c, i) => (c.changes ? [i] : [])),
-            choices: changes.map(c => ({
-              name: `${c.pkg.name} ${c.changes ? `(changes: ${[...c.changeTypes].join('/')})` : '(unchanged)'}`.trim(),
-              value: c.pkg.name,
-            })),
+            hint: 'Press <space> to toggle, <a> to toggle all, <i> to invert selection',
+            initial: packagesWithChanges.flatMap((c, i) => (c.changes ? [i] : [])),
+            choices: packagesWithChanges.map(c => {
+              const changeTypes = [...new Set([...c.changes.matchAll(/data-change-type="(\w+)"/g)].map(m => m[1]))]
+              return {
+                name: `${c.pkg.name} ${c.changes ? `(changes: ${changeTypes.join(', ')})` : '(unchanged)'}`.trim(),
+                value: c.pkg.name,
+              }
+            }),
+            validate: (values: string[]) => {
+              const names = values.map(v => v.split(' ')[0])
+              const problems: string[] = []
+              for (const name of names) {
+                const pkg = ctx.packages.find(p => p.name === name)
+                const dependencies = workspaceDependencies(pkg, ctx)
+                const missing = dependencies.filter(d => !names.includes(d.name))
+
+                problems.push(...missing.map(m => `Package ${name} depends on ${m.name}`))
+              }
+
+              if (problems.length) return problems.join('\n')
+
+              return true
+            },
           })
 
-          const includeSet = new Set(include.map(name => name.split(' ')[0])) // not sure why it's using `name` not `value`?)
+          const includeSet = new Set(include.map(inc => inc.split(' ')[0]))
 
-          ctx.packages = ctx.packages.filter(pkg => {
-            return includeSet.has(pkg.name)
-          })
+          ctx.packages = ctx.packages.filter(pkg => includeSet.has(pkg.name))
         },
-      },
-      {
-        title: 'Set target versions',
-        rendererOptions: {persistentOutput: true},
-        task: (ctx, task) =>
-          task.newListr<Ctx>(
-            ctx.packages.map(pkg => ({
-              title: `Setting target version for ${pkg.name}`,
-              task: async (ctx, task) => {
-                if (ctx.versionStrategy.type === 'fixed') {
-                  pkg.targetVersion = ctx.versionStrategy.version
-                } else {
-                  const currentVersion = [loadRegistryPackageJson(pkg)?.version, pkg.version]
-                    .sort(semver.compare)
-                    .at(-1)
-                  let bumpedVersion = ctx.versionStrategy.bump
-                    ? semver.inc(currentVersion, ctx.versionStrategy.bump)
-                    : null
-                  bumpedVersion ||= await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-                    type: 'Select',
-                    message: `Select semver increment for ${pkg.name} or specify new version (current latest is ${currentVersion})`,
-                    choices: bumpChoices(currentVersion),
-                  })
-                  if (bumpedVersion === 'other') {
-                    bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-                      type: 'Input',
-                      message: `Enter a custom version (must be greater than ${currentVersion})`,
-                      validate: input => Boolean(semver.valid(input)) && semver.gt(input, currentVersion),
-                    })
-                  }
-
-                  if (!semver.valid(bumpedVersion)) {
-                    throw new Error(`Invalid version for ${pkg.name}: ${bumpedVersion}`)
-                  }
-
-                  pkg.targetVersion = bumpedVersion
-                }
-              },
-            })),
-          ),
       },
       {
         title: `Modify local packages`,
@@ -296,10 +302,11 @@ const main = async () => {
       },
       {
         title: 'Publish packages',
-        skip: () => !process.argv.includes('--publish'),
+        rendererOptions: {persistentOutput: true},
         task: async (ctx, task) => {
+          const shouldActuallyPublish = process.argv.includes('--publish')
           const otpArgs = process.argv.filter((a, i, arr) => a.startsWith('--otp') || arr[i - 1] === '--otp')
-          if (otpArgs.length === 0) {
+          if (shouldActuallyPublish && otpArgs.length === 0) {
             const otp = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
               message: 'Enter npm OTP (press enter to try publishing without MFA)',
               type: 'Input',
@@ -308,20 +315,21 @@ const main = async () => {
             if (otp) {
               otpArgs.push('--otp', otp)
             }
-          }
-          if (otpArgs.length === 0) {
-            task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
+            if (otpArgs.length === 0) {
+              task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
+            }
           }
           return task.newListr(
             ctx.packages.map(pkg => ({
-              title: `Publish ${pkg.name}`,
-              skip: () => pkg.private || pkg.targetVersion === loadRegistryPackageJson(pkg)?.version,
+              title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
+              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRegistryPackageJson(pkg)?.version,
               task: async (ctx, task) => {
                 await pipeExeca(task, 'pnpm', ['publish', '--access', 'public', ...otpArgs], {
                   cwd: path.dirname(packageJsonFilepath(pkg, 'local')),
                 })
               },
             })),
+            {rendererOptions: {collapseSubtasks: false}},
           )
         },
       },
@@ -393,7 +401,9 @@ const main = async () => {
         })
         .find(Boolean)
 
-      if (!found) continue
+      if (!found) {
+        continue
+      }
 
       const registryPackageJson = loadRegistryPackageJson(params.pkg)
       const registryPackageDependencyVersion = registryPackageJson.dependencies?.[name]
@@ -433,58 +443,61 @@ const main = async () => {
     return sections.filter(Boolean).join('\n')
   }
 
-  async function gatherPackageChanges(ctx: Ctx, getExpectedVersion: GetExpectedVersion) {
-    const withSourceChanges = await Promise.all(
-      ctx.packages.map(async pkg => {
-        const changes = await getPackageRevList(pkg)
-        return {
-          pkg,
-          changeTypes: new Set(changes ? ['source'] : []),
-          /** Summary of changes in markdown format. `null` if there are no changes to the package or any of its workspace dependencies. */
-          changes: changes ? toBullets(changes) : null,
-        }
-      }),
-    )
-    const pkgDict = Object.fromEntries(withSourceChanges.map(c => [c.pkg.name, c]))
-    const state = {changed: false, loops: 0}
-    do {
-      if (state.loops++ > 1000) {
-        throw new Error(`Too many loops, maybe there's a circular dependency?`, {cause: withSourceChanges})
+  const changelogFilepath = (pkg: Pkg) => path.join(pkg.folder, 'changes/changelog.md')
+
+  const workspaceDependencies = (pkg: Pkg, ctx: Ctx, depth = 0): Pkg[] =>
+    Object.keys(pkg.dependencies || {}).flatMap(name => {
+      const dep = ctx.packages.find(p => p.name === name)
+      return dep ? [dep, ...(depth > 0 ? workspaceDependencies(dep, ctx, depth - 1) : [])] : []
+    })
+
+  /**
+   * Creates a changelog.md and returns its content. If one already exists, its content is returned without being regenerated.
+   * Note: this recursively calls itself on finding workspace dependencies so will cause stack overflows if there are dependency loops.
+   * It's important that this is called in toplogical order, so that dependency changelogs are accurate.
+   */
+  async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
+    const changelogFile = changelogFilepath(pkg)
+    if (fs.existsSync(changelogFile)) {
+      return fs.readFileSync(changelogFile).toString()
+    }
+
+    const sourceChanges = await getPackageRevList(pkg)
+
+    const changes = sourceChanges
+      ? [`<!-- data-change-type="source" -->\n${sourceChanges}`] // break
+      : []
+
+    const bumpedDeps = await getBumpedDependencies(ctx, {
+      pkg,
+      expectedVersion: async dep => dep.pkg.targetVersion || dep.packageJson.version,
+    })
+
+    for (const depPkg of workspaceDependencies(pkg, ctx)) {
+      const dep = depPkg.name
+      if (bumpedDeps.updated[dep]) {
+        const depChanges = await getOrCreateChangelog(ctx, depPkg)
+        const newMessage = [
+          '<!-- data-change-type="dependencies" -->',
+          `<details>`,
+          `<summary>Dependency ${depPkg.name} changed (${bumpedDeps.updated[dep]})</summary>`,
+          '',
+          '<blockquote>',
+          ...(depChanges
+            .split('\n')
+            .filter(line => !line.match(/^<!-- data-change-type=".*" -->$/))
+            .map(line => (line.trim() ? `${line}` : line)) || bumpedDeps.updated[dep]),
+          '</blockquote>',
+          '</details>',
+        ].join('\n')
+        changes.push(newMessage)
       }
-      state.changed = false
-      for (const c of withSourceChanges) {
-        const bumpedDeps = await getBumpedDependencies(ctx, {
-          pkg: c.pkg,
-          expectedVersion: async dep =>
-            pkgDict[dep.pkg.name]?.changes && dep.packageJson?.version
-              ? getExpectedVersion(dep)
-              : dep.packageJson.version,
-        })
+    }
 
-        for (const dep of Object.keys(c.pkg.dependencies || {})) {
-          const depPkg = pkgDict[dep]
-          if (!depPkg) continue
-
-          if (bumpedDeps.updated[dep]) {
-            const newMessage = [
-              `<details>`,
-              `<summary>Dependency ${depPkg.pkg.name} changed (${bumpedDeps.updated[dep]})</summary>`,
-              '',
-              '<blockquote>',
-              depPkg.changes || bumpedDeps.updated[dep],
-              '</blockquote>',
-              '</details>',
-            ].join('\n')
-            if (c.changes?.includes(newMessage)) continue
-            c.changeTypes.add('dependencies')
-            c.changes = [c.changes, newMessage].filter(Boolean).join('\n\n')
-            state.changed = true
-          }
-        }
-      }
-    } while (state.changed)
-
-    return withSourceChanges
+    const changelogContent = changes.filter(Boolean).join('\n\n')
+    fs.mkdirSync(path.dirname(changelogFile), {recursive: true})
+    fs.writeFileSync(changelogFile, changelogContent)
+    return changelogContent
   }
 
   async function diffPackagesTask(ctx: Ctx, task: ListrTaskWrapper<Ctx, any, any>) {
