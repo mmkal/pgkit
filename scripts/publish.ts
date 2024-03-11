@@ -396,17 +396,17 @@ const main = async () => {
       if (!found) return
 
       const registryPackageJson = loadRegistryPackageJson(params.pkg)
-      const registryDependencyVersion = registryPackageJson.dependencies?.[name]
+      const registryPackageDependencyVersion = registryPackageJson.dependencies?.[name]
       const expected = params.expectedVersion({pkg: found.pkg, packageJson: registryPackageJson})
 
-      if (registryDependencyVersion && semver.satisfies(expected, version)) {
+      if (registryPackageDependencyVersion && semver.satisfies(expected, registryPackageDependencyVersion)) {
         // if the expected version is already satisfied by the registry version, then we don't need to bump it
         return
       }
-      const prefix = found.prefix || registryDependencyVersion?.match(/^[~^]/)?.[0] || ''
+      const prefix = found.prefix || registryPackageDependencyVersion?.match(/^[~^]/)?.[0] || ''
 
       newDependencies[name] = prefix + expected
-      updated[name] = `${registryDependencyVersion} -> ${newDependencies[name]}`
+      updated[name] = `${registryPackageDependencyVersion} -> ${newDependencies[name]}`
     })
 
     if (Object.keys(updated).length === 0) {
