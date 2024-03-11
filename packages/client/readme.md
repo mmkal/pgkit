@@ -892,6 +892,8 @@ Generally, usage of a _client_ (or pool, to use the slonik term), should be iden
 - type parsers: just use `pg.types.setTypeParser`. Some helper functions to achieve parity with slonik, and this library's recommendations are available, but they're trivial and you can just as easily implement them yourself.
 - interceptors: Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
 - custom errors: when a query produces an error, this library will throw an error with the corresponding message, along with a tag for the query which caused it. Slonik wraps each error type with a custom class. From a few years working with slonik, the re-thrown errors tend to make the useful information in the underlying error harder to find (less visible in Sentry, etc.). The purpose of the wrapper errors is to protect against potentially changing underlying errors, but there are dozens of breaking changes in Slonik every year, so pgkit opts to rely on the design and language chosen by PostgreSQL instead.
+- no `stream` support yet
+- See [future](#👽-future) for more details/which parity features are planned
 
 ### Added features/improvements
 
