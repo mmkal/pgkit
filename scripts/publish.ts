@@ -172,7 +172,7 @@ const main = async () => {
       },
       {
         title: 'Generate changelogs and filter packages',
-        task: async (ctx, task) => {
+        task: async function generateChangeLogsAndFilterPackages(ctx, task) {
           const rawChanges = await gatherPackageChanges(ctx, dep => {
             if (ctx.versionStrategy.type === 'fixed') return ctx.versionStrategy.version
 
@@ -386,21 +386,24 @@ const main = async () => {
     const newDependencies = {...packageJson.dependencies}
     const updated: Record<string, string> = {}
     Object.entries(packageJson.dependencies || {}).forEach(([name, version]) => {
-      const found = ctx.packages.find(other => {
-        return other.name === name && other.version === version
-      })
+      const found = ctx.packages
+        .flatMap(other => {
+          const prefix = ['', '^', '~'].find(prefix => other.name === name && version === prefix + other.version)
+          return prefix ? [{pkg: other, prefix}] : []
+        })
+        .find(Boolean)
+
       if (!found) return
 
       const registryPackageJson = loadRegistryPackageJson(params.pkg)
       const registryDependencyVersion = registryPackageJson.dependencies?.[name]
-      const expected = params.expectedVersion({pkg: found, packageJson: registryPackageJson})
+      const expected = params.expectedVersion({pkg: found.pkg, packageJson: registryPackageJson})
 
       if (registryDependencyVersion && semver.satisfies(expected, version)) {
         // if the expected version is already satisfied by the registry version, then we don't need to bump it
         return
       }
-      const prefix =
-        parseWorkspaceDependencyString(version).prefix || registryDependencyVersion?.match(/^[~^]/)?.[0] || ''
+      const prefix = found.prefix || registryDependencyVersion?.match(/^[~^]/)?.[0] || ''
 
       newDependencies[name] = prefix + expected
       updated[name] = `${registryDependencyVersion} -> ${newDependencies[name]}`
@@ -412,11 +415,6 @@ const main = async () => {
     }
 
     return {updated, dependencies: newDependencies}
-  }
-
-  function parseWorkspaceDependencyString(version: string) {
-    const prefix = version.match(/^workspace:([~\^\*])/)?.[1]?.replace('*', '^') || ''
-    return {prefix}
   }
 
   async function getPackageRevList(pkg: Pkg) {
@@ -473,7 +471,7 @@ const main = async () => {
               `<summary>Dependency ${depPkg.pkg.name} changed (${bumpedDeps.updated[dep]})</summary>`,
               '',
               '<blockquote>',
-              depPkg.changes,
+              depPkg.changes || bumpedDeps.updated[dep],
               '</blockquote>',
               '</details>',
             ].join('\n')
