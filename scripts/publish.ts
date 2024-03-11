@@ -173,7 +173,7 @@ const main = async () => {
       {
         title: 'Generate changelogs and filter packages',
         task: async function generateChangeLogsAndFilterPackages(ctx, task) {
-          const rawChanges = await gatherPackageChanges(ctx, dep => {
+          const rawChanges = await gatherPackageChanges(ctx, async dep => {
             if (ctx.versionStrategy.type === 'fixed') return ctx.versionStrategy.version
 
             // todo: if using 'ask' for bumping, maybe just ask here, and store the answer? Rather than defaulting to minor.
@@ -271,15 +271,15 @@ const main = async () => {
                   sha: sha.stdout,
                 }
 
-                packageJson.dependencies = getBumpedDependencies(ctx, {
+                packageJson.dependencies = await getBumpedDependencies(ctx, {
                   pkg,
-                  expectedVersion: dep => {
+                  expectedVersion: async dep => {
                     if (!dep.pkg.targetVersion) {
                       throw new Error(`Can't set ${dep.pkg.name} dependency for ${pkg.name} - no target version set`)
                     }
                     return dep.pkg.targetVersion
                   },
-                }).dependencies
+                }).then(r => r.dependencies)
 
                 fs.writeFileSync(
                   packageJsonFilepath(pkg, 'local'),
@@ -379,13 +379,13 @@ const main = async () => {
     return firstRef
   }
 
-  type GetExpectedVersion = (params: {pkg: Pkg; packageJson: PackageJson}) => string
+  type GetExpectedVersion = (params: {pkg: Pkg; packageJson: PackageJson}) => Promise<string>
 
-  function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg; expectedVersion: GetExpectedVersion}) {
+  async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg; expectedVersion: GetExpectedVersion}) {
     const packageJson = loadLocalPackageJson(params.pkg)
     const newDependencies = {...packageJson.dependencies}
     const updated: Record<string, string> = {}
-    Object.entries(packageJson.dependencies || {}).forEach(([name, version]) => {
+    for (const [name, version] of Object.entries(packageJson.dependencies || {})) {
       const found = ctx.packages
         .flatMap(other => {
           const prefix = ['', '^', '~'].find(prefix => other.name === name && version === prefix + other.version)
@@ -393,21 +393,21 @@ const main = async () => {
         })
         .find(Boolean)
 
-      if (!found) return
+      if (!found) continue
 
       const registryPackageJson = loadRegistryPackageJson(params.pkg)
       const registryPackageDependencyVersion = registryPackageJson.dependencies?.[name]
-      const expected = params.expectedVersion({pkg: found.pkg, packageJson: registryPackageJson})
+      const expected = await params.expectedVersion({pkg: found.pkg, packageJson: registryPackageJson})
 
       if (registryPackageDependencyVersion && semver.satisfies(expected, registryPackageDependencyVersion)) {
         // if the expected version is already satisfied by the registry version, then we don't need to bump it
-        return
+        continue
       }
       const prefix = found.prefix || registryPackageDependencyVersion?.match(/^[~^]/)?.[0] || ''
 
       newDependencies[name] = prefix + expected
       updated[name] = `${registryPackageDependencyVersion} -> ${newDependencies[name]}`
-    })
+    }
 
     if (Object.keys(updated).length === 0) {
       // keep reference equality, avoid `undefined` -> `{}`
@@ -453,9 +453,9 @@ const main = async () => {
       }
       state.changed = false
       for (const c of withSourceChanges) {
-        const bumpedDeps = getBumpedDependencies(ctx, {
+        const bumpedDeps = await getBumpedDependencies(ctx, {
           pkg: c.pkg,
-          expectedVersion: dep =>
+          expectedVersion: async dep =>
             pkgDict[dep.pkg.name]?.changes && dep.packageJson?.version
               ? getExpectedVersion(dep)
               : dep.packageJson.version,
