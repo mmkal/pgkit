@@ -10,6 +10,7 @@ const sqlMethodHelpers: SQLMethodHelpers = {
     name: nameQuery([query]),
     token: 'sql',
     values: [],
+    templateArgs: () => [[query]],
   }),
   type:
     type =>
@@ -31,6 +32,7 @@ const sqlMethodHelpers: SQLMethodHelpers = {
         sql: strings.join(''),
         token: 'sql',
         values: parameters,
+        templateArgs: () => [strings, ...parameters],
       }
     },
 }
@@ -99,14 +101,14 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
       }
 
       case 'sql': {
-        if (param.values?.length) {
-          throw new QueryError(`Can't handle nested SQL with parameters`, {
-            cause: {query: {name: nameQuery(strings), sql, values: inputParameters}},
-          })
+        const [parts, ...fragmentValues] = param.templateArgs()
+        for (let i = 0; i < parts.length; i++) {
+          sql += parts[i]
+          if (i < fragmentValues.length) {
+            values.push(fragmentValues[i])
+            sql += '$' + String(i + 1)
+          }
         }
-
-        sql += param.sql
-        // values.push(...param.values);
         break
       }
 
@@ -132,7 +134,14 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
       }
 
       case 'fragment': {
-        sql += param.args[0][0]
+        const [parts, ...fragmentValues] = param.args
+        for (let i = 0; i < parts.length; i++) {
+          sql += parts[i]
+          if (i < fragmentValues.length) {
+            values.push(fragmentValues[i])
+            sql += '$' + String(i + 1)
+          }
+        }
         break
       }
 
@@ -155,6 +164,7 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
     sql,
     token: 'sql',
     values,
+    templateArgs: () => [strings, ...inputParameters],
   }
 }
 

@@ -44,6 +44,8 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.unnest](#sqlunnest)
    - [sql.join](#sqljoin)
    - [sql.fragment](#sqlfragment)
+   - [nested `sql` tag](#nested-sql-tag)
+   - [sql.fragment](#sqlfragment-1)
    - [sql.interval](#sqlinterval)
    - [sql.binary](#sqlbinary)
    - [sql.json](#sqljson)
@@ -265,6 +267,38 @@ const [result] = await client.any(sql`
 `)
 
 expect(result).toEqual({id: 100, name: 'one hundred'})
+```
+
+### sql.fragment
+
+Use `sql.fragment` to build reusable pieces which can be plugged into full queries.
+
+```typescript
+const idGreaterThan = (id: number) => sql.fragment`id >= ${id}`
+const result = await client.any(sql`
+  select * from usage_test where ${idGreaterThan(2)}
+`)
+
+expect(result).toEqual([
+  {id: 2, name: 'two'},
+  {id: 3, name: 'three'},
+])
+```
+
+### nested `sql` tag
+
+You can also use `` sql`...` `` to create a fragment of SQL, but it's recommended to use `sql.fragment` instead for explicitness. Support for [type-generation](https://npmjs.com/package/@pgkit/typegen) is better using `sql.fragment` too.
+
+```typescript
+const idGreaterThan = (id: number) => sql`id >= ${id}`
+const result = await client.any(sql`
+  select * from usage_test where ${idGreaterThan(2)}
+`)
+
+expect(result).toEqual([
+  {id: 2, name: 'two'},
+  {id: 3, name: 'three'},
+])
 ```
 
 ### sql.fragment
@@ -894,6 +928,7 @@ Generally, usage of a _client_ (or pool, to use the slonik term), should be iden
 - custom errors: when a query produces an error, this library will throw an error with the corresponding message, along with a tag for the query which caused it. Slonik wraps each error type with a custom class. From a few years working with slonik, the re-thrown errors tend to make the useful information in the underlying error harder to find (less visible in Sentry, etc.). The purpose of the wrapper errors is to protect against potentially changing underlying errors, but there are dozens of breaking changes in Slonik every year, so pgkit opts to rely on the design and language chosen by PostgreSQL instead.
 - no `stream` support yet
 - See [future](#👽-future) for more details/which parity features are planned
+
 
 ### Added features/improvements
 

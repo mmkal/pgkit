@@ -6,6 +6,8 @@ export interface SQLQuery<Result = Record<string, unknown>, Values extends unkno
   sql: string
   values: Values
   parse: (input: unknown) => Result
+  /** @internal */
+  templateArgs: () => [strings: readonly string[], ...inputParameters: readonly any[]]
 }
 
 export type TimeUnit = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
@@ -62,6 +64,8 @@ export type SqlFragment = {
   token: 'sql'
   sql: string
   values: unknown[]
+  /** @internal */
+  templateArgs: () => [strings: readonly string[], ...inputParameters: readonly any[]]
 }
 /**
  * "string" type covers all type name identifiers – the literal values are added only to assist developer
@@ -94,7 +98,7 @@ export type SQLTagHelperParameters = {
   array: [values: readonly PrimitiveValueExpression[], memberType: MemberType]
   binary: [data: Buffer]
   date: [date: Date]
-  fragment: [parts: TemplateStringsArray]
+  fragment: [parts: TemplateStringsArray, ...values: readonly ValueExpression[]]
   identifier: [names: readonly string[]]
   interval: [interval: IntervalInput]
   join: [members: readonly ValueExpression[], glue: SqlFragment]
