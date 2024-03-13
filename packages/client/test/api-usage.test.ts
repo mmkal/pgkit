@@ -88,9 +88,9 @@ test('sql.join', async () => {
  * Use `sql.fragment` to build reusable pieces which can be plugged into full queries.
  */
 test('sql.fragment', async () => {
-  const idGreaterThan = (id: number) => sql.fragment`id >= ${id}`
+  const idGreaterThan = (id: number) => sql.fragment`id > ${id}`
   const result = await client.any(sql`
-    select * from usage_test where ${idGreaterThan(2)}
+    select * from usage_test where ${idGreaterThan(1)}
   `)
 
   expect(result).toEqual([
@@ -104,25 +104,15 @@ test('sql.fragment', async () => {
  * Support for [type-generation](https://npmjs.com/package/@pgkit/typegen) is better using `sql.fragment` too.
  */
 test('nested `sql` tag', async () => {
-  const idGreaterThan = (id: number) => sql`id >= ${id}`
+  const idGreaterThan = (id: number) => sql`id > ${id}`
   const result = await client.any(sql`
-    select * from usage_test where ${idGreaterThan(2)}
+    select * from usage_test where ${idGreaterThan(1)}
   `)
 
   expect(result).toEqual([
     {id: 2, name: 'two'},
     {id: 3, name: 'three'},
   ])
-})
-
-/**
- * Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
- */
-test('sql.fragment', async () => {
-  const condition = sql.fragment`id = 1`
-
-  const result = await client.one(sql`select * from usage_test where ${condition}`)
-  expect(result).toEqual({id: 1, name: 'one'})
 })
 
 /**

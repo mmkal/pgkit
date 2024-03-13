@@ -45,7 +45,6 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.join](#sqljoin)
    - [sql.fragment](#sqlfragment)
    - [nested `sql` tag](#nested-sql-tag)
-   - [sql.fragment](#sqlfragment-1)
    - [sql.interval](#sqlinterval)
    - [sql.binary](#sqlbinary)
    - [sql.json](#sqljson)
@@ -274,9 +273,9 @@ expect(result).toEqual({id: 100, name: 'one hundred'})
 Use `sql.fragment` to build reusable pieces which can be plugged into full queries.
 
 ```typescript
-const idGreaterThan = (id: number) => sql.fragment`id >= ${id}`
+const idGreaterThan = (id: number) => sql.fragment`id > ${id}`
 const result = await client.any(sql`
-  select * from usage_test where ${idGreaterThan(2)}
+  select * from usage_test where ${idGreaterThan(1)}
 `)
 
 expect(result).toEqual([
@@ -290,26 +289,15 @@ expect(result).toEqual([
 You can also use `` sql`...` `` to create a fragment of SQL, but it's recommended to use `sql.fragment` instead for explicitness. Support for [type-generation](https://npmjs.com/package/@pgkit/typegen) is better using `sql.fragment` too.
 
 ```typescript
-const idGreaterThan = (id: number) => sql`id >= ${id}`
+const idGreaterThan = (id: number) => sql`id > ${id}`
 const result = await client.any(sql`
-  select * from usage_test where ${idGreaterThan(2)}
+  select * from usage_test where ${idGreaterThan(1)}
 `)
 
 expect(result).toEqual([
   {id: 2, name: 'two'},
   {id: 3, name: 'three'},
 ])
-```
-
-### sql.fragment
-
-Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
-
-```typescript
-const condition = sql.fragment`id = 1`
-
-const result = await client.one(sql`select * from usage_test where ${condition}`)
-expect(result).toEqual({id: 1, name: 'one'})
 ```
 
 ### sql.interval
