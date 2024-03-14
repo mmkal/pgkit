@@ -12,29 +12,46 @@ const sqlMethodHelpers: SQLMethodHelpers = {
     values: [],
     templateArgs: () => [[query]],
   }),
-  type:
-    type =>
-    (strings, ...parameters) => {
+  type: type => {
+    type Result = typeof type extends ZodesqueType<infer R> ? R : never
+    let parseAsync: (input: unknown) => Promise<Result>
+    if ('parseAsync' in type) {
+      parseAsync = type.parseAsync
+    } else if ('safeParseAsync' in type) {
+      parseAsync = async input => {
+        const parsed = await type.safeParseAsync(input)
+        if (!parsed.success) {
+          throw parsed.error
+        }
+        return parsed.data
+      }
+    } else if ('parse' in type) {
+      parseAsync = async input => type.parse(input)
+    } else if ('safeParse' in type) {
+      parseAsync = async input => {
+        const parsed = type.safeParse(input)
+        if (!parsed.success) {
+          throw parsed.error
+        }
+        return parsed.data
+      }
+    } else {
+      const _: never = type
+      throw new Error('Invalid type parser. Must have parse, safeParse, parseAsync or safeParseAsync method', {
+        cause: type,
+      })
+    }
+    return (strings, ...parameters) => {
       return {
-        parse(input) {
-          if ('parse' in type) {
-            return type.parse(input)
-          }
-
-          const parsed = type.safeParse(input)
-          if (!parsed.success) {
-            throw parsed.error
-          }
-
-          return parsed.data
-        },
+        parse: parseAsync,
         name: nameQuery(strings),
         sql: strings.join(''),
         token: 'sql',
         values: parameters,
         templateArgs: () => [strings, ...parameters],
       }
-    },
+    }
+  },
 }
 
 const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {

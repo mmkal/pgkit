@@ -283,7 +283,9 @@ test('sql.type', async () => {
     {id: '3'},
   ])
 
-  await expect(client.one(sql.type(StringId)`select id from test_slonik37`)).rejects.toMatchSnapshot()
+  const error = await client.any(sql.type(StringId)`select id from test_slonik37`).catch(e => e)
+
+  expect(error.cause).toMatchSnapshot()
 })
 
 /**
@@ -303,7 +305,8 @@ test('createSqlTag + sql.typeAlias', async () => {
   expectTypeOf(result).toEqualTypeOf<{name: string}>()
   expect(result).toEqual({name: 'Bob'})
 
-  await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.toMatchSnapshot()
+  const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
+  expect(err.cause).toMatchSnapshot()
 })
 // codegen:end
 

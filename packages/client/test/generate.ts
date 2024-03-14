@@ -31,8 +31,14 @@ export const generate: import('eslint-plugin-codegen').Preset<GenerateOptions> =
     if (i > -1) updated = updated.slice(0, i) + 'toMatchSnapshot()' + updated.slice(endOfSnapshot + 2)
   }
 
-  return updated
+  const newContent = updated
     .split('\n')
     .flatMap((line, i, arr) => (line || arr[i - 1] ? [line] : []))
     .join('\n')
+
+  if (newContent.includes('toMatchInlineSnapshot')) {
+    throw new Error(`toMatchInlineSnapshot still exists in the generated content`)
+  }
+
+  return newContent
 }

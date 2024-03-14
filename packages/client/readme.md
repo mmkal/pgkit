@@ -427,25 +427,37 @@ expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 `sql.type` lets you use a zod schema (or another type validator) to validate the result of a query. See the [Zod](#zod) section for more details.
 
 ```typescript
-const Fooish = z.object({foo: z.number()})
-await expect(client.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchInlineSnapshot(`
-  {
-    "foo": 1,
-  }
-`)
+const StringId = z.object({id: z.string()})
+await expect(client.any(sql.type(StringId)`select text(id) id from usage_test`)).resolves.toMatchObject([
+  {id: '1'},
+  {id: '2'},
+  {id: '3'},
+])
 
-await expect(client.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchInlineSnapshot(`
-  [Error: [Query select_c2b3cb1]: [
+const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+expect(error.cause).toMatchInlineSnapshot(`
+  {
+    "error": [ZodError: [
     {
       "code": "invalid_type",
-      "expected": "number",
-      "received": "string",
+      "expected": "string",
+      "received": "number",
       "path": [
-        "foo"
+        "id"
       ],
-      "message": "Expected number, received string"
+      "message": "Expected string, received number"
     }
-  ]]
+  ]],
+    "query": {
+      "name": "select-usage_test_8729cac",
+      "parse": [Function],
+      "sql": "select id from usage_test",
+      "templateArgs": [Function],
+      "token": "sql",
+      "values": [],
+    },
+  }
 `)
 ```
 
@@ -466,8 +478,10 @@ const result = await client.one(sql.typeAlias('Profile')`select 'Bob' as name`)
 expectTypeOf(result).toEqualTypeOf<{name: string}>()
 expect(result).toEqual({name: 'Bob'})
 
-await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.toMatchInlineSnapshot(`
-  [Error: [Query select_245d49b]: [
+const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
+expect(err.cause).toMatchInlineSnapshot(`
+  {
+    "error": [ZodError: [
     {
       "code": "invalid_type",
       "expected": "string",
@@ -477,7 +491,16 @@ await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.t
       ],
       "message": "Expected string, received number"
     }
-  ]]
+  ]],
+    "query": {
+      "name": "select_245d49b",
+      "parse": [Function],
+      "sql": "select 123 as name",
+      "templateArgs": [Function],
+      "token": "sql",
+      "values": [],
+    },
+  }
 `)
 ```
 <!-- codegen:end -->
@@ -555,6 +578,22 @@ const ProfileSchema = v.object({
 })
 const Profile = {
   parse: (input: unknown) => v.parse(ProfileSchema, input),
+}
+
+const profiles = await client.any(sql.type(Profile)`select * from profile`)
+```
+
+You can also define `safeParse`, `parseAsync` or `safeParseAsync` as long as they match their zod equivalents:
+
+```ts
+import * as v from 'valibot'
+
+const ProfileSchema = v.object({
+  id: v.string(),
+  name: v.string(),
+})
+const Profile = {
+  parseAsync: async (input: unknown) => v.parse(ProfileSchema, input),
 }
 
 const profiles = await client.any(sql.type(Profile)`select * from profile`)

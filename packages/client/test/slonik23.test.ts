@@ -85,7 +85,23 @@ test('sql.join', async () => {
 })
 
 /**
- * Lets you create reusable SQL fragments, for example a where clause. Note that right now, fragments do not allow parameters.
+ * Use `sql.fragment` to build reusable pieces which can be plugged into full queries.
+ */
+
+test('nested `sql` tag', async () => {
+  const idGreaterThan = (id: number) => sql`id > ${id}`
+  const result = await client.any(sql`
+    select * from test_slonik23 where ${idGreaterThan(1)}
+  `)
+
+  expect(result).toEqual([
+    {id: 2, name: 'two'},
+    {id: 3, name: 'three'},
+  ])
+})
+
+/**
+ * A strongly typed helper for creating a PostgreSQL interval. Note that you could also do something like `'1 day'::interval`, but this way avoids a cast and offers typescript types.
  */
 
 test('sql.binary', async () => {

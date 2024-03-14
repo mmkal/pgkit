@@ -239,8 +239,11 @@ test('sql.type', async () => {
     {id: '3'},
   ])
 
-  await expect(client.one(sql.type(StringId)`select id from usage_test`)).rejects.toMatchInlineSnapshot(`
-    [Error: [Query select-usage_test_8729cac]: [
+  const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+  expect(error.cause).toMatchInlineSnapshot(`
+    {
+      "error": [ZodError: [
       {
         "code": "invalid_type",
         "expected": "string",
@@ -250,7 +253,16 @@ test('sql.type', async () => {
         ],
         "message": "Expected string, received number"
       }
-    ]]
+    ]],
+      "query": {
+        "name": "select-usage_test_8729cac",
+        "parse": [Function],
+        "sql": "select id from usage_test",
+        "templateArgs": [Function],
+        "token": "sql",
+        "values": [],
+      },
+    }
   `)
 })
 
@@ -271,8 +283,10 @@ test('createSqlTag + sql.typeAlias', async () => {
   expectTypeOf(result).toEqualTypeOf<{name: string}>()
   expect(result).toEqual({name: 'Bob'})
 
-  await expect(client.one(sql.typeAlias('Profile')`select 123 as name`)).rejects.toMatchInlineSnapshot(`
-    [Error: [Query select_245d49b]: [
+  const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
+  expect(err.cause).toMatchInlineSnapshot(`
+    {
+      "error": [ZodError: [
       {
         "code": "invalid_type",
         "expected": "string",
@@ -282,6 +296,15 @@ test('createSqlTag + sql.typeAlias', async () => {
         ],
         "message": "Expected string, received number"
       }
-    ]]
+    ]],
+      "query": {
+        "name": "select_245d49b",
+        "parse": [Function],
+        "sql": "select 123 as name",
+        "templateArgs": [Function],
+        "token": "sql",
+        "values": [],
+      },
+    }
   `)
 })

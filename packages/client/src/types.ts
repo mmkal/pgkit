@@ -5,7 +5,7 @@ export interface SQLQuery<Result = Record<string, unknown>, Values extends unkno
   name: string
   sql: string
   values: Values
-  parse: (input: unknown) => Result
+  parse: (input: unknown) => Result | Promise<Result>
   /** @internal */
   templateArgs: () => [strings: readonly string[], ...inputParameters: readonly any[]]
 }
@@ -86,7 +86,11 @@ export type TypeNameIdentifier =
   | 'timestamptz'
   | 'uuid'
 
-export type ZodesqueType<T> = ZodesqueTypeUnsafe<T> | ZodesqueTypeSafe<T>
+export type ZodesqueType<T> =
+  | ZodesqueTypeUnsafe<T>
+  | ZodesqueTypeSafe<T>
+  | ZodesqueTypeAsyncUnsafe<T>
+  | ZodesqueTypeAsyncSafe<T>
 export type ZodesqueTypeUnsafe<T> = {parse: (input: unknown) => T}
 export type ZodesqueTypeSafe<T> = {safeParse: (input: unknown) => ZodesqueResult<T>}
 export type ZodesqueTypeAsyncUnsafe<T> = {parseAsync: (input: unknown) => Promise<T>}

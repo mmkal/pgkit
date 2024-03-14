@@ -71,17 +71,22 @@ const createQueryable = (query: Queryable['query']): Queryable => {
 
 export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDatabase<any>): Queryable['query'] => {
   return async query => {
+    type Result = SQLQueryResult<typeof query>
+    let results: Result[]
     try {
-      type Result = SQLQueryResult<typeof query>
-      const result = await pgpQueryable.query<Result[]>(query.sql, query.values.length > 0 ? query.values : undefined)
-      if (query.parse === identityParser) {
-        return {rows: result}
-      }
-
-      return {rows: result.map(query.parse)}
+      results = await pgpQueryable.query<any>(query.sql, query.values.length > 0 ? query.values : undefined)
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
       throw new QueryError(error.message, {
+        cause: {query, error},
+      })
+    }
+
+    try {
+      return {rows: await Promise.all(results.map(query.parse))}
+    } catch (err: unknown) {
+      const error = errorFromUnknown(err)
+      throw new QueryError(`Parsing rows failed`, {
         cause: {query, error},
       })
     }

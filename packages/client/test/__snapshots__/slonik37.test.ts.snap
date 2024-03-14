@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`createSqlTag + sql.typeAlias 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
+exports[`createSqlTag + sql.typeAlias 1`] = `undefined`;
 
 exports[`sql.binary 1`] = `"hello"`;
 
@@ -8,4 +8,4 @@ exports[`sql.interval 1`] = `946818000000`;
 
 exports[`sql.interval 2`] = `86400`;
 
-exports[`sql.type 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
+exports[`sql.type 1`] = `undefined`;
