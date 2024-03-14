@@ -232,23 +232,23 @@ test('transaction savepoints', async () => {
  * `sql.type` lets you use a zod schema (or another type validator) to validate the result of a query. See the [Zod](#zod) section for more details.
  */
 test('sql.type', async () => {
-  const Fooish = z.object({foo: z.number()})
-  await expect(client.one(sql.type(Fooish)`select 1 as foo`)).resolves.toMatchInlineSnapshot(`
-    {
-      "foo": 1,
-    }
-  `)
+  const StringId = z.object({id: z.string()})
+  await expect(client.any(sql.type(StringId)`select text(id) id from usage_test`)).resolves.toMatchObject([
+    {id: '1'},
+    {id: '2'},
+    {id: '3'},
+  ])
 
-  await expect(client.one(sql.type(Fooish)`select 'hello' as foo`)).rejects.toMatchInlineSnapshot(`
-    [Error: [Query select_c2b3cb1]: [
+  await expect(client.one(sql.type(StringId)`select id from usage_test`)).rejects.toMatchInlineSnapshot(`
+    [Error: [Query select-usage_test_8729cac]: [
       {
         "code": "invalid_type",
-        "expected": "number",
-        "received": "string",
+        "expected": "string",
+        "received": "number",
         "path": [
-          "foo"
+          "id"
         ],
-        "message": "Expected number, received string"
+        "message": "Expected string, received number"
       }
     ]]
   `)

@@ -88,11 +88,12 @@ export type TypeNameIdentifier =
 
 export type ZodesqueType<T> = ZodesqueTypeUnsafe<T> | ZodesqueTypeSafe<T>
 export type ZodesqueTypeUnsafe<T> = {parse: (input: unknown) => T}
-export type ZodesqueTypeSafe<T> = {
-  safeParse: (
-    input: unknown,
-  ) => {success: true; data: T; error: undefined} | {success: false; error: Error; data: undefined}
-}
+export type ZodesqueTypeSafe<T> = {safeParse: (input: unknown) => ZodesqueResult<T>}
+export type ZodesqueTypeAsyncUnsafe<T> = {parseAsync: (input: unknown) => Promise<T>}
+export type ZodesqueTypeAsyncSafe<T> = {safeParseAsync: (input: unknown) => Promise<ZodesqueResult<T>>}
+export type ZodesqueResult<T> =
+  | {success: true; data: T; error: undefined}
+  | {success: false; error: Error; data: undefined}
 
 export type SQLTagHelperParameters = {
   array: [values: readonly PrimitiveValueExpression[], memberType: MemberType]

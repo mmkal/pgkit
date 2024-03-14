@@ -2,32 +2,10 @@
 
 exports[`createSqlTag + sql.typeAlias 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
-exports[`createSqlTag + sql.typeAlias 2`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
-
 exports[`sql.binary 1`] = `"hello"`;
-
-exports[`sql.binary 2`] = `"hello"`;
 
 exports[`sql.interval 1`] = `946818000000`;
 
 exports[`sql.interval 2`] = `86400`;
 
-exports[`sql.interval 3`] = `946818000000`;
-
-exports[`sql.interval 4`] = `86400`;
-
-exports[`sql.type 1`] = `
-{
-  "foo": 1,
-}
-`;
-
-exports[`sql.type 2`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
-
-exports[`sql.type 3`] = `
-{
-  "foo": 1,
-}
-`;
-
-exports[`sql.type 4`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
+exports[`sql.type 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
