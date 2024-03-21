@@ -314,10 +314,8 @@ export const getSuggester = ({schema, searchPath}: SuggesterParmas) => {
 
         const closeness = getCloseness(text, currentWordLower)
 
-        /* eslint-disable @stylistic/no-mixed-operators */
         if (s.type === 'column') return 0 + closeness / 100
         if (s.type === 'table' || s.type === 'view') return 1 + closeness / 100
-        /* eslint-enable @stylistic/no-mixed-operators */
 
         return closeness
       }),
@@ -344,7 +342,7 @@ const getCloseness = (text: string, currentWord: string): number => {
   return 100
 }
 
-const wsqlNoDice = ({errors, ...rest}: wsqla.AutocompleteParseResult) => {
+const wsqlNoDice = ({errors, ...rest}: wsqla.PostgreSqlAutocompleteResult) => {
   return Object.values(rest).every(v => !v || (Array.isArray(v) && v.length === 0))
 }
 

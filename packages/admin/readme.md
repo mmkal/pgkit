@@ -13,7 +13,6 @@ A no-config admin UI for running queries against PostgreSQL database, with autoc
    - [What about pgAdmin](#what-about-pgadmin)
 - [Get started](#get-started)
 - [Use as a library](#use-as-a-library)
-- [Deployment](#deployment)
    - [Auth](#auth)
 - [👽 Future](#-future)
 <!-- codegen:end -->
@@ -28,7 +27,7 @@ A no-config admin UI for running queries against PostgreSQL database, with autoc
   - autocomplete fully-qualified names for tables not on the current session's `search_path`
   - suggest table-qualified columns for join statements (e.g. `select i| from profile p join settings s on s.profile_id = p.id` will suggest `s.id` and `p.id` rather than just `id`)
 - results which can be copy-pasted directly into Excel or Google Sheets (using [reactgrid](https://reactgrid.com))
-- [schemainspect](https://npmjs.com/package/@pgkit/schemainstpect) explorer of the full schema
+- [schemainspect](https://npmjs.com/package/@pgkit/schemainspect) explorer of the full schema
 - Simple but informative error reporting
 - Multi-statement handling - each query gets a collapsible result table
 - Queries stored in `localStorage` so your work is saved between sessions
