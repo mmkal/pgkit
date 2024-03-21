@@ -11,7 +11,7 @@ export interface ResultsViewerParams {
 }
 
 export const ResultsViewer = (params: ResultsViewerParams) => {
-  if (!params.values.length) return <div>No data</div>
+  if (params.values.length === 0) return <div>No data</div>
 
   return <_ResultsViewer {...params} />
 }
@@ -51,7 +51,7 @@ const _ResultsViewer = ({values}: ResultsViewerParams) => {
                 return {
                   type: 'text',
                   text: JSON.stringify(v),
-                  renderer: () => <JsonCell data={v} />,
+                  renderer: () => <JsonCell data={v as unknown} />,
                   nonEditable: true,
                 }
               }
@@ -83,10 +83,9 @@ const _ResultsViewer = ({values}: ResultsViewerParams) => {
 }
 
 const JsonCell = ({data}: {data: unknown}) => {
-  const popoverZIndex = 10_000
   const text = React.useMemo(() => JSON.stringify(data), [data])
   const pretty = React.useMemo(() => JSON.stringify(data, null, 2), [data])
-  const [popover, setPopover] = React.useState('' as JSX.Element | string)
+  const [popover, setPopover] = React.useState('' as React.JSX.Element | string)
   const [copyButton, setCopyButton] = React.useState('📋')
   const showJson = React.useCallback(() => {
     if (popover) {
@@ -127,7 +126,7 @@ const JsonCell = ({data}: {data: unknown}) => {
           <button className="jsonCellButton" onClick={showJson}>
             {text}
           </button>
-          <button className="jsonCellCopyButton" onClick={copyData}>
+          <button className="jsonCellCopyButton" onClick={ev => void copyData(ev)}>
             {copyButton}
           </button>
         </div>

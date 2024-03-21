@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as pgAst from 'pgsql-ast-parser'
 import {expect, test} from 'vitest'
 
@@ -58,7 +59,7 @@ const format = (input: string) => {
     }
 
     if (thing && typeof thing === 'object') {
-      const children = Object.entries(thing).map(([k, v]) => {
+      const children = Object.entries(thing as {}).map(([k, v]) => {
         const childNode = positionalTree(v, depth + 1)
         return childNode
       })

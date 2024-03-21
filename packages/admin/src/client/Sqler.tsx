@@ -19,7 +19,7 @@ export function Sqler() {
       const newErrors = data.results.flatMap(r =>
         r.error && typeof r.position === 'number' ? [{message: r.error.message, position: r.position + 1}] : [],
       )
-      setErrors(newErrors.length ? newErrors : noErrors)
+      setErrors(newErrors.length > 0 ? newErrors : noErrors)
     },
   })
   const settings = useSettings()

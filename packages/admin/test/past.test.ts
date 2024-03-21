@@ -6,16 +6,6 @@ expect.addSnapshotSerializer({
   print: val => JSON.stringify(val, null, 2),
 })
 
-const cteRecurser = (statement: pgAst.Statement): pgAst.Statement[] => {
-  if (statement.type === 'with') {
-    return statement.bind.flatMap(cte => {
-      return cteRecurser(cte.statement)
-    })
-  }
-
-  return [statement]
-}
-
 test('ast parser', async () => {
   const query = `
     with foo as (

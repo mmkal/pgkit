@@ -52,35 +52,18 @@ You can install and run either globally or locally.
 Globally:
 
 ```bash
-npm install --global @pgkit/admin
-pgkit-admin
-```
-
-Locally:
-
-```bash
-npm install @pgkit/admin
-npx pgkit-admin
-```
-
-You can then set the `connection-string` header in the UI. When developing against a local databse, this is all you'll need to do.
+import {appRouter, clientMiddleware} from '@pgkit/admin'
+import {createClient} from '@pgkit/client'
+import {createExpressMiddleware} from '@trpc/server/adapters/express'
+UI. When developing against a local databse, this is all you'll need to do.
 
 ## Use as a library
 
 ```ts
-import express from 'express'
-import {getExpressRouter} from '@pgkit/admin'
-
-const app = express()
-
-app.use(getExpressRouter())
-
-app.listen(5050)
-```
-
-## Deployment
-
-If you would like to deploy the UI - for example, to an internal admin site - you can use it as a library from node.js. You can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
+import {appRouter, clientMiddleware} from '@pgkit/admin'
+import {createClient} from '@pgkit/client'
+import {createExpressMiddleware} from '@trpc/server/adapters/express'
+ou would like to deploy the UI - for example, to an internal admin site - you can use it as a library from node.js. You can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
 
 ```ts
 import {apiMiddleware, clientMiddleware} from '@pgkit/admin'

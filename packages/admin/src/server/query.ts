@@ -32,6 +32,7 @@ export const runQuery = async (query: string, {connection}: ServerContext) => {
         results.push(result)
 
         if (result.error) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
           const position = (result.error as any).cause?.error?.position
           if (position && stmt._location) {
             result.position = stmt._location.start + Number(position)

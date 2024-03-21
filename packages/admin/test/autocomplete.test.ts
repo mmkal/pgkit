@@ -663,7 +663,7 @@ test('parse column', async () => {
   `)
 })
 
-test('suggest table', async () => {
+test('suggest table (parse)', async () => {
   expect(parse('select * from |')).toMatchInlineSnapshot(`
     {
       "currentWord": " ",

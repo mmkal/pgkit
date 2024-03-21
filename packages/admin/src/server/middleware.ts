@@ -1,8 +1,8 @@
 // import {createHTTPServer} from '@trpc/server'
-import {createExpressMiddleware} from '@trpc/server/adapters/express'
-import {appRouter} from './router.js'
-import pMemoize from 'p-memoize'
 import {createClient} from '@pgkit/client'
+import {createExpressMiddleware} from '@trpc/server/adapters/express'
+import pMemoize from 'p-memoize'
+import {appRouter} from './router.js'
 
 const createClientMemoized = pMemoize(async (connectionString: string) => {
   return createClient(connectionString)

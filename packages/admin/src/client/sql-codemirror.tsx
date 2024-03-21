@@ -1,11 +1,9 @@
-/* eslint-disable mmkal/import/no-extraneous-dependencies */
 import {type CompletionSource, acceptCompletion, autocompletion} from '@codemirror/autocomplete'
 import {sql} from '@codemirror/lang-sql'
 import {linter} from '@codemirror/lint'
 import {Prec} from '@codemirror/state'
 import {type EditorView, keymap} from '@codemirror/view'
 import CodeMirror from '@uiw/react-codemirror'
-/* eslint-enable mmkal/import/no-extraneous-dependencies */
 import React from 'react'
 import {PostgreSQLJson, SuggestionType, getSuggester} from '../packlets/autocomplete/suggest'
 

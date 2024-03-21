@@ -57,7 +57,7 @@ export interface SuggestParams {
 }
 
 export const getSuggester = ({schema, searchPath}: SuggesterParmas) => {
-  const sqla = new SQLAutocomplete(
+  const sqlaInstance = new SQLAutocomplete(
     SQLDialect.PLpgSQL,
     Object.keys(schema.selectables),
     Object.values(schema.selectables).flatMap(t => Object.keys(t.columns)),
@@ -65,14 +65,12 @@ export const getSuggester = ({schema, searchPath}: SuggesterParmas) => {
 
   const searchPathSchemas = new Set(searchPath.split(',').map(s => s.trim()))
 
-  const selectablesByName = groupBy(Object.values(schema.selectables), s => s.name)
-
   const parse = (query: string, position: Position, debug = false) => {
     const flatQuery = query.replaceAll('\n', ' ')
     const {queryUpToPosition, cursorified} = cursorify(query, position)
     query = queryUpToPosition + query.slice(queryUpToPosition.length).split(';').at(0) || ''
     let wsqlResponse = wsqla.parsePostgreSqlQuery(query, position)
-    const sqlaResponse = sqla.autocomplete(queryUpToPosition)
+    const sqlaResponse = sqlaInstance.autocomplete(queryUpToPosition)
 
     const currentWord = queryUpToPosition.split(/\b/).at(-1) || ''
     let prefix = ''
@@ -111,29 +109,28 @@ export const getSuggester = ({schema, searchPath}: SuggesterParmas) => {
     }
   }
 
-  // eslint-disable-next-line mmkal/unicorn/template-indent
   const aggregateFunctions = `
-  array_agg
-  array_agg
-  dimension 
-  avg
-  average 
-  bit_and
-  bit_or
-  bool_and
-  bool_or
-  count
-  count
-  every
-  json_agg
-  jsonb_agg
-  json_object_agg
-  jsonb_object_agg
-  max
-  min
-  string_agg
-  sum
-  xmlagg
+    array_agg
+    array_agg
+    dimension 
+    avg
+    average 
+    bit_and
+    bit_or
+    bool_and
+    bool_or
+    count
+    count
+    every
+    json_agg
+    jsonb_agg
+    json_object_agg
+    jsonb_object_agg
+    max
+    min
+    string_agg
+    sum
+    xmlagg
   `
     .split('\n')
     .map(f => f.trim())

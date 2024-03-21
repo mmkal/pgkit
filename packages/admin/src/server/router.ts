@@ -39,10 +39,8 @@ const filterInspected = (
   schema: ReturnType<PostgreSQL['toJSON']>,
   settings: {includeSchemas?: string; excludeSchemas?: string},
 ) => {
-  const filtered: any = {...schema}
-  // eslint-disable-next-line mmkal/@rushstack/security/no-unsafe-regexp
+  const filtered: Record<string, unknown> = {...schema}
   const includeSchemas = new RegExp(settings.includeSchemas || '.*')
-  // eslint-disable-next-line mmkal/@rushstack/security/no-unsafe-regexp
   const excludeSchemas = new RegExp(settings.excludeSchemas || '$x')
 
   Object.entries(schema).forEach(([prop, dictionary]) => {

@@ -1,7 +1,6 @@
 import {SQLAutocomplete, SQLDialect} from 'sql-autocomplete'
 import {test, expect} from 'vitest'
 import * as wsql from 'websql-autocomplete'
-import {parsePostgreSqlQuery, parsePostgreSqlQueryWithoutCursor} from 'websql-autocomplete'
 import {parsePostgreSqlQueryWithCursor} from '../src/packlets/autocomplete/websql-autocomplete-lib'
 
 const parse = (query: string) => parsePostgreSqlQueryWithCursor(query.replaceAll('\n', ' '))
@@ -131,8 +130,8 @@ test('column suggestions', async () => {
 })
 
 test('websql-autocomplete', async () => {
-  const parse = wsql.parsePostgreSqlQueryWithoutCursor
-  expect(parse('select')).toMatchInlineSnapshot(`
+  const parseWithoutCursor = wsql.parsePostgreSqlQueryWithoutCursor
+  expect(parseWithoutCursor('select')).toMatchInlineSnapshot(`
     {
       "errors": [
         {
