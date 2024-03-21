@@ -13,7 +13,8 @@ A no-config admin UI for running queries against PostgreSQL database, with autoc
    - [What about pgAdmin](#what-about-pgadmin)
 - [Get started](#get-started)
 - [Use as a library](#use-as-a-library)
-   - [Auth](#auth)
+- [Deployment](#deployment)
+- [Auth](#auth)
 - [👽 Future](#-future)
 <!-- codegen:end -->
 
@@ -50,31 +51,44 @@ You can install and run either globally or locally.
 
 Globally:
 
-```bash
-import {appRouter, clientMiddleware} from '@pgkit/admin'
-import {createClient} from '@pgkit/client'
-import {createExpressMiddleware} from '@trpc/server/adapters/express'
-UI. When developing against a local databse, this is all you'll need to do.
+<!-- eslint-disable @typescript-eslint/no-unused-vars -->
+
+```
+npm install --global @pgkit/admin
+pgkit-admin
+```
+
+Locally:
+
+```
+npm install @pgkit/admin
+npx pgkit-admin
+```
+
+You can then set the `connection-string` header in the UI. When developing against a local databse, this is all you'll need to do.
 
 ## Use as a library
 
 ```ts
-import {appRouter, clientMiddleware} from '@pgkit/admin'
-import {createClient} from '@pgkit/client'
-import {createExpressMiddleware} from '@trpc/server/adapters/express'
-ou would like to deploy the UI - for example, to an internal admin site - you can use it as a library from node.js. You can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
-
-```ts
-import {apiMiddleware, clientMiddleware} from '@pgkit/admin'
+import {getExpressRouter} from '@pgkit/admin'
 import express from 'express'
 
 const app = express()
 
-app.use(clientMiddleware)
-app.use(apiMiddleware)
+app.use(getExpressRouter())
+
+app.listen(5050)
 ```
 
-### Auth
+## Deployment
+
+If you would like to deploy the UI - for example, to an internal admin site - you can use it as a library from node.js. You can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
+
+```ts
+import {appRouter, clientMiddleware} from '@pgkit/admin'
+import {createClient} from '@pgkit/client'
+import {createExpressMiddleware} from '@trpc/server/adapters/express'
+## Auth
 
 Auth isn't built in, but is easy to add using almost any auth solution for node.js. @pgkit/admin can run against a local database with no setup needed. If you want to use it against a production database, you are responsible for authenticating database calls.
 
