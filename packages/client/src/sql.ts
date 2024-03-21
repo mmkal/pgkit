@@ -204,6 +204,7 @@ export const allSqlHelpers = {...sqlMethodHelpers, ...sqlTagHelpers}
 
 export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.assign(sqlFn, allSqlHelpers)
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any>>>(params: {
   typeAliases: TypeAliases
 }) => {

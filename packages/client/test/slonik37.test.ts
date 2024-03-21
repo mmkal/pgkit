@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-shadow */
 import {
   createPool,
   sql as _sql,
@@ -51,7 +52,7 @@ beforeAll(async () => {
   })
 })
 
-// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: []}
+// codegen:start {preset: custom, source: ./generate.cjs, export: generate, dev: true, removeTests: []}
 beforeEach(async () => {
   await client.query(sql`
     drop table if exists test_slonik37;

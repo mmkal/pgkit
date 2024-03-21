@@ -1,15 +1,13 @@
-type GenerateOptions = {
-  removeTests?: string[]
-}
-
-export const generate: import('eslint-plugin-codegen').Preset<GenerateOptions> = ({options, dependencies, context}) => {
+/** @type {import('eslint-plugin-codegen').Preset<{removeTests?: string[]}>} */
+exports.generate = ({options, dependencies, context}) => {
   const original = dependencies.fs.readFileSync(dependencies.path.join(__dirname, 'api-usage.test.ts'), 'utf8')
   let updated = original
     .slice(original.indexOf('beforeEach('))
-    .replaceAll('usage_test', 'test_' + context.physicalFilename.split('/').at(-1)!.split('.')[0])
+    .replaceAll('usage_test', 'test_' + context.physicalFilename.split('/').at(-1).split('.')[0])
     .replaceAll('expect(result).toBeInstanceOf(Date)', 'expect(new Date(result)).toBeInstanceOf(Date)')
 
-  let is = ['updated.length ' + updated.length] as (string | number)[]
+  /** @type {Array<string | number>} */
+  const is = ['updated.length ' + updated.length]
 
   options.removeTests?.forEach(name => {
     const start = updated.indexOf(`test('${name}'`)
@@ -33,7 +31,7 @@ export const generate: import('eslint-plugin-codegen').Preset<GenerateOptions> =
 
   const newContent = updated
     .split('\n')
-    .flatMap((line, i, arr) => (line || arr[i - 1] ? [line] : []))
+    .flatMap((line, j, arr) => (line || arr[j - 1] ? [line] : []))
     .join('\n')
 
   if (newContent.includes('toMatchInlineSnapshot')) {

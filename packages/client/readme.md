@@ -759,40 +759,40 @@ expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
     took: expect.any(Number),
   },
   `
-  {
-    "start": {
-      "inverse": false
-    },
-    "end": {
-      "inverse": false
-    },
-    "took": {
-      "inverse": false
-    },
-    "query": {
-      "name": "select-recipes_test_8d7ce25",
-      "sql": "select * from recipes_test",
-      "token": "sql",
-      "values": []
-    },
-    "result": {
-      "rows": [
-        {
-          "id": 1,
-          "name": "one"
-        },
-        {
-          "id": 2,
-          "name": "two"
-        },
-        {
-          "id": 3,
-          "name": "three"
-        }
-      ]
+    {
+      "start": {
+        "inverse": false
+      },
+      "end": {
+        "inverse": false
+      },
+      "took": {
+        "inverse": false
+      },
+      "query": {
+        "name": "select-recipes_test_8d7ce25",
+        "sql": "select * from recipes_test",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [
+          {
+            "id": 1,
+            "name": "one"
+          },
+          {
+            "id": 2,
+            "name": "two"
+          },
+          {
+            "id": 3,
+            "name": "three"
+          }
+        ]
+      }
     }
-  }
-`,
+  `,
 )
 ```
 
@@ -818,22 +818,22 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
-  {
-    "cause": {
-      "query": {
-        "name": "select_9dcc021",
-        "sql": "select pg_sleep($1)",
-        "token": "sql",
-        "values": [
-          0.04
-        ]
-      },
-      "error": {
-        "query": "select pg_sleep(0.04)"
+    {
+      "cause": {
+        "query": {
+          "name": "select_9dcc021",
+          "sql": "select pg_sleep($1)",
+          "token": "sql",
+          "values": [
+            0.04
+          ]
+        },
+        "error": {
+          "query": "select pg_sleep(0.04)"
+        }
       }
     }
-  }
-`,
+  `,
 )
 await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
   pg_sleep: '',
@@ -860,7 +860,7 @@ const patientClient = createClient(client.connectionString() + '?longTimeout', {
 })
 
 const appClient = createClient(client.connectionString(), {
-  wrapQueryFn: queryFn => {
+  wrapQueryFn: _queryFn => {
     return async query => {
       let clientToUse = patientClient
       try {
@@ -870,7 +870,9 @@ const appClient = createClient(client.connectionString(), {
         if (parsed.every(statement => statement.type === 'select')) {
           clientToUse = impatientClient
         }
-      } catch {}
+      } catch {
+        // ignore
+      }
 
       return clientToUse.query(query)
     }
@@ -908,7 +910,7 @@ await expect(
     insert into recipes_test (id, name)
     values (10, 'ten')
     returning *
-`),
+  `),
 ).resolves.toMatchObject({
   id: 10,
   name: 'ten',

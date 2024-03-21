@@ -1,9 +1,8 @@
-import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
+import {beforeAll, beforeEach, expect, test} from 'vitest'
+import {z} from 'zod'
 import {createClient, sql} from '../src'
-import z from 'zod'
 
 export let client: Awaited<ReturnType<typeof createClient>>
-let sqlProduced = [] as {sql: string; values: any[]}[]
 
 expect.addSnapshotSerializer({
   test: () => true,
@@ -20,7 +19,6 @@ beforeEach(async () => {
     create table zod_test(id int, location text);
     insert into zod_test values (1, '70,-108'), (2, '71,-102'), (3, '66,-90');
   `)
-  sqlProduced = []
 })
 
 test('Transform rows', async () => {

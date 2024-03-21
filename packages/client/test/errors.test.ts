@@ -27,7 +27,7 @@ expect.addSnapshotSerializer({
 let pool: Awaited<ReturnType<typeof createPool>>
 
 beforeAll(async () => {
-  // eslint-disable-next-line mmkal/@typescript-eslint/await-thenable
+  // eslint-disable-next-line @typescript-eslint/await-thenable
   pool = await createPool('postgresql://postgres:postgres@localhost:5432/postgres')
   await pool.query(sql`DROP TABLE IF EXISTS test_errors`)
   await pool.query(sql`CREATE TABLE test_errors (id int, name text)`)

@@ -7,12 +7,13 @@ export interface SQLQuery<Result = Record<string, unknown>, Values extends unkno
   values: Values
   parse: (input: unknown) => Result | Promise<Result>
   /** @internal */
-  templateArgs: () => [strings: readonly string[], ...inputParameters: readonly any[]]
+  templateArgs: () => [strings: readonly string[], ...inputParameters: readonly unknown[]]
 }
 
 export type TimeUnit = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
 export type IntervalInput = Partial<Record<TimeUnit, number>> // todo type-fest oneOf
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type SQLQueryResult<Query extends SQLQuery<any>> = ReturnType<Query['parse']>
 
 export type SQLQueryParameter = {token: string}
@@ -65,7 +66,7 @@ export type SqlFragment = {
   sql: string
   values: unknown[]
   /** @internal */
-  templateArgs: () => [strings: readonly string[], ...inputParameters: readonly any[]]
+  templateArgs: () => [strings: readonly string[], ...inputParameters: readonly unknown[]]
 }
 /**
  * "string" type covers all type name identifiers – the literal values are added only to assist developer

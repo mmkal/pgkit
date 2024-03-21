@@ -1,4 +1,4 @@
-import {createPool, createSqlTag, sql} from 'slonik23'
+import {createPool, sql} from 'slonik23'
 import {beforeAll, beforeEach, expect, test, vi} from 'vitest'
 
 let client: Awaited<ReturnType<typeof createPool>>
@@ -7,7 +7,7 @@ beforeAll(async () => {
   client = createPool('postgresql://postgres:postgres@localhost:5432/postgres')
 })
 
-// codegen:start {preset: custom, source: ./generate.ts, export: generate, dev: true, removeTests: [sql.interval, sql.jsonb, sql.literalValue, sql.fragment, sql.type, 'createSqlTag + sql.typeAlias']}
+// codegen:start {preset: custom, source: ./generate.cjs, export: generate, dev: true, removeTests: [sql.interval, sql.jsonb, sql.literalValue, sql.fragment, sql.type, 'createSqlTag + sql.typeAlias']}
 beforeEach(async () => {
   await client.query(sql`
     drop table if exists test_slonik23;
