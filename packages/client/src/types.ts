@@ -72,6 +72,7 @@ export type SqlFragment = {
  * experience with auto suggestions for commonly used type name identifiers.
  */
 
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 export type TypeNameIdentifier =
   | string
   | 'bool'
@@ -85,6 +86,7 @@ export type TypeNameIdentifier =
   | 'text'
   | 'timestamptz'
   | 'uuid'
+/* eslint-enable @typescript-eslint/no-redundant-type-constituents */
 
 export type ZodesqueType<T> =
   | ZodesqueTypeUnsafe<T>
@@ -107,8 +109,8 @@ export type SQLTagHelperParameters = {
   identifier: [names: readonly string[]]
   interval: [interval: IntervalInput]
   join: [members: readonly ValueExpression[], glue: SqlFragment]
-  json: [value: any]
-  jsonb: [value: any]
+  json: [value: unknown]
+  jsonb: [value: unknown]
   literalValue: [value: string]
   timestamp: [date: Date]
   unnest: [tuples: ReadonlyArray<readonly PrimitiveValueExpression[]>, columnTypes: TypeNameIdentifier[]]

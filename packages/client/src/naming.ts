@@ -20,7 +20,7 @@ export const nickname = (query: string, {debugAst = false} = {}) => {
   JSON.stringify(tryParse(query)?.[0], (k, v) => {
     if (v?.alias) {
       return {
-        alias: v.alias,
+        alias: v.alias as never,
         // statement: {type: v.statement?.type},
       }
     }
@@ -57,10 +57,10 @@ export const nickname = (query: string, {debugAst = false} = {}) => {
     }
 
     if (v?.name) {
-      return {name: v.name}
+      return {name: v.name as never}
     }
 
-    return v
+    return v as never
   })
 
   // eslint-disable-next-line no-console

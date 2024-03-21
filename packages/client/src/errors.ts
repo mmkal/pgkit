@@ -37,7 +37,7 @@ export class QueryError extends Error {
   cause!: {
     query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>
     error?: Error
-    result?: {rows: any[]}
+    result?: {rows: unknown[]}
   }
 
   constructor(message: string, {cause}: {cause: QueryError['cause']}) {
@@ -56,8 +56,6 @@ export class QueryError extends Error {
     return code ? pgErrorCodes[code] : undefined
   }
 }
-
-class QueryErrorMany extends QueryError {}
 
 // codegen:start {preset: custom, export: fetchErrorCodes}
 /** Source https://www.postgresql.org/docs/current/errcodes-appendix.html */

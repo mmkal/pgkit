@@ -119,11 +119,11 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
 
       case 'sql': {
         const [parts, ...fragmentValues] = param.templateArgs()
-        for (let i = 0; i < parts.length; i++) {
-          sql += parts[i]
-          if (i < fragmentValues.length) {
-            values.push(fragmentValues[i])
-            sql += '$' + String(i + 1)
+        for (const [j, part] of parts.entries()) {
+          sql += part
+          if (j < fragmentValues.length) {
+            values.push(fragmentValues[j])
+            sql += '$' + String(j + 1)
           }
         }
         break
@@ -152,11 +152,11 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
 
       case 'fragment': {
         const [parts, ...fragmentValues] = param.args
-        for (let i = 0; i < parts.length; i++) {
-          sql += parts[i]
-          if (i < fragmentValues.length) {
-            values.push(fragmentValues[i])
-            sql += '$' + String(i + 1)
+        for (const [j, part] of parts.entries()) {
+          sql += part
+          if (j < fragmentValues.length) {
+            values.push(fragmentValues[j])
+            sql += '$' + String(j + 1)
           }
         }
         break
@@ -176,7 +176,7 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
   })
 
   return {
-    parse: input => input as any,
+    parse: input => input as never,
     name: nameQuery(strings),
     sql,
     token: 'sql',
@@ -207,7 +207,7 @@ export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.ass
 export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any>>>(params: {
   typeAliases: TypeAliases
 }) => {
-  // eslint-disable-next-line func-name-matching, func-names, mmkal/@typescript-eslint/no-shadow
+  // eslint-disable-next-line func-name-matching, func-names, @typescript-eslint/no-shadow
   const fn: SQLTagFunction = function sql(...args: Parameters<SQLTagFunction>) {
     return sqlFn(...args)
   }
@@ -216,7 +216,6 @@ export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any
     typeAlias<K extends keyof TypeAliases>(name: K) {
       const type = params.typeAliases[name]
       type Result = typeof type extends ZodesqueType<infer R> ? R : never
-      // eslint-disable-next-line mmkal/@typescript-eslint/no-unnecessary-type-assertion
       return sql.type(type) as <Parameters extends SQLParameter[] = SQLParameter[]>(
         strings: TemplateStringsArray,
         ...parameters: Parameters

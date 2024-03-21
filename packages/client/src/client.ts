@@ -63,17 +63,19 @@ const createQueryable = (query: Queryable['query']): Queryable => {
     async oneFirst(input) {
       const result = await query(input)
       if (result.rows.length !== 1) throw new QueryError('Expected one row', {cause: {query: input, result}})
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
       return Object.values(result.rows[0] as any)[0] as any
     },
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDatabase<any>): Queryable['query'] => {
   return async query => {
     type Result = SQLQueryResult<typeof query>
     let results: Result[]
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
       results = await pgpQueryable.query<any>(query.sql, query.values.length > 0 ? query.values : undefined)
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
