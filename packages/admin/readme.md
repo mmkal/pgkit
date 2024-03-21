@@ -51,16 +51,14 @@ You can install and run either globally or locally.
 
 Globally:
 
-<!-- eslint-disable @typescript-eslint/no-unused-vars -->
-
-```
+```bash
 npm install --global @pgkit/admin
 pgkit-admin
 ```
 
 Locally:
 
-```
+```bash
 npm install @pgkit/admin
 npx pgkit-admin
 ```
@@ -84,10 +82,13 @@ app.listen(5050)
 
 If you would like to deploy the UI - for example, to an internal admin site - you can use it as a library from node.js. You can import a middleware for the API, and for the client static files, or there's a [trpc](https://trpc.io) router:
 
+<!-- eslint-disable @typescript-eslint/no-unused-vars -->
 ```ts
 import {appRouter, clientMiddleware} from '@pgkit/admin'
 import {createClient} from '@pgkit/client'
 import {createExpressMiddleware} from '@trpc/server/adapters/express'
+```
+
 ## Auth
 
 Auth isn't built in, but is easy to add using almost any auth solution for node.js. @pgkit/admin can run against a local database with no setup needed. If you want to use it against a production database, you are responsible for authenticating database calls.
@@ -95,9 +96,9 @@ Auth isn't built in, but is easy to add using almost any auth solution for node.
 The simplest usage for local development is to use the UI to set a `connection-string` header, which will be used by the local server to connect to the database. This is fine for a local db, where the value might be something you're not worried about storing in your browser's `localStorage` like `connection-string: postgresql://`. But you likely wouldn't want to (or couldn't) use this method for production. Instead, you can create a server middleware, perform whatever auth checks necessary in a middleware in the backend, and use trpc to create your own middleware, which doesn't get the connection string from headers.
 
 ```ts
-import {createExpressMiddleware} from '@trpc/server/adapters/express'
 import {appRouter, clientMiddleware} from '@pgkit/admin'
 import {createClient} from '@pgkit/client'
+import {createExpressMiddleware} from '@trpc/server/adapters/express'
 import express from 'express'
 
 const authMiddleware = getMyAuthMiddlewareSomehow() // e.g. https://authjs.dev/reference/express or https://clerk.com/docs/backend-requests/handling/nodejs
