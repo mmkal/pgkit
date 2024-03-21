@@ -6,9 +6,9 @@
     "types": "dist/index.d.ts",
     "author": "mmkal",
     "repository": {
-      "type": "git",
-      "url": "https://github.com/mmkal/slonik-tools",
-      "directory": "packages/migra"
+        "type": "git",
+        "url": "https://github.com/mmkal/slonik-tools",
+        "directory": "packages/migra"
     },
     "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme",
     "files": [
@@ -23,7 +23,8 @@
     "devDependencies": {
         "@types/lodash": "^4.14.202",
         "@types/node": "^20.11.10",
-        "eslint": "^8.56.0",
+        "eslint": "^8.57.0",
+        "eslint-plugin-mmkal": "^0.4.2",
         "execa": "^8.0.1",
         "lodash": "^4.17.21",
         "quicktype-core": "^23.0.81",

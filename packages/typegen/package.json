@@ -46,6 +46,8 @@
     "@types/lodash": "^4.14.202",
     "@types/memoizee": "0.4.8",
     "@types/pluralize": "0.0.29",
+    "eslint": "^8.57.0",
+    "eslint-plugin-mmkal": "^0.4.2",
     "execa": "^5.1.1",
     "expect-type": "^0.17.3",
     "fs-syncer": "^0.5.2",
