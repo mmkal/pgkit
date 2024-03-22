@@ -22,7 +22,7 @@ The basic idea is this: PostgreSQL is well designed. SQL as as language has been
 
 @pgkit/client allows you to write SQL queries - no matter how complex they may be, and whatever niche PostgreSQL features they may use. You will get precise TypeScript types for the results, without sacrificing the protection against SQL injection attacks that ORMs offer. See the [types](#types) and [protections](#protections) sections for more details on how.
 
-The API design is based on [slonik](https://npmjs.com/package/slonik) - an excellent SQL client, and the reasons for using it over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section. The driver for @pgkit/client is [pg-promise](https://npmjs.com/package/pg-promise).
+The API design is based on [slonik](https://npmjs.com/package/slonik) - which remains an excellent SQL client. The reasons for using @pgkit/client over an ORM like prisma, or a query builder like knex.js, are the same as for slonik. For why this library exists, and why you might want to use @pgkit/client over slonik see the [comparison with slonik](#comparison-with-slonik) section. The driver for @pgkit/client is [pg-promise](https://npmjs.com/package/pg-promise).
 
 ## Ecosystem
 
