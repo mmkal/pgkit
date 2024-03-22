@@ -409,10 +409,13 @@ const main = async () => {
       const registryPackageDependencyVersion = registryPackageJson.dependencies?.[name]
       const expected = await params.expectedVersion({pkg: found.pkg, packageJson: registryPackageJson})
 
-      if (registryPackageDependencyVersion && semver.satisfies(expected, registryPackageDependencyVersion)) {
-        // if the expected version is already satisfied by the registry version, then we don't need to bump it
-        continue
-      }
+      // todo: figure out if this shortcut can be actually safe - it isn't right now because the local version doesn't necessarily match the registry version
+      // and we should probably be solving this by just filtering out packages that don't need to be published rather than trying to shortcut here
+      // if (registryPackageDependencyVersion && semver.satisfies(expected, registryPackageDependencyVersion)) {
+      //   // if the expected version is already satisfied by the registry version, then we don't need to bump it
+      //   continue
+      // }
+
       const prefix = found.prefix || registryPackageDependencyVersion?.match(/^[~^]/)?.[0] || ''
 
       newDependencies[name] = prefix + expected
