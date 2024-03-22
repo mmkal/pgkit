@@ -1,6 +1,6 @@
 # @pgkit/client
 
-A strongly-typed postgres client for node.js. Lets you just write SQL, safely.
+A strongly-typed postgres client for node.js. Lets you execute SQL, without abstractions, safely.
 
 <img src="./images/logo.png" alt="Logo" width="200"/>
 
@@ -8,7 +8,17 @@ A strongly-typed postgres client for node.js. Lets you just write SQL, safely.
 
 @pgkit/client is a PostgreSQL client, to be used in any application with a PostgreSQL database.
 
-The basic ideas is this: PostgreSQL is well designed. SQL as as language has been refined over decades, and its strengths, weaknesses and tradeoffs are widely known. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database.
+```ts
+import {createClient, sql} from '@pgkit/client'
+
+const client = createClient('postgresql://')
+
+const profiles = await client.query(sql`
+  select * from profile where email = ${getEmail()}
+`)
+```
+
+The basic idea is this: PostgreSQL is well designed. SQL as as language has been refined over decades, and its strengths, weaknesses and tradeoffs are widely known. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database.
 
 @pgkit/client allows you to write SQL queries - no matter how complex they may be, and whatever niche PostgreSQL features they may use. You will get precise TypeScript types for the results, without sacrificing the protection against SQL injection attacks that ORMs offer. See the [types](#types) and [protections](#protections) sections for more details on how.
 
