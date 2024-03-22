@@ -35,7 +35,8 @@ Select statements, joins, and updates/inserts/deletes using `returning` are all 
 - [Enhancing Return Types](#enhancing-return-types)
 - [Ignoring Queries](#ignoring-queries)
 - [Examples](#examples)
-- [Migration from v0.8.0](#migration-from-v080)
+- [Migration from @slonik/typgen](#migration-from-sloniktypgen)
+- [Migration from v0.8.0 of @slonik/typegen](#migration-from-v080-of-sloniktypegen)
 - [SQL files](#sql-files)
 - [Usage with `@typescript-eslint`](#usage-with-typescript-eslint)
 - [Limitations](#limitations)
@@ -91,7 +92,9 @@ import {sql, createPool} from '@pgkit/client'
 export default async () => {
   const pool = createPool('...connection string...')
 
-  const results = await pool.query(sql<queries.TestTable>`select foo, bar from test_table`)
+  const results = await pool.query(
+    sql<queries.TestTable>`select foo, bar from test_table`,
+  )
 
   results.rows.forEach(r => {
     console.log(r.foo) // foo has type 'number'
@@ -120,10 +123,10 @@ export declare namespace queries {
 
 ## Configuration
 
-The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup.  
+The CLI can run with zero config, but there will usually be customisations needed depending on your project's setup.
 By default, the CLI will look for `typegen.config.js` file in the working directory, exporting an object containing the properties below.
 
-Some options are only available via CLI, some are only available in the config.  
+Some options are only available via CLI, some are only available in the config.
 CLI arguments will always have precedence over config options.
 
 |Option|CLI&nbsp;Argument&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|Type|Default|Description|
@@ -188,13 +191,14 @@ The `writeTypes` option allows you to tweak what's written to disk. Note that th
 By default, interfaces for SQL queries are added to a module at the end of the typescript file they're found in. You can tell the CLI to write the interfaces to a separate file instead using `writeTypes`:
 
 ```js
-const path = require('path')
 const typegen = require('@pgkit/typegen')
+const path = require('path')
 
 /** @type {import('@pgkit/typegen').Options} */
 module.exports.default = {
   writeTypes: typegen.defaultWriteTypes({
-    queriesPathFromTS: filepath => path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
+    queriesPathFromTS: filepath =>
+      path.join(path.dirname(filepath), '__sql__', path.basename(filepath)),
   }),
 }
 ```
@@ -216,14 +220,18 @@ module.exports.default = {
     queries.forEach(query => {
       query.fields.forEach(field => {
         // add a `_brand` to all string id fields:
-        if (field.typescript === 'string' && field.column && field.column.name === '.id') {
+        if (
+          field.typescript === 'string' &&
+          field.column &&
+          field.column.name === '.id'
+        ) {
           field.typescript = `(${field.typescript} & { _brand: ${JSON.stringify(field.column)} })`
         }
       })
     })
 
     return typegen.defaultWriteTypes()(queries)
-  }
+  },
 }
 ```
 
@@ -242,7 +250,7 @@ module.exports.default = {
     })
 
     return typegen.defaults.defaultWriteTypes()(queries)
-  }
+  },
 }
 ```
 
@@ -270,7 +278,7 @@ module.exports.default = {
     })
 
     return typegen.defaults.defaultWriteTypes()(queries)
-  }
+  },
 }
 ```
 
@@ -292,7 +300,7 @@ module.exports.default = {
     })
 
     return typegen.defaults.defaultWriteTypes()(queries)
-  }
+  },
 }
 ```
 
@@ -308,11 +316,14 @@ module.exports.default = {
   writeTypes: typegen.defaultWriteTypes({
     writeFile: async (filepath, content) => {
       content = content
-        .replace(/declare module queries/g, 'declare module some_other_naming_convention')
-        .replace(/queries\./g, 'some_other_naming_convention.')
+        .replaceAll(
+          'declare module queries',
+          'declare module some_other_naming_convention',
+        )
+        .replaceAll('queries.', 'some_other_naming_convention.')
       await typegen.defaults.defaultWriteFile(filepath, content)
     },
-  })
+  }),
 }
 ```
 
@@ -332,20 +343,20 @@ module.exports.default = {
       await fs.promises.mkdir(path.dirname(filepath), {recursive: true}) // since you're not using the built-in `writeFile` you should explicitly call mkdir with {recursive: true}
       await fs.promises.writeFile(filepath, content)
     },
-  })
+  }),
 }
 ```
 
 ## Enhancing Return Types
 
-Typegen is designed to output types only to the degree it's certain they are correct.  
+Typegen is designed to output types only to the degree it's certain they are correct.
 
 Let's say in a complex query it can determine that a specific column will return a `string`, but isn't sure if it is also nullable, it will extract the type as `{ column: string | null }`, just to be on the safe side. When it encounters columns where it is unable to even determine the basic type, i.e. `json` columns, it will return :shrug: (Ok, actually the typescript equivalent, which is `unknown`).
 
-In these cases you likely know more about the actual return type than typegen and you might feel the urge to overwrite the types.  
+In these cases you likely know more about the actual return type than typegen and you might feel the urge to overwrite the types.
 Yet you shouldn't touch generated code, as your changes will be removed again on the next run.
 
-Instead what you should do is add (one or more) intersection types to the sql literal, specifying the columns where you want to help typegen out by increasing specificity. The resulting type will be a combination of the extracted types and your enhancements.  
+Instead what you should do is add (one or more) intersection types to the sql literal, specifying the columns where you want to help typegen out by increasing specificity. The resulting type will be a combination of the extracted types and your enhancements.
 Check out the [typescript docs on intersection types](https://www.typescriptlang.org/docs/handbook/2/objects.html#intersection-types) to learn more.
 
 Imagine this is your code after running typegen.
@@ -391,8 +402,8 @@ type ResultingType = {
 
 This also means you can make the column `string_col` non-nullable by intersecting it with `{ string_col: string }`.
 
-Note that you can't completely change a property type (say from `string` to `number`) this way.  
-This is by design, because if you could, a change in the underlying table might cause typegen to detect a new type, which would be ignored, had you overwritten it. This would cause type changes to go unnoticed and we can't have that.  
+Note that you can't completely change a property type (say from `string` to `number`) this way.
+This is by design, because if you could, a change in the underlying table might cause typegen to detect a new type, which would be ignored, had you overwritten it. This would cause type changes to go unnoticed and we can't have that.
 With intersections, the resulting property will be of type `never`, when an underlying column type changes. This will alert you to the change, so you can update your manual enhancements.
 
 ## Ignoring Queries
@@ -480,7 +491,7 @@ import {sql} from '@pgkit/client'
 sql`this is not even valid SQL!`
 ```
 
-If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/pgkit/issues/new).  
+If you see errors being logged for SQL that you think is valid, feel free to [raise an issue](https://github.com/mmkal/pgkit/issues/new).
 In the meantime, you can use of of the [ignore options](#ignoring-queries) to skip processing the concerned queries.
 
 ___

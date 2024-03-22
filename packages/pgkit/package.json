@@ -28,7 +28,7 @@
   "devDependencies": {
     "@types/node": "^20.11.20",
     "eslint": "^8.57.0",
-    "eslint-plugin-mmkal": "0.4.3-0",
+    "eslint-plugin-mmkal": "0.5.0",
     "vitest": "^1.2.2"
   },
   "dependencies": {

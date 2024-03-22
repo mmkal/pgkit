@@ -294,7 +294,7 @@ Assuming `migrate.js` is a script setup something like:
 ```js
 const {Migrator} = require('@pgkit/migrator')
 
-const migrator = new Migrator(...)
+const migrator = new Migrator(/* ... */)
 migrator.runAsCLI()
 ```
 
