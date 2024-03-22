@@ -21,9 +21,9 @@ export function differences<T extends {equals: (other: T) => boolean}>(a: Dict<T
   return {added, removed, modified, unmodified, array: [added, removed, modified, unmodified]}
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const sortKeys = <T extends Record<string, any>>(obj: T) => {
   // replicating a kinda bug from python: they use `sorted(...)` which just does a < b, which is not the same as localeCompare
-  // eslint-disable-next-line mmkal/@typescript-eslint/require-array-sort-compare
   return Object.fromEntries(Object.entries(obj).sort()) as T
   // IMO it should really be this:
   // return Object.fromEntries(Object.entries(obj).sort(([a], [b]) => a.localeCompare(b))) as T

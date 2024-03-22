@@ -1,4 +1,3 @@
-import {sql} from '@pgkit/client'
 import {fsSyncer} from 'fs-syncer'
 import {range} from 'lodash'
 import * as path from 'path'

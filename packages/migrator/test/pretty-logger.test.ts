@@ -54,12 +54,12 @@ describe('prettyLogger', () => {
   })
 
   test('invalid parameters', () => {
-    /* eslint-disable mmkal/@typescript-eslint/no-unsafe-argument */
+    /* eslint-disable @typescript-eslint/no-unsafe-argument */
     prettyLogger.info(null as any)
     prettyLogger.info(undefined as any)
     prettyLogger.info(0 as any)
     prettyLogger.info('1' as any)
-    /* eslint-enable mmkal/@typescript-eslint/no-unsafe-argument */
+    /* eslint-enable @typescript-eslint/no-unsafe-argument */
 
     expect((console.info as any).mock.calls).toEqual([[null], [undefined], [0], ['1']])
   })

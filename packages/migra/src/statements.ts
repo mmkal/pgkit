@@ -79,6 +79,7 @@ export class Statements {
       this.push(...strings)
       return this
     } catch (cause) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       throw new Error(`can't push ${inspect(other)}`, {cause})
     }
   }

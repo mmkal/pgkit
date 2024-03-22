@@ -1,4 +1,4 @@
-/* eslint-disable mmkal/@typescript-eslint/no-extraneous-class */
+/* eslint-disable @typescript-eslint/no-extraneous-class */
 import {expect, test} from 'vitest'
 import {isa} from '../src'
 

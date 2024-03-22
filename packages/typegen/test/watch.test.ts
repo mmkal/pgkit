@@ -71,7 +71,7 @@ test('watch file system', async () => {
   await waitForLog(/Initial codegen complete/)
   fs.writeFileSync(
     path.join(syncer.baseDir, 'file1.ts'),
-    // eslint-disable-next-line mmkal/@typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     syncer.read()['file1.ts'].replace('select 123 as abc', 'select 123 as def'),
   )
   await waitForLog(/file1.ts was changed, running codegen/)
@@ -140,7 +140,7 @@ test('lazily watch file system', async () => {
   await waitForLog(/Watching for file changes/)
   fs.writeFileSync(
     path.join(syncer.baseDir, 'file1.ts'),
-    // eslint-disable-next-line mmkal/@typescript-eslint/no-unsafe-argument
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     syncer.read()['file1.ts'].replace('select 123 as abc', 'select 123 as def'),
   )
   await waitForLog(/file1.ts was changed, running codegen/)

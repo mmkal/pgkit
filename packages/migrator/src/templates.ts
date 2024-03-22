@@ -1,4 +1,4 @@
-/* eslint-disable mmkal/unicorn/template-indent */
+/* eslint-disable unicorn/template-indent */
 export const sqlUp = `raise 'up migration not implemented'
 `
 

@@ -1,4 +1,4 @@
-import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
+import {test, expect} from 'vitest'
 import {containsIgnoreComment, globList, isReturningQuery, typeName} from '../src/util'
 import {getterExpression} from '../src/write/typescript'
 

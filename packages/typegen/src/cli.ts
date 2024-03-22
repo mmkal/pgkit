@@ -126,10 +126,12 @@ export class GenerateAction extends cli.CommandLineAction {
   }
 
   async onExecute() {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const optionsModule = this._params.config.value
       ? await import(path.resolve(process.cwd(), this._params.config.value))
       : tryOrDefault(async () => import(path.resolve(process.cwd(), defaults.typegenConfigFile)), null)
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const options: {} = optionsModule?.default || optionsModule
 
     const run = await generate(

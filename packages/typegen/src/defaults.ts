@@ -60,6 +60,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     `The 'glob' option is deprecated. Instead please use 'include', 'exclude' or 'since' respectively.`,
   )
 
+  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
   assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest)}`)
 
   assert.ok(!connectionString.includes(' \'"'), `Connection URI should not contain spaces or quotes`)

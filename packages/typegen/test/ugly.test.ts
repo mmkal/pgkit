@@ -1,7 +1,7 @@
 import * as fs from 'fs'
 import * as fsSyncer from 'fs-syncer'
 import * as path from 'path'
-import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
+import {test, beforeEach, expect, vi as jest} from 'vitest'
 import * as typegen from '../src'
 import {defaultWriteTypes} from '../src/write'
 import {getPureHelper as getHelper} from './helper'
@@ -10,6 +10,7 @@ export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filenam
 
 jest.mock('prettier')
 
+// eslint-disable-next-line import/no-extraneous-dependencies
 const mockFormat = jest.spyOn(require('prettier'), 'format')
 
 beforeEach(async () => {

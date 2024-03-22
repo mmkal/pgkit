@@ -59,6 +59,7 @@ const checkModification = async (existingType: string | undefined, resultingType
 }
 
 describe('inline tag modification', () => {
+  /* eslint vitest/expect-expect: ["error", {"assertFunctionNames": ["checkModification", "expect"]}] */
   test('add tag', async () => checkModification(undefined, 'queries.TestTable'))
   test('overwrite existing', async () => {
     // running sequentially to avoid overlapping fixtures

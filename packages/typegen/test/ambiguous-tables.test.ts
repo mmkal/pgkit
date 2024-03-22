@@ -98,7 +98,7 @@ test('disambiguate between same-named tables', async () => {
   expect(result['index.ts']).toContain(`This is a comment for test_schema_2.test_table.id`)
   expect(result['index.ts']).toContain('column: `test_schema_2.test_table.id`, regtype: `integer`')
 
-  // eslint-disable-next-line mmkal/unicorn/template-indent
+  // eslint-disable-next-line unicorn/template-indent
   expect(syncer.yaml().replace('---', '')).toMatchInlineSnapshot(`
     "
     index.ts: |-

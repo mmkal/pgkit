@@ -148,6 +148,6 @@ export const do_command = async () => {
 }
 
 if (require.main === module) {
-  // eslint-disable-next-line mmkal/unicorn/prefer-top-level-await, no-console
+  // eslint-disable-next-line unicorn/prefer-top-level-await, no-console
   void do_command().then(console.log)
 }

@@ -1,4 +1,4 @@
-/* eslint-disable mmkal/@typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {Queryable, sql} from '@pgkit/client'
 import {PostgreSQL, get_inspector} from '@pgkit/schemainspect'
 import {Changes} from './changes'

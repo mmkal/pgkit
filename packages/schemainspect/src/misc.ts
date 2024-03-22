@@ -13,6 +13,7 @@ export class AutoRepr {
     const vals = []
 
     for (const k of Object.keys(this).sort()) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const v = this[k]
 
       if (!k.startsWith('_') && typeof v !== 'function') {

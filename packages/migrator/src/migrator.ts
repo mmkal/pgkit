@@ -63,11 +63,14 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     try {
       return await super.up(options)
     } catch (err) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       let e = err
       while (e?.cause?.message) {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         e = e.cause
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       throw Object.assign(new Error(`up migration failed: ${err.message}`), {stack: err.stack})
     }
   }
@@ -332,8 +335,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     }
 
     const shadowDb = `shadow_${Math.random().toString(36).slice(2)}`
-    // eslint-disable-next-line mmkal/@typescript-eslint/no-base-to-string
-    const shadowConnectionString = this.client.pgp.$cn.toString().replace(/\w+$/, shadowDb)
+    const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDb)
     const shadowClient = createClient(shadowConnectionString, {
       pgpOptions: this.client.pgpOptions,
     })
@@ -372,8 +374,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     }
 
     const shadowDb = `shadow_${Math.random().toString(36).slice(2)}`
-    // eslint-disable-next-line mmkal/@typescript-eslint/no-base-to-string
-    const shadowConnectionString = this.client.pgp.$cn.toString().replace(/\w+$/, shadowDb)
+    const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDb)
     const shadowClient = createClient(shadowConnectionString, {
       pgpOptions: this.client.pgpOptions,
     })
@@ -494,8 +495,8 @@ type LogMessage = Record<string, unknown>
 const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
   formats
 
-/* eslint-disable mmkal/@typescript-eslint/restrict-template-expressions */
-/* eslint-disable mmkal/@typescript-eslint/no-base-to-string */
+/* eslint-disable @typescript-eslint/restrict-template-expressions */
+/* eslint-disable @typescript-eslint/no-base-to-string */
 const MESSAGE_FORMATS = createMessageFormats({
   created(msg) {
     const {event, path, ...rest} = msg
@@ -530,13 +531,13 @@ const MESSAGE_FORMATS = createMessageFormats({
 function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
   return typeof event === 'string' && event in MESSAGE_FORMATS
 }
-/* eslint-enable mmkal/@typescript-eslint/restrict-template-expressions */
+/* eslint-enable @typescript-eslint/restrict-template-expressions */
 
 function prettifyAndLog(level: keyof typeof Migrator.prettyLogger, message: LogMessage) {
   const {event} = message || {}
   /* eslint-disable no-console */
-  // eslint-disable-next-line mmkal/@typescript-eslint/no-confusing-void-expression
-  if (!isProperEvent(event)) return console[level](message)
+  // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+  if (!isProperEvent(event)) return void console[level](message)
 
   const [messageStr, rest] = MESSAGE_FORMATS[event](message)
   console[level](messageStr)

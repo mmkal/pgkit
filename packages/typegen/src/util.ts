@@ -12,6 +12,7 @@ export const simplifyWhitespace = (whitespaceInsensitiveString: string, newlineR
     .trim()
 }
 
+// eslint-disable-next-line @typescript-eslint/unbound-method
 export const pascalCase = lodash.flow(lodash.camelCase, lodash.upperFirst)
 
 export const typeName = lodash.flow(pascalCase, s => (/^[A-Z]/.test(s) ? s : `_${s}`))

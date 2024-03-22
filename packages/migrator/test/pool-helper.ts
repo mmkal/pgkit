@@ -22,6 +22,7 @@ export const getPoolHelper2 = (dbName: string, {lockTimeout = '', statementTimeo
     pgpOptions: {
       // schema: schemaName,
       noWarnings: true,
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       connect: async ({client, useCount}) => {
         if (useCount === 0) {
           if (statementTimeout) await client.query(`set statement_timeout to '${statementTimeout}'`)

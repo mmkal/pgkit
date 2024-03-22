@@ -1,4 +1,5 @@
-/* eslint-disable mmkal/@typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {AutoThisAssigner, SomeOptional, SomeRequired} from './auto-this'
 import {AutoRepr, quoted_identifier, unquoted_identifier} from './misc'
 import {InspectedConstraint, InspectedEnum, InspectedIndex} from './pg'
@@ -298,7 +299,7 @@ export abstract class BaseInspectedSelectable extends AutoThisAssigner<
 
   constructor(options: SomeOptional<BaseInspectedSelectableOptions, keyof typeof BaseInspectedSelectable._defaults>) {
     super({...BaseInspectedSelectable._defaults, ...options})
-    this.persistence = options.persistence
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.persistence = options.persistence
   }
 

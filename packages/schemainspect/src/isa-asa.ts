@@ -1,6 +1,6 @@
 import {inspect} from 'util'
 
-// eslint-disable-next-line mmkal/@typescript-eslint/no-extraneous-class
+// eslint-disable-next-line @typescript-eslint/no-extraneous-class
 declare abstract class Constructible {
   constructor(..._: any[])
 }
@@ -47,9 +47,10 @@ const _isa: <T extends Classy>(value: unknown, clss: T, options?: {message?}) =>
     throw new TypeError(`Expected class, got ${typeof clss}, ${suffix()}`)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (!(value instanceof (clss as any))) {
     throw new TypeError(
-      // eslint-disable-next-line mmkal/@typescript-eslint/restrict-template-expressions
+      // eslint-disable-next-line @typescript-eslint/restrict-template-expressions, @typescript-eslint/no-base-to-string
       `Expected ${(clss as any).name}, got ${value?.constructor?.name || value}. ${suffix()}`,
     )
   }
@@ -87,6 +88,7 @@ export const isa: typeof _isa & {record: typeof _isaRecord; array: typeof _isArr
     match: _isAMatch,
   })
 
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export const asa: <T extends Classy>(value: unknown, clss: T) => typeof value & Instance<T> = (value, clss) => {
   isa(value, clss)
   return value

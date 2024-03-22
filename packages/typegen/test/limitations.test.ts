@@ -1,10 +1,10 @@
-import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
-import './register-mock-serializer'
-
 import * as fsSyncer from 'fs-syncer'
+import {test, beforeEach, expect, vi as jest} from 'vitest'
 
 import * as typegen from '../src'
 import {getPureHelper as getHelper} from './helper'
+
+import './register-mock-serializer'
 
 export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filename})
 

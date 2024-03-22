@@ -2,7 +2,7 @@ import {sql} from '@pgkit/client'
 import {expectTypeOf} from 'expect-type'
 import * as fs from 'fs'
 import * as path from 'path'
-import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
+import {test, beforeEach, expect} from 'vitest'
 import * as typegen from '../src'
 import {getPureHelper as getHelper} from './helper'
 

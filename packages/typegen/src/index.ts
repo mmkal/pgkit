@@ -276,6 +276,7 @@ export const generate = async (params: Partial<Options>) => {
       const getContentSync = (filepath: string) => fs.readFileSync(filepath).toString()
       const handler = async (filepath: string, ...args) => {
         const fullpath = path.join(cwd, filepath)
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
         logger.info(require('util').inspect({filepath, fullpath, args}))
         if (content.get(fullpath) === getContentSync(fullpath)) {
           return // didn't change from what we'd expect
@@ -291,7 +292,9 @@ export const generate = async (params: Partial<Options>) => {
         await promise
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       watcher.on('add', async f => handler(f, 'add'))
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
       watcher.on('change', async f => handler(f, 'change'))
       return {
         async close() {

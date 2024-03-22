@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import {describe, test, beforeEach, expect, vi as jest} from 'vitest'
+import {test, beforeEach, expect} from 'vitest'
 
 import * as typegen from '../src'
 import {getPureHelper as getHelper} from './helper'

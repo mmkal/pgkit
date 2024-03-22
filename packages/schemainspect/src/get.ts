@@ -1,5 +1,4 @@
 import {Queryable} from '@pgkit/client'
-import {isa} from './isa-asa'
 import {connection_from_s_or_c} from './misc'
 import {PostgreSQL} from './pg'
 
