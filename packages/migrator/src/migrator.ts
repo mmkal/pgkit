@@ -1,38 +1,35 @@
-import {sql, Client, Connection, Queryable, nameQuery, createClient} from '@pgkit/client'
+import {sql, Client, Connection, nameQuery, createClient} from '@pgkit/client'
 import * as migra from '@pgkit/migra'
 import {Flags} from '@pgkit/migra'
-import {CommandLineAction, CommandLineFlagParameter, CommandLineStringParameter} from '@rushstack/ts-command-line'
 import {createHash} from 'crypto'
 import {readFileSync} from 'fs'
 import {writeFile, readFile} from 'fs/promises'
 import * as p from 'path'
 import * as umzug from 'umzug'
+import {RepairAction, DiffAction, RepairOptions} from './cli'
+import {Logger, prettifyAndLog} from './logging'
 import * as templates from './templates'
+import {Migration, MigrationInfo, MigratorContext} from './types'
 
-interface MigratorContext {
-  connection: Queryable
-  sql: typeof sql
+export interface MigratorOptions {
+  /** @pgkit/client instance */
+  client: Client
+  migrationsPath: string
+  migrationTableName: string | string[]
+  /**
+   * instance for logging info/warnings/errors for various commands.
+   * @default `Migrator.prettyLogger` - logs to console with minor "prettifying"
+   */
+  logger?: Logger
+  /**
+   * Whether to use `client.transaction(tx => ...)` or `client.connect(cn => ...)` when running up/down migrations
+   * @default `transaction`
+   */
+  connectMethod?: 'transaction' | 'connect'
 }
 
 export class Migrator extends umzug.Umzug<MigratorContext> {
-  constructor(
-    readonly migratorOptions: {
-      /** @pgkit/client instance */
-      client: Client
-      migrationsPath: string
-      migrationTableName: string | string[]
-      /**
-       * instance for logging info/warnings/errors for various commands.
-       * @default `Migrator.prettyLogger` - logs to console with minor "prettifying"
-       */
-      logger?: umzug.UmzugOptions['logger']
-      /**
-       * Whether to use `client.transaction(tx => ...)` or `client.connect(cn => ...)` when running up/down migrations
-       * @default `transaction`
-       */
-      connectMethod?: 'transaction' | 'connect'
-    },
-  ) {
+  constructor(readonly migratorOptions: MigratorOptions) {
     super({
       context: () => ({
         sql,
@@ -79,7 +76,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
    * Logs messages to console. Known events are prettified to strings, unknown
    * events or unexpected message properties in known events are logged as objects.
    */
-  static prettyLogger: NonNullable<MigratorOptions['logger']> = {
+  static prettyLogger: Logger = {
     info: message => prettifyAndLog('info', message),
     warn: message => prettifyAndLog('warn', message),
     error: message => prettifyAndLog('error', message),
@@ -95,7 +92,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
 
   async runAsCLI(argv?: string[]) {
     const result = await super.runAsCLI(argv)
-    await this.migratorOptions.client.pgp.$pool.end?.()
+    await this.migratorOptions.client?.end?.()
     return result
   }
 
@@ -240,7 +237,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
 
       for (const {migration, dbHash, diskHash} of migrationsThatNeedRepair) {
         this.logger.warn({
-          message: `Repairing migration ${migration}`,
+          message: `Repairing migration ${migration} ${dryRun ? '(dry run)' : ''}`.trim(),
           migration,
           oldHash: dbHash,
           newHash: diskHash,
@@ -391,156 +388,4 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await shadowClient.end()
     }
   }
-}
-
-export type Migration = (params: umzug.MigrationParams<MigratorContext>) => Promise<unknown>
-
-/**
- * Should either be a `Client` or `Connection`. If it has an `.end()`
- * method, the `.end()` method will be called after running the migrator as a CLI.
- */
-export interface PGSuiteConnection extends Connection {
-  end?: () => Promise<void>
-}
-
-export interface MigratorOptions {
-  /**
-   * Client instance for running migrations. You can import this from the same place as your main application,
-   * or import another client instance with different permissions, security settings etc.
-   */
-  client: Client
-  /**
-   * Path to folder that will contain migration files.
-   */
-  migrationsPath: string
-  /**
-   * REQUIRED table name. The migrator will manage this table for you, but you have to tell it the name
-   */
-  migrationTableName: string | string[]
-  /**
-   * Logger with `info`, `warn`, `error` and `debug` methods - set explicitly to `undefined` to disable logging
-   */
-  logger: umzug.UmzugOptions['logger']
-}
-
-/**
- * Narrowing of @see umzug.UmzugOptions where the migrations input type specifically, uses `glob`
- */
-export type MigratorUmzugOptions = umzug.UmzugOptions<MigratorContext> & {
-  migrations: umzug.GlobInputMigrations<MigratorContext>
-}
-
-interface MigrationInfo {
-  migration: string
-  dbHash: string
-  diskHash: string
-}
-
-class RepairAction extends CommandLineAction {
-  private dryRunFlag?: CommandLineFlagParameter
-
-  constructor(private readonly migrator: Migrator) {
-    super({
-      actionName: 'repair',
-      summary: 'Repair hashes in the migration table',
-      documentation:
-        'If, for any reason, the hashes are incorrectly stored in the database, you can recompute them using this command.',
-    })
-  }
-
-  protected onDefineParameters(): void {
-    this.dryRunFlag = this.defineFlagParameter({
-      parameterShortName: '-d',
-      parameterLongName: '--dry-run',
-      description: 'No changes are actually made',
-    })
-  }
-
-  protected async onExecute(): Promise<void> {
-    await this.migrator.repair({dryRun: this.dryRunFlag.value})
-  }
-}
-
-class DiffAction extends CommandLineAction {
-  private sqlFileParameter?: CommandLineStringParameter
-
-  constructor(readonly migrator: Migrator) {
-    super({
-      actionName: 'diff',
-      summary: 'Add a migration file to match to the given SQL script',
-      documentation: 'This command',
-    })
-  }
-
-  protected onDefineParameters(): void {
-    this.sqlFileParameter = this.defineStringParameter({
-      parameterLongName: '--sql',
-      description: 'Path to the SQL file',
-      argumentName: 'FILE',
-      required: true,
-    })
-  }
-
-  protected async onExecute(): Promise<void> {
-    await this.migrator.diffCreate([this.sqlFileParameter.value])
-  }
-}
-
-export interface RepairOptions {
-  dryRun?: boolean
-}
-
-type LogMessage = Record<string, unknown>
-
-const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
-  formats
-
-/* eslint-disable @typescript-eslint/restrict-template-expressions */
-/* eslint-disable @typescript-eslint/no-base-to-string */
-const MESSAGE_FORMATS = createMessageFormats({
-  created(msg) {
-    const {event, path, ...rest} = msg
-    return [`created   ${path}`, rest]
-  },
-  migrating(msg) {
-    const {event, name, ...rest} = msg
-    return [`migrating ${name}`, rest]
-  },
-  migrated(msg) {
-    const {event, name, durationSeconds, ...rest} = msg
-    return [`migrated  ${name} in ${durationSeconds} s`, rest]
-  },
-  reverting(msg) {
-    const {event, name, ...rest} = msg
-    return [`reverting ${name}`, rest]
-  },
-  reverted(msg) {
-    const {event, name, durationSeconds, ...rest} = msg
-    return [`reverted  ${name} in ${durationSeconds} s`, rest]
-  },
-  up(msg) {
-    const {event, message, ...rest} = msg
-    return [`up migration completed, ${message}`, rest]
-  },
-  down(msg) {
-    const {event, message, ...rest} = msg
-    return [`down migration completed, ${message}`, rest]
-  },
-})
-
-function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
-  return typeof event === 'string' && event in MESSAGE_FORMATS
-}
-/* eslint-enable @typescript-eslint/restrict-template-expressions */
-
-function prettifyAndLog(level: keyof typeof Migrator.prettyLogger, message: LogMessage) {
-  const {event} = message || {}
-  /* eslint-disable no-console */
-  // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
-  if (!isProperEvent(event)) return void console[level](message)
-
-  const [messageStr, rest] = MESSAGE_FORMATS[event](message)
-  console[level](messageStr)
-
-  if (Object.keys(rest).length > 0) console[level](rest)
 }
