@@ -7,6 +7,7 @@ const useSettingsProps = () => {
   const [apiUrl, setApiUrl] = useLocalStorage('apiUrl.0.0.1', '')
   const [includeSchemas, setIncludeSchemas] = useLocalStorage('includeSchemas.0.0.1', '')
   const [excludeSchemas, setExcludeSchemas] = useLocalStorage('excludeSchemas.0.0.1', '')
+  const [view, setView] = useLocalStorage('view.0.0.1', 'sql' as 'sql' | 'tables')
   const [headers, setHeaders] = useLocalStorage('headers.0.0.1', {
     'connection-string': 'postgres://postgres:postgres@localhost:5432/postgres',
   } as Record<string, string>)
@@ -32,6 +33,8 @@ const useSettingsProps = () => {
     setHeader,
     setHeaders,
     setLayout,
+    view,
+    setView,
   }
 }
 

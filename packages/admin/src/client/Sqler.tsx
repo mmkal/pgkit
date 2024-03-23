@@ -52,14 +52,20 @@ export function Sqler() {
       <div className={styles.querierPanel}>
         <div className={styles.sqlerContainer}>
           <div className={styles.editorContainer} style={{position: 'relative'}}>
-            <SqlCodeMirror
-              code={storedCode}
-              onChange={query => setStoredCode(query)}
-              onExecute={query => mut.mutate({query})}
-              inspected={inspected}
-              searchPath={inspectQuery.data?.searchPath}
-              errors={errors}
-            />
+            {settings.view === 'sql' && (
+              <SqlCodeMirror
+                code={storedCode}
+                onChange={query => setStoredCode(query)}
+                onExecute={query => mut.mutate({query})}
+                inspected={inspected}
+                searchPath={inspectQuery.data?.searchPath}
+                errors={errors}
+              />
+            )}
+            {settings.view === 'tables' && (
+              // todo: table renderer
+              <></>
+            )}
           </div>
           <div className={styles.jsonView}>
             <jsonView.JsonView
