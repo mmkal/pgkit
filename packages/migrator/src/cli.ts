@@ -25,6 +25,33 @@ export class RepairAction extends CommandLineAction {
     await this.migrator.repair({dryRun: this.dryRunFlag.value})
   }
 }
+
+export class DefinitionsAction extends CommandLineAction {
+  private sqlFileParameter: CommandLineStringParameter
+
+  constructor(private readonly migrator: Migrator) {
+    super({
+      actionName: 'definitions',
+      summary: 'Write SQL definitions for migrating a fresh database to the current state',
+      documentation: 'Diffs the current database against a fresh one using migra, and writes SQL statements to stdout.',
+    })
+  }
+
+  protected onDefineParameters(): void {
+    this.sqlFileParameter = this.defineStringParameter({
+      parameterLongName: '--output',
+      parameterShortName: '-o',
+      description: 'Path to the SQL file',
+      argumentName: 'FILE',
+      required: true,
+    })
+  }
+
+  protected async onExecute(): Promise<void> {
+    await this.migrator.writeDefinitionFile(this.sqlFileParameter.value)
+  }
+}
+
 export class DiffAction extends CommandLineAction {
   private sqlFileParameter?: CommandLineStringParameter
 

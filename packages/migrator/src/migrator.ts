@@ -6,7 +6,7 @@ import {readFileSync} from 'fs'
 import {writeFile, readFile} from 'fs/promises'
 import * as p from 'path'
 import * as umzug from 'umzug'
-import {RepairAction, DiffAction, RepairOptions} from './cli'
+import {RepairAction, DiffAction, RepairOptions, DefinitionsAction} from './cli'
 import {Logger, prettifyAndLog} from './logging'
 import * as templates from './templates'
 import {Migration, MigrationInfo, MigratorContext} from './types'
@@ -60,15 +60,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     try {
       return await super.up(options)
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      let e = err
-      while (e?.cause?.message) {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        e = e.cause
-      }
-
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      throw Object.assign(new Error(`up migration failed: ${err.message}`), {stack: err.stack})
+      throw Object.assign(new Error(`up migration failed: ${err.message}`), {stack: err.stack as string})
     }
   }
 
@@ -87,6 +79,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     const cli = super.getCli({toolDescription: `@pgkit/migrator - PostgreSQL migration tool`, ...options})
     cli.addAction(new RepairAction(this))
     cli.addAction(new DiffAction(this))
+    cli.addAction(new DefinitionsAction(this))
     return cli
   }
 
