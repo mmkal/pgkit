@@ -1,11 +1,15 @@
-/* eslint-disable mmkal/@typescript-eslint/brace-style */
-/* eslint-disable mmkal/unicorn/prefer-ternary */
-/* eslint-disable mmkal/@typescript-eslint/padding-line-between-statements */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/brace-style */
+/* eslint-disable unicorn/prefer-ternary */
+/* eslint-disable @typescript-eslint/padding-line-between-statements */
 /* eslint-disable max-lines */
 /* eslint-disable prefer-const */
 /* eslint-disable guard-for-in */
-/* eslint-disable mmkal/@typescript-eslint/restrict-plus-operands */
-/* eslint-disable mmkal/@typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/restrict-plus-operands */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // No direct equivalent for textwrap in TypeScript. You might need a custom function or a library for similar functionality.
 
 // Assuming these are local files that export the corresponding classes or functions
@@ -854,8 +858,8 @@ export interface InspectedConstraintParams {
 const InspectedConstraintParent = AutoThisAssigner<InspectedConstraintParams, typeof Inspected>(Inspected)
 export class InspectedConstraint extends InspectedConstraintParent implements TableRelated {
   quoted_full_foreign_table_name: string | null
-  fk_columns_local: any | null
-  fk_columns_foreign: any | null
+  fk_columns_local: string | null
+  fk_columns_foreign: string | null
 
   get quoted_full_table_name() {
     return getQuotedFullTableName(this)
