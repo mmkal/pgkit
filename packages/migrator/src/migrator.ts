@@ -1,6 +1,6 @@
 import {sql, Client, Connection, nameQuery, createClient} from '@pgkit/client'
+import {type Flags} from '@pgkit/migra'
 import * as migra from '@pgkit/migra'
-import {Flags} from '@pgkit/migra'
 import {createHash} from 'crypto'
 import {readFileSync} from 'fs'
 import {writeFile, readFile} from 'fs/promises'
@@ -374,6 +374,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await this.client.query(sql`create database ${sql.identifier([shadowDb])}`)
       await Migrator.getOrCreateMigrationsTable({client: shadowClient, table: this.migrationTableNameIdentifier()})
 
+      console.warn(shadowClient.connectionString(), this.client.connectionString())
       const {sql: content} = await migra.run(shadowClient.connectionString(), this.client.connectionString(), {})
 
       await writeFile(filepath, content)
