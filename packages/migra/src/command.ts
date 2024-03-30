@@ -1,9 +1,14 @@
-import {createClient} from '@pgkit/client'
+import {Queryable, createClient} from '@pgkit/client'
 import {PostgreSQL} from '@pgkit/schemainspect'
 import {readFile} from 'fs/promises'
 import {Migration} from './migra'
 
-const argContext = async (x: string) => {
+// todo: deviation: always return a PostgreSQL instance, and make `Migration.create` only accept PostgreSQL instances
+const argContext = async (x: Queryable | string): Promise<PostgreSQL | Queryable> => {
+  if (typeof x !== 'string') {
+    return x
+  }
+
   if (x === 'EMPTY') {
     return PostgreSQL.empty()
   }
@@ -25,7 +30,7 @@ const argContext = async (x: string) => {
 
 export type Flags = Partial<CLI['flags']>
 
-export const run = async (dburlFrom: string, dburlTarget: string, args: Flags) => {
+export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable | string, args: Flags = {}) => {
   // const {schema} = args
   // const {excludeSchema} = args
   // const out: typeof process.stdout = args.out || process.stdout

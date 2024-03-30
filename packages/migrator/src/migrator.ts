@@ -395,7 +395,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
    *
    * @returns The result of `migra.run` between the client's database and a shadow database.
    */
-  protected async runMigra() {
+  protected async runMigra(defaultFlags: Flags = {}) {
     const shadowDb = `shadow_${Math.random().toString(36).slice(2)}`
     const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDb)
     const shadowClient = createClient(shadowConnectionString, {
@@ -407,7 +407,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await this.client.query(sql`create database ${sql.identifier([shadowDb])}`)
       await Migrator.getOrCreateMigrationsTable({client: shadowClient, table: this.migrationTableNameIdentifier()})
 
-      return migra.run(shadowClient.connectionString(), this.client.connectionString(), {})
+      return migra.run(shadowClient, this.client, defaultFlags)
     } finally {
       await shadowClient.end()
     }
