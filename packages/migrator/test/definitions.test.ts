@@ -1,7 +1,6 @@
 import {fsSyncer} from 'fs-syncer'
-import {range} from 'lodash'
 import * as path from 'path'
-import {describe, expect, test, vi as jest, beforeEach} from 'vitest'
+import {describe, expect, test, beforeEach} from 'vitest'
 import {Migrator as Base} from './migrator'
 import {getPoolHelper} from './pool-helper'
 
@@ -23,12 +22,6 @@ class Migrator extends Base {
 }
 
 const {pool, ...helper} = getPoolHelper({__filename})
-
-const millisPerDay = 1000 * 60 * 60 * 24
-const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())
-
-const toISOSpy = jest.spyOn(Date.prototype, 'toISOString')
-toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
 
 describe('sort sql statements', () => {
   const migrationsPath = path.join(__dirname, `generated/${helper.id}`)

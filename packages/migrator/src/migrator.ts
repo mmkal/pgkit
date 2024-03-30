@@ -407,7 +407,8 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await this.client.query(sql`create database ${sql.identifier([shadowDb])}`)
       await Migrator.getOrCreateMigrationsTable({client: shadowClient, table: this.migrationTableNameIdentifier()})
 
-      return migra.run(shadowClient, this.client, defaultFlags)
+      // todo: pass clients through so we don't have to create duplicate clients
+      return migra.run(shadowClient.connectionString(), this.client.connectionString(), defaultFlags)
     } finally {
       await shadowClient.end()
     }
