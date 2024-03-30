@@ -363,6 +363,39 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       throw new Error(`There are pending migrations. Run them before creating a definition file.`, {cause: pending})
     }
 
+    const migration = await this.runMigra()
+    await writeFile(filepath, migration.sql)
+  }
+
+  /**
+   * Creates an empty shadow database, and runs `migra` against the empty databse. You can override this method to manually reorder statements.
+   * This is necessary sometimes because migra doesn't alwyas generate statements in the right order. https://github.com/djrobstep/migra/issues/196
+   *
+   * @example
+   * import {Migrator as Base} from '@pgkit/migrator'
+   *
+   * class Migrator extends Base {
+   *   async runMigra() {
+   *     const migration = await super.runMigra()
+   *     const ordering = Object.fromEntries(
+   *       migration.statements.array.map((s, i, array) => {
+   *         if (s.match(/create type .*my_type/)) {
+   *           const insertBefore = array.findIndex(other => other.match(/create table .*my_table/))
+   *           return [s, insertBefore - 1]
+   *         }
+   *         return [s, i]
+   *       })
+   *     )
+   *
+   *     migration.statements.array.sort((a, b) => ordering[a] - ordering[b])
+   *
+   *     return migration
+   *   }
+   * }
+   *
+   * @returns The result of `migra.run` between the client's database and a shadow database.
+   */
+  protected async runMigra() {
     const shadowDb = `shadow_${Math.random().toString(36).slice(2)}`
     const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDb)
     const shadowClient = createClient(shadowConnectionString, {
@@ -374,10 +407,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await this.client.query(sql`create database ${sql.identifier([shadowDb])}`)
       await Migrator.getOrCreateMigrationsTable({client: shadowClient, table: this.migrationTableNameIdentifier()})
 
-      console.warn(shadowClient.connectionString(), this.client.connectionString())
-      const {sql: content} = await migra.run(shadowClient.connectionString(), this.client.connectionString(), {})
-
-      await writeFile(filepath, content)
+      return migra.run(shadowClient.connectionString(), this.client.connectionString(), {})
     } finally {
       await shadowClient.end()
     }

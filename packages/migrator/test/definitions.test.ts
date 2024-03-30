@@ -1,10 +1,26 @@
-import {sql} from '@pgkit/client'
 import {fsSyncer} from 'fs-syncer'
 import {range} from 'lodash'
 import * as path from 'path'
 import {describe, expect, test, vi as jest, beforeEach} from 'vitest'
-import {Migrator} from './migrator'
+import {Migrator as Base} from './migrator'
 import {getPoolHelper} from './pool-helper'
+
+class Migrator extends Base {
+  async runMigra() {
+    const migration = await super.runMigra()
+    migration.statements.array = migration.statements.array
+      .map((s, i, arr) => {
+        if (/create type .*address/.test(s)) {
+          i = arr.findIndex(other => other.match(/create table .*patient/)) - 0.5
+        }
+        return {s, i, arr}
+      })
+      .sort((a, b) => a.i - b.i)
+      .map(x => x.s)
+
+    return migration
+  }
+}
 
 const {pool, ...helper} = getPoolHelper({__filename})
 
@@ -60,6 +76,8 @@ describe('sort sql statements', () => {
           ",
         "definitions.sql": "create type "public"."patient_type" as enum ('human', 'animal');
 
+      create type "public"."address" as ("street" text, "city" text, "state" text, "zip" text);
+
 
         create table "public"."patient" (
           "id" integer not null,
@@ -72,8 +90,6 @@ describe('sort sql statements', () => {
       CREATE UNIQUE INDEX patient_pkey ON public.patient USING btree (id);
 
       alter table "public"."patient" add constraint "patient_pkey" PRIMARY KEY using index "patient_pkey";
-
-      create type "public"."address" as ("street" text, "city" text, "state" text, "zip" text);
 
       ",
       }
