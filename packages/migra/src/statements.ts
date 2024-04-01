@@ -24,6 +24,17 @@ export class Statements {
     return this.array[Symbol.iterator]()
   }
 
+  /** Use this to reorder statements. The score function receives the statement, the original index and the full statement array (like `.map`). */
+  sortBy(fn: (statement: string, index: number, array: string[]) => string | number): void {
+    this.array = this.array
+      .map((s, i, arr) => ({
+        value: s,
+        score: fn(s, i, arr),
+      }))
+      .sort((a, b) => (a.score < b.score ? -1 : a.score > b.score ? 1 : 0))
+      .map(x => x.value)
+  }
+
   toJSON() {
     return this.array
   }

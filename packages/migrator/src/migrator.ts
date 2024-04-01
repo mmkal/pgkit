@@ -377,18 +377,9 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
    * class Migrator extends Base {
    *   async runMigra() {
    *     const migration = await super.runMigra()
-   *     const ordering = Object.fromEntries(
-   *       migration.statements.array.map((s, i, array) => {
-   *         if (s.match(/create type .*my_type/)) {
-   *           const insertBefore = array.findIndex(other => other.match(/create table .*my_table/))
-   *           return [s, insertBefore - 1]
-   *         }
-   *         return [s, i]
-   *       })
-   *     )
-   *
-   *     migration.statements.array.sort((a, b) => ordering[a] - ordering[b])
-   *
+   *     migration.statements.sortBy((s, i, array) => {
+   *       return s.match(/create type/) ? Math.min(i, array.findIndex(other => other.match(/create table/)) - 1) : i
+   *     })
    *     return migration
    *   }
    * }

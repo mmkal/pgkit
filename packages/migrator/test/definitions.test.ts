@@ -1,59 +1,51 @@
 import {fsSyncer} from 'fs-syncer'
 import * as path from 'path'
-import {describe, expect, test, beforeEach} from 'vitest'
+import {describe, expect, test} from 'vitest'
 import {Migrator as Base} from './migrator'
 import {getPoolHelper} from './pool-helper'
-
-class Migrator extends Base {
-  async runMigra() {
-    const migration = await super.runMigra()
-    migration.statements.array = migration.statements.array
-      .map((s, i, arr) => {
-        if (/create type .*address/.test(s)) {
-          i = arr.findIndex(other => other.match(/create table .*patient/)) - 0.5
-        }
-        return {s, i, arr}
-      })
-      .sort((a, b) => a.i - b.i)
-      .map(x => x.s)
-
-    return migration
-  }
-}
 
 const {pool, ...helper} = getPoolHelper({__filename})
 
 describe('sort sql statements', () => {
-  const migrationsPath = path.join(__dirname, `generated/${helper.id}`)
+  test('definitions', async () => {
+    // problem: migra doesn't do a toplogoical sort of the statements. it statically orders in a sensible way, but doesn't allow for tables to depend on functions, for example.
+    // https://github.com/djrobstep/migra/issues/196
+    class Migrator extends Base {
+      async runMigra() {
+        const migration = await super.runMigra()
+        migration.statements.sortBy((s, i, arr) => {
+          return /create type .*address/.test(s) //
+            ? arr.findIndex(other => other.match(/create table .*patient/)) - 1 // move address type definition to before patient table creation
+            : i
+        })
 
-  // problem: migra doesn't do a toplogoical sort of the statements. it statically orders in a sensible way, but doesn't allow for tables to depend on functions, for example.
-  // https://github.com/djrobstep/migra/issues/196
-  const syncer = fsSyncer(migrationsPath, {
-    '01.one.sql': 'create table patient(id int primary key, name text)',
-    '02.two.sql': `
-      create type address as (street text, city text, state text, zip text);
-      create type patient_type as enum ('human', 'animal');
-    `,
-    '03.three.sql': `
-      alter table patient add column address address;
-      alter table patient add column type patient_type;
-    `,
-  })
+        return migration
+      }
+    }
 
-  let migrator: Migrator
+    const migrationsPath = path.join(__dirname, `generated/${helper.id}`)
 
-  beforeEach(async () => {
+    const syncer = fsSyncer(migrationsPath, {
+      '01.one.sql': 'create table patient(id int primary key, name text)',
+      '02.two.sql': `
+        create type address as (street text, city text, state text, zip text);
+        create type patient_type as enum ('human', 'animal');
+      `,
+      '03.three.sql': `
+        alter table patient add column address address;
+        alter table patient add column type patient_type;
+      `,
+    })
     syncer.sync()
-    migrator = new Migrator({
+
+    const migrator = new Migrator({
       client: pool,
       migrationsPath,
       migrationTableName: 'migrations',
     })
 
     await migrator.up()
-  })
 
-  test('definitions', async () => {
     await migrator.writeDefinitionFile(syncer.baseDir + '/definitions.sql')
 
     expect(syncer.read()).toMatchInlineSnapshot(`
