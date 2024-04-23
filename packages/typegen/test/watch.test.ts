@@ -176,9 +176,10 @@ const waitForLog = async (match: RegExp, timeoutMs = 3000) => {
         resolve()
       } else if (Date.now() > end) {
         reject(
-          new Error(`Logs matching /${match.source}/ not found after ${timeoutMs}ms`, {
-            cause: logger.info.mock.calls,
-          }),
+          new Error(
+            `Logs matching /${match.source}/ not found after ${timeoutMs}ms. Calls: ${JSON.stringify(logger.info.mock.calls, null, 2)}`,
+            {cause: logger.info.mock.calls},
+          ),
         )
       } else {
         setTimeout(check, 20)
