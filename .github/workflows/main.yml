@@ -5,7 +5,6 @@ on:
 
 env:
   POSTGRES_PSQL_COMMAND: docker exec -i postgres_github_actions psql
-  POSTGRES_CONNECTION_STRING: postgresql://postgres:postgres@localhost:5433/postgres
 
 jobs:
   build:
