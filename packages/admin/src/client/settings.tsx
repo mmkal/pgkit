@@ -73,7 +73,8 @@ export const Settings = () => {
   return (
     <Popover
       isOpen={openSettings}
-      containerStyle={{zIndex: '2'}}
+      containerStyle={{zIndex: '2', marginLeft: '100px'}}
+      boundaryElement={document.querySelector('main')!}
       onClickOutside={() => setOpenSettings(false)}
       content={<SettingsPanel />}
     >

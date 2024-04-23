@@ -14,6 +14,9 @@ export const Tables = ({inspected}: TablesProps) => {
   const [limit, _setLimit] = useLocalStorage('table.limit.0.0.1', 100)
   const [offset, setOffset] = useLocalStorage('table.offset.0.0.1', 0)
   const rowsMutation = trpc.executeSql.useMutation()
+  const prevEnabled = offset! > 0
+  const values = rowsMutation.data?.results[0].result || []
+  const nextEnabled = Boolean(limit) && values.length >= limit
 
   React.useEffect(() => {
     if (table && inspected.tables && table in inspected.tables) {
@@ -26,7 +29,7 @@ export const Tables = ({inspected}: TablesProps) => {
   }, [table, inspected, limit, offset])
 
   return (
-    <>
+    <div style={{display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10}}>
       <div>
         {Object.entries(inspected.tables || {}).map(([name, info]) => (
           <button key={name} disabled={name === table} onClick={() => setTable(name)}>
@@ -34,21 +37,26 @@ export const Tables = ({inspected}: TablesProps) => {
           </button>
         ))}
       </div>
-      <button
-        onClick={() => setOffset(Number(offset) - Number(limit))}
-        disabled={offset === 0}
-        aria-label="previous page"
-      >
-        ⬅️
-      </button>
-      <button
-        disabled={!(rowsMutation.data?.results.length! < limit!)}
-        onClick={() => setOffset(Number(offset) + Number(limit))}
-        aria-label="next page"
-      >
-        ➡️
-      </button>
-      {<ResultsViewer values={rowsMutation.data?.results[0]?.result || []} />}
-    </>
+      {<ResultsViewer offset={offset} values={rowsMutation.data?.results[0]?.result || []} />}
+      <div style={{display: 'flex', gap: 5, alignItems: 'center'}}>
+        <button
+          onClick={() => setOffset(Number(offset) - Number(limit))}
+          disabled={!prevEnabled}
+          aria-label="previous page"
+        >
+          ⬅️
+        </button>
+        <span>
+          {Number(offset) + 1} - {Number(offset) + Number(Math.min(limit!, values.length))}
+        </span>
+        <button
+          disabled={!nextEnabled}
+          onClick={() => setOffset(Number(offset) + Number(limit))}
+          aria-label="next page" //
+        >
+          ➡️
+        </button>
+      </div>
+    </div>
   )
 }

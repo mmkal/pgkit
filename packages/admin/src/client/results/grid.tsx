@@ -8,7 +8,10 @@ import {Popover} from 'react-tiny-popover'
 import {useMeasure} from 'react-use'
 
 export interface ResultsViewerParams {
+  /** array of values that will be rendered in a grid. Note: the first row is used for the column names */
   values: unknown[]
+  /** number rows starting at this value. @default 0 */
+  offset?: number
 }
 
 export const ResultsViewer = (params: ResultsViewerParams) => {
@@ -17,11 +20,11 @@ export const ResultsViewer = (params: ResultsViewerParams) => {
   return <_ResultsViewer {...params} />
 }
 
-const _ResultsViewer = ({values}: ResultsViewerParams) => {
+const _ResultsViewer = ({values, offset: startAt = 0}: ResultsViewerParams) => {
   const [ref, measurements] = useMeasure()
   const rows = React.useMemo(() => values.map(r => (r && typeof r === 'object' ? r : {})), [values])
   const columnNames = React.useMemo(() => Object.keys(rows.at(0) || {}), [rows])
-  const defaultWidth = (Math.max(800, measurements.width) - 50) / columnNames.length
+  const defaultWidth = Math.max(150, (measurements.width - 50) / columnNames.length)
   const [columns, setColumns] = React.useState<reactGrid.Column[]>(() => {
     return [
       {columnId: 'row', width: 1, resizable: false, reorderable: false},
@@ -47,7 +50,7 @@ const _ResultsViewer = ({values}: ResultsViewerParams) => {
       ...rows.map((r, i) => ({
         rowId: i,
         cells: [
-          {type: 'header', text: String(i + 1), className: 'rowNumberer'},
+          {type: 'header', text: String(i + startAt + 1), className: 'rowNumberer'},
           ...Object.entries(r)
             .map(([_k, v]): reactGrid.DefaultCellTypes => {
               if (typeof v === 'number') {
