@@ -41,7 +41,9 @@ export class QueryError extends Error {
   }
 
   constructor(message: string, {cause}: {cause: QueryError['cause']}) {
-    super(`[Query ${cause.query.name}]: ${message}`, {cause})
+    super(`[Query ${cause.query.name}]: ${message || cause?.error?.message || cause?.error?.constructor?.name}`, {
+      cause,
+    })
     this.cause = cause
   }
 
