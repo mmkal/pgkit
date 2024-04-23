@@ -23,6 +23,16 @@ export function Sqler() {
       setErrors(newErrors.length > 0 ? newErrors : noErrors)
     },
   })
+  const aiMut = trpc.aiQuery.useMutation({
+    onSuccess: (data, variables) => {
+      setStoredCode(
+        [
+          `-- Prompt: ${variables.prompt}`,
+          data.query, //
+        ].join('\n\n'),
+      )
+    },
+  })
   const settings = useSettings()
   const inspectQuery = trpc.inspect.useQuery({
     includeSchemas: settings.includeSchemas,
@@ -45,9 +55,27 @@ export function Sqler() {
           <Settings />
           <img src={logo} alt="pgkit" height={50} />
         </div>
-        <button className={styles.runButton} onClick={() => mut.mutate({query: storedCode})}>
-          ▶️
-        </button>
+        <div style={{display: 'flex', gap: 5}}>
+          <button
+            aria-label="AI query"
+            className={styles.runButton}
+            disabled={aiMut.isLoading}
+            onClick={() => {
+              const aiPrompt = prompt('Enter a prompt', aiMut.variables?.prompt || '')
+              if (!aiPrompt) return
+              aiMut.mutate({
+                prompt: aiPrompt,
+                includeSchemas: settings.includeSchemas,
+                excludeSchemas: settings.excludeSchemas,
+              })
+            }}
+          >
+            🧙‍♂️
+          </button>
+          <button aria-label="Run button" className={styles.runButton} onClick={() => mut.mutate({query: storedCode})}>
+            ▶️
+          </button>
+        </div>
       </nav>
       <div className={styles.querierPanel}>
         <div className={styles.sqlerContainer}>

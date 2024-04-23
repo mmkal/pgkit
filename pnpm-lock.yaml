@@ -77,6 +77,9 @@ importers:
       '@pgkit/client':
         specifier: workspace:^
         version: link:../client
+      '@pgkit/migra':
+        specifier: workspace:^
+        version: link:../migra
       '@pgkit/schemainspect':
         specifier: workspace:^
         version: link:../schemainspect
@@ -104,6 +107,9 @@ importers:
       express:
         specifier: ^4.18.2
         version: 4.18.2
+      fetchomatic:
+        specifier: ^0.0.2
+        version: 0.0.2
       p-memoize:
         specifier: ^7.1.1
         version: 7.1.1
@@ -5496,6 +5502,11 @@ packages:
     dependencies:
       reusify: 1.0.4
     dev: true
+
+  /fetchomatic@0.0.2:
+    resolution: {integrity: sha512-Ymafqe8aOl3qaJsKXt9CVi+t/EOxzYrGeBQGZOIg3VTrjD7G1TPMLK44eW8XZaAcM2iPxhIkSOKA5h1A5t3L1w==}
+    hasBin: true
+    dev: false
 
   /figures@1.7.0:
     resolution: {integrity: sha512-UxKlfCRuCBxSXU4C6t9scbDyWZ4VlaFFdojKtzJuSkuOBQ5CNFum+zZXFwHjo+CxBC1t6zlYPgHIgFjL8ggoEQ==}
