@@ -37,7 +37,6 @@ export function Sqler() {
     (errs: (typeof errorMap)[string]) => setErrorMap({...errorMap, [storedCode]: errs}),
     [errorMap, storedCode],
   )
-
   return (
     <section data-layout={settings.layout}>
       <nav className={styles.navBar}>
@@ -66,13 +65,15 @@ export function Sqler() {
               // todo: table renderer
               <></>
             )}
-          </div>
-          <div className={styles.jsonView}>
-            <jsonView.JsonView
-              data={inspected}
-              shouldExpandNode={jsonView.collapseAllNested}
-              style={jsonView.darkStyles}
-            />
+            {settings.view === 'inspect' && (
+              <div className={styles.jsonView}>
+                <jsonView.JsonView
+                  data={inspected}
+                  shouldExpandNode={jsonView.collapseAllNested}
+                  style={jsonView.darkStyles}
+                />
+              </div>
+            )}
           </div>
         </div>
         <div className={styles.resultsContainer}>

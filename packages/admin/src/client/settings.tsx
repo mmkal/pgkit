@@ -7,7 +7,7 @@ const useSettingsProps = () => {
   const [apiUrl, setApiUrl] = useLocalStorage('apiUrl.0.0.1', '')
   const [includeSchemas, setIncludeSchemas] = useLocalStorage('includeSchemas.0.0.1', '')
   const [excludeSchemas, setExcludeSchemas] = useLocalStorage('excludeSchemas.0.0.1', '')
-  const [view, setView] = useLocalStorage('view.0.0.1', 'sql' as 'sql' | 'tables')
+  const [view, setView] = useLocalStorage('view.0.0.1', 'sql' as 'sql' | 'tables' | 'inspect')
   const [headers, setHeaders] = useLocalStorage('headers.0.0.1', {
     'connection-string': 'postgres://postgres:postgres@localhost:5432/postgres',
   } as Record<string, string>)
@@ -98,6 +98,14 @@ const SettingsPanel = () => {
           🚦/🚥
         </button>
       </section>
+      <div data-setting="view">
+        <h2>View</h2>
+        <select onChange={ev => settings.setView(ev.target.value as typeof settings.view)}>
+          <option value="sql">SQL</option>
+          <option value="tables">Tables</option>
+          <option value="schema">Inspect</option>
+        </select>
+      </div>
       <div data-setting="api-url">
         <h2>API URL</h2>
         <input

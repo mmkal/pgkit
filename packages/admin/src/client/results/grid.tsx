@@ -5,6 +5,7 @@ import * as reactGrid from '@silevis/reactgrid'
 import React from 'react'
 import * as jsonView from 'react-json-view-lite'
 import {Popover} from 'react-tiny-popover'
+import {useMeasure} from 'react-use'
 
 export interface ResultsViewerParams {
   values: unknown[]
@@ -17,11 +18,21 @@ export const ResultsViewer = (params: ResultsViewerParams) => {
 }
 
 const _ResultsViewer = ({values}: ResultsViewerParams) => {
+  const [ref, measurements] = useMeasure()
   const rows = React.useMemo(() => values.map(r => (r && typeof r === 'object' ? r : {})), [values])
-  const [columns, setColumns] = React.useState<reactGrid.Column[]>(() => [
-    {columnId: 'row', width: 1, resizable: false, reorderable: false},
-    ...Object.keys(rows.at(0) || {}).map(key => ({columnId: key, resizable: true, reorderable: true})),
-  ])
+  const columnNames = React.useMemo(() => Object.keys(rows.at(0) || {}), [rows])
+  const defaultWidth = Math.max(800, measurements.width) / columnNames.length - 10
+  const [columns, setColumns] = React.useState<reactGrid.Column[]>(() => {
+    return [
+      {columnId: 'row', width: 1, resizable: false, reorderable: false},
+      ...columnNames.map(key => ({columnId: key, resizable: true, reorderable: true, width: defaultWidth})),
+    ]
+  })
+
+  React.useEffect(() => {
+    setColumns(prevColumns => prevColumns.map((c, i) => (i === 0 ? c : {...c, width: defaultWidth})))
+  }, [defaultWidth])
+
   const gridRows = React.useMemo(() => {
     return [
       {
@@ -69,16 +80,21 @@ const _ResultsViewer = ({values}: ResultsViewerParams) => {
   }, [])
 
   return (
-    <reactGrid.ReactGrid
-      columns={columns}
-      rows={gridRows}
-      enableFillHandle={true}
-      enableRangeSelection={true}
-      enableRowSelection={true}
-      enableColumnSelection={true}
-      onColumnResized={onColumnResized}
-      stickyTopRows={1}
-    />
+    <div style={{position: 'relative'}} ref={ref as never}>
+      {/* <button style={{position: 'absolute', top: -50, right: 0}} onClick={() => console.log(gridRows)}>
+        download
+      </button> */}
+      <reactGrid.ReactGrid
+        columns={columns}
+        rows={gridRows}
+        enableFillHandle={true}
+        enableRangeSelection={true}
+        enableRowSelection={true}
+        enableColumnSelection={true}
+        onColumnResized={onColumnResized}
+        stickyTopRows={1}
+      />
+    </div>
   )
 }
 

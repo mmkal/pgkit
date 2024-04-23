@@ -15,11 +15,11 @@
 }
 
 .sqlerContainer {
-    width: 50%;
+    // width: 50%;
 }
 
 .resultsContainer {
-    width: 50%;
+    // width: 50%;
     height: var(--sql-editor-height);
     overflow: scroll;
     display: flex;
@@ -46,12 +46,12 @@
     }
 
     .editorContainer {
-        width: 50%;
+        width: 100%;
         position: relative;
     }
 
     .jsonView {
-        width: 50%;
+        // width: 50%;
         height: 100%;
         overflow: scroll;
         max-height: var(--sql-editor-height);
