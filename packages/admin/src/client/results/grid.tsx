@@ -21,7 +21,7 @@ const _ResultsViewer = ({values}: ResultsViewerParams) => {
   const [ref, measurements] = useMeasure()
   const rows = React.useMemo(() => values.map(r => (r && typeof r === 'object' ? r : {})), [values])
   const columnNames = React.useMemo(() => Object.keys(rows.at(0) || {}), [rows])
-  const defaultWidth = Math.max(800, measurements.width) / columnNames.length - 10
+  const defaultWidth = (Math.max(800, measurements.width) - 50) / columnNames.length
   const [columns, setColumns] = React.useState<reactGrid.Column[]>(() => {
     return [
       {columnId: 'row', width: 1, resizable: false, reorderable: false},

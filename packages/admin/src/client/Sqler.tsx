@@ -7,6 +7,7 @@ import logo from './images/pgkit_transparent_cropped.png'
 import {ResultsViewer} from './results/grid'
 import {Settings, useSettings} from './settings'
 import {SqlCodeMirror} from './sql-codemirror'
+import {Tables} from './tables/Tables'
 import {trpc} from './trpc'
 
 import 'react-json-view-lite/dist/index.css'
@@ -61,10 +62,7 @@ export function Sqler() {
                 errors={errors}
               />
             )}
-            {settings.view === 'tables' && (
-              // todo: table renderer
-              <></>
-            )}
+            {settings.view === 'tables' && inspected && <Tables inspected={inspected} />}
             {settings.view === 'inspect' && (
               <div className={styles.jsonView}>
                 <jsonView.JsonView
