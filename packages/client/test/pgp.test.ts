@@ -10,9 +10,16 @@ beforeEach(async () => {
   pgp ||= initPgp({})
   db ||= pgp('postgresql://postgres:postgres@localhost:5432/postgres?raw-pgp=true')
 
-  await db.query(`drop table if exists mytable`)
-  await db.query(`create table mytable (id text)`)
-  await db.query(`insert into mytable (id) values ('one'), ('two'), ('three')`)
+  await db.query(`drop table if exists pgp_test`)
+  await db.query(`drop table if exists pgp_test_enum`)
+  await db.query(`drop type if exists pgp_testenum`)
+
+  await db.query(`create table pgp_test (id text)`)
+  await db.query(`insert into pgp_test (id) values ('one'), ('two'), ('three')`)
+
+  await db.query(`create type pgp_testenum as enum ('up', 'down', 'left', 'right')`)
+  await db.query(`create table pgp_test_enum (direction pgp_testenum)`)
+  await db.query(`insert into pgp_test_enum (direction) values ('up'), ('down')`)
 })
 
 test('pgp works', async () => {
@@ -23,10 +30,10 @@ test('pgp works', async () => {
 })
 
 test('any keyword', async () => {
-  await db.query(`insert into mytable (id) values ('normal string'), ($1)`, ["'string with quotes'"])
+  await db.query(`insert into pgp_test (id) values ('normal string'), ($1)`, ["'string with quotes'"])
 
   const req = {body: {ids: ['normal string', "'string with quotes'"]}}
-  const x = await db.query('SELECT * FROM mytable WHERE id = ANY($1)', [req.body.ids])
+  const x = await db.query('SELECT * FROM pgp_test WHERE id = ANY($1)', [req.body.ids])
   expect(x).toEqual([{id: 'normal string'}, {id: "'string with quotes'"}])
 })
 
@@ -37,13 +44,13 @@ test('date', async () => {
 })
 
 test('identifiers', async () => {
-  const tableName = 'mytable'
+  const tableName = 'pgp_test'
   const result = await db.query(`select count(*) from ${pgp.as.name(tableName)}`)
   expect(result).toEqual([{count: '3'}])
 })
 
 test('identifiers with dot', async () => {
-  const result = await db.query(`select count(*) from $(p0:name).$(p1:name)`, {p0: 'public', p1: 'mytable'})
+  const result = await db.query(`select count(*) from $(p0:name).$(p1:name)`, {p0: 'public', p1: 'pgp_test'})
   expect(result).toEqual([{count: '3'}])
 })
 
@@ -80,8 +87,8 @@ test('unnest', async () => {
 
 test('prepared statement', async () => {
   const statement = new pgp.PreparedStatement({
-    name: 'get-from-mytable',
-    text: 'select * from mytable where id = $1',
+    name: 'get-from-pgp_test',
+    text: 'select * from pgp_test where id = $1',
     values: ['one'],
   })
   const result = await db.query(statement)
@@ -94,16 +101,16 @@ test('non-string array', async () => {
     text: `
       select
         1 one,
-        array(select enumlabel from pg_catalog.pg_enum limit 2) as two
+        array(select direction from pgp_test_enum order by direction::text) as two
     `,
     values: [],
   })
   const result = await db.query(statement)
-  expect(result).toEqual([{one: 1, two: '{M,F}'}])
+  expect(result).toEqual([{one: 1, two: '{down,up}'}])
 })
 
 test('prepare statement command does not accept values', async () => {
-  const prepareStatementSql = `prepare test_statement as select * from mytable where id = $1 or id = $2`
+  const prepareStatementSql = `prepare test_statement as select * from pgp_test where id = $1 or id = $2`
 
   await expect(db.query(prepareStatementSql, [])).rejects.toThrowErrorMatchingInlineSnapshot(
     `[RangeError: Variable $1 out of range. Parameters array length: 0]`,
