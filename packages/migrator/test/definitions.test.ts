@@ -52,13 +52,13 @@ describe('sort sql statements', () => {
       {
         "01.one.sql": "create table patient(id int primary key, name text)",
         "02.two.sql": "
-            create type address as (street text, city text, state text, zip text);
-            create type patient_type as enum ('human', 'animal');
-          ",
+              create type address as (street text, city text, state text, zip text);
+              create type patient_type as enum ('human', 'animal');
+            ",
         "03.three.sql": "
-            alter table patient add column address address;
-            alter table patient add column type patient_type;
-          ",
+              alter table patient add column address address;
+              alter table patient add column type patient_type;
+            ",
         "definitions.sql": "create type "public"."patient_type" as enum ('human', 'animal');
 
       create type "public"."address" as ("street" text, "city" text, "state" text, "zip" text);

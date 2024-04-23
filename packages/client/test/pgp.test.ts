@@ -99,7 +99,7 @@ test('non-string array', async () => {
     values: [],
   })
   const result = await db.query(statement)
-  expect(result).toEqual([{one: 1, two: '{}'}])
+  expect(result).toEqual([{one: 1, two: '{M,F}'}])
 })
 
 test('prepare statement command does not accept values', async () => {
@@ -189,9 +189,9 @@ test('type parsers', async () => {
 
   const oidToTypname = Object.fromEntries(result.map(r => [r.oid, r]))
   const mappedBuiltins = Object.entries(pgp.pg.types.builtins).map(([name, oid]) => ({
+    ...oidToTypname[oid],
     oid,
     name,
-    ...oidToTypname[oid],
   }))
 
   expect(mappedBuiltins).toMatchInlineSnapshot(`

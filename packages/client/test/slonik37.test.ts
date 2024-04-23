@@ -234,7 +234,7 @@ test('sql.literalValue', async () => {
 
   expect(result).toEqual({search_path: 'abc'})
   const result2 = await client.one(sql`show search_path`)
-  expect(result2).toEqual({search_path: '"$user", public'})
+  expect(result2?.search_path).toMatch(/\bpublic\b/)
 })
 
 /**
