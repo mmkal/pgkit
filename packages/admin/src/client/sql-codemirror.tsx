@@ -1,6 +1,6 @@
 import {type CompletionSource, acceptCompletion, autocompletion} from '@codemirror/autocomplete'
 import {sql} from '@codemirror/lang-sql'
-import {linter} from '@codemirror/lint'
+import {linter, lintGutter} from '@codemirror/lint'
 import {Prec} from '@codemirror/state'
 import {type EditorView, keymap} from '@codemirror/view'
 import CodeMirror from '@uiw/react-codemirror'
@@ -65,7 +65,7 @@ export const SqlCodeMirror = ({
       })
     })
 
-    const baseExtensions = [keymapExtension, sql(), linterExtension]
+    const baseExtensions = [keymapExtension, sql(), linterExtension, lintGutter()]
     if (!schema || !searchPath) {
       return baseExtensions
     }

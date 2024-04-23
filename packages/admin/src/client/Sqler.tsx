@@ -1,6 +1,7 @@
 import React from 'react'
 import * as jsonView from 'react-json-view-lite'
 import {useLocalStorage} from 'react-use'
+import {z} from 'zod'
 import {PostgreSQLJson} from '../packlets/autocomplete/suggest'
 import styles from './Sqler.module.scss'
 import logo from './images/pgkit_transparent_cropped.png'
@@ -14,12 +15,30 @@ import 'react-json-view-lite/dist/index.css'
 
 const noErrors = [] as []
 
+const PGErrorLike = z.object({
+  code: z.string(),
+  position: z.string(),
+})
+const PGErrorWrapper = z.object({
+  error: PGErrorLike,
+})
+
 export function Sqler() {
   const mut = trpc.executeSql.useMutation({
     onSuccess: data => {
-      const newErrors = data.results.flatMap(r =>
-        r.error && typeof r.position === 'number' ? [{message: r.error.message, position: r.position + 1}] : [],
-      )
+      const newErrors = data.results.flatMap(r => {
+        if (r.error && typeof r.position === 'number') {
+          return [{message: r.error.message, position: r.position + 1}]
+        }
+
+        const parsed = PGErrorWrapper.safeParse(r.error?.cause)
+        if (parsed.success) {
+          const pgError = parsed.data.error
+          return [{message: r.error?.message || pgError.code, position: Number(pgError.position) - 1}]
+        }
+
+        return []
+      })
       setErrors(newErrors.length > 0 ? newErrors : noErrors)
     },
   })
