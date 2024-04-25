@@ -64,9 +64,7 @@ export default function Component() {
       <div className="flex flex-col w-[250px] bg-gray-800 text-gray-100">
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
           <Link className="flex items-center gap-2" href="#">
-            {/* <DatabaseIcon className="w-6 h-6" /> */}
             <img src={logo} alt="pgkit" height={10} className="h-12" />
-            {/* <h2 className="text-lg font-semibold">SQL Admin</h2> */}
           </Link>
         </div>
         <div className="flex-1 overflow-y-auto py-4">
@@ -115,7 +113,10 @@ export default function Component() {
                 {Object.entries(inspected?.tables || {}).map(([key, table]) => (
                   <Button
                     key={key}
-                    className="gap-1 text-left justify-start w-full rounded-md px-3 py-1 text-xs hover:bg-gray-700"
+                    className={clsx(
+                      'gap-1 text-left justify-start w-full rounded-md px-3 py-1 text-xs hover:bg-gray-700',
+                      view === 'table' && tableIdentifier === key && 'bg-gray-600',
+                    )}
                     variant="ghost"
                     onClick={() => {
                       setView('table')

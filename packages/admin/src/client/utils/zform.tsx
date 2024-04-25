@@ -38,11 +38,10 @@ type FieldConfigs<T extends FieldValues> = {
   [K in keyof T]?: T[K] extends string | number | boolean ? FieldConfig<T, K> : FieldConfigs<T[K]>
 }
 
-export interface ZFormProps<Z extends z.ZodObject<any>> {
+export interface ZFormProps<Z extends z.ZodObject<any>> extends UseFormProps<z.infer<Z>> {
   schema: Z
   onSubmit: (values: z.infer<Z>) => void
   className?: string
-  defaultValues?: UseFormProps<z.infer<Z>>['defaultValues']
   config?: FieldConfigs<z.infer<Z>>
 }
 
@@ -65,60 +64,90 @@ export function ZForm<Z extends z.ZodObject<any>>(props: ZFormProps<Z>) {
 
           const label = config.label || key
           const description = config?.description || value.description
-          let fieldSchema = value
-          while (getInnerType(fieldSchema)) {
-            fieldSchema = getInnerType(fieldSchema)
-          }
+          const fieldSchema = value
 
-          if (fieldSchema instanceof z.ZodString) {
-            return (
-              <FormField
-                control={form.control}
-                name={key as never}
-                key={key}
-                render={({field}) => (
-                  <FormItem className={config?.className}>
-                    <FormLabel>{label}</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    {description && <FormDescription>{description}</FormDescription>}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )
-          }
+          function Fieldify(fieldSchema: typeof value) {
+            while (getInnerType(fieldSchema)) {
+              fieldSchema = getInnerType(fieldSchema)
+            }
 
-          if (fieldSchema instanceof z.ZodBoolean) {
-            return (
-              <FormField
-                name={key as never}
-                key={key}
-                control={form.control}
-                render={({field}) => {
-                  return (
-                    <FormItem key={key} className="flex flex-row items-start space-x-3 space-y-0">
+            if (fieldSchema instanceof z.ZodString) {
+              return (
+                <FormField
+                  control={form.control}
+                  name={key as never}
+                  key={key}
+                  render={({field}) => (
+                    <FormItem className={config?.className}>
+                      <FormLabel>{label}</FormLabel>
                       <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={(checked: boolean) => {
-                            field.onChange(checked)
-                            // return checked
-                            //   ? void field.onChange([...field.value, key])
-                            //   : void field.onChange((field.value as string[])?.filter(value => value !== key))
-                          }}
-                        />
+                        <Input {...field} />
                       </FormControl>
-                      <FormLabel title={description} className="font-normal">
-                        {label}
-                      </FormLabel>
+                      {description && <FormDescription>{description}</FormDescription>}
+                      <FormMessage />
                     </FormItem>
-                  )
-                }}
-              />
-            )
+                  )}
+                />
+              )
+            }
+
+            if (fieldSchema instanceof z.ZodNumber) {
+              return (
+                <FormField
+                  control={form.control}
+                  name={key as never}
+                  key={key}
+                  render={({field}) => (
+                    <FormItem className={config?.className}>
+                      <FormLabel>{label}</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} />
+                      </FormControl>
+                      {description && <FormDescription>{description}</FormDescription>}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )
+            }
+
+            if (fieldSchema instanceof z.ZodObject) {
+              return (
+                <ZForm
+                  key={key}
+                  schema={fieldSchema}
+                  defaultValues={form.getValues(key as never)}
+                  onSubmit={values => {
+                    form.setValue(key as never, values as never)
+                  }}
+                />
+              )
+            }
+
+            if (fieldSchema instanceof z.ZodBoolean) {
+              return (
+                <FormField
+                  name={key as never}
+                  key={key}
+                  control={form.control}
+                  render={({field}) => {
+                    return (
+                      <FormItem key={key} className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox checked={field.value} onCheckedChange={checked => field.onChange(checked)} />
+                        </FormControl>
+                        <FormLabel title={description} className="font-normal">
+                          {label}
+                        </FormLabel>
+                      </FormItem>
+                    )
+                  }}
+                />
+              )
+            }
           }
+
+          return Fieldify(fieldSchema)
 
           throw new Error(`sdoidfj`)
         })}

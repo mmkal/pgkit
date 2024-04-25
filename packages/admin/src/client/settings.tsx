@@ -97,6 +97,11 @@ export const SettingsPanel = () => {
           username: z.string().min(1),
           password: z.string().describe(`Don't tell anyone`),
           alive: z.boolean(),
+          address: z.object({
+            street: z.string(),
+            number: z.number(),
+            city: z.string(),
+          }),
         })}
         config={{
           username: {label: 'Your username'},
