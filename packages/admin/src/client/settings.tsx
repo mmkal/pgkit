@@ -92,7 +92,7 @@ export const SettingsPanel = () => {
   return (
     <div className="h-full overflow-scroll" style={{background: 'black', border: '2px solid white', padding: 10}}>
       <ZForm
-        className="Xhidden"
+        className="hidden"
         schema={z.object({
           // todo: focus losing on type
           // title: z.string().field({
