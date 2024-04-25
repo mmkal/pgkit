@@ -1,5 +1,4 @@
 import {Migrator} from '@pgkit/migrator'
-import {TRPCError} from '@trpc/server'
 import * as fs from 'fs'
 import * as path from 'path'
 import {z} from 'zod'

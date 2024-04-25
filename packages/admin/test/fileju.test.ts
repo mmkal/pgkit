@@ -1,5 +1,5 @@
 import {test, expect} from 'vitest'
-import {commonPrefix} from '@/client/views/parseFileTree'
+import {commonPrefix} from '@/client/views/file-tree'
 
 test('commonPrefix', async () => {
   expect(

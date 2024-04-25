@@ -2,17 +2,16 @@ import React from 'react'
 import * as jsonView from 'react-json-view-lite'
 import {useLocalStorage} from 'react-use'
 import {z} from 'zod'
-import {PostgreSQLJson} from '../packlets/autocomplete/suggest'
 import styles from './Sqler.module.scss'
 import logo from './images/pgkit_transparent_cropped.png'
 import {ResultsViewer} from './results/grid'
 import {Settings, useSettings} from './settings'
 import {SqlCodeMirror} from './sql-codemirror'
 import {Tables} from './tables/Tables'
+import {useInspected, useSearchPath} from './utils/inspect'
 import {trpc} from './utils/trpc'
 
 import 'react-json-view-lite/dist/index.css'
-import {useInspected, useSearchPath} from './utils/inspect'
 
 const noErrors = [] as []
 

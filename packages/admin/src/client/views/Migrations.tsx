@@ -4,14 +4,13 @@ import {useLocalStorage} from 'react-use'
 import {MeasuredCodeMirror} from '../sql-codemirror'
 import {createCascadingState} from '../utils/cascading-state'
 import {trpc} from '../utils/trpc'
-import {parseFileTree, basename, File, Folder, commonPrefix} from './parseFileTree'
+import {parseFileTree, basename, File, Folder, commonPrefix} from './file-tree'
 import {Button} from '@/components/ui/button'
 import {CollapsibleTrigger, CollapsibleContent, Collapsible} from '@/components/ui/collapsible'
 import {icons} from '@/components/ui/icons'
 import {Input} from '@/components/ui/input'
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from '@/components/ui/resizable'
 import {Separator} from '@/components/ui/separator'
-import {toast} from '@/components/ui/sonner'
 
 export function ResizableDemo() {
   return (

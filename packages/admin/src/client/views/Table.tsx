@@ -61,10 +61,9 @@ export const Table = ({identifier}: {identifier: string}) => {
                   {Number(offset) + 1} - {Number(offset) + Number(Math.min(limit, values.length))}
                 </PaginationLink>
               </PaginationItem>
-
-              {/* <PaginationItem>
+              <PaginationItem className="hidden">
                 <PaginationEllipsis />
-              </PaginationItem> */}
+              </PaginationItem>
               <PaginationItem>
                 <PaginationNext disabled={!nextEnabled} onClick={() => setOffset(Number(offset) + Number(limit))} />
               </PaginationItem>

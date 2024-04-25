@@ -8,7 +8,6 @@ import {SqlCodeMirror} from '../sql-codemirror'
 import {trpc} from '../utils/trpc'
 import {Button} from '@/components/ui/button'
 import {Progress} from '@/components/ui/progress'
-import {PostgreSQLJson} from '@/packlets/autocomplete/suggest'
 
 const AutoProgress = ({complete = false, estimate = 1000}) => {
   const [progress, setProgress] = React.useState(0)
@@ -25,7 +24,7 @@ const AutoProgress = ({complete = false, estimate = 1000}) => {
     return () => clearTimeout(timeout)
   }, [progress, setProgress, estimate, complete])
 
-  return <pre>{JSON.stringify({progress, estimate, complete})}</pre>
+  if (Math.random()) return <pre>{JSON.stringify({progress, estimate, complete})}</pre>
   return <Progress value={progress} />
 }
 
