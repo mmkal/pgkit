@@ -3,7 +3,7 @@ import React from 'react'
 import {Popover} from 'react-tiny-popover'
 import {useLocalStorage} from 'react-use'
 import {z} from 'zod'
-import {ZForm} from './utils/zform'
+import {ZForm} from './utils/zform/form'
 
 const useSettingsProps = () => {
   const [apiUrl, setApiUrl] = useLocalStorage('apiUrl.0.0.1', '')
@@ -94,7 +94,9 @@ export const SettingsPanel = () => {
       <ZForm
         className="Xhidden"
         schema={z.object({
-          username: z.string().min(1).default('misha'),
+          username: z.string().min(1).default('misha').field({
+            description: 'Your username',
+          }),
           // password: z.string().describe(`Don't tell anyone`),
           // alive: z.boolean(),
           aliases: z.array(z.string()),
