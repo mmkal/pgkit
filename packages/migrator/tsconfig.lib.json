@@ -4,6 +4,7 @@
     "compilerOptions": {
         "outDir": "dist",
         "declaration": true,
+        "declarationMap": true,
         "sourceMap": true,
         "noEmit": false,
         "skipLibCheck": true,

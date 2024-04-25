@@ -1,7 +1,7 @@
 #root .reactgrid {
     max-width: 100%;
     max-height: 100%;
-    overflow: scroll;
+    // overflow: scroll;
     padding-bottom: 0.75em;
     --popover-z-index: 10000;
 
@@ -29,5 +29,9 @@
         all: unset;
         cursor: pointer;
         z-index: var(--popover-z-index);
+    }
+
+    .rg-cell {
+        font-size: 0.8em;
     }
 }

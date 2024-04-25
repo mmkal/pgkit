@@ -1,12 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --main-text-color: rgba(255, 255, 255, 0.87);
+  --main-background-color: #242424;
+
+  color-scheme: dark;
+
+  /* font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: dark;
 
-  --main-text-color: rgba(255, 255, 255, 0.87);
-  --main-background-color: #242424;
 
   color: var(--main-text-color);
   background-color: var(--main-background-color);
@@ -14,14 +21,14 @@
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  -moz-osx-font-smoothing: grayscale; */
 }
 
 pre {
   text-wrap: wrap;
 }
 
-a {
+/* a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
@@ -39,7 +46,7 @@ a:hover {
     min-height: 100vh;
   } */
 
-h1 {
+/*h1 {
   font-size: 3.2em;
   line-height: 1.1;
 }
@@ -63,10 +70,10 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
-}
+} */
 
 @media (prefers-color-scheme: light) {
-  /* :root {
+  :root {
     --main-text-color: #213547;
     --main-background-color: #ffffff;
   }
@@ -77,7 +84,7 @@ button:focus-visible {
 
   button {
     background-color: #f9f9f9;
-  } */
+  }
 }
 
 .cm-tooltip-autocomplete li[aria-selected="true"]::before {

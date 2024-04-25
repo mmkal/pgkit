@@ -9,9 +9,10 @@ import {ResultsViewer} from './results/grid'
 import {Settings, useSettings} from './settings'
 import {SqlCodeMirror} from './sql-codemirror'
 import {Tables} from './tables/Tables'
-import {trpc} from './trpc'
+import {trpc} from './utils/trpc'
 
 import 'react-json-view-lite/dist/index.css'
+import {useInspected, useSearchPath} from './utils/inspect'
 
 const noErrors = [] as []
 
@@ -53,11 +54,8 @@ export function Sqler() {
     },
   })
   const settings = useSettings()
-  const inspectQuery = trpc.inspect.useQuery({
-    includeSchemas: settings.includeSchemas,
-    excludeSchemas: settings.excludeSchemas,
-  })
-  const inspected = (inspectQuery.data?.inspected || {}) as {} as PostgreSQLJson
+  const searchPath = useSearchPath()
+  const inspected = useInspected()
 
   const [storedCode = '', setStoredCode] = useLocalStorage(`sql-editor-code:0.0.1`, `show search_path`)
   const [errorMap, setErrorMap] = React.useState({} as Record<string, Array<{position: number; message: string}>>)
@@ -105,8 +103,9 @@ export function Sqler() {
                 onChange={query => setStoredCode(query)}
                 onExecute={query => mut.mutate({query})}
                 inspected={inspected}
-                searchPath={inspectQuery.data?.searchPath}
+                searchPath={searchPath}
                 errors={errors}
+                height={'50vh'}
               />
             )}
             {settings.view === 'tables' && inspected && <Tables inspected={inspected} />}

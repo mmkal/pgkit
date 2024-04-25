@@ -2,6 +2,8 @@
 import React from 'react'
 import {Popover} from 'react-tiny-popover'
 import {useLocalStorage} from 'react-use'
+import {z} from 'zod'
+import {ZForm} from './utils/zform'
 
 const useSettingsProps = () => {
   const [apiUrl, setApiUrl] = useLocalStorage('apiUrl.0.0.1', '')
@@ -85,28 +87,23 @@ export const Settings = () => {
   )
 }
 
-const SettingsPanel = () => {
+export const SettingsPanel = () => {
   const settings = useSettings()
   return (
     <div style={{background: 'black', border: '2px solid white', padding: 10}}>
-      <h1>Settings</h1>
-      <section>
-        <button
-          onClick={() => {
-            settings.setLayout(settings.layout === 'horizontal' ? 'vertical' : 'horizontal')
-          }}
-        >
-          🚦/🚥
-        </button>
-      </section>
-      <div data-setting="view">
-        <h2>View</h2>
-        <select onChange={ev => settings.setView(ev.target.value as typeof settings.view)}>
-          <option value="sql">SQL</option>
-          <option value="tables">Tables</option>
-          <option value="schema">Inspect</option>
-        </select>
-      </div>
+      <ZForm
+        className="hidden"
+        schema={z.object({
+          username: z.string().min(1),
+          password: z.string().describe(`Don't tell anyone`),
+          alive: z.boolean(),
+        })}
+        config={{
+          username: {label: 'Your username'},
+          alive: {description: 'Leave this unchecked if you are not alive'},
+        }}
+        onSubmit={values => alert(JSON.stringify(values, null, 2))}
+      />
       <div data-setting="api-url">
         <h2>API URL</h2>
         <input

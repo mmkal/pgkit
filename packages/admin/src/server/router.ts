@@ -3,6 +3,7 @@ import * as migra from '@pgkit/migra'
 import {PostgreSQL} from '@pgkit/schemainspect'
 import {fetchomatic} from 'fetchomatic'
 import {z} from 'zod'
+import {migrationsRotuer} from './migrations.js'
 import {runQuery} from './query.js'
 import {publicProcedure, trpc} from './trpc.js'
 
@@ -110,6 +111,7 @@ export const appRouter = trpc.router({
         now: Date.now(),
       }
     }),
+  migrations: migrationsRotuer,
 })
 
 const filterInspected = (

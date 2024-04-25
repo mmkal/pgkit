@@ -3,7 +3,7 @@ import React from 'react'
 import {useLocalStorage} from 'react-use'
 import {PostgreSQLJson} from '../../packlets/autocomplete/suggest'
 import {ResultsViewer} from '../results/grid'
-import {trpc} from '../trpc'
+import {trpc} from '../utils/trpc'
 
 export interface TablesProps {
   inspected: PostgreSQLJson

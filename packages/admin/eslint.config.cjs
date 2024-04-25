@@ -3,6 +3,7 @@ module.exports = [
   {
     rules: {
       'no-console': 'off',
+      'unicorn/prefer-ternary': 'off',
     },
   },
 ]

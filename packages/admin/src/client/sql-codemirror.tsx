@@ -1,35 +1,47 @@
 import {type CompletionSource, acceptCompletion, autocompletion} from '@codemirror/autocomplete'
 import {sql} from '@codemirror/lang-sql'
 import {linter, lintGutter} from '@codemirror/lint'
-import {Prec} from '@codemirror/state'
+import {EditorState, Prec} from '@codemirror/state'
 import {type EditorView, keymap} from '@codemirror/view'
 import CodeMirror from '@uiw/react-codemirror'
 import React from 'react'
-import {PostgreSQLJson, SuggestionType, getSuggester} from '../packlets/autocomplete/suggest'
+import {useMeasure} from 'react-use'
+import {SuggestionType, getSuggester} from '../packlets/autocomplete/suggest'
+import {useInspected, useSearchPath} from './utils/inspect'
 
 export interface SqlCodeMirrorProps {
-  code: string
-  onChange: (query: string) => void
-  onExecute: (sql: string) => void
-  inspected: PostgreSQLJson | null | undefined
-  searchPath: string | undefined
-  errors: Array<{position: number; message: string}>
+  code?: string
+  onChange?: (query: string) => void
+  onExecute?: (sql: string) => void
+  errors?: Array<{position: number; message: string}>
+  height: string
+  readonly?: boolean
 }
 
-export const SqlCodeMirror = ({
-  code,
-  onChange,
-  onExecute,
-  inspected: schema,
-  searchPath,
-  errors,
-}: SqlCodeMirrorProps) => {
+type MeasuredCodeMirrorProps = Omit<SqlCodeMirrorProps, 'height'> & {
+  /** Use this to control the height of the codemirror container. The code editor will be dynamically adjusted to match the container's full height. @default h-full */
+  className?: string
+}
+
+export const MeasuredCodeMirror = (props: MeasuredCodeMirrorProps) => {
+  const [ref, measurements] = useMeasure<HTMLDivElement>()
+  return (
+    <div className={props.className || 'h-full'} ref={ref}>
+      <SqlCodeMirror {...props} height={measurements.height + 'px'} />
+    </div>
+  )
+}
+
+export const SqlCodeMirror = ({code, onChange, onExecute, errors, height, ...props}: SqlCodeMirrorProps) => {
   const onEditorChange = React.useCallback(
     ((value, _ev) => {
-      onChange(value || '')
+      onChange?.(value || '')
     }) satisfies Parameters<typeof CodeMirror>[0]['onChange'],
     [onChange],
   )
+
+  const schema = useInspected()
+  const searchPath = useSearchPath()
 
   const extensions = React.useMemo(() => {
     const executeKeymapHandler = (v: EditorView) => {
@@ -37,7 +49,7 @@ export const SqlCodeMirror = ({
       const selection = v.state.sliceDoc(selected.from, selected.to)
       // if there's a specific selection, pad it with spaces so error positions line up correctly
       const query = selection ? ' '.repeat(selected.from) + selection : v.state.doc.toString()
-      onExecute(query)
+      onExecute?.(query)
       return true
     }
 
@@ -59,13 +71,19 @@ export const SqlCodeMirror = ({
     )
 
     const linterExtension = linter(v => {
-      return errors.map(e => {
+      return (errors || []).map(e => {
         const {from, to} = v.state.wordAt(e.position) || {from: e.position, to: e.position + 1}
         return {from, to, message: e.message, severity: 'error'}
       })
     })
 
-    const baseExtensions = [keymapExtension, sql(), linterExtension, lintGutter()]
+    const baseExtensions = [
+      keymapExtension,
+      sql(),
+      linterExtension,
+      lintGutter(),
+      EditorState.readOnly.of(props.readonly || false),
+    ]
     if (!schema || !searchPath) {
       return baseExtensions
     }
@@ -104,7 +122,7 @@ export const SqlCodeMirror = ({
 
   return (
     <CodeMirror
-      height="calc(50vh - 60px)"
+      height={height} //
       value={code}
       onChange={onEditorChange}
       extensions={extensions}

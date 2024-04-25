@@ -3,6 +3,14 @@ import * as parser from 'pgsql-ast-parser'
 import {type ServerContext} from './context.js'
 
 export const runQuery = async (query: string, {connection}: ServerContext) => {
+  if (query.startsWith('--split-semicolons\n')) {
+    const queries = query.split(/;\s*\n/)
+    const results = []
+    for (const q of queries) {
+      results.push(await runOneQuery(q, connection))
+    }
+    return results
+  }
   if (query.startsWith('--no-parse\n')) {
     return [await runOneQuery(query, connection)]
   }

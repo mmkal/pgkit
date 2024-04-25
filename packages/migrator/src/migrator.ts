@@ -119,11 +119,15 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       return [[filepath, templates.esm]]
     }
 
-    const downPath = p.join(p.dirname(filepath), 'down', p.basename(filepath))
+    const downPath = this.downPath(filepath)
     return [
       [filepath, templates.sqlUp],
       [downPath, templates.sqlDown],
     ]
+  }
+
+  downPath(filepath: string) {
+    return p.join(p.dirname(filepath), 'down', p.basename(filepath))
   }
 
   protected resolver(params: umzug.MigrationParams<MigratorContext>): umzug.RunnableMigration<MigratorContext> {
@@ -131,11 +135,11 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       return {
         name: params.name,
         path: params.path,
-        async up({path, context}) {
+        up: async ({path, context}) => {
           await context.connection.query(sql.raw(readFileSync(path, 'utf8')))
         },
-        async down({path, context}) {
-          const downPath = p.join(p.dirname(path), 'down', p.basename(path))
+        down: async ({path, context}) => {
+          const downPath = this.downPath(path)
           await context.connection.query(sql.raw(readFileSync(downPath, 'utf8')))
         },
       }
@@ -353,7 +357,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     } finally {
       await shadowClient.end()
       // todo: figure out why this times out. Until then, just leave the shadow db around :Z
-      // await params.client.query(sql`drop database ${sql.identifier([shadowDb])}`)
+      await this.client.query(sql`drop database ${sql.identifier([shadowDb])} with (force)`)
     }
   }
 
@@ -365,6 +369,57 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
 
     const migration = await this.runMigra()
     await writeFile(filepath, migration.sql)
+  }
+
+  /**
+   * @experimental
+   * Creates a "down" migration equivalent to the specified "up" migration.
+   */
+  async generateDownMigration(migration: {name: string}) {
+    const shadowClients = ['a', 'b'].map(letter => {
+      const dbName = `shadow_${letter}_${Math.random().toString(36).slice(2)}`
+      const connectionString = this.client.connectionString().replace(/\w+$/, dbName)
+      const client = createClient(connectionString, {
+        pgpOptions: this.client.pgpOptions,
+      })
+
+      const migrator = new Migrator({...this.migratorOptions, client})
+
+      const create = () => this.client.query(sql`create database ${sql.identifier([dbName])}`)
+
+      const lookup = async () => {
+        console.log('looking up', dbName)
+        const pending = await migrator.pending()
+        const index = pending.findIndex(m => m.name === migration.name)
+        if (index === -1) {
+          throw new Error(`Migration ${migration.name} not found`)
+        }
+        return {index, pending, migration: pending[index], previous: pending[index - 1] || null}
+      }
+
+      return {name: dbName, client, create, migrator, lookup}
+    })
+
+    for (const shadow of shadowClients) {
+      console.log('creating', shadow.name)
+      await shadow.create()
+    }
+
+    const [left, right] = await Promise.all(shadowClients.map(async c => ({...c, info: await c.lookup()})))
+
+    if (left.info.index !== right.info.index) {
+      throw new Error(`Migrations are out of sync: ${JSON.stringify(left.info)} !== ${JSON.stringify(right.info)}`)
+    }
+
+    await left.migrator.up({to: left.info.migration.name})
+
+    if (right.info.previous) {
+      await right.migrator.up({to: right.info.previous.name})
+    }
+
+    const {sql: content} = await migra.run(left.client, right.client, {unsafe: true})
+
+    return {content, info: left.info}
   }
 
   /**
@@ -386,7 +441,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
    *
    * @returns The result of `migra.run` between the client's database and a shadow database.
    */
-  protected async runMigra(defaultFlags: Flags = {}) {
+  async runMigra(defaultFlags: Flags = {}) {
     const shadowDb = `shadow_${Math.random().toString(36).slice(2)}`
     const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDb)
     const shadowClient = createClient(shadowConnectionString, {

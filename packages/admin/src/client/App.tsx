@@ -1,7 +1,8 @@
 import {QueryClientProvider} from '@tanstack/react-query'
-import {Sqler} from './Sqler'
+import Component from './page'
 import {withSettings} from './settings'
-import {trpc, useTrpcClient} from './trpc'
+import {trpc, useTrpcClient} from './utils/trpc'
+import {Toaster} from '@/components/ui/sonner'
 
 function App() {
   const {queryClient, trpcClient} = useTrpcClient()
@@ -10,7 +11,8 @@ function App() {
   return (
     <trpc.Provider queryClient={queryClient} client={trpcClient}>
       <QueryClientProvider client={queryClient}>
-        <Sqler />
+        <Component />
+        <Toaster />
       </QueryClientProvider>
     </trpc.Provider>
   )
