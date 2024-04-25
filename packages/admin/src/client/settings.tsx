@@ -94,11 +94,29 @@ export const SettingsPanel = () => {
       <ZForm
         className="Xhidden"
         schema={z.object({
+          title: z.string().field({
+            render: ({Base, ...props}) => (
+              <>
+                <div>Hi!!</div>
+                <Base {...props} />
+              </>
+            ),
+          }),
           username: z.string().min(1).default('misha').field({
+            label: 'Usrnm',
             description: 'Your username',
           }),
+          // image: z
+          //   .string()
+          //   .transform(value => value.split('fakepath'))
+          //   .field({input: {type: 'file', accept: 'image/*'}}),
+          // birthDate: z.string().field({input: {type: 'date'}}),
+          // password: z.string().field({input: {type: 'password'}}),
           // password: z.string().describe(`Don't tell anyone`),
-          // alive: z.boolean(),
+          alive: z.boolean().field({
+            label: 'Alive?',
+            description: 'Leave this unchecked if you are not alive',
+          }),
           aliases: z.array(z.string()),
           headers: z.record(z.string()),
           relations: z.record(
@@ -110,7 +128,7 @@ export const SettingsPanel = () => {
           passports: z.array(
             z.object({
               country: z.string(),
-              number: z.string(),
+              number: z.number(),
             }),
           ),
           // address: z.object({

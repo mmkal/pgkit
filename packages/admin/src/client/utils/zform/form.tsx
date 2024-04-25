@@ -223,7 +223,7 @@ const RenderEntryArray: typeof RenderEntry = ({form, entry}) => {
           </Button>
         </li>
       ))}
-      <Button onClick={() => append(undefined)}>Add {name}</Button>
+      <Button onClick={() => append(undefined)}>Add to {name}</Button>
     </ol>
   )
 }
@@ -279,7 +279,7 @@ const RenderEntryRecord: typeof RenderEntry = ({form, entry}) => {
           setFields(old => [...old, {id: newId, value: undefined}])
         }}
       >
-        Add {name}
+        Add to {name}
       </Button>
     </ul>
   )
@@ -293,11 +293,33 @@ function pickBy<T extends {}>(obj: T, predicate: (value: T[keyof T], key: keyof 
   ) as never
 }
 
+const BaseFormField = FormField
+
 const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: Entry}) => {
   const key = jKey(entry.path)
-  const label = entry.path.join('.')
   const name = entry.path.join('.')
-  const description = entry.schema._fieldConfig?.description // && entry.path.join(' > ')
+  const config = entry.schema._fieldConfig
+  const label = config?.label ?? entry.path.join('.')
+  const description = config?.description
+
+  const FormField: typeof BaseFormField = config?.render
+    ? props => (
+        <BaseFormField
+          {...props}
+          render={renderProps => {
+            return config.render!({
+              ...renderProps,
+              Base: props.render,
+            } as never)
+          }}
+        />
+      )
+    : BaseFormField
+
+  // const inputProps = React.useMemo((): React.ComponentProps<typeof Input> => {
+  //   return pickBy({type: config?.type, placeholder: config?.placeholder}, Boolean)
+  // }, [config])
+
   if (entry.children) {
     return (
       <div data-entry-type="object" className="p-2 m-2 border-cyan-600" data-path={JSON.stringify(entry.path)}>
@@ -326,7 +348,7 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
           <FormItem data-key={key}>
             <FormLabel>{label}</FormLabel>
             <FormControl>
-              <Input {...field} />
+              <Input {...config?.input} {...field} />
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
@@ -346,7 +368,12 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
           <FormItem>
             <FormLabel>{label}</FormLabel>
             <FormControl>
-              <Input type="number" {...field} onChange={v => field.onChange(v.target.valueAsNumber)} />
+              <Input
+                type="number"
+                {...config?.input}
+                {...field}
+                onChange={v => field.onChange(v.target.valueAsNumber)}
+              />
             </FormControl>
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
@@ -364,10 +391,12 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
         key={key}
         render={({field}) => (
           <FormItem>
-            <FormLabel>{label}</FormLabel>
-            <FormControl>
-              <Checkbox checked={field.value} onCheckedChange={checked => field.onChange(checked)} />
-            </FormControl>
+            <div className="inline-flex gap-2">
+              <FormControl>
+                <Checkbox checked={field.value} onCheckedChange={checked => field.onChange(checked)} />
+              </FormControl>
+              <FormLabel>{label}</FormLabel>
+            </div>
             {description && <FormDescription>{description}</FormDescription>}
             <FormMessage />
           </FormItem>
