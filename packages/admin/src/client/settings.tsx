@@ -94,14 +94,15 @@ export const SettingsPanel = () => {
       <ZForm
         className="Xhidden"
         schema={z.object({
-          title: z.string().field({
-            render: ({Base, ...props}) => (
-              <>
-                <div>Hi!!</div>
-                <Base {...props} />
-              </>
-            ),
-          }),
+          // todo: focus losing on type
+          // title: z.string().field({
+          //   render: ({Base, ...props}) => (
+          //     <>
+          //       <div>Hi!!</div>
+          //       <Base {...props} />
+          //     </>
+          //   ),
+          // }),
           username: z.string().min(1).default('misha').field({
             label: 'Usrnm',
             description: 'Your username',

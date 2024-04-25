@@ -302,6 +302,7 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
   const label = config?.label ?? entry.path.join('.')
   const description = config?.description
 
+  // eslint-disable-next-line @typescript-eslint/no-shadow
   const FormField: typeof BaseFormField = config?.render
     ? props => (
         <BaseFormField
