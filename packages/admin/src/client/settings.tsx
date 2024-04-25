@@ -90,23 +90,41 @@ export const Settings = () => {
 export const SettingsPanel = () => {
   const settings = useSettings()
   return (
-    <div style={{background: 'black', border: '2px solid white', padding: 10}}>
+    <div className="h-full overflow-scroll" style={{background: 'black', border: '2px solid white', padding: 10}}>
       <ZForm
-        className="hidden"
+        className="Xhidden"
         schema={z.object({
-          username: z.string().min(1),
-          password: z.string().describe(`Don't tell anyone`),
-          alive: z.boolean(),
-          address: z.object({
-            street: z.string(),
-            number: z.number(),
-            city: z.string(),
-          }),
+          username: z.string().min(1).default('misha'),
+          // password: z.string().describe(`Don't tell anyone`),
+          // alive: z.boolean(),
+          aliases: z.array(z.string()),
+          headers: z.record(z.string()),
+          relations: z.record(
+            z.object({
+              name: z.string(),
+              age: z.number().min(0),
+            }),
+          ),
+          passports: z.array(
+            z.object({
+              country: z.string(),
+              number: z.string(),
+            }),
+          ),
+          // address: z.object({
+          //   street: z.string(),
+          //   number: z.number(),
+          //   city: z.string(),
+          //   detail: z.object({
+          //     use: z.enum(['home', 'work']),
+          //   }),
+          // }),
         })}
         config={{
           username: {label: 'Your username'},
-          alive: {description: 'Leave this unchecked if you are not alive'},
+          // alive: {description: 'Leave this unchecked if you are not alive'},
         }}
+        defaultValues={{username: 'misha'}}
         onSubmit={values => alert(JSON.stringify(values, null, 2))}
       />
       <div data-setting="api-url">
