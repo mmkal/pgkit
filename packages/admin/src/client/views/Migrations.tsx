@@ -108,6 +108,9 @@ function _Migrations() {
     }
   }, [list.data, fileState, workingFS])
 
+  const numPending = list.data?.migrations.filter(m => m.status === 'pending').length
+  const numExecuted = list.data?.migrations.filter(m => m.status === 'executed').length
+
   return (
     // <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
     <ResizablePanelGroup direction="horizontal" className="w-full h-full rounded-lg">
@@ -119,7 +122,7 @@ function _Migrations() {
           <div className="flex h-full max-h-screen flex-col gap-2">
             <div className="flex justify-between h-[60px] items-center border-b pl-3">
               <span className="font-semibold">Migrations</span>
-              <div className="flex">
+              <div className="flex gap-1 pr-1.5">
                 <Button title="Create migration" onClick={() => create.mutate({name: prompt('name?')!})}>
                   <icons.SquarePlus />
                 </Button>
@@ -131,11 +134,14 @@ function _Migrations() {
                     </Button>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
-                    <ContextMenuItem onClick={() => down.mutate({to: 0})}>
-                      <icons.CircleArrowDown />
-                      <icons.Bomb />
-                      Revert all migrations
-                    </ContextMenuItem>
+                    {!numExecuted && <ContextMenuItem disabled>No executed migrations!</ContextMenuItem>}
+                    {Boolean(numExecuted) && (
+                      <ContextMenuItem onClick={() => down.mutate({to: 0})}>
+                        <icons.CircleArrowDown />
+                        <icons.Bomb className="mr-2" />
+                        Revert all migrations
+                      </ContextMenuItem>
+                    )}
                   </ContextMenuContent>
                 </ContextMenu>
                 <ContextMenu>
@@ -144,28 +150,35 @@ function _Migrations() {
                       <icons.CircleArrowUp />
                     </Button>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="mt-3 bg-muted-foreground">
-                    <ContextMenuItem>
-                      <Button onClick={() => up.mutate({step: 1})}>
-                        <icons.CircleArrowUp />
-                        <icons.Tally1 />
-                        Apply 1 migration
-                      </Button>
+                  <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
+                    {!numPending && <ContextMenuItem disabled>No pending migrations!</ContextMenuItem>}
+                    {Array.from({length: numPending || 0}).map((_, i) => {
+                      const step = i + 1
+
+                      const Icon = icons[`Tally${step}` as 'Tally1']
+                      return (
+                        <ContextMenuItem key={step} onClick={() => up.mutate({step})}>
+                          <icons.CircleArrowUp />
+                          {Icon && <Icon />}
+                          Apply {step} migration{step > 1 ? 's' : ''}
+                        </ContextMenuItem>
+                      )
+                    })}
+                    {/* <ContextMenuItem onClick={() => up.mutate({step: 1})}>
+                      <icons.CircleArrowUp />
+                      <icons.Tally1 />
+                      Apply 1 migration
                     </ContextMenuItem>
-                    <ContextMenuItem>
-                      <Button onClick={() => up.mutate({step: 2})}>
-                        <icons.CircleArrowUp />
-                        <icons.Tally2 />
-                        Apply 2 migrations
-                      </Button>
+                    <ContextMenuItem onClick={() => up.mutate({step: 2})}>
+                      <icons.CircleArrowUp />
+                      <icons.Tally2 />
+                      Apply 2 migrations
                     </ContextMenuItem>
-                    <ContextMenuItem>
-                      <Button onClick={() => up.mutate({step: 3})}>
-                        <icons.CircleArrowUp />
-                        <icons.Tally3 />
-                        Apply 3 migrations
-                      </Button>
-                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => up.mutate({step: 3})}>
+                      <icons.CircleArrowUp />
+                      <icons.Tally3 />
+                      Apply 3 migrations
+                    </ContextMenuItem> */}
                   </ContextMenuContent>
                 </ContextMenu>
                 <Button title="Create definitions file" onClick={() => definitions.mutate()}>
@@ -309,7 +322,7 @@ export const FileTree = (tree: File | Folder) => {
                 {basename(tree.path)}
               </span>
               {fileInfo?.status === 'pending' && (
-                <ContextMenuContent className="mt-3 bg-sky-950">
+                <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
                     <Button className="gap-2" onClick={() => up.mutate({to: fileInfo.name})}>
                       <icons.CircleArrowUp />
@@ -319,7 +332,7 @@ export const FileTree = (tree: File | Folder) => {
                 </ContextMenuContent>
               )}
               {fileInfo?.status === 'executed' && (
-                <ContextMenuContent className="mt-3 bg-sky-950">
+                <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
                     <Button className="gap-2" onClick={() => down.mutate({to: fileInfo.name})}>
                       <icons.CircleArrowDown />
