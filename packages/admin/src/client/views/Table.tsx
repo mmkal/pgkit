@@ -72,16 +72,16 @@ export const Table = ({identifier}: {identifier: string}) => {
           </Pagination>
         </div>
         <div className="flex items-center gap-2">
-          <Button title="Filter" className="" size="sm" variant="outline">
+          <Button title="Filter" className="" size="sm">
             <FilterIcon className="w-4 h-4 " />
           </Button>
-          <Button title="Columns" className="" size="sm" variant="outline">
+          <Button title="Columns" className="" size="sm">
             <ColumnsIcon className="w-4 h-4 " />
           </Button>
-          <Button title="Add Row" className="" size="sm" variant="outline">
+          <Button title="Add Row" className="" size="sm">
             <PlusIcon className="w-4 h-4 " />
           </Button>
-          {/* <Button title="Pagination" className="" size="sm" variant="outline">
+          {/* <Button title="Pagination" className="" size="sm">
             <NavigationIcon className="w-4 h-4 " />
           </Button> */}
           <Button
@@ -90,11 +90,10 @@ export const Table = ({identifier}: {identifier: string}) => {
             title="Refresh"
             className=""
             size="sm"
-            variant="outline"
           >
             <RefreshCwIcon className="w-4 h-4 " />
           </Button>
-          <Button title="Download" className="" size="sm" variant="outline">
+          <Button title="Download" className="" size="sm">
             <DownloadIcon className="w-4 h-4 " />
           </Button>
         </div>

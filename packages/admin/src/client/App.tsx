@@ -1,7 +1,7 @@
 import {QueryClientProvider} from '@tanstack/react-query'
 import Component from './page'
 import {withSettings} from './settings'
-import {AlertProvider} from './utils/alert'
+import {AlertProvider} from './utils/alerter'
 import {trpc, useTrpcClient} from './utils/trpc'
 import {Toaster} from '@/components/ui/sonner'
 

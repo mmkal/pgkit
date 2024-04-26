@@ -3,8 +3,8 @@ import clsx from 'clsx'
 import React from 'react'
 import {useLocalStorage} from 'react-use'
 import {MeasuredCodeMirror} from '../sql-codemirror'
-import {useAlerter} from '../utils/alert'
 import {createCascadingState} from '../utils/cascading-state'
+import {useDestructive} from '../utils/destructive'
 import {trpc} from '../utils/trpc'
 import {parseFileTree, basename, File, Folder, commonPrefix} from './file-tree'
 import {Button} from '@/components/ui/button'
@@ -54,21 +54,34 @@ const workingFSContext = createCascadingState({} as Record<string, string>, v =>
 // eslint-disable-next-line prefer-arrow-callback
 export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 
-function _Migrations() {
-  const {confirm} = useAlerter()
-  const [fileState] = file.useState()
-  const [workingFS, setWorkingFS] = workingFSContext.useState()
-  const list = trpc.migrations.list.useQuery()
+const useMigrations = () => {
   const util = trpc.useUtils()
   const mutationConfig = {
     onSuccess: () => util.migrations.invalidate(),
   }
+  useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
+    description: `This may delete data, which will not be restored even if you reapply the migration.`,
+  })
+
+  const list = trpc.migrations.list.useQuery()
+
   const create = trpc.migrations.create.useMutation(mutationConfig)
   const up = trpc.migrations.up.useMutation(mutationConfig)
-  const down = trpc.migrations.down.useMutation(mutationConfig)
+  const down = useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
+    description: `This may delete data, which will not be restored even if you reapply the migration.`,
+  })
   const update = trpc.migrations.update.useMutation(mutationConfig)
   const downify = trpc.migrations.downify.useMutation(mutationConfig)
   const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
+
+  return {list, create, up, down, update, downify, definitions}
+}
+
+function _Migrations() {
+  const [fileState] = file.useState()
+  const [workingFS, setWorkingFS] = workingFSContext.useState()
+
+  const {create, list, up, down, update, downify, definitions} = useMigrations()
 
   const filesData = React.useMemo(() => {
     const fsEntries = (list.data?.migrations || [])
@@ -110,40 +123,47 @@ function _Migrations() {
                 <Button title="Create migration" onClick={() => create.mutate({name: prompt('name?')!})}>
                   <icons.SquarePlus />
                 </Button>
-                <Button
-                  title="Revert migrations"
-                  onClick={async () => {
-                    const yes = await confirm('Are you sure?', {
-                      description: `This may delete data, which will not be restored even if you reapply the migration.`,
-                    })
-                    if (yes) down.mutate()
-                  }}
-                >
-                  <icons.CircleArrowDown />
-                </Button>
+
+                <ContextMenu>
+                  <ContextMenuTrigger>
+                    <Button title="Revert migrations" onClick={async () => down.mutate()}>
+                      <icons.CircleArrowDown />
+                    </Button>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
+                    <ContextMenuItem onClick={() => down.mutate({to: 0})}>
+                      <icons.CircleArrowDown />
+                      <icons.Bomb />
+                      Revert all migrations
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
                 <ContextMenu>
                   <ContextMenuTrigger>
                     <Button title="Apply migrations" onClick={() => up.mutate()}>
                       <icons.CircleArrowUp />
                     </Button>
                   </ContextMenuTrigger>
-                  <ContextMenuContent className="mt-3 bg-sky-950">
+                  <ContextMenuContent className="mt-3 bg-muted-foreground">
                     <ContextMenuItem>
-                      <Button variant="outline" title="Apply 1 migration" onClick={() => up.mutate({step: 1})}>
+                      <Button onClick={() => up.mutate({step: 1})}>
                         <icons.CircleArrowUp />
                         <icons.Tally1 />
+                        Apply 1 migration
                       </Button>
                     </ContextMenuItem>
                     <ContextMenuItem>
-                      <Button variant="outline" title="Apply 1 migration" onClick={() => up.mutate({step: 2})}>
+                      <Button onClick={() => up.mutate({step: 2})}>
                         <icons.CircleArrowUp />
                         <icons.Tally2 />
+                        Apply 2 migrations
                       </Button>
                     </ContextMenuItem>
                     <ContextMenuItem>
-                      <Button variant="outline" title="Apply 1 migration" onClick={() => up.mutate({step: 3})}>
+                      <Button onClick={() => up.mutate({step: 3})}>
                         <icons.CircleArrowUp />
                         <icons.Tally3 />
+                        Apply 3 migrations
                       </Button>
                     </ContextMenuItem>
                   </ContextMenuContent>
@@ -268,16 +288,10 @@ const _sampleFilesJson: Record<string, string> = {
     'create table orders (id serial primary key, user_id integer not null, product_id integer not null)',
 }
 
-const _sampleFiles = Object.keys(_sampleFilesJson)
-
 export const FileTree = (tree: File | Folder) => {
   const [_, setFileState] = file.useState()
-  const list = trpc.migrations.list.useQuery()
-  const util = trpc.useUtils()
-  const mutationConfig = {onSuccess: () => util.migrations.invalidate()}
-  const up = trpc.migrations.up.useMutation(mutationConfig)
-  const down = trpc.migrations.down.useMutation(mutationConfig)
-  const {confirm} = useAlerter()
+
+  const {up, down, list} = useMigrations()
 
   if (tree.type === 'file') {
     const fileInfo = list.data?.migrations.find(f => f.path === tree.path)
@@ -307,15 +321,7 @@ export const FileTree = (tree: File | Folder) => {
               {fileInfo?.status === 'executed' && (
                 <ContextMenuContent className="mt-3 bg-sky-950">
                   <ContextMenuItem className="p-0">
-                    <Button
-                      className="gap-2"
-                      onClick={async () => {
-                        const yes = await confirm('Are you sure?', {
-                          description: `This may delete data, which will not be restored even if you reapply the migration.`,
-                        })
-                        if (yes) down.mutate({to: fileInfo.name})
-                      }}
-                    >
+                    <Button className="gap-2" onClick={() => down.mutate({to: fileInfo.name})}>
                       <icons.CircleArrowDown />
                       Revert migrations down to this one
                     </Button>
