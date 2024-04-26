@@ -7,7 +7,16 @@ import './augment-prototype'
 
 import {zodResolver} from '@hookform/resolvers/zod'
 import React from 'react'
-import {ControllerProps, FieldPath, FieldValues, UseFormProps, useFieldArray, useForm} from 'react-hook-form'
+import {
+  ControllerProps,
+  FieldPath,
+  FieldValues,
+  UseFormProps,
+  useFieldArray,
+  useForm,
+  useFormState,
+} from 'react-hook-form'
+import {b} from 'vitest/dist/suite-ghspeorC.js'
 import {z} from 'zod'
 
 import {Button} from '@/components/ui/button'
@@ -35,19 +44,71 @@ type FieldConfigs<T extends FieldValues> = {
   [K in keyof T]?: T[K] extends string | number | boolean ? FieldConfig<T, K> : FieldConfigs<T[K]>
 }
 
-export interface ZFormProps<Z extends z.ZodObject<any>> extends UseFormProps<z.infer<Z>> {
+export interface ZFormProps<Z extends z.ZodObject<any>> {
   schema: Z
   onSubmit: (values: z.infer<Z>) => void
+  onTouch?: (values: z.infer<Z>) => void
   className?: string
   config?: FieldConfigs<z.infer<Z>>
+  useFormProps: UseFormProps<z.infer<Z>>
 }
 
-export function ZForm<Z extends z.ZodObject<any>>(props: ZFormProps<Z>) {
+const memoize = <T extends (...args: any[]) => any>(
+  fn: T,
+  {key = JSON.stringify as (args: Parameters<T>) => string, maxSize = 100} = {},
+) => {
+  const cache = new Map<string, ReturnType<T>>()
+  return (...args: Parameters<T>): ReturnType<T> => {
+    const k = key(args)
+    if (cache.has(k)) {
+      return cache.get(k) as ReturnType<T>
+    }
+
+    const result = fn(...args)
+    if (cache.size > maxSize) {
+      for (const old of [...cache.keys()].slice(-maxSize / 2)) {
+        cache.delete(old)
+      }
+    }
+    cache.set(k, result as never)
+    return result
+  }
+}
+
+export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFormProps<Z>) {
   const form = useForm<z.infer<typeof props.schema>>({
     resolver: zodResolver(props.schema),
-    defaultValues: props.defaultValues,
+    ...useFormProps,
   })
   const reflected = React.useMemo(() => zreflect(props.schema), [props.schema])
+
+  const onValid = React.useMemo(() => {
+    return (
+      props.onTouch &&
+      memoize(props.onTouch, {
+        // todo: figure out why so many cache misses
+        key: ([value]) => JSON.stringify(value, null, 2),
+        maxSize: 1,
+      })
+    )
+  }, [props.onTouch])
+
+  if (onValid) {
+    form.watch(() => {
+      onValid(form.getValues())
+    })
+  }
+  // React.useEffect(() => {
+  //   if (form.formState.isValid) {
+  //     onValid?.(form.getValues())
+  //   }
+  // }, [onValid, form.formState, form.getValues()])
+
+  // React.useEffect(() => {
+  //   if (currentValue && form.formState.isValid) {
+  //     props.onValid?.(currentValue)
+  //   }
+  // }, [props.onValid, form.formState.isValid, currentValue])
 
   return (
     <>
@@ -193,7 +254,7 @@ export const zreflect = (input: z.ZodType, path: string[] = []): Array<Entry> =>
 
 const jKey = (array: unknown[]) => JSON.stringify(array)
 
-const RenderEntryArray: typeof RenderEntry = ({form, entry}) => {
+const RenderEntryArray = ({form, entry}: RenderEntryProps) => {
   const name = entry.path.join('.')
 
   if (entry.type !== 'array') throw 404
@@ -202,6 +263,12 @@ const RenderEntryArray: typeof RenderEntry = ({form, entry}) => {
     control: form.control,
     name,
   })
+
+  React.useEffect(() => {
+    if (entry.schema._fieldConfig?.defaultValue) {
+      form.setValue(name, entry.schema._fieldConfig?.defaultValue)
+    }
+  }, [entry.schema._fieldConfig?.defaultValue])
 
   return (
     <ol data-entry-type="array">
@@ -228,60 +295,77 @@ const RenderEntryArray: typeof RenderEntry = ({form, entry}) => {
   )
 }
 
-const RenderEntryRecord: typeof RenderEntry = ({form, entry}) => {
+const RenderEntryRecord = ({form, entry}: RenderEntryProps) => {
   const name = entry.path.join('.')
+  const config = entry.schema._fieldConfig
+  if (config?.Renderer) {
+    throw new Error(`Cannot use both Renderer on a record field: ${name}`)
+  }
 
-  const [fields, setFields] = React.useState<{id: string; value: unknown}[]>([])
+  const Wrapper = config?.Wrapper || NoopWrapper
+
+  // todo: stop using Object.fromEntries, it means we have to keep `fields` and `setValue` in sync
+  const [fields, setFields] = React.useState<{id: string; value: unknown}[]>(() => {
+    return entry.schema._fieldConfig?.defaultValue
+      ? Object.entries(entry.schema._fieldConfig?.defaultValue as {}).map(e => ({
+          id: e[0],
+          value: e[1],
+        }))
+      : []
+  })
 
   React.useEffect(() => {
     form.setValue(name, Object.fromEntries(fields.map(f => [f.id, f.value])))
   }, [])
 
+  // todo: should `Wrapper` replace `<ul>` or wrap it?
   return (
-    <ul className="border-solid border-2 border-sky-500" data-entry-type="record" data-key={jKey(entry.path)}>
-      {fields.map(field => (
-        <li key={field.id}>
-          <div>
-            <i>{field.id}</i>
-          </div>
-          <RenderEntry
-            form={form}
-            entry={{
-              ...entry.entries!,
-              path: [...entry.entries!.path.slice(0, -1), field.id],
-              children: entry.entries!.children?.map(child => ({
-                ...child,
-                path: [...child.path.slice(0, -2), field.id, ...child.path.slice(-1)],
-              })),
-            }}
-          />
-          <Button
-            onClick={() => {
-              setFields(old => old.filter(o => o.id !== field.id))
-              form.setValue(
-                name,
-                pickBy(form.getValues(name), (_, k) => k !== field.id),
-              )
-            }}
-          >
-            Remove {field.id}
-          </Button>
-        </li>
-      ))}
-      <Button
-        onClick={() => {
-          const newId = prompt('Enter a key')
-          if (!newId) return
-          if (fields.some(f => f.id === newId)) {
-            alert('Key already exists')
-            return
-          }
-          setFields(old => [...old, {id: newId, value: undefined}])
-        }}
-      >
-        Add to {name}
-      </Button>
-    </ul>
+    <Wrapper>
+      <ul className={entry.schema._fieldConfig?.className} data-entry-type="record" data-key={jKey(entry.path)}>
+        {fields.map(field => (
+          <li key={field.id}>
+            <div>
+              <i>{field.id}</i>
+            </div>
+            <RenderEntry
+              form={form}
+              entry={{
+                ...entry.entries!,
+                path: [...entry.entries!.path.slice(0, -1), field.id],
+                children: entry.entries!.children?.map(child => ({
+                  ...child,
+                  path: [...child.path.slice(0, -2), field.id, ...child.path.slice(-1)],
+                })),
+              }}
+            />
+            <Button
+              onClick={() => {
+                setFields(old => old.filter(o => o.id !== field.id))
+                form.setValue(
+                  name,
+                  pickBy(form.getValues(name), (_, k) => k !== field.id),
+                )
+              }}
+            >
+              Remove {field.id}
+            </Button>
+          </li>
+        ))}
+        <Button
+          onClick={() => {
+            const newId = prompt('Enter a key')
+            if (!newId) return
+            if (fields.some(f => f.id === newId)) {
+              alert('Key already exists')
+              return
+            }
+            setFields(old => [...old, {id: newId, value: undefined}])
+          }}
+        >
+          Add to {name}
+        </Button>
+      </ul>
+    </Wrapper>
   )
 }
 
@@ -293,50 +377,56 @@ function pickBy<T extends {}>(obj: T, predicate: (value: T[keyof T], key: keyof 
   ) as never
 }
 
-const BaseFormField = FormField
+/** `React.Fragment` warns you against passing additional props. This just ignores them */
+const NoopWrapper = ({children}: React.ComponentProps<typeof React.Fragment>) => (
+  <React.Fragment>{children}</React.Fragment>
+)
 
-const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: Entry}) => {
+type RenderEntryProps = {
+  form: ReturnType<typeof useForm>
+  entry: Entry
+}
+
+const RenderEntry = ({form, entry}: RenderEntryProps) => {
   const key = jKey(entry.path)
   const name = entry.path.join('.')
   const config = entry.schema._fieldConfig
   const label = config?.label ?? entry.path.join('.')
   const description = config?.description
 
-  // eslint-disable-next-line @typescript-eslint/no-shadow
-  const FormField: typeof BaseFormField = config?.render
-    ? props => (
-        <BaseFormField
-          {...props}
-          render={renderProps => {
-            return config.render!({
-              ...renderProps,
-              Base: props.render,
-            } as never)
-          }}
-        />
-      )
-    : BaseFormField
+  if (config?.Renderer && config?.Wrapper) {
+    throw new Error(`Cannot use both Renderer and Wrapper on the same field: ${key}`)
+  }
 
-  // const inputProps = React.useMemo((): React.ComponentProps<typeof Input> => {
-  //   return pickBy({type: config?.type, placeholder: config?.placeholder}, Boolean)
-  // }, [config])
+  const Renderer = config?.Renderer || NoopWrapper
+  const Wrapper = config?.Wrapper || NoopWrapper
 
   if (entry.children) {
     return (
-      <div data-entry-type="object" className="p-2 m-2 border-cyan-600" data-path={JSON.stringify(entry.path)}>
-        {entry.children.map(child => (
-          <RenderEntry form={form} entry={child} key={jKey(child.path)} />
-        ))}
-      </div>
+      <Wrapper>
+        <div data-entry-type="object" data-path={JSON.stringify(entry.path)}>
+          {entry.children.map(child => (
+            <RenderEntry form={form} entry={child} key={jKey(child.path)} />
+          ))}
+        </div>
+      </Wrapper>
     )
   }
 
   if (entry.type === 'array') {
-    return <RenderEntryArray form={form} entry={entry} />
+    return (
+      <Wrapper>
+        <RenderEntryArray form={form} entry={entry} />
+      </Wrapper>
+    )
   }
 
   if (entry.type === 'object' && entry.entries) {
-    return <RenderEntryRecord form={form} entry={entry} />
+    return (
+      <Wrapper>
+        <RenderEntryRecord form={form} entry={entry} />
+      </Wrapper>
+    )
   }
 
   if (entry.type === 'string') {
@@ -345,15 +435,18 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
         control={form.control}
         name={name as never}
         key={key}
-        render={({field}) => (
-          <FormItem data-key={key}>
-            <FormLabel>{label}</FormLabel>
-            <FormControl>
-              <Input {...config?.input} {...field} />
-            </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
-            <FormMessage />
-          </FormItem>
+        defaultValue={config?.defaultValue as never}
+        render={props => (
+          <Renderer {...props} key={key}>
+            <FormItem data-key={key}>
+              <FormLabel>{label}</FormLabel>
+              <FormControl>
+                <Input {...config?.input} {...props.field} />
+              </FormControl>
+              {description && <FormDescription>{description}</FormDescription>}
+              <FormMessage />
+            </FormItem>
+          </Renderer>
         )}
       />
     )
@@ -365,20 +458,23 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
         control={form.control}
         name={name as never}
         key={key}
-        render={({field}) => (
-          <FormItem>
-            <FormLabel>{label}</FormLabel>
-            <FormControl>
-              <Input
-                type="number"
-                {...config?.input}
-                {...field}
-                onChange={v => field.onChange(v.target.valueAsNumber)}
-              />
-            </FormControl>
-            {description && <FormDescription>{description}</FormDescription>}
-            <FormMessage />
-          </FormItem>
+        defaultValue={config?.defaultValue as never}
+        render={props => (
+          <Renderer {...props} key={key}>
+            <FormItem>
+              <FormLabel>{label}</FormLabel>
+              <FormControl>
+                <Input
+                  type="number"
+                  {...config?.input}
+                  {...props.field}
+                  onChange={v => props.field.onChange(v.target.valueAsNumber)}
+                />
+              </FormControl>
+              {description && <FormDescription>{description}</FormDescription>}
+              <FormMessage />
+            </FormItem>
+          </Renderer>
         )}
       />
     )
@@ -390,17 +486,20 @@ const RenderEntry = ({form, entry}: {form: ReturnType<typeof useForm>; entry: En
         control={form.control}
         name={name as never}
         key={key}
-        render={({field}) => (
-          <FormItem>
-            <div className="inline-flex gap-2">
-              <FormControl>
-                <Checkbox checked={field.value} onCheckedChange={checked => field.onChange(checked)} />
-              </FormControl>
-              <FormLabel>{label}</FormLabel>
-            </div>
-            {description && <FormDescription>{description}</FormDescription>}
-            <FormMessage />
-          </FormItem>
+        defaultValue={Boolean(config?.defaultValue ?? false) as never}
+        render={props => (
+          <Renderer {...props} key={key}>
+            <FormItem>
+              <div className="inline-flex gap-2">
+                <FormControl>
+                  <Checkbox checked={props.field.value} onCheckedChange={checked => props.field.onChange(checked)} />
+                </FormControl>
+                <FormLabel>{label}</FormLabel>
+              </div>
+              {description && <FormDescription>{description}</FormDescription>}
+              <FormMessage />
+            </FormItem>
+          </Renderer>
         )}
       />
     )

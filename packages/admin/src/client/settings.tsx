@@ -93,17 +93,20 @@ export const SettingsPanel = () => {
     <div className="h-full overflow-scroll" style={{background: 'black', border: '2px solid white', padding: 10}}>
       <ZForm
         className="hidden"
+        // onTouch={console.log}
         schema={z.object({
-          // todo: focus losing on type
-          // title: z.string().field({
-          //   render: ({Base, ...props}) => (
-          //     <>
-          //       <div>Hi!!</div>
-          //       <Base {...props} />
-          //     </>
-          //   ),
-          // }),
-          username: z.string().min(1).default('misha').field({
+          title: z
+            .string()
+            .optional()
+            .field({
+              Renderer: ({children}) => (
+                <div>
+                  <div>Hi!!</div>
+                  {children}
+                </div>
+              ),
+            }),
+          username: z.string().min(4).default('misha').field({
             label: 'Usrnm',
             description: 'Your username',
           }),
@@ -118,7 +121,9 @@ export const SettingsPanel = () => {
             label: 'Alive?',
             description: 'Leave this unchecked if you are not alive',
           }),
-          aliases: z.array(z.string()),
+          aliases: z.array(z.string()).field({
+            defaultValue: ['misha'],
+          }),
           headers: z.record(z.string()),
           relations: z.record(
             z.object({

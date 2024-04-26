@@ -9,7 +9,6 @@ export function takeWhile<T>(arr: T[], predicate: (value: T, index: number, arra
 }
 export const commonPrefix = (paths: string[], divider = '') => {
   if (paths.length === 0) return ''
-  console.log(JSON.stringify(paths))
   return takeWhile(paths[0].split(divider), (part, i) => paths.every(p => p.split(divider)[i] === part)).join(divider)
 }
 
