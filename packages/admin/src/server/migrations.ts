@@ -23,12 +23,30 @@ const migrationsProcedure = publicProcedure.use(x => {
 })
 
 export const migrationsRotuer = trpc.router({
-  up: migrationsProcedure.mutation(async ({ctx}) => {
-    return ctx.migrator.up()
-  }),
-  down: migrationsProcedure.mutation(async ({ctx}) => {
-    return ctx.migrator.down()
-  }),
+  up: migrationsProcedure
+    .input(
+      z
+        .object({
+          step: z.number().int().optional(),
+          to: z.string().optional(),
+        })
+        .default({}),
+    )
+    .mutation(async ({ctx, input}) => {
+      return ctx.migrator.up(input as never)
+    }),
+  down: migrationsProcedure
+    .input(
+      z
+        .object({
+          step: z.number().int().optional(),
+          to: z.string().or(z.literal(0)).optional(),
+        })
+        .default({}),
+    )
+    .mutation(async ({ctx, input}) => {
+      return ctx.migrator.down(input as never)
+    }),
   pending: migrationsProcedure.query(async ({ctx}) => {
     return ctx.migrator.pending()
   }),

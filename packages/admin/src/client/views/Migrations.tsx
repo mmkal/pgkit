@@ -1,12 +1,15 @@
+import {ContextMenuTrigger} from '@radix-ui/react-context-menu'
 import clsx from 'clsx'
 import React from 'react'
 import {useLocalStorage} from 'react-use'
 import {MeasuredCodeMirror} from '../sql-codemirror'
+import {AlertDialogDemo, AutoAlertDialog, useAlert} from '../utils/alert'
 import {createCascadingState} from '../utils/cascading-state'
 import {trpc} from '../utils/trpc'
 import {parseFileTree, basename, File, Folder, commonPrefix} from './file-tree'
 import {Button} from '@/components/ui/button'
 import {CollapsibleTrigger, CollapsibleContent, Collapsible} from '@/components/ui/collapsible'
+import {ContextMenu, ContextMenuContent, ContextMenuItem} from '@/components/ui/context-menu'
 import {icons} from '@/components/ui/icons'
 import {Input} from '@/components/ui/input'
 import {ResizableHandle, ResizablePanel, ResizablePanelGroup} from '@/components/ui/resizable'
@@ -52,10 +55,11 @@ const workingFSContext = createCascadingState({} as Record<string, string>, v =>
 export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 
 function _Migrations() {
+  const a = useAlert()
   const [fileState] = file.useState()
   const [workingFS, setWorkingFS] = workingFSContext.useState()
-  const util = trpc.useUtils()
   const list = trpc.migrations.list.useQuery()
+  const util = trpc.useUtils()
   const mutationConfig = {
     onSuccess: () => util.migrations.invalidate(),
   }
@@ -100,6 +104,15 @@ function _Migrations() {
           className=" h-full border-r DISABLEDbg-gray-100/40 dark:bg-gray-800/40"
         >
           <div className="flex h-full max-h-screen flex-col gap-2">
+            <button
+              onClick={async () => {
+                const res = await a.prompt('Are you sure?')
+                alert(res)
+              }}
+            >
+              clickme
+            </button>
+
             <div className="flex justify-between h-[60px] items-center border-b pl-3">
               <span className="font-semibold">Migrations</span>
               <div className="flex">
@@ -109,9 +122,33 @@ function _Migrations() {
                 <Button title="Revert migrations" onClick={() => down.mutate()}>
                   <icons.CircleArrowDown />
                 </Button>
-                <Button title="Apply migrations" onClick={() => up.mutate()}>
-                  <icons.CircleArrowUp />
-                </Button>
+                <ContextMenu>
+                  <ContextMenuTrigger>
+                    <Button title="Apply migrations" onClick={() => up.mutate()}>
+                      <icons.CircleArrowUp />
+                    </Button>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="mt-3 bg-sky-950">
+                    <ContextMenuItem>
+                      <Button variant="outline" title="Apply 1 migration" onClick={() => up.mutate({step: 1})}>
+                        <icons.CircleArrowUp />
+                        <icons.Tally1 />
+                      </Button>
+                    </ContextMenuItem>
+                    <ContextMenuItem>
+                      <Button variant="outline" title="Apply 1 migration" onClick={() => up.mutate({step: 2})}>
+                        <icons.CircleArrowUp />
+                        <icons.Tally2 />
+                      </Button>
+                    </ContextMenuItem>
+                    <ContextMenuItem>
+                      <Button variant="outline" title="Apply 1 migration" onClick={() => up.mutate({step: 3})}>
+                        <icons.CircleArrowUp />
+                        <icons.Tally3 />
+                      </Button>
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
                 <Button title="Create definitions file" onClick={() => definitions.mutate()}>
                   <icons.Book />
                 </Button>
@@ -237,30 +274,58 @@ const _sampleFiles = Object.keys(_sampleFilesJson)
 export const FileTree = (tree: File | Folder) => {
   const [_, setFileState] = file.useState()
   const list = trpc.migrations.list.useQuery()
+  const util = trpc.useUtils()
+  const mutationConfig = {onSuccess: () => util.migrations.invalidate()}
+  const up = trpc.migrations.up.useMutation(mutationConfig)
+  const down = trpc.migrations.down.useMutation(mutationConfig)
 
   if (tree.type === 'file') {
     const fileInfo = list.data?.migrations.find(f => f.path === tree.path)
     return (
       <div className="flex cursor-pointer items-center rounded-lg DISABLEDpx-3 DISABLEDpy-2 px-px DISABLEDtext-gray-500 transition-all hover:text-gray-200 dark:DISABLEDtext-gray-400 dark:DISABLEDhover:text-gray-50">
-        <Button
-          className="w-full inline-flex gap-2 justify-between relative px-2"
-          title={tree.path}
-          onClick={() => setFileState(tree.path)}
-        >
-          <span className="inline-flex">
-            <icons.File className="mr-2 h-4 w-4" />
-            {basename(tree.path)}
-          </span>
-          <span
-            className={clsx(
-              'justify-self-end',
-              fileInfo?.status === 'executed' && 'text-green-500 block',
-              fileInfo?.status === 'pending' && 'text-yellow-200 block',
-            )}
-          >
-            {fileInfo?.status}
-          </span>
-        </Button>
+        <ContextMenu>
+          <ContextMenuTrigger className="w-full">
+            <Button
+              className="w-full inline-flex gap-2 justify-between relative px-2"
+              title={tree.path}
+              onClick={() => setFileState(tree.path)}
+            >
+              <span className="inline-flex">
+                <icons.File className="mr-2 h-4 w-4" />
+                {basename(tree.path)}
+              </span>
+              {fileInfo?.status === 'pending' && (
+                <ContextMenuContent className="mt-3 bg-sky-950">
+                  <ContextMenuItem className="p-0">
+                    <Button className="gap-2" onClick={() => up.mutate({to: fileInfo.name})}>
+                      <icons.CircleArrowUp />
+                      Apply migrations up to this one
+                    </Button>
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              )}
+              {fileInfo?.status === 'executed' && (
+                <ContextMenuContent className="mt-3 bg-sky-950">
+                  <ContextMenuItem className="p-0">
+                    <Button className="gap-2" onClick={() => down.mutate({to: fileInfo.name})}>
+                      <icons.CircleArrowDown />
+                      Revert migrations down to this one
+                    </Button>
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              )}
+              <span
+                className={clsx(
+                  'justify-self-end',
+                  fileInfo?.status === 'executed' && 'text-green-500 block',
+                  fileInfo?.status === 'pending' && 'text-yellow-200 block',
+                )}
+              >
+                {fileInfo?.status}
+              </span>
+            </Button>
+          </ContextMenuTrigger>
+        </ContextMenu>
       </div>
     )
   }
@@ -271,7 +336,7 @@ export const FileTree = (tree: File | Folder) => {
 
   return (
     <>
-      <Collapsible defaultOpen={tree.path === tree.baseDir.replace(/\/$/, '')}>
+      <Collapsible defaultOpen={basename(tree.path) !== 'down'}>
         <CollapsibleTrigger asChild>
           <div
             title={tree.path}
