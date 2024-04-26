@@ -102,7 +102,9 @@ export const migrationsRotuer = trpc.router({
     .mutation(async ({input, ctx}) => {
       const {content, info} = await ctx.migrator.generateDownMigration({name: input.name})
 
-      await fs.promises.writeFile(ctx.migrator.downPath(info.migration.path as string), content)
+      const downPath = ctx.migrator.downPath(info.migration.path as string)
+      await fs.promises.writeFile(downPath, content)
+      return {downPath, content, info}
     }),
   update: migrationsProcedure
     .input(

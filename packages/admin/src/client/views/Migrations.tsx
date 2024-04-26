@@ -55,6 +55,8 @@ const workingFSContext = createCascadingState({} as Record<string, string>, v =>
 export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 
 const useMigrations = () => {
+  const [_, setFileState] = file.useState()
+
   const util = trpc.useUtils()
   const mutationConfig = {
     onSuccess: () => util.migrations.invalidate(),
@@ -71,7 +73,12 @@ const useMigrations = () => {
     description: `This may delete data, which will not be restored even if you reapply the migration.`,
   })
   const update = trpc.migrations.update.useMutation(mutationConfig)
-  const downify = trpc.migrations.downify.useMutation(mutationConfig)
+  const downify = trpc.migrations.downify.useMutation({
+    onSuccess: data => {
+      setFileState(data.downPath)
+      return util.migrations.invalidate()
+    },
+  })
   const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
 
   return {list, create, up, down, update, downify, definitions}
@@ -134,7 +141,7 @@ function _Migrations() {
                     </Button>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
-                    {!numExecuted && <ContextMenuItem disabled>No executed migrations!</ContextMenuItem>}
+                    {!numExecuted && <ContextMenuItem disabled>No migrations to revert</ContextMenuItem>}
                     {Boolean(numExecuted) && (
                       <ContextMenuItem onClick={() => down.mutate({to: 0})}>
                         <icons.CircleArrowDown />
@@ -151,7 +158,7 @@ function _Migrations() {
                     </Button>
                   </ContextMenuTrigger>
                   <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
-                    {!numPending && <ContextMenuItem disabled>No pending migrations!</ContextMenuItem>}
+                    {!numPending && <ContextMenuItem disabled>No migrations to apply</ContextMenuItem>}
                     {Array.from({length: numPending || 0}).map((_, i) => {
                       const step = i + 1
 
@@ -282,7 +289,7 @@ const _sampleFilesJson: Record<string, string> = {
 }
 
 export const FileTree = (tree: File | Folder) => {
-  const [_, setFileState] = file.useState()
+  const [fileState, setFileState] = file.useState()
 
   const {up, down, list} = useMigrations()
 
@@ -297,7 +304,7 @@ export const FileTree = (tree: File | Folder) => {
               title={tree.path}
               onClick={() => setFileState(tree.path)}
             >
-              <span className="inline-flex">
+              <span className={clsx('inline-flex', tree.path === fileState && 'underline')}>
                 <icons.File className="mr-2 h-4 w-4" />
                 {basename(tree.path)}
               </span>
@@ -343,7 +350,7 @@ export const FileTree = (tree: File | Folder) => {
 
   return (
     <>
-      <Collapsible defaultOpen={basename(tree.path) !== 'down'}>
+      <Collapsible open={fileState.startsWith(tree.path) || undefined} defaultOpen={basename(tree.path) !== 'down'}>
         <CollapsibleTrigger asChild>
           <div
             title={tree.path}
