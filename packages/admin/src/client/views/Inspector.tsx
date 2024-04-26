@@ -7,8 +7,10 @@ export const Inspector = () => {
   const inspected = useInspected()
   const searchPath = useSearchPath()
   return (
-    <div className="h-[80vh]">
-      Search path: <pre className="inline">{searchPath}</pre>
+    <div className="h-full overflow-auto flex flex-col gap-1">
+      <div>
+        Search path: <pre className="inline">{searchPath}</pre>
+      </div>
       <jsonView.JsonView
         data={inspected} //
         shouldExpandNode={jsonView.collapseAllNested}
