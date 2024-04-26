@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/no-non-null-asserted-optional-chain */
 import React from 'react'
 import {PostgreSQLJson} from '../../packlets/autocomplete/suggest'
-import {SVGProps} from '../page'
 import {ResultsViewer} from '../results/grid'
 import {trpc} from '../utils/trpc'
 import {Button} from '@/components/ui/button'
+import {icons} from '@/components/ui/icons'
 import {
   Pagination,
   PaginationContent,
@@ -33,7 +33,16 @@ export const Table = ({identifier}: {identifier: string}) => {
       const table = identifier
       const isSafe = table.match(/^[\w".]+$/)
       if (!isSafe) throw new Error('Unsafe table name: ' + table)
-      return `select * from ${table} limit ${Number(limit)} offset ${Number(offset)}`
+      // todo: figure out who to get column information without this dummy row of nulls thing
+      return `
+        with
+          counts as (select count(1) from ${table}),
+          dummy as (select 1 from counts where count = 0)
+        select t.* from ${table} t
+        full outer join dummy on true
+        limit ${Number(limit)}
+        offset ${Number(offset)}
+      `
     }
     return null
   }, [identifier, inspected, limit, offset])
@@ -73,13 +82,13 @@ export const Table = ({identifier}: {identifier: string}) => {
         </div>
         <div className="flex items-center gap-2">
           <Button title="Filter" className="" size="sm">
-            <FilterIcon className="w-4 h-4 " />
+            <icons.Filter className="w-4 h-4 " />
           </Button>
           <Button title="Columns" className="" size="sm">
-            <ColumnsIcon className="w-4 h-4 " />
+            <icons.Columns3 className="w-4 h-4 " />
           </Button>
           <Button title="Add Row" className="" size="sm">
-            <PlusIcon className="w-4 h-4 " />
+            <icons.PlusCircle className="w-4 h-4 " />
           </Button>
           {/* <Button title="Pagination" className="" size="sm">
             <NavigationIcon className="w-4 h-4 " />
@@ -91,10 +100,10 @@ export const Table = ({identifier}: {identifier: string}) => {
             className=""
             size="sm"
           >
-            <RefreshCwIcon className="w-4 h-4 " />
+            <icons.RefreshCcw className="w-4 h-4 " />
           </Button>
           <Button title="Download" className="" size="sm">
-            <DownloadIcon className="w-4 h-4 " />
+            <icons.Download className="w-4 h-4 " />
           </Button>
         </div>
       </div>
@@ -102,107 +111,5 @@ export const Table = ({identifier}: {identifier: string}) => {
         <ResultsViewer offset={offset} values={rows} />
       </div>
     </div>
-  )
-}
-
-function FilterIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>
-  )
-}
-
-function PlusIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M5 12h14" />
-      <path d="M12 5v14" />
-    </svg>
-  )
-}
-
-function RefreshCwIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
-      <path d="M21 3v5h-5" />
-      <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
-      <path d="M8 16H3v5" />
-    </svg>
-  )
-}
-
-function ColumnsIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-      <line x1="12" x2="12" y1="3" y2="21" />
-    </svg>
-  )
-}
-
-function DownloadIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" x2="12" y1="15" y2="3" />
-    </svg>
   )
 }

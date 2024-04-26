@@ -5,29 +5,10 @@ import {SVGProps} from '../page'
 import {ResultsViewer} from '../results/grid'
 import {useSettings} from '../settings'
 import {SqlCodeMirror} from '../sql-codemirror'
+import {FakeProgress} from '../utils/fake-progress'
 import {trpc} from '../utils/trpc'
 import {Button} from '@/components/ui/button'
 import {icons} from '@/components/ui/icons'
-import {Progress} from '@/components/ui/progress'
-
-const AutoProgress = ({complete = false, estimate = 1000}) => {
-  const [progress, setProgress] = React.useState(0)
-  React.useEffect(() => {
-    if (complete) {
-      setProgress(100)
-      return
-    }
-
-    const timeout = setTimeout(() => {
-      console.log(progress, 100 * (20 / estimate), {progress, estimate})
-      setProgress(Math.min(99, progress + 100 * (20 / estimate)))
-    }, 20)
-    return () => clearTimeout(timeout)
-  }, [progress, setProgress, estimate, complete])
-
-  if (Math.random()) return <pre>{JSON.stringify({progress, estimate, complete})}</pre>
-  return <Progress value={progress} />
-}
 
 const noErrors = [] as []
 
@@ -89,7 +70,7 @@ export const Querier = () => {
   )
 
   return (
-    <div className="p-4 dark:bg-gray-900 h-full">
+    <div className="p-4 dark:bg-gray-900 h-full relative">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">SQL Editor</h3>
         <div className="flex gap-1">
@@ -114,7 +95,7 @@ export const Querier = () => {
           </Button>
         </div>
       </div>
-      {aiMutation.isLoading && <AutoProgress complete={aiMutation.isSuccess} estimate={3000} />}
+      {aiMutation.isLoading && <FakeProgress value={aiMutation.isSuccess ? 100 : null} estimate={3000} />}
       <div className="flex flex-col gap-4 h-[90%] relative">
         <div ref={ref} className="h-1/2 border rounded-lg overflow-scroll relative bg-gray-800">
           <SqlCodeMirror
@@ -126,7 +107,7 @@ export const Querier = () => {
           />
           <div className="absolute bottom-2 right-2">
             <Button onClick={() => setWrapText(old => !old)} className="text-gray-100" size="sm" variant="ghost">
-              <RemoveFormattingIcon className="w-4 h-4 text-gray-100" />
+              <icons.RemoveFormatting className="w-4 h-4 text-gray-100" />
             </Button>
             <Button className="text-gray-100" size="sm" variant="ghost">
               <icons.Download className="w-4 h-4 text-gray-100" />
@@ -165,35 +146,12 @@ export const Querier = () => {
                 </details>
               )
             })}
-            <span title="Squirrel" data-title-es="Ardilla" className="endMarker">
+            <span title="Squirrel" data-title-es="Ardilla" className="p-2">
               🐿️
             </span>
           </div>
         </div>
       </div>
     </div>
-  )
-}
-
-function RemoveFormattingIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 7V4h16v3" />
-      <path d="M5 20h6" />
-      <path d="M13 4 8 20" />
-      <path d="m15 15 5 5" />
-      <path d="m20 15-5 5" />
-    </svg>
   )
 }

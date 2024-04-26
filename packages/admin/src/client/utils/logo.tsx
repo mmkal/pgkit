@@ -7,7 +7,7 @@ export function AltLogo() {
       <div className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-pink-500">
         pg
       </div>
-      <div className="text-2xl font-bold tracking-tighter text-gray-400 Xanimate-pulse">kit</div>
+      <div className="text-2xl font-bold tracking-tighter text-gray-400 DISABLEDanimate-pulse">kit</div>
     </div>
   )
 }
