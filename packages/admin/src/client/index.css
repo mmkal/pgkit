@@ -2,6 +2,10 @@
 @tailwind components;
 @tailwind utilities;
 
+body {
+  color: white
+}
+
 :root {
   --main-text-color: rgba(255, 255, 255, 0.87);
   --main-background-color: #242424;

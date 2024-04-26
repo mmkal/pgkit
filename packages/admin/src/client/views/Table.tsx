@@ -49,7 +49,7 @@ export const Table = ({identifier}: {identifier: string}) => {
   return (
     <div className="p-2 h-[95vh] relative gap-1">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100">{identifier}</h3>
+        <h3 className="text-lg font-semibold ">{identifier}</h3>
         <div>
           <Pagination>
             <PaginationContent>
@@ -61,6 +61,7 @@ export const Table = ({identifier}: {identifier: string}) => {
                   {Number(offset) + 1} - {Number(offset) + Number(Math.min(limit, values.length))}
                 </PaginationLink>
               </PaginationItem>
+
               <PaginationItem className="hidden">
                 <PaginationEllipsis />
               </PaginationItem>
@@ -71,30 +72,30 @@ export const Table = ({identifier}: {identifier: string}) => {
           </Pagination>
         </div>
         <div className="flex items-center gap-2">
-          <Button title="Filter" className="text-gray-100 dark:text-gray-100" size="sm" variant="outline">
-            <FilterIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+          <Button title="Filter" className="" size="sm" variant="outline">
+            <FilterIcon className="w-4 h-4 " />
           </Button>
-          <Button title="Columns" className="text-gray-100 dark:text-gray-100" size="sm" variant="outline">
-            <ColumnsIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+          <Button title="Columns" className="" size="sm" variant="outline">
+            <ColumnsIcon className="w-4 h-4 " />
           </Button>
-          <Button title="Add Row" className="text-gray-100 dark:text-gray-100" size="sm" variant="outline">
-            <PlusIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+          <Button title="Add Row" className="" size="sm" variant="outline">
+            <PlusIcon className="w-4 h-4 " />
           </Button>
-          {/* <Button title="Pagination" className="text-gray-100 dark:text-gray-100" size="sm" variant="outline">
-            <NavigationIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+          {/* <Button title="Pagination" className="" size="sm" variant="outline">
+            <NavigationIcon className="w-4 h-4 " />
           </Button> */}
           <Button
             disabled={!query}
             onClick={() => query && rowsMutation.mutate({query})}
             title="Refresh"
-            className="text-gray-100 dark:text-gray-100"
+            className=""
             size="sm"
             variant="outline"
           >
-            <RefreshCwIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+            <RefreshCwIcon className="w-4 h-4 " />
           </Button>
-          <Button title="Download" className="text-gray-100 dark:text-gray-100" size="sm" variant="outline">
-            <DownloadIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+          <Button title="Download" className="" size="sm" variant="outline">
+            <DownloadIcon className="w-4 h-4 " />
           </Button>
         </div>
       </div>

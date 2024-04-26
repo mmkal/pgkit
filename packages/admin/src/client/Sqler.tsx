@@ -73,7 +73,7 @@ export function Sqler() {
         </div>
         <div style={{display: 'flex', gap: 5}}>
           <button
-            aria-label="AI query"
+            title="AI query"
             className={styles.runButton}
             disabled={aiMut.isLoading}
             onClick={() => {

@@ -1,5 +1,4 @@
 import React from 'react'
-import {s} from 'vitest/dist/reporters-1evA5lom.js'
 import {createCascadingState} from './cascading-state'
 import {
   AlertDialog,
@@ -12,10 +11,9 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import {Button} from '@/components/ui/button'
 import {Input} from '@/components/ui/input'
 
-export const alertContext = createCascadingState<AlertOptions<unknown> | null>(null)
+export const alertContext = createCascadingState<AlertConfig<unknown> | null>(null)
 
 export type AlertOptionsMap = {
   alert: {
@@ -36,26 +34,49 @@ export type AlertOptionsMap = {
 
 type AlertType = 'alert' | 'confirm' | 'prompt'
 
-type AlertOptions<T> = {
-  type: AlertType
-  title: string
-  onComplete?: (value: T) => void
+export interface AlertOptions {
   description?: React.ReactNode
   cancel?: string | null
   continue?: string
 }
 
-const defaultMessages = {
-  cancel: 'Cancel',
-  continue: 'Continue',
+export interface AlertConfig<T> extends AlertOptions {
+  type: AlertType
+  title: string
+  onComplete?: (value: T) => void
 }
 
-export const useAlert = () => {
+export interface Alerter<T> {
+  (title: string): Promise<T>
+  (title: string, onComplete: (value: T) => void): void
+
+  (title: string, options: AlertOptions): Promise<T>
+  (title: string, options: AlertOptions, onComplete: (value: T) => void): void
+}
+
+const defaultMessages: AlertOptions = {
+  cancel: 'Cancel',
+  continue: 'Continue',
+  description: null,
+}
+
+function createAlerter<T>(
+  promiseAlerter: (title: string, options?: Omit<AlertConfig<T>, 'title' | 'type' | 'onComplete'>) => Promise<T>,
+) {
+  return function alerter(...args) {
+    if (typeof args.at(-1) === 'function') {
+      return promiseAlerter(...(args.slice(0, -1) as [never])).then(args.at(-1) as never)
+    }
+    return promiseAlerter(...(args.slice() as [never]))
+  } as Alerter<T>
+}
+
+export const useAlerter = () => {
   const [_, setOptions] = alertContext.useState()
 
   return {
-    confirm: (title: string, options?: Omit<AlertOptions<boolean>, 'title' | 'type' | 'onComplete'>) => {
-      return new Promise<boolean>(resolve => {
+    confirm: createAlerter<boolean>((title, options) => {
+      return new Promise(resolve => {
         setOptions({
           type: 'confirm',
           title,
@@ -67,9 +88,9 @@ export const useAlert = () => {
           },
         })
       })
-    },
-    alert: (title: string, options?: Omit<AlertOptions<void>, 'title' | 'type' | 'onComplete'>) => {
-      return new Promise<void>(resolve => {
+    }),
+    alert: createAlerter<void>((title, options) => {
+      return new Promise(resolve => {
         setOptions({
           type: 'alert',
           title,
@@ -81,25 +102,31 @@ export const useAlert = () => {
           },
         })
       })
-    },
-    prompt: (title: string, options?: Omit<AlertOptions<string | null>, 'title' | 'type' | 'onComplete'>) => {
-      return new Promise<string | null>(resolve => {
+    }),
+    prompt: createAlerter<string | null>((title, options) => {
+      return new Promise(resolve => {
         setOptions({
           type: 'prompt',
           title,
           ...defaultMessages,
           ...options,
-          cancel: null,
           onComplete: (v: unknown) => {
             setOptions(null)
             resolve(v as never)
           },
         })
       })
-    },
-  } satisfies {
-    [K in AlertType]: (title: string, options?: Omit<AlertOptionsMap[K], 'onComplete'>) => Promise<unknown>
+    }),
   }
+}
+
+export function AlertProvider(props: {children?: React.ReactNode}) {
+  return (
+    <alertContext.Provider>
+      {props.children}
+      <AutoAlertDialog />
+    </alertContext.Provider>
+  )
 }
 
 export function AutoAlertDialog(props: {children?: React.ReactNode}) {
@@ -129,13 +156,15 @@ export function AutoAlertDialog(props: {children?: React.ReactNode}) {
             </AlertDialogFooter>
           )}
           {options.type === 'prompt' && (
-            <AlertDialogFooter>
+            <>
               <Input onChange={ev => setValue(ev.target.value)} />
-              {options.cancel && (
-                <AlertDialogCancel onClick={() => options.onComplete?.(null)}>{options.cancel}</AlertDialogCancel>
-              )}
-              <AlertDialogAction onClick={() => options.onComplete?.(value)}>{options.continue}</AlertDialogAction>
-            </AlertDialogFooter>
+              <AlertDialogFooter>
+                {options.cancel && (
+                  <AlertDialogCancel onClick={() => options.onComplete?.(null)}>{options.cancel}</AlertDialogCancel>
+                )}
+                <AlertDialogAction onClick={() => options.onComplete?.(value)}>{options.continue}</AlertDialogAction>
+              </AlertDialogFooter>
+            </>
           )}
         </AlertDialogContent>
       )}

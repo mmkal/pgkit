@@ -5,6 +5,7 @@ module.exports = [
     rules: {
       'no-console': 'off',
       'unicorn/prefer-ternary': 'off',
+      '@typescript-eslint/no-misused-promises': 'off',
     },
   },
 ]

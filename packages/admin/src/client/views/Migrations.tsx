@@ -3,7 +3,7 @@ import clsx from 'clsx'
 import React from 'react'
 import {useLocalStorage} from 'react-use'
 import {MeasuredCodeMirror} from '../sql-codemirror'
-import {AlertDialogDemo, AutoAlertDialog, useAlert} from '../utils/alert'
+import {useAlerter} from '../utils/alert'
 import {createCascadingState} from '../utils/cascading-state'
 import {trpc} from '../utils/trpc'
 import {parseFileTree, basename, File, Folder, commonPrefix} from './file-tree'
@@ -55,7 +55,7 @@ const workingFSContext = createCascadingState({} as Record<string, string>, v =>
 export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 
 function _Migrations() {
-  const a = useAlert()
+  const {confirm} = useAlerter()
   const [fileState] = file.useState()
   const [workingFS, setWorkingFS] = workingFSContext.useState()
   const list = trpc.migrations.list.useQuery()
@@ -80,7 +80,7 @@ function _Migrations() {
       })
       .concat(list.data?.definitions.content ? [[list.data.definitions.filepath, list.data.definitions.content]] : [])
       .filter(e => e[0])
-      .sort((a, b) => a[0].localeCompare(b[0]))
+      .sort((x, y) => x[0].localeCompare(y[0]))
     const fsJson = Object.fromEntries(fsEntries)
     const files = fsEntries.map(e => e[0])
     const current = list.data?.migrations.find(f => f.path === fileState)
@@ -104,22 +104,21 @@ function _Migrations() {
           className=" h-full border-r DISABLEDbg-gray-100/40 dark:bg-gray-800/40"
         >
           <div className="flex h-full max-h-screen flex-col gap-2">
-            <button
-              onClick={async () => {
-                const res = await a.prompt('Are you sure?')
-                alert(res)
-              }}
-            >
-              clickme
-            </button>
-
             <div className="flex justify-between h-[60px] items-center border-b pl-3">
               <span className="font-semibold">Migrations</span>
               <div className="flex">
                 <Button title="Create migration" onClick={() => create.mutate({name: prompt('name?')!})}>
                   <icons.SquarePlus />
                 </Button>
-                <Button title="Revert migrations" onClick={() => down.mutate()}>
+                <Button
+                  title="Revert migrations"
+                  onClick={async () => {
+                    const yes = await confirm('Are you sure?', {
+                      description: `This may delete data, which will not be restored even if you reapply the migration.`,
+                    })
+                    if (yes) down.mutate()
+                  }}
+                >
                   <icons.CircleArrowDown />
                 </Button>
                 <ContextMenu>
@@ -175,7 +174,7 @@ function _Migrations() {
       <ResizableHandle />
       <ResizablePanel defaultSize={50}>
         <section data-section="migrations-file" className="flex flex-col h-full">
-          <header className="flex h-14 lg:h-[60px] w-full items-center gap-4 DISABLEDborder-b DISABLEDbg-gray-100/40 px-6 dark:bg-gray-800/40">
+          <header className="flex h-14 lg:h-[60px] w-full items-center gap-4 DISABLEDborder-b DISABLEDbg-gray-100/40 px-6 DISABLEDdark:bg-gray-800/40">
             {`${basename(fileState)} (${filesData.currentFile?.status || ''})`.replace(' ()', '')}
             <div className="w-full flex-1 flex flex-row justify-end">
               <form>
@@ -278,6 +277,7 @@ export const FileTree = (tree: File | Folder) => {
   const mutationConfig = {onSuccess: () => util.migrations.invalidate()}
   const up = trpc.migrations.up.useMutation(mutationConfig)
   const down = trpc.migrations.down.useMutation(mutationConfig)
+  const {confirm} = useAlerter()
 
   if (tree.type === 'file') {
     const fileInfo = list.data?.migrations.find(f => f.path === tree.path)
@@ -307,7 +307,15 @@ export const FileTree = (tree: File | Folder) => {
               {fileInfo?.status === 'executed' && (
                 <ContextMenuContent className="mt-3 bg-sky-950">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2" onClick={() => down.mutate({to: fileInfo.name})}>
+                    <Button
+                      className="gap-2"
+                      onClick={async () => {
+                        const yes = await confirm('Are you sure?', {
+                          description: `This may delete data, which will not be restored even if you reapply the migration.`,
+                        })
+                        if (yes) down.mutate({to: fileInfo.name})
+                      }}
+                    >
                       <icons.CircleArrowDown />
                       Revert migrations down to this one
                     </Button>
@@ -340,9 +348,9 @@ export const FileTree = (tree: File | Folder) => {
         <CollapsibleTrigger asChild>
           <div
             title={tree.path}
-            className="flex cursor-pointer items-center align-middle Djustify-between gap-1 rounded-lg px-2 py-2 DISABLEDtext-gray-500 transition-all hover:text-gray-200 dark:DISABLEDtext-gray-400 dark:DISABLEDhover:text-gray-50"
+            className="flex cursor-pointer items-center align-middle justify-start rounded-lg px-2 py-2 text-gray-400 transition-all hover:text-gray-200 dark:text-gray-400 dark:hover:text-gray-50"
           >
-            <icons.Folder className="h-4 w-4" />
+            <icons.Folder className="mr-2 h-4 w-4" />
             <span>{basename(tree.path)}</span>
           </div>
         </CollapsibleTrigger>

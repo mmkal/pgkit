@@ -62,7 +62,7 @@ export default function Component() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden">
-      <div className="flex flex-col w-[250px] bg-gray-800 text-gray-100">
+      <div className="flex flex-col w-[250px] bg-gray-800">
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-700">
           <Link className="flex items-center gap-2" href="#">
             {/* <img src={logo} alt="pgkit" height={10} className="h-12" /> */}
@@ -82,8 +82,8 @@ export default function Component() {
                   onClick={() => setView(v)}
                   variant={view === v ? 'secondary' : 'ghost'}
                   className={clsx(
-                    'justify-start gap-2 w-full px-4 hover:bg-gray-700 capitalize',
-                    view === v && 'bg-gray-600', //
+                    'justify-start gap-2 w-full px-4 hover:bg-gray-700 hover:text-white capitalize',
+                    view === v && 'bg-gray-600 text-white', //
                   )}
                   size="sm"
                 >
@@ -96,7 +96,7 @@ export default function Component() {
           <div className="border-t border-gray-700 mt-4 pt-4">
             <div className="px-4 mb-4">
               <Input
-                className="hidden w-full bg-gray-700 text-gray-100 placeholder-gray-400 rounded-md px-3 py-2"
+                className="hidden w-full bg-gray-700 placeholder-gray-400 rounded-md px-3 py-2"
                 placeholder="Search tables..."
                 type="search"
               />
@@ -116,8 +116,8 @@ export default function Component() {
                   <Button
                     key={key}
                     className={clsx(
-                      'gap-1 text-left justify-start w-full rounded-md px-3 py-1 text-xs hover:bg-gray-700',
-                      view === 'table' && tableIdentifier === key && 'bg-gray-600',
+                      'gap-1 text-left justify-start w-full rounded-md px-3 py-1 text-xs hover:bg-gray-700 hover:text-white',
+                      view === 'table' && tableIdentifier === key && 'bg-gray-600 text-white',
                     )}
                     variant="ghost"
                     onClick={() => {
@@ -148,7 +148,7 @@ export default function Component() {
           {viewConfig && <viewConfig.component />}
           {view === 'table' && tableIdentifier && (
             <div className="p-4 dark:bg-gray-900">
-              <div className="border rounded-lg overflow-auto bg-gray-800 text-gray-100">
+              <div className="border rounded-lg overflow-auto bg-gray-800">
                 <Table identifier={tableIdentifier} />
               </div>
             </div>

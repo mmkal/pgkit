@@ -1,7 +1,7 @@
 import {QueryClientProvider} from '@tanstack/react-query'
 import Component from './page'
 import {withSettings} from './settings'
-import {AutoAlertDialog, alertContext} from './utils/alert'
+import {AlertProvider} from './utils/alert'
 import {trpc, useTrpcClient} from './utils/trpc'
 import {Toaster} from '@/components/ui/sonner'
 
@@ -12,11 +12,10 @@ function App() {
   return (
     <trpc.Provider queryClient={queryClient} client={trpcClient}>
       <QueryClientProvider client={queryClient}>
-        <alertContext.Provider>
+        <AlertProvider>
           <Component />
           <Toaster />
-          <AutoAlertDialog />
-        </alertContext.Provider>
+        </AlertProvider>
       </QueryClientProvider>
     </trpc.Provider>
   )

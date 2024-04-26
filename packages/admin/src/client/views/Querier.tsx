@@ -7,6 +7,7 @@ import {useSettings} from '../settings'
 import {SqlCodeMirror} from '../sql-codemirror'
 import {trpc} from '../utils/trpc'
 import {Button} from '@/components/ui/button'
+import {icons} from '@/components/ui/icons'
 import {Progress} from '@/components/ui/progress'
 
 const AutoProgress = ({complete = false, estimate = 1000}) => {
@@ -90,10 +91,10 @@ export const Querier = () => {
   return (
     <div className="p-4 dark:bg-gray-900 h-full">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-100 dark:text-gray-100">SQL Editor</h3>
+        <h3 className="text-lg font-semibold">SQL Editor</h3>
         <div className="flex gap-1">
           <Button
-            variant="outline"
+            // variant="outline"
             title="AI"
             disabled={aiMutation.isLoading}
             onClick={() => {
@@ -109,7 +110,7 @@ export const Querier = () => {
             🧙‍♂️
           </Button>
           <Button variant="outline" title="Run" onClick={() => execute.mutate({query: storedCode})}>
-            <PlayIcon className="w-4 h-4 text-gray-100 dark:text-gray-100" />
+            <icons.Play />
           </Button>
         </div>
       </div>
@@ -128,7 +129,7 @@ export const Querier = () => {
               <RemoveFormattingIcon className="w-4 h-4 text-gray-100" />
             </Button>
             <Button className="text-gray-100" size="sm" variant="ghost">
-              <DownloadIcon className="w-4 h-4 text-gray-100" />
+              <icons.Download className="w-4 h-4 text-gray-100" />
             </Button>
           </div>
         </div>
@@ -193,46 +194,6 @@ function RemoveFormattingIcon(props: SVGProps) {
       <path d="M13 4 8 20" />
       <path d="m15 15 5 5" />
       <path d="m20 15-5 5" />
-    </svg>
-  )
-}
-
-function DownloadIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" x2="12" y1="15" y2="3" />
-    </svg>
-  )
-}
-
-function PlayIcon(props: SVGProps) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="5 3 19 12 5 21 5 3" />
     </svg>
   )
 }
