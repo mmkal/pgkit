@@ -46,11 +46,11 @@ type FieldConfigs<T extends FieldValues> = {
 
 export interface ZFormProps<Z extends z.ZodObject<any>> {
   schema: Z
-  onSubmit: (values: z.infer<Z>) => void
+  onSubmit?: (values: z.infer<Z>) => void
   onTouch?: (values: z.infer<Z>) => void
   className?: string
   config?: FieldConfigs<z.infer<Z>>
-  useFormProps: UseFormProps<z.infer<Z>>
+  useFormProps?: UseFormProps<z.infer<Z>>
 }
 
 const memoize = <T extends (...args: any[]) => any>(
@@ -113,7 +113,7 @@ export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFor
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(props.onSubmit)} className={props.className}>
+        <form onSubmit={props.onSubmit && form.handleSubmit(props.onSubmit)} className={props.className}>
           {reflected.map(entry => (
             <RenderEntry form={form} entry={entry} key={jKey(entry.path)} />
           ))}
