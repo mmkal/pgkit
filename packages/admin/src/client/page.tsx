@@ -55,6 +55,7 @@ const viewConfigs: Record<View, ViewConfig | null> = {
 export default function Component() {
   const [view, setView] = useLocalStorage<View>('view.0.0.1', 'sql')
   const [tableIdentifier, setTableIdentifier] = useLocalStorage('tableName.0.0.1', '')
+  const [tablesFilter, setTablesFilter] = React.useState('')
 
   const inspected = useInspected()
 
@@ -96,9 +97,10 @@ export default function Component() {
           <div className="border-t border-gray-700 mt-4 pt-4">
             <div className="px-4 mb-4">
               <Input
-                className="hidden w-full bg-gray-700 placeholder-gray-400 rounded-md px-3 py-2"
+                className="w-full bg-gray-700 placeholder-gray-400 rounded-md px-3 py-2"
                 placeholder="Search tables..."
                 type="search"
+                onChange={ev => setTablesFilter(ev.target.value)}
               />
             </div>
             <Collapsible defaultOpen className="group/collapsible">
@@ -112,23 +114,25 @@ export default function Component() {
                 </CollapsibleTrigger>
               </div>
               <CollapsibleContent className="px-1">
-                {Object.entries(inspected?.tables || {}).map(([key, table]) => (
-                  <Button
-                    key={key}
-                    className={clsx(
-                      'gap-1 text-left justify-start w-full rounded-md px-3 py-1 text-xs hover:bg-gray-700 hover:text-white',
-                      view === 'table' && tableIdentifier === key && 'bg-gray-600 text-white',
-                    )}
-                    variant="ghost"
-                    onClick={() => {
-                      setView('table')
-                      setTableIdentifier(key)
-                    }}
-                  >
-                    <icons.Table className="w-[15px]" />
-                    {table.name}
-                  </Button>
-                ))}
+                {Object.entries(inspected?.tables || {})
+                  .filter(([_k, t]) => t.name.includes(tablesFilter))
+                  .map(([key, table]) => (
+                    <Button
+                      key={key}
+                      className={clsx(
+                        'gap-1 text-left justify-start w-full rounded-md px-3 py-1 text-xs hover:bg-gray-700 hover:text-white',
+                        view === 'table' && tableIdentifier === key && 'bg-gray-600 text-white',
+                      )}
+                      variant="ghost"
+                      onClick={() => {
+                        setView('table')
+                        setTableIdentifier(key)
+                      }}
+                    >
+                      <icons.Table className="w-[15px]" />
+                      {table.name}
+                    </Button>
+                  ))}
                 {/* <Link className="block w-full rounded-md px-3 py-1 text-sm hover:bg-gray-700" href="#">
                   users
                 </Link>
