@@ -2,11 +2,13 @@ import {ContextMenuTrigger} from '@radix-ui/react-context-menu'
 import clsx from 'clsx'
 import React from 'react'
 import {useLocalStorage} from 'react-use'
+import {z} from 'zod'
 import {useSettings} from '../settings'
 import {MeasuredCodeMirror} from '../sql-codemirror'
 import {createCascadingState} from '../utils/cascading-state'
 import {useDestructive} from '../utils/destructive'
 import {trpc} from '../utils/trpc'
+import {ZForm} from '../utils/zform'
 import {parseFileTree, basename, File, Folder, commonPrefix} from './file-tree'
 import {Button} from '@/components/ui/button'
 import {CollapsibleTrigger, CollapsibleContent, Collapsible} from '@/components/ui/collapsible'
@@ -69,7 +71,27 @@ const useMigrations = () => {
   const create = trpc.migrations.create.useMutation(mutationConfig)
   const up = trpc.migrations.up.useMutation(mutationConfig)
   const down = useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
-    description: `This may delete data, which will not be restored even if you reapply the migration.`,
+    description: (
+      <>
+        <div className="mb-3">This may delete data, which will not be restored even if you reapply the migration.</div>
+        <ZForm
+          schema={z.object({
+            dontShowAgain: z.boolean().field({
+              label: 'Do not show this warning again (this can always be changed in settings)',
+            }),
+          })}
+          onTouch={value =>
+            settings.update({
+              ...settings,
+              migrations: {
+                ...settings.migrations,
+                skipDestructiveActionWarning: value.dontShowAgain,
+              },
+            })
+          }
+        />
+      </>
+    ),
   }).disable(settings.migrations.skipDestructiveActionWarning)
   const update = trpc.migrations.update.useMutation(mutationConfig)
   const downify = trpc.migrations.downify.useMutation({

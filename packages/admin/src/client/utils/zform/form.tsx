@@ -125,7 +125,7 @@ export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFor
           {reflected.map(entry => (
             <RenderEntry form={form} entry={entry} key={jKey(entry.path)} />
           ))}
-          {props.submitButton || <Button type="submit">Submit</Button>}
+          {props.submitButton || props.onSubmit ? <Button type="submit">Submit</Button> : null}
         </form>
       </Form>
       {Object.keys(form.formState.errors).length > 0 && (
