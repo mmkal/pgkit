@@ -513,7 +513,11 @@ const RenderEntry = ({form, entry}: RenderEntryProps) => {
             <FormItem>
               <div className="inline-flex gap-2">
                 <FormControl>
-                  <Checkbox checked={props.field.value} onCheckedChange={checked => props.field.onChange(checked)} />
+                  <Checkbox
+                    checked={props.field.value}
+                    onCheckedChange={checked => props.field.onChange(checked)}
+                    className="bg-slate-100"
+                  />
                 </FormControl>
                 <FormLabel>{label}</FormLabel>
               </div>

@@ -10,6 +10,9 @@ export const Settings = z.object({
   includeSchemas: z.string().optional(),
   excludeSchemas: z.string().optional(),
   headers: z.record(z.string()).optional(),
+  migrations: z.object({
+    skipDestructiveActionWarning: z.boolean().optional(),
+  }),
 })
 
 export type Settings = z.infer<typeof Settings>

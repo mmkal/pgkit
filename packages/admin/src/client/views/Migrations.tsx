@@ -2,6 +2,7 @@ import {ContextMenuTrigger} from '@radix-ui/react-context-menu'
 import clsx from 'clsx'
 import React from 'react'
 import {useLocalStorage} from 'react-use'
+import {useSettings} from '../settings'
 import {MeasuredCodeMirror} from '../sql-codemirror'
 import {createCascadingState} from '../utils/cascading-state'
 import {useDestructive} from '../utils/destructive'
@@ -56,6 +57,7 @@ export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 
 const useMigrations = () => {
   const [_, setFileState] = file.useState()
+  const settings = useSettings()
 
   const util = trpc.useUtils()
   const mutationConfig = {
@@ -68,7 +70,7 @@ const useMigrations = () => {
   const up = trpc.migrations.up.useMutation(mutationConfig)
   const down = useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
     description: `This may delete data, which will not be restored even if you reapply the migration.`,
-  })
+  }).disable(settings.migrations.skipDestructiveActionWarning)
   const update = trpc.migrations.update.useMutation(mutationConfig)
   const downify = trpc.migrations.downify.useMutation({
     onSuccess: data => {
