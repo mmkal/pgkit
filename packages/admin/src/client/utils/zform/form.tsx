@@ -6,6 +6,7 @@
 import './augment-prototype'
 
 import {zodResolver} from '@hookform/resolvers/zod'
+import clsx from 'clsx'
 import React from 'react'
 import {
   ControllerProps,
@@ -22,7 +23,9 @@ import {z} from 'zod'
 import {Button} from '@/components/ui/button'
 import {Checkbox} from '@/components/ui/checkbox'
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from '@/components/ui/form'
+import {icons} from '@/components/ui/icons'
 import {Input} from '@/components/ui/input'
+import {Separator} from '@/components/ui/separator'
 
 type SimpleFieldConfig = Readonly<{
   label?: string
@@ -48,6 +51,7 @@ export interface ZFormProps<Z extends z.ZodObject<any>> {
   schema: Z
   onSubmit?: (values: z.infer<Z>) => void
   onTouch?: (values: z.infer<Z>) => void
+  submitButton?: React.ReactNode
   className?: string
   config?: FieldConfigs<z.infer<Z>>
   useFormProps?: UseFormProps<z.infer<Z>>
@@ -93,6 +97,10 @@ export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFor
     )
   }, [props.onTouch])
 
+  const onSubmit = React.useCallback(() => {
+    props.onSubmit?.(form.getValues())
+  }, [props.onSubmit])
+
   if (onValid) {
     form.watch(() => {
       onValid(form.getValues())
@@ -113,11 +121,11 @@ export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFor
   return (
     <>
       <Form {...form}>
-        <form onSubmit={props.onSubmit && form.handleSubmit(props.onSubmit)} className={props.className}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className={clsx(props.className, 'gap-5')}>
           {reflected.map(entry => (
             <RenderEntry form={form} entry={entry} key={jKey(entry.path)} />
           ))}
-          <Button type="submit">Submit</Button>
+          {props.submitButton || <Button type="submit">Submit</Button>}
         </form>
       </Form>
       {Object.keys(form.formState.errors).length > 0 && (
@@ -290,7 +298,9 @@ const RenderEntryArray = ({form, entry}: RenderEntryProps) => {
           </Button>
         </li>
       ))}
-      <Button onClick={() => append(undefined)}>Add to {name}</Button>
+      <Button title={`Add to ${name}`} onClick={() => append(undefined)}>
+        <icons.PlusCircle />
+      </Button>
     </ol>
   )
 }
@@ -306,8 +316,9 @@ const RenderEntryRecord = ({form, entry}: RenderEntryProps) => {
 
   // todo: stop using Object.fromEntries, it means we have to keep `fields` and `setValue` in sync
   const [fields, setFields] = React.useState<{id: string; value: unknown}[]>(() => {
-    return entry.schema._fieldConfig?.defaultValue
-      ? Object.entries(entry.schema._fieldConfig?.defaultValue as {}).map(e => ({
+    const existing = form.getValues(name) ?? entry.schema._fieldConfig?.defaultValue
+    return existing
+      ? Object.entries(existing as {}).map(e => ({
           id: e[0],
           value: e[1],
         }))
@@ -321,37 +332,44 @@ const RenderEntryRecord = ({form, entry}: RenderEntryProps) => {
   // todo: should `Wrapper` replace `<ul>` or wrap it?
   return (
     <Wrapper>
-      <ul className={entry.schema._fieldConfig?.className} data-entry-type="record" data-key={jKey(entry.path)}>
-        {fields.map(field => (
-          <li key={field.id}>
-            <div>
+      <div className="relative flex flex-col border-slate-100 border-l-2 border-b-2 pl-2 my-2">
+        <h3>{name}</h3>
+        <ul className={entry.schema._fieldConfig?.className} data-entry-type="record" data-key={jKey(entry.path)}>
+          {fields.map(field => (
+            <li key={field.id} className="flex flex-row items-end">
+              {/* <div>
               <i>{field.id}</i>
-            </div>
-            <RenderEntry
-              form={form}
-              entry={{
-                ...entry.entries!,
-                path: [...entry.entries!.path.slice(0, -1), field.id],
-                children: entry.entries!.children?.map(child => ({
-                  ...child,
-                  path: [...child.path.slice(0, -2), field.id, ...child.path.slice(-1)],
-                })),
-              }}
-            />
-            <Button
-              onClick={() => {
-                setFields(old => old.filter(o => o.id !== field.id))
-                form.setValue(
-                  name,
-                  pickBy(form.getValues(name), (_, k) => k !== field.id),
-                )
-              }}
-            >
-              Remove {field.id}
-            </Button>
-          </li>
-        ))}
+            </div> */}
+              <RenderEntry
+                form={form}
+                entry={{
+                  ...entry.entries!,
+                  path: [...entry.entries!.path.slice(0, -1), field.id],
+                  children: entry.entries!.children?.map(child => ({
+                    ...child,
+                    path: [...child.path.slice(0, -2), field.id, ...child.path.slice(-1)],
+                  })),
+                }}
+              />
+              <Button
+                className="flex-shrink-0"
+                title={`Remove ${entry.path.join('.')}.${field.id}`}
+                onClick={() => {
+                  setFields(old => old.filter(o => o.id !== field.id))
+                  form.setValue(
+                    name,
+                    pickBy(form.getValues(name), (_, k) => k !== field.id),
+                  )
+                }}
+              >
+                <icons.MinusCircle />
+              </Button>
+            </li>
+          ))}
+        </ul>
         <Button
+          className="self-end right-0"
+          title={`Add to ${name}`}
           onClick={() => {
             const newId = prompt('Enter a key')
             if (!newId) return
@@ -362,9 +380,9 @@ const RenderEntryRecord = ({form, entry}: RenderEntryProps) => {
             setFields(old => [...old, {id: newId, value: undefined}])
           }}
         >
-          Add to {name}
+          <icons.PlusCircle />
         </Button>
-      </ul>
+      </div>
     </Wrapper>
   )
 }
@@ -438,12 +456,15 @@ const RenderEntry = ({form, entry}: RenderEntryProps) => {
         defaultValue={config?.defaultValue as never}
         render={props => (
           <Renderer {...props} key={key}>
-            <FormItem data-key={key}>
-              <FormLabel>{label}</FormLabel>
-              <FormControl>
-                <Input {...config?.input} {...props.field} />
-              </FormControl>
-              {description && <FormDescription>{description}</FormDescription>}
+            <FormItem data-key={key} className="flex flex-col w-full relative gap-0 mt-3">
+              {/* <FormLabel className="w-[25%] absolute left-0 -top-2 ml-[2px]">{label}</FormLabel> */}
+              <FormLabel className="w-[25%]">{label}</FormLabel>
+              <div className="gap-0 flex flex-row relative justify-center mt-4 w-full">
+                <FormControl className="space-y-0">
+                  <Input {...config?.input} {...props.field} />
+                </FormControl>
+                {description && <FormDescription>{description}</FormDescription>}
+              </div>
               <FormMessage />
             </FormItem>
           </Renderer>

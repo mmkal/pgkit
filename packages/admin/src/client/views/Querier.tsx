@@ -1,7 +1,6 @@
 import React from 'react'
 import {useLocalStorage, useMeasure} from 'react-use'
 import {z} from 'zod'
-import {SVGProps} from '../page'
 import {ResultsViewer} from '../results/grid'
 import {useSettings} from '../settings'
 import {SqlCodeMirror} from '../sql-codemirror'

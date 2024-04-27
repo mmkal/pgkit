@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import React from 'react'
 
 import {useLocalStorage} from 'react-use'
-import logo from './images/pgkit_transparent_cropped.png'
+// import logo from './images/pgkit_transparent_cropped.png'
 import {SettingsPanel} from './settings'
 import {useInspected} from './utils/inspect'
 import {AltLogo} from './utils/logo'

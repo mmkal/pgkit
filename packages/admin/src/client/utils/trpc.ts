@@ -15,7 +15,7 @@ export function useTrpcClient() {
         links: [
           httpBatchLink({
             url: settings.apiUrl,
-            headers: () => settings.headers,
+            headers: () => settings.headers || {},
           }),
         ],
       }),
