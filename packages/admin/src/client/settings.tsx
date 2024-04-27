@@ -14,8 +14,9 @@ export const Settings = z.object({
 
 export type Settings = z.infer<typeof Settings>
 
-export const settingsContext = createCascadingState<Settings>({apiUrl: ''}, defaultValue =>
-  useLocalStorage('settings.0.0.2', defaultValue),
+export const settingsContext = createCascadingState<Settings>(
+  JSON.parse(localStorage.getItem('settings.0.0.2') || '{}') as never, // todo: figure out why trpc isn't getting the update
+  defaultValue => useLocalStorage('settings.0.0.2', defaultValue),
 )
 
 export const useSettings = () => {

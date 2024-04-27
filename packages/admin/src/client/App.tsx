@@ -10,15 +10,15 @@ export default function App() {
   if (!trpcClient) return null
 
   return (
-    <trpc.Provider queryClient={queryClient} client={trpcClient}>
-      <QueryClientProvider client={queryClient}>
-        <settingsContext.Provider>
+    <settingsContext.Provider>
+      <trpc.Provider queryClient={queryClient} client={trpcClient}>
+        <QueryClientProvider client={queryClient}>
           <AlertProvider>
             <Component />
             <Toaster />
           </AlertProvider>
-        </settingsContext.Provider>
-      </QueryClientProvider>
-    </trpc.Provider>
+        </QueryClientProvider>
+      </trpc.Provider>
+    </settingsContext.Provider>
   )
 }
