@@ -8,24 +8,14 @@ import './augment-prototype'
 import {zodResolver} from '@hookform/resolvers/zod'
 import clsx from 'clsx'
 import React from 'react'
-import {
-  ControllerProps,
-  FieldPath,
-  FieldValues,
-  UseFormProps,
-  useFieldArray,
-  useForm,
-  useFormState,
-} from 'react-hook-form'
-import {b} from 'vitest/dist/suite-ghspeorC.js'
+import {ControllerProps, FieldPath, FieldValues, UseFormProps, useFieldArray, useForm} from 'react-hook-form'
 import {z} from 'zod'
 
 import {Button} from '@/components/ui/button'
-import {Checkbox} from '@/components/ui/checkbox'
 import {Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage} from '@/components/ui/form'
 import {icons} from '@/components/ui/icons'
 import {Input} from '@/components/ui/input'
-import {Separator} from '@/components/ui/separator'
+import {Switch} from '@/components/ui/switch'
 
 type SimpleFieldConfig = Readonly<{
   label?: string
@@ -513,10 +503,10 @@ const RenderEntry = ({form, entry}: RenderEntryProps) => {
             <FormItem>
               <div className="inline-flex gap-2">
                 <FormControl>
-                  <Checkbox
+                  <Switch
                     checked={props.field.value}
                     onCheckedChange={checked => props.field.onChange(checked)}
-                    className="bg-slate-100"
+                    className="data-[state=unchecked]:bg-slate-500 data-[state=checked]:bg-slate-700"
                   />
                 </FormControl>
                 <FormLabel>{label}</FormLabel>

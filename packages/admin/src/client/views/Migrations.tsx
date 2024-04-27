@@ -371,14 +371,19 @@ export const FileTree = (tree: File | Folder) => {
 
   return (
     <>
-      <Collapsible open={fileState.startsWith(tree.path) || undefined} defaultOpen={basename(tree.path) !== 'down'}>
+      <Collapsible
+        className="group/collapsible w-full"
+        open={fileState.startsWith(tree.path) || undefined}
+        defaultOpen={basename(tree.path) !== 'down'}
+      >
         <CollapsibleTrigger asChild>
           <div
             title={tree.path}
-            className="flex cursor-pointer items-center align-middle justify-start rounded-lg px-2 py-2 text-gray-400 transition-all hover:text-gray-200 dark:text-gray-400 dark:hover:text-gray-50"
+            className="flex w-full relative cursor-pointer items-center align-middle justify-start rounded-lg px-2 py-2 text-gray-400 transition-all hover:text-gray-200 dark:text-gray-400 dark:hover:text-gray-50"
           >
             <icons.Folder className="mr-2 h-4 w-4" />
             <span>{basename(tree.path)}</span>
+            {/* <icons.ChevronLeft className="justify-self-end w-4 h-4 group-data-[state=open]/collapsible:-rotate-90 transition-transform" /> */}
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent>
