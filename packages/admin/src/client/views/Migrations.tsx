@@ -61,9 +61,6 @@ const useMigrations = () => {
   const mutationConfig = {
     onSuccess: () => util.migrations.invalidate(),
   }
-  useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
-    description: `This may delete data, which will not be restored even if you reapply the migration.`,
-  })
 
   const list = trpc.migrations.list.useQuery()
 

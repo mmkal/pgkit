@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import {Input} from '@/components/ui/input'
 
-export const alertContext = createCascadingState<AlertConfig<unknown> | null>(null)
+export const alertContext = createCascadingState<AlertConfig<unknown>[]>([])
 
 export type AlertOptionsMap = {
   alert: {
@@ -77,44 +77,56 @@ export const useAlerter = () => {
   return {
     confirm: createAlerter<boolean>((title, options) => {
       return new Promise(resolve => {
-        setOptions({
-          type: 'confirm',
-          title,
-          ...defaultMessages,
-          ...options,
-          onComplete: v => {
-            setOptions(null)
-            resolve(v as never)
-          },
-        })
+        setOptions(old =>
+          old.concat([
+            {
+              type: 'confirm',
+              title,
+              ...defaultMessages,
+              ...options,
+              onComplete: v => {
+                setOptions(_old => _old.slice(0, -1))
+                resolve(v as never)
+              },
+            },
+          ]),
+        )
       })
     }),
     alert: createAlerter<void>((title, options) => {
       return new Promise(resolve => {
-        setOptions({
-          type: 'alert',
-          title,
-          ...defaultMessages,
-          ...options,
-          onComplete: () => {
-            setOptions(null)
-            resolve()
-          },
-        })
+        setOptions(old =>
+          old.concat([
+            {
+              type: 'alert',
+              title,
+              ...defaultMessages,
+              ...options,
+              onComplete: () => {
+                setOptions(_old => _old.slice(0, -1))
+                resolve()
+              },
+            },
+          ]),
+        )
       })
     }),
     prompt: createAlerter<string | null>((title, options) => {
       return new Promise(resolve => {
-        setOptions({
-          type: 'prompt',
-          title,
-          ...defaultMessages,
-          ...options,
-          onComplete: (v: unknown) => {
-            setOptions(null)
-            resolve(v as never)
-          },
-        })
+        setOptions(old =>
+          old.concat([
+            {
+              type: 'prompt',
+              title,
+              ...defaultMessages,
+              ...options,
+              onComplete: (v: unknown) => {
+                setOptions(old => old.slice(0, -1))
+                resolve(v as never)
+              },
+            },
+          ]),
+        )
       })
     }),
   }
@@ -130,11 +142,15 @@ export function AlertProvider(props: {children?: React.ReactNode}) {
 }
 
 export function AutoAlertDialog(props: {children?: React.ReactNode}) {
-  const [options] = alertContext.useState()
+  const [stack] = alertContext.useState()
   const [value, setValue] = React.useState<unknown>(null)
 
+  const options = stack.at(-1)
+
   return (
-    <AlertDialog open={Boolean(options)} onOpenChange={v => (v ? void 0 : options?.onComplete?.(null))}>
+    <AlertDialog
+      open={Boolean(options)} //onOpenChange={v => (v ? void 0 : options?.onComplete?.(null))}
+    >
       <AlertDialogTrigger className="hidden">{props.children}</AlertDialogTrigger>
       {options && (
         <AlertDialogContent className="bg-black">
