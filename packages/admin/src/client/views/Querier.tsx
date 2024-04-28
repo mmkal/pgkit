@@ -74,7 +74,6 @@ export const Querier = () => {
         <h3 className="text-lg font-semibold">SQL Editor</h3>
         <div className="flex gap-1">
           <Button
-            // variant="outline"
             title="AI"
             disabled={aiMutation.isLoading}
             onClick={() => {
@@ -89,7 +88,7 @@ export const Querier = () => {
           >
             🧙‍♂️
           </Button>
-          <Button variant="outline" title="Run" onClick={() => execute.mutate({query: storedCode})}>
+          <Button title="Run" onClick={() => execute.mutate({query: storedCode})}>
             <icons.Play />
           </Button>
         </div>
