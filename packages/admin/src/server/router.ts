@@ -20,6 +20,19 @@ export const appRouter = trpc.router({
         results: await runQuery(input.query, ctx),
       }
     }),
+  execute2: publicProcedure
+    .input(
+      z.object({
+        query: z.string(),
+        values: z.array(z.any()),
+      }),
+    )
+    .mutation(async ({input, ctx}) => {
+      return {
+        // todo: let raw accept values
+        // results: await ctx.connection.query(sql.raw(input.query, input.values)),
+      }
+    }),
   inspect: publicProcedure
     .input(
       z.object({

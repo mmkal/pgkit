@@ -111,7 +111,7 @@ export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFor
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className={clsx(props.className, 'gap-5')}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className={clsx(props.className, 'flex flex-col gap-5')}>
           {reflected.map(entry => (
             <RenderEntry form={form} entry={entry} key={jKey(entry.path)} />
           ))}
