@@ -116,7 +116,7 @@ export const Table = ({identifier}: {identifier: string}) => {
             <icons.Columns3 className="w-4 h-4" />
           </PopoverZFormButton>
           <PopoverZFormButton
-            schema={z.object(Object.fromEntries(columnNames.map(c => [c, z.string()])))}
+            schema={z.object(Object.fromEntries(columnNames.map(c => [c, z.string().optional()])))}
             onSubmit={data =>
               addMutation.mutate({
                 query: `insert into ${identifier} (${Object.keys(data).join(', ')}) values (${Object.values(data).join(', ')})`,
@@ -127,9 +127,6 @@ export const Table = ({identifier}: {identifier: string}) => {
           >
             <icons.PlusCircle className="w-4 h-4" />
           </PopoverZFormButton>
-          <Button title="Add Row" className="" size="sm">
-            <icons.PlusCircle className="w-4 h-4" />
-          </Button>
           <Button
             disabled={!query}
             onClick={() => query && rowsMutation.mutate({query})}
