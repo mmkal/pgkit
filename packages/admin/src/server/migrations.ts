@@ -2,28 +2,31 @@ import {Migrator} from '@pgkit/migrator'
 import * as fs from 'fs'
 import * as path from 'path'
 import {z} from 'zod'
+import {ServerContext} from './context.js'
 import {publicProcedure, trpc} from './trpc.js'
 
-const migrationsProcedure = publicProcedure.use(x => {
+const getMigratorStuff = (ctx: ServerContext) => {
   const migrationsDir = path.join(process.cwd(), 'zignoreme/migrator')
   const migrator = new Migrator({
-    client: x.ctx.connection as never,
+    client: ctx.connection as never,
     migrationsPath: path.join(migrationsDir, 'migrations'),
     migrationTableName: 'admin_test_migrations',
   })
   fs.mkdirSync(migrationsDir, {recursive: true})
-  return x.next({
-    ctx: {
-      ...x.ctx,
-      migrationsDir,
-      migrator,
-      definitionsFile: path.join(migrationsDir, 'definitions.sql'),
-    },
-  })
-})
+  return {
+    migrationsDir,
+    migrator,
+    definitionsFile: path.join(migrationsDir, 'definitions.sql'),
+  }
+}
+
+const getMigrator = (ctx: ServerContext) => getMigratorStuff(ctx).migrator
+
+const formatMigrations = (migrations: {name: string; path?: string}[]) =>
+  migrations.map(m => ({name: m.name, path: m.path}))
 
 export const migrationsRotuer = trpc.router({
-  up: migrationsProcedure
+  up: publicProcedure
     .input(
       z
         .object({
@@ -33,9 +36,9 @@ export const migrationsRotuer = trpc.router({
         .default({}),
     )
     .mutation(async ({ctx, input}) => {
-      return ctx.migrator.up(input as never)
+      return formatMigrations(await getMigrator(ctx).up(input as never))
     }),
-  down: migrationsProcedure
+  down: publicProcedure
     .input(
       z
         .object({
@@ -45,25 +48,25 @@ export const migrationsRotuer = trpc.router({
         .default({}),
     )
     .mutation(async ({ctx, input}) => {
-      return ctx.migrator.down(input as never)
+      return formatMigrations(await getMigrator(ctx).down(input as never))
     }),
-  pending: migrationsProcedure.query(async ({ctx}) => {
-    return ctx.migrator.pending()
+  pending: publicProcedure.query(async ({ctx}) => {
+    return formatMigrations(await getMigrator(ctx).pending())
   }),
-  executed: migrationsProcedure.query(async ({ctx}) => {
-    return ctx.migrator.executed()
+  executed: publicProcedure.query(async ({ctx}) => {
+    return formatMigrations(await getMigrator(ctx).executed())
   }),
-  list: migrationsProcedure.query(async ({ctx}) => {
-    const pending = await ctx.migrator.pending()
-    const executed = await ctx.migrator.executed()
+  list: publicProcedure.query(async ({ctx}) => {
+    const pending = await getMigrator(ctx).pending()
+    const executed = await getMigrator(ctx).executed()
     const all = [
       ...executed.map(x => ({...x, status: 'executed' as const})),
       ...pending.map(x => ({...x, status: 'pending' as const})), //
     ]
 
-    const migrations = all
+    const migrations = formatMigrations(all)
       .map(m => {
-        const downPath = ctx.migrator.downPath(m.path!)
+        const downPath = getMigrator(ctx).downPath(m.path!)
         return {
           ...m,
           path: m.path!,
@@ -76,37 +79,37 @@ export const migrationsRotuer = trpc.router({
       })
       .sort((a, b) => a.path.localeCompare(b.path))
 
+    const stuff = getMigratorStuff(ctx)
     return {
       migrations,
       definitions: {
-        filepath: ctx.definitionsFile,
-        content: fs.existsSync(ctx.definitionsFile) ? fs.readFileSync(ctx.definitionsFile, 'utf8') : '',
+        filepath: stuff.definitionsFile,
+        content: fs.existsSync(stuff.definitionsFile) ? fs.readFileSync(stuff.definitionsFile, 'utf8') : '',
       },
     }
   }),
-  create: migrationsProcedure
+  create: publicProcedure
     .input(
       z.object({
         name: z.string(),
       }),
     )
     .mutation(async ({input, ctx}) => {
-      return ctx.migrator.create({
-        name: input.name,
-      })
+      await getMigrator(ctx).create({name: input.name})
     }),
-  downify: migrationsProcedure
+  downify: publicProcedure
     .input(
       z.object({name: z.string()}), //
     )
     .mutation(async ({input, ctx}) => {
-      const {content, info} = await ctx.migrator.generateDownMigration({name: input.name})
+      const migrator = getMigrator(ctx)
+      const {content, info} = await migrator.generateDownMigration({name: input.name})
 
-      const downPath = ctx.migrator.downPath(info.migration.path as string)
+      const downPath = migrator.downPath(info.migration.path as string)
       await fs.promises.writeFile(downPath, content)
-      return {downPath, content, info}
+      return {downPath, content}
     }),
-  update: migrationsProcedure
+  update: publicProcedure
     .input(
       z.object({
         path: z.string(),
@@ -114,12 +117,12 @@ export const migrationsRotuer = trpc.router({
       }),
     )
     .mutation(async ({ctx, input}) => {
-      const pending = await ctx.migrator.pending()
+      const pending = await getMigrator(ctx).pending()
       let found = pending.find(x => x.path === input.path)
 
       if (!found) {
-        const executed = await ctx.migrator.executed()
-        found = executed.find(x => ctx.migrator.downPath(x.path!) === input.path)
+        const executed = await getMigrator(ctx).executed()
+        found = executed.find(x => getMigrator(ctx).downPath(x.path!) === input.path)
       }
 
       if (!found) {
@@ -136,11 +139,11 @@ export const migrationsRotuer = trpc.router({
         await fs.promises.writeFile(input.path, input.content)
       }
     }),
-  migra: migrationsProcedure.query(async ({ctx}) => {
-    const migra = await ctx.migrator.runMigra()
-    return {sql: migra.sql}
+  migra: publicProcedure.query(async ({ctx}) => {
+    const {sql} = await getMigrator(ctx).runMigra()
+    return {sql}
   }),
-  definitions: migrationsProcedure.mutation(async ({ctx}) => {
-    await ctx.migrator.writeDefinitionFile(ctx.definitionsFile)
+  definitions: publicProcedure.mutation(async ({ctx}) => {
+    await getMigrator(ctx).writeDefinitionFile(getMigratorStuff(ctx).definitionsFile)
   }),
 })

@@ -35,7 +35,6 @@ export const SettingsPanel = () => {
     <div className="h-full overflow-auto">
       <h1>Settings</h1>
       <ZForm useFormProps={{defaultValues: value}} className="gap-5" schema={Settings} onTouch={update} />
-      <pre>{JSON.stringify(value, null, 2)}</pre>
     </div>
   )
 }

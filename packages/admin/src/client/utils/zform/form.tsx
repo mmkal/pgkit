@@ -122,8 +122,8 @@ export function ZForm<Z extends z.ZodObject<any>>({useFormProps, ...props}: ZFor
         <pre>
           {JSON.stringify(
             {
-              stae: form.formState,
-              errors: form.formState.errors,
+              state: form.formState || null,
+              errors: form.formState.errors || null,
               data: form.getValues(),
             },
             null,
