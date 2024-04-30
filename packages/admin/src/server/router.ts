@@ -1,6 +1,7 @@
 import {sql} from '@pgkit/client'
 import * as migra from '@pgkit/migra'
 import {PostgreSQL} from '@pgkit/schemainspect'
+import {stringify as csvStringify} from 'csv-stringify/sync'
 import {fetchomatic} from 'fetchomatic'
 import {z} from 'zod'
 import {migrationsRotuer} from './migrations.js'
@@ -19,6 +20,18 @@ export const appRouter = trpc.router({
       return {
         results: await runQuery(input.query, ctx),
       }
+    }),
+  csv: publicProcedure
+    .input(
+      z.object({
+        query: z.string(),
+      }),
+    )
+    .mutation(async ({input, ctx}) => {
+      const client = ctx.connection
+      const {rows} = await client.query(sql.raw(input.query))
+      const csv = csvStringify(rows, {header: true})
+      return {csv}
     }),
   execute2: publicProcedure
     .input(

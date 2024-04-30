@@ -23,6 +23,7 @@ export const Querier = () => {
   const [ref, mes] = useMeasure<HTMLDivElement>()
   const [storedCode = '', setStoredCode] = useLocalStorage(`sql-editor-code:0.0.1`, `show search_path`)
   const [wrapText, setWrapText] = useLocalStorage(`sql-editor-wrap-text:0.0.1`, true)
+  const fileMutation = trpc.csv.useMutation()
   const settings = useSettings()
   const execute = trpc.executeSql.useMutation({
     onSuccess: data => {
@@ -102,12 +103,26 @@ export const Querier = () => {
             errors={errors}
             onChange={setStoredCode}
             onExecute={query => execute.mutate({query})}
+            wrapText={wrapText}
           />
-          <div className="absolute bottom-2 right-2">
-            <Button onClick={() => setWrapText(old => !old)} className="text-gray-100" size="sm" variant="ghost">
+          <div className="absolute bottom-2 right-2 flex gap-1">
+            <Button onClick={() => setWrapText(old => !old)} className="text-gray-100" size="sm">
               <icons.RemoveFormatting className="w-4 h-4 text-gray-100" />
             </Button>
-            <Button className="text-gray-100" size="sm" variant="ghost">
+            <Button
+              className="text-gray-100"
+              size="sm"
+              onClick={async () => {
+                const {csv} = await fileMutation.mutateAsync({query: storedCode})
+                const blob = new Blob([csv], {type: 'text/csv'})
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                // a.download = `query.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+              }}
+            >
               <icons.Download className="w-4 h-4 text-gray-100" />
             </Button>
           </div>

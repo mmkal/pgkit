@@ -1,9 +1,10 @@
 import {type CompletionSource, acceptCompletion, autocompletion} from '@codemirror/autocomplete'
 import {sql} from '@codemirror/lang-sql'
 import {linter, lintGutter} from '@codemirror/lint'
-import {EditorState, Prec} from '@codemirror/state'
-import {type EditorView, keymap} from '@codemirror/view'
+import {EditorState, Extension, Prec} from '@codemirror/state'
+import {EditorView, keymap} from '@codemirror/view'
 import CodeMirror from '@uiw/react-codemirror'
+import clsx from 'clsx'
 import React from 'react'
 import {useMeasure} from 'react-use'
 import {SuggestionType, getSuggester} from '../packlets/autocomplete/suggest'
@@ -16,6 +17,7 @@ export interface SqlCodeMirrorProps {
   errors?: Array<{position: number; message: string}>
   height: string
   readonly?: boolean
+  wrapText?: boolean
 }
 
 type MeasuredCodeMirrorProps = Omit<SqlCodeMirrorProps, 'height'> & {
@@ -26,7 +28,7 @@ type MeasuredCodeMirrorProps = Omit<SqlCodeMirrorProps, 'height'> & {
 export const MeasuredCodeMirror = (props: MeasuredCodeMirrorProps) => {
   const [ref, measurements] = useMeasure<HTMLDivElement>()
   return (
-    <div className={props.className || 'h-full'} ref={ref}>
+    <div className={clsx('h-full', props.className)} ref={ref}>
       <SqlCodeMirror {...props} height={measurements.height + 'px'} />
     </div>
   )
@@ -77,12 +79,13 @@ export const SqlCodeMirror = ({code, onChange, onExecute, errors, height, ...pro
       })
     })
 
-    const baseExtensions = [
+    const baseExtensions: Extension[] = [
       keymapExtension,
       sql(),
       linterExtension,
       lintGutter(),
       EditorState.readOnly.of(props.readonly || false),
+      props.wrapText ? EditorView.lineWrapping : [],
     ]
     if (!schema || !searchPath) {
       return baseExtensions
@@ -118,7 +121,7 @@ export const SqlCodeMirror = ({code, onChange, onExecute, errors, height, ...pro
       closeOnBlur: false,
     })
     return [...baseExtensions, dbAutocompletion]
-  }, [schema, onExecute, errors, searchPath])
+  }, [schema, onExecute, errors, searchPath, props.wrapText])
 
   return (
     <CodeMirror

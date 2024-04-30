@@ -26,16 +26,20 @@ export const Table = ({identifier}: {identifier: string}) => {
   const [offset, setOffset] = React.useState(0)
   const {data: {inspected} = {}} = trpc.inspect.useQuery({})
   const rowsMutation = trpc.executeSql.useMutation()
-  const addMutation = trpc.executeSql.useMutation()
+  const addMutation = trpc.executeSql.useMutation({
+    onSuccess: () => setColumns(columns.slice()),
+  })
+  const fileMutation = trpc.csv.useMutation()
   const prevEnabled = offset > 0
   const values = rowsMutation.data?.results[0].result || []
   const nextEnabled = Boolean(limit) && values.length >= limit
 
-  const columnNames = Object.values(inspected?.tables[identifier]?.columns || {}).map(c => c.name)
+  const tableInfo = inspected?.tables[identifier]
+  const columnNames = Object.values(tableInfo?.columns || {}).map(c => c.name)
   const [whereClause, setWhereClause] = React.useState('')
   const [columns, setColumns] = React.useState<string[]>(['*'])
 
-  const query = React.useMemo(() => {
+  const baseQuery = React.useMemo(() => {
     if (identifier && inspected && identifier in inspected.tables) {
       const table = identifier
       for (const name of [table, ...columns]) {
@@ -52,16 +56,22 @@ export const Table = ({identifier}: {identifier: string}) => {
       return `
         with
           counts as (select count(1) from ${table}),
-          dummy as (select 1 from counts where count = 0)
+          dummy as (select 1 from counts where count = 0 and ${Math.random()} != 2)
         select ${columns.map(c => `t.${c}`).join(', ')} from ${table} t
         full outer join dummy on true
         ${whereClause ? `where ${whereClause}` : ''}
-        limit ${Number(limit)}
-        offset ${Number(offset)}
       `
     }
     return null
-  }, [identifier, inspected, limit, offset, whereClause, columns])
+  }, [identifier, inspected, whereClause, columns])
+
+  const query = React.useMemo(() => {
+    return `
+      ${baseQuery}
+      limit ${Number(limit)}
+      offset ${Number(offset)}
+    `
+  }, [baseQuery, limit, offset])
 
   React.useEffect(() => {
     if (query) {
@@ -119,7 +129,11 @@ export const Table = ({identifier}: {identifier: string}) => {
             schema={z.object(Object.fromEntries(columnNames.map(c => [c, z.string().optional()])))}
             onSubmit={data =>
               addMutation.mutate({
-                query: `insert into ${identifier} (${Object.keys(data).join(', ')}) values (${Object.values(data).join(', ')})`,
+                query: `
+                  insert into ${identifier} (${Object.keys(data).join(', ')})
+                  values (${Object.values(data).join(', ')})
+                  returning now()
+                `,
               })
             }
             title="Columns"
@@ -136,9 +150,25 @@ export const Table = ({identifier}: {identifier: string}) => {
           >
             <icons.RefreshCcw className="w-4 h-4" />
           </Button>
-          <Button title="Download" className="" size="sm">
+          <PopoverZFormButton
+            schema={z.object({limit: z.number().optional()})}
+            title="Download"
+            className=""
+            size="sm"
+            onSubmit={async data => {
+              const limitedQuery = `${baseQuery}\n${data.limit ? `limit ${data.limit}` : ''}`
+              const {csv} = await fileMutation.mutateAsync({query: limitedQuery})
+              const blob = new Blob([csv], {type: 'text/csv'})
+              const url = URL.createObjectURL(blob)
+              const a = document.createElement('a')
+              a.href = url
+              a.download = `${tableInfo?.name || identifier}.csv`
+              a.click()
+              URL.revokeObjectURL(url)
+            }}
+          >
             <icons.Download className="w-4 h-4" />
-          </Button>
+          </PopoverZFormButton>
         </div>
       </div>
       <div className="relative h-[calc(100%-200px)] max-w-[100%] overlow-scroll border-white-1">

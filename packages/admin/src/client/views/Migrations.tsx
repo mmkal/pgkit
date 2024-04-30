@@ -73,11 +73,11 @@ const useMigrations = () => {
   const down = useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
     description: (
       <>
-        <div className="mb-3">This may delete data, which will not be restored even if you reapply the migration.</div>
+        <div className="mb-3">This may delete data which will not be restored even if you reapply the migration.</div>
         <ZForm
           schema={z.object({
             dontShowAgain: z.boolean().field({
-              label: 'Do not show this warning again (this can always be changed in settings)',
+              label: "Don't show this warning again (can be changed later in settings)",
             }),
           })}
           onTouch={value =>
