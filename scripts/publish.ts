@@ -442,7 +442,7 @@ const main = async () => {
     const {stdout: uncommitedChanges} = await execa('git', ['status', '--porcelain', '--', '.'], {
       cwd: pkg.path,
     })
-    const sections = [stdout, uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges]
+    const sections = [...stdout.split('\n').map(line => `- ${line}`), uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges]
     return sections.filter(Boolean).join('\n')
   }
 
