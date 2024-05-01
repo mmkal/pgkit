@@ -16,6 +16,7 @@ export interface MigratorOptions {
   client: Client
   migrationsPath: string
   migrationTableName: string | string[]
+  definitionsFile?: string
   /**
    * instance for logging info/warnings/errors for various commands.
    * @default `Migrator.prettyLogger` - logs to console with minor "prettifying"
@@ -344,7 +345,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       }
 
       this.logger.info({message: `Running migra to generate diff migration`})
-      const {sql: content} = await migra.run(this.client.connectionString(), shadowConnectionString, {
+      const {sql: content} = await this.wrapMigra(this.client.connectionString(), shadowConnectionString, {
         unsafe: true,
         ...migraOptions,
       })
@@ -388,7 +389,6 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       const create = () => this.client.query(sql`create database ${sql.identifier([dbName])}`)
 
       const lookup = async () => {
-        console.log('looking up', dbName)
         const pending = await migrator.pending()
         const index = pending.findIndex(m => m.name === migration.name)
         if (index === -1) {
@@ -401,7 +401,6 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
     })
 
     for (const shadow of shadowClients) {
-      console.log('creating', shadow.name)
       await shadow.create()
     }
 
@@ -417,14 +416,23 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await right.migrator.up({to: right.info.previous.name})
     }
 
-    const {sql: content} = await migra.run(left.client, right.client, {unsafe: true})
+    const {sql: content} = await this.wrapMigra(left.client, right.client, {unsafe: true})
 
     return {content, info: left.info}
   }
 
   /**
-   * Creates an empty shadow database, and runs `migra` against the empty databse. You can override this method to manually reorder statements.
+   * Just calls `migra.run`. You can override this method to manually reorder statements.
    * This is necessary sometimes because migra doesn't alwyas generate statements in the right order. https://github.com/djrobstep/migra/issues/196
+   * @param args
+   * @returns
+   */
+  async wrapMigra(...args: Parameters<typeof migra.run>) {
+    return migra.run(...args)
+  }
+
+  /**
+   * Creates an empty shadow database, and runs `migra` against the empty databse.
    *
    * @example
    * import {Migrator as Base} from '@pgkit/migrator'
@@ -439,7 +447,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
    *   }
    * }
    *
-   * @returns The result of `migra.run` between the client's database and a shadow database.
+   * @returns The result of @see wrapMigra (i.e. `migra.run`) between the client's database and a shadow database.
    */
   async runMigra(defaultFlags: Flags = {}) {
     const shadowDb = `shadow_${Math.random().toString(36).slice(2)}`
@@ -454,7 +462,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
       await Migrator.getOrCreateMigrationsTable({client: shadowClient, table: this.migrationTableNameIdentifier()})
 
       // todo: pass clients through so we don't have to create duplicate clients
-      return migra.run(shadowClient.connectionString(), this.client.connectionString(), defaultFlags)
+      return this.wrapMigra(shadowClient.connectionString(), this.client.connectionString(), defaultFlags)
     } finally {
       await shadowClient.end()
     }

@@ -1,6 +1,7 @@
 import {sql} from '@pgkit/client'
 import * as migra from '@pgkit/migra'
 import {PostgreSQL} from '@pgkit/schemainspect'
+import {TRPCError} from '@trpc/server'
 import {stringify as csvStringify} from 'csv-stringify/sync'
 import {fetchomatic} from 'fetchomatic'
 import {z} from 'zod'
@@ -56,7 +57,13 @@ export const appRouter = trpc.router({
     .query(async ({input, ctx}) => {
       const client = ctx.connection
       const inspector = await PostgreSQL.create(client)
-      const searchPath = await client.oneFirst<{search_path: string}>(sql`show search_path`)
+      const searchPath = await client.oneFirst<{search_path: string}>(sql`show search_path`).catch(e => {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: `Failed to get search path. Make sure there's a valid db connection. ${String(e)}`,
+          cause: e,
+        })
+      })
       return {
         inspected: filterInspected(inspector.toJSON(), input),
         searchPath,

@@ -76,7 +76,8 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 } */
 
-@media (prefers-color-scheme: light) {
+/* todo: make light mode work or remove this */
+/* @media (prefers-color-scheme: light) {
   :root {
     --main-text-color: #213547;
     --main-background-color: #ffffff;
@@ -89,7 +90,7 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-}
+} */
 
 .cm-tooltip-autocomplete li[aria-selected="true"]::before {
   content: "👉";

@@ -5,22 +5,29 @@ import {z} from 'zod'
 import {ServerContext} from './context.js'
 import {publicProcedure, trpc} from './trpc.js'
 
-const getMigratorStuff = (ctx: ServerContext) => {
+const getMigrator = async (ctx: ServerContext) => {
   const migrationsDir = path.join(process.cwd(), 'zignoreme/migrator')
-  const migrator = new Migrator({
-    client: ctx.connection as never,
-    migrationsPath: path.join(migrationsDir, 'migrations'),
-    migrationTableName: 'admin_test_migrations',
-  })
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+  const migrator: Migrator = process.env.MIGRATOR_MODULE
+    ? // eslint-disable-next-line unicorn/no-await-expression-member
+      (await import(process.env.MIGRATOR_MODULE)).default
+    : new Migrator({
+        client: ctx.connection as never,
+        migrationsPath: path.join(migrationsDir, 'migrations'),
+        migrationTableName: 'admin_test_migrations',
+      })
   fs.mkdirSync(migrationsDir, {recursive: true})
-  return {
-    migrationsDir,
-    migrator,
-    definitionsFile: path.join(migrationsDir, 'definitions.sql'),
-  }
+  return migrator
 }
 
-const getMigrator = (ctx: ServerContext) => getMigratorStuff(ctx).migrator
+const getMigratorStuff = async (ctx: ServerContext) => {
+  const migrator = await getMigrator(ctx)
+  return {
+    migrationsDir: migrator.migratorOptions.migrationsPath,
+    migrator,
+    definitionsFile: migrator.migratorOptions.definitionsFile, // path.join(migrationsDir, 'definitions.sql'),
+  }
+}
 
 const formatMigrations = (migrations: {name: string; path?: string}[]) =>
   migrations.map(m => ({name: m.name, path: m.path}))
@@ -36,7 +43,8 @@ export const migrationsRotuer = trpc.router({
         .default({}),
     )
     .mutation(async ({ctx, input}) => {
-      return formatMigrations(await getMigrator(ctx).up(input as never))
+      const migrator = await getMigrator(ctx)
+      return formatMigrations(await migrator.up(input as never))
     }),
   down: publicProcedure
     .input(
@@ -48,17 +56,21 @@ export const migrationsRotuer = trpc.router({
         .default({}),
     )
     .mutation(async ({ctx, input}) => {
-      return formatMigrations(await getMigrator(ctx).down(input as never))
+      const migrator = await getMigrator(ctx)
+      return formatMigrations(await migrator.down(input as never))
     }),
   pending: publicProcedure.query(async ({ctx}) => {
-    return formatMigrations(await getMigrator(ctx).pending())
+    const migrator = await getMigrator(ctx)
+    return formatMigrations(await migrator.pending())
   }),
   executed: publicProcedure.query(async ({ctx}) => {
-    return formatMigrations(await getMigrator(ctx).executed())
+    const migrator = await getMigrator(ctx)
+    return formatMigrations(await migrator.executed())
   }),
   list: publicProcedure.query(async ({ctx}) => {
-    const pending = await getMigrator(ctx).pending()
-    const executed = await getMigrator(ctx).executed()
+    const migrator = await getMigrator(ctx)
+    const pending = await migrator.pending()
+    const executed = await migrator.executed()
     const all = [
       ...executed.map(x => ({...x, status: 'executed' as const})),
       ...pending.map(x => ({...x, status: 'pending' as const})), //
@@ -66,7 +78,7 @@ export const migrationsRotuer = trpc.router({
 
     const migrations = formatMigrations(all)
       .map(m => {
-        const downPath = getMigrator(ctx).downPath(m.path!)
+        const downPath = migrator.downPath(m.path!)
         return {
           ...m,
           path: m.path!,
@@ -79,12 +91,15 @@ export const migrationsRotuer = trpc.router({
       })
       .sort((a, b) => a.path.localeCompare(b.path))
 
-    const stuff = getMigratorStuff(ctx)
+    const stuff = await getMigratorStuff(ctx)
     return {
       migrations,
       definitions: {
         filepath: stuff.definitionsFile,
-        content: fs.existsSync(stuff.definitionsFile) ? fs.readFileSync(stuff.definitionsFile, 'utf8') : '',
+        content:
+          stuff.definitionsFile && fs.existsSync(stuff.definitionsFile)
+            ? fs.readFileSync(stuff.definitionsFile, 'utf8')
+            : '',
       },
     }
   }),
@@ -95,14 +110,15 @@ export const migrationsRotuer = trpc.router({
       }),
     )
     .mutation(async ({input, ctx}) => {
-      await getMigrator(ctx).create({name: input.name})
+      const migrator = await getMigrator(ctx)
+      await migrator.create({name: input.name})
     }),
   downify: publicProcedure
     .input(
       z.object({name: z.string()}), //
     )
     .mutation(async ({input, ctx}) => {
-      const migrator = getMigrator(ctx)
+      const migrator = await getMigrator(ctx)
       const {content, info} = await migrator.generateDownMigration({name: input.name})
 
       const downPath = migrator.downPath(info.migration.path as string)
@@ -117,12 +133,13 @@ export const migrationsRotuer = trpc.router({
       }),
     )
     .mutation(async ({ctx, input}) => {
-      const pending = await getMigrator(ctx).pending()
+      const migrator = await getMigrator(ctx)
+      const pending = await migrator.pending()
       let found = pending.find(x => x.path === input.path)
 
       if (!found) {
-        const executed = await getMigrator(ctx).executed()
-        found = executed.find(x => getMigrator(ctx).downPath(x.path!) === input.path)
+        const executed = await migrator.executed()
+        found = executed.find(x => migrator.downPath(x.path!) === input.path)
       }
 
       if (!found) {
@@ -140,10 +157,13 @@ export const migrationsRotuer = trpc.router({
       }
     }),
   migra: publicProcedure.query(async ({ctx}) => {
-    const {sql} = await getMigrator(ctx).runMigra()
+    const migrator = await getMigrator(ctx)
+    const {sql} = await migrator.runMigra()
     return {sql}
   }),
   definitions: publicProcedure.mutation(async ({ctx}) => {
-    await getMigrator(ctx).writeDefinitionFile(getMigratorStuff(ctx).definitionsFile)
+    const migrator = await getMigrator(ctx)
+    const stuff = await getMigratorStuff(ctx)
+    await migrator.writeDefinitionFile(stuff.definitionsFile!)
   }),
 })

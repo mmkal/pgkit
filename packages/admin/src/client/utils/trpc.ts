@@ -1,4 +1,4 @@
-import {MutationCache, QueryClient} from '@tanstack/react-query'
+import {MutationCache, QueryCache, QueryClient} from '@tanstack/react-query'
 import {httpBatchLink} from '@trpc/client'
 import {createTRPCReact} from '@trpc/react-query'
 import type {inferRouterInputs, inferRouterOutputs} from '@trpc/server'
@@ -14,7 +14,7 @@ export function useTrpcClient() {
       trpc.createClient({
         links: [
           httpBatchLink({
-            url: settings.apiUrl,
+            url: settings.apiUrl || '',
             headers: () => settings.headers || {},
           }),
         ],
@@ -27,6 +27,11 @@ export function useTrpcClient() {
         mutationCache: new MutationCache({
           onError: error => {
             toast.error(String(error))
+          },
+        }),
+        queryCache: new QueryCache({
+          onError: error => {
+            toast.warning(String(error))
           },
         }),
       }),
