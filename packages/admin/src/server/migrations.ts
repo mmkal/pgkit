@@ -122,6 +122,7 @@ export const migrationsRotuer = trpc.router({
       const {content, info} = await migrator.generateDownMigration({name: input.name})
 
       const downPath = migrator.downPath(info.migration.path as string)
+      await fs.promises.mkdir(path.dirname(downPath), {recursive: true})
       await fs.promises.writeFile(downPath, content)
       return {downPath, content}
     }),

@@ -51,17 +51,17 @@ export const unquoted_identifier = (identifier: string, schema?: string, identit
   return s
 }
 
-export const quoted_identifier = (identifier: string, schema?: string, identity_arguments?: string) => {
-  // let s = [identifier, schema]
-  //   .filter(Boolean)
-  //   .map(s => (/^[\d_a-z]+$/.test(s) ? s : `"${s.replaceAll(`"`, `""`)}"`))
-  //   .join('.')
+export const canSkipQuotes = (identifier: string) => /^[_a-z]+$/.test(identifier)
 
-  // if (identity_arguments) {
-  //   s += `(${identity_arguments})`
+export const quoted_identifier = (identifier: string, schema?: string, identity_arguments?: string) => {
+  // if (canSkipQuotes(identifier) && !schema && !identity_arguments) {
+  //   return identifier // no need for quotes
   // }
 
-  // return s
+  // if (canSkipQuotes(identifier) && canSkipQuotes(schema) && !identity_arguments) {
+  //   return `${schema}.${identifier}` // no need for quotes
+  // }
+
   if (!identifier && schema) {
     return `"${schema.replaceAll(`"`, '""')}"`
   }

@@ -384,7 +384,8 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
         pgpOptions: this.client.pgpOptions,
       })
 
-      const migrator = new Migrator({...this.migratorOptions, client})
+      const MigratorClass = this.constructor as typeof Migrator // todo: how do we know we can pass the same kind of constructor parameters to this
+      const migrator = new MigratorClass({...this.migratorOptions, client})
 
       const create = () => this.client.query(sql`create database ${sql.identifier([dbName])}`)
 
