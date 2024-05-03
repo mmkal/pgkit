@@ -10,20 +10,30 @@ import {useMeasure} from 'react-use'
 export interface ResultsViewerParams {
   /** array of values that will be rendered in a grid. Note: the first row is used for the column names */
   values: unknown[]
+  /** If specified, these will be the column headers. If specified with an empty `values` array, an row of empties will be rendered */
+  columnNames?: string[]
   /** number rows starting at this value. @default 0 */
   offset?: number
 }
 
+const EMPTY = Symbol('empty')
+
 export const ResultsViewer = (params: ResultsViewerParams) => {
-  if (params.values.length === 0) return <div>No data</div>
+  if (params.values.length === 0 && params.columnNames?.length) {
+    return <_ResultsViewer {...params} values={[Object.fromEntries(params.columnNames.map(c => [c, EMPTY]))]} />
+  }
+
+  if (params.values.length === 0) {
+    return <div>No data</div>
+  }
 
   return <_ResultsViewer {...params} />
 }
 
-const _ResultsViewer = ({values, offset: startAt = 0}: ResultsViewerParams) => {
+const _ResultsViewer = ({values, offset: startAt = 0, columnNames: maybeColumnNames}: ResultsViewerParams) => {
   const [ref, measurements] = useMeasure()
   const rows = React.useMemo(() => values.map(r => (r && typeof r === 'object' ? r : {})), [values])
-  const columnNames = React.useMemo(() => Object.keys(rows.at(0) || {}), [rows])
+  const columnNames = React.useMemo(() => maybeColumnNames || Object.keys(rows.at(0) || {}), [maybeColumnNames, rows])
   const defaultWidth = Math.max(150, (measurements.width - 50) / columnNames.length)
   const [columns, setColumns] = React.useState<reactGrid.Column[]>(() => {
     return [
@@ -51,8 +61,13 @@ const _ResultsViewer = ({values, offset: startAt = 0}: ResultsViewerParams) => {
         rowId: i,
         cells: [
           {type: 'header', text: String(i + startAt + 1), className: 'rowNumberer'},
-          ...Object.entries(r)
-            .map(([_k, v]): reactGrid.DefaultCellTypes => {
+          ...columnNames
+            .map((k): reactGrid.DefaultCellTypes => {
+              const v = (r as Record<string, unknown>)?.[k]
+              if (v === EMPTY) {
+                return {type: 'text', text: '', nonEditable: true}
+              }
+
               if (typeof v === 'number') {
                 return {type: 'number', value: v}
               }

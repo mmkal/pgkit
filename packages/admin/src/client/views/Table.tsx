@@ -52,13 +52,8 @@ export const Table = ({identifier}: {identifier: string}) => {
           `
       }
 
-      // todo: figure out who to get column information without this dummy row of nulls thing
       return `
-        with
-          counts as (select count(1) from ${table}),
-          dummy as (select 1 from counts where count = 0 and ${Math.random()} != 2)
-        select ${columns.map(c => `t.${c}`).join(', ')} from ${table} t
-        full outer join dummy on true
+        select ${columns.join(', ')} from ${table} t
         ${whereClause ? `where ${whereClause}` : ''}
       `
     }
@@ -80,6 +75,8 @@ export const Table = ({identifier}: {identifier: string}) => {
   }, [query])
 
   const rows = rowsMutation.data?.results[0]?.result || []
+  const fields = rowsMutation.data?.results[0]?.fields || []
+  const resultColumnNames = React.useMemo(() => fields.map(f => f.name), [fields])
 
   return (
     <div className="p-2 h-[95vh] relative gap-1">
@@ -172,7 +169,7 @@ export const Table = ({identifier}: {identifier: string}) => {
         </div>
       </div>
       <div className="relative h-[calc(100%-200px)] max-w-[100%] overlow-scroll border-white-1">
-        <ResultsViewer offset={offset} values={rows} />
+        <ResultsViewer offset={offset} values={rows} columnNames={resultColumnNames} />
       </div>
     </div>
   )

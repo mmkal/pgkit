@@ -1,39 +1,53 @@
 import pgPromise from 'pg-promise'
 
-export interface SQLQuery<Result = Record<string, unknown>, Values extends unknown[] = unknown[]> {
+export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[] = unknown[]> {
   token: 'sql'
   name: string
   sql: string
   values: Values
-  parse: (input: unknown) => Result | Promise<Result>
+  parse: (input: unknown) => Row | Promise<Row>
   /** @internal */
   templateArgs: () => [strings: readonly string[], ...inputParameters: readonly unknown[]]
 }
 
 export type TimeUnit = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
-export type IntervalInput = Partial<Record<TimeUnit, number>> // todo type-fest oneOf
+export type IntervalInput = Partial<Record<TimeUnit, number>>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type SQLQueryResult<Query extends SQLQuery<any>> = ReturnType<Query['parse']>
+export type SQLQueryRowType<Query extends SQLQuery<any>> = ReturnType<Query['parse']>
 
 export type SQLQueryParameter = {token: string}
 
 export type First<T> = T[keyof T]
 
+/** See https://node-postgres.com/apis/result - faithfully copied here to avoid a type dependency */
+export interface FieldInfo {
+  name: string
+  dataTypeID: number
+}
+
+/** See https://node-postgres.com/apis/result - faithfully copied here to avoid a type dependency */
+export interface Result<Row> {
+  rows: Row[]
+  fields: FieldInfo[]
+  command: string
+  rowCount: number | null
+}
+
 export interface Queryable {
-  query<Result>(query: SQLQuery<Result>): Promise<{rows: Result[]}>
+  query<Row>(query: SQLQuery<Row>): Promise<Result<Row>>
 
-  one<Result>(query: SQLQuery<Result>): Promise<Result>
-  maybeOne<Result>(query: SQLQuery<Result>): Promise<Result | null>
+  one<Row>(query: SQLQuery<Row>): Promise<Row>
+  maybeOne<Row>(query: SQLQuery<Row>): Promise<Row | null>
 
-  oneFirst<Result>(query: SQLQuery<Result>): Promise<First<Result>>
-  maybeOneFirst<Result>(query: SQLQuery<Result>): Promise<First<Result> | null>
+  oneFirst<Row>(query: SQLQuery<Row>): Promise<First<Row>>
+  maybeOneFirst<Row>(query: SQLQuery<Row>): Promise<First<Row> | null>
 
-  any<Result>(query: SQLQuery<Result>): Promise<Result[]>
-  anyFirst<Result>(query: SQLQuery<Result>): Promise<Array<First<Result>>>
+  any<Row>(query: SQLQuery<Row>): Promise<Row[]>
+  anyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<Row>>>
 
-  many<Result>(query: SQLQuery<Result>): Promise<Result[]>
-  manyFirst<Result>(query: SQLQuery<Result>): Promise<Array<First<Result>>>
+  many<Row>(query: SQLQuery<Row>): Promise<Row[]>
+  manyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<Row>>>
 }
 
 export interface Transactable extends Queryable {
@@ -131,19 +145,19 @@ export type SQLParameterNonPrimitive = ReturnType<SQLTagHelpers[keyof SQLTagHelp
 export type SQLParameter = SQLParameterNonPrimitive | Primitive
 export type SQLParameterToken = SQLParameterNonPrimitive['token']
 
-export type SQLTagFunction = <Result = Record<string, unknown>, Parameters extends SQLParameter[] = SQLParameter[]>(
+export type SQLTagFunction = <Row = Record<string, unknown>, Parameters extends SQLParameter[] = SQLParameter[]>(
   strings: TemplateStringsArray,
   ...parameters: Parameters
-) => SQLQuery<Result>
+) => SQLQuery<Row>
 
 export type SQLMethodHelpers = {
   raw: <T>(query: string) => SQLQuery<T, []>
-  type: <Result extends Record<string, unknown>>(
-    parser: ZodesqueType<Result>,
+  type: <Row extends Record<string, unknown>>(
+    parser: ZodesqueType<Row>,
   ) => <Parameters extends SQLParameter[] = SQLParameter[]>(
     strings: TemplateStringsArray,
     ...parameters: Parameters
-  ) => SQLQuery<Result>
+  ) => SQLQuery<Row>
 }
 
 export type PGTypes = ReturnType<typeof import('pg-promise')>['pg']['types']

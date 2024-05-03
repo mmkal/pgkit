@@ -147,7 +147,7 @@ export const Querier = () => {
                     </pre>
                   ) : (
                     <>
-                      <ResultsViewer values={r.result || []} />
+                      <ResultsViewer values={r.result || []} columnNames={r.fields.map(f => f.name)} />
                       <blockquote>
                         <details>
                           <summary>Statement</summary>

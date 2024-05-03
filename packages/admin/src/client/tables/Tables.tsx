@@ -16,7 +16,7 @@ export const Tables = ({inspected}: TablesProps) => {
   const rowsMutation = trpc.executeSql.useMutation()
   const prevEnabled = offset! > 0
   const values = rowsMutation.data?.results[0].result || []
-  const nextEnabled = Boolean(limit) && values.length >= limit
+  const nextEnabled = Boolean(limit) && values.length >= limit!
 
   React.useEffect(() => {
     if (table && inspected.tables && table in inspected.tables) {
@@ -37,7 +37,11 @@ export const Tables = ({inspected}: TablesProps) => {
           </button>
         ))}
       </div>
-      {<ResultsViewer offset={offset} values={rowsMutation.data?.results[0]?.result || []} />}
+      <ResultsViewer
+        offset={offset}
+        values={rowsMutation.data?.results[0]?.result || []}
+        columnNames={rowsMutation.data?.results[0]?.fields?.map(f => f.name)}
+      />
       <div style={{display: 'flex', gap: 5, alignItems: 'center'}}>
         <button
           onClick={() => setOffset(Number(offset) - Number(limit))}

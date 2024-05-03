@@ -2,7 +2,7 @@ import * as crypto from 'node:crypto'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
 import {setRecommendedTypeParsers} from './type-parsers'
-import {Client, First, Queryable, SQLQueryResult, ClientOptions, Connection, Transaction} from './types'
+import {Client, First, Queryable, SQLQueryRowType, ClientOptions, Connection, Transaction, Result} from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
 
@@ -72,11 +72,11 @@ const createQueryable = (query: Queryable['query']): Queryable => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDatabase<any>): Queryable['query'] => {
   return async query => {
-    type Result = SQLQueryResult<typeof query>
-    let results: Result[]
+    type Row = SQLQueryRowType<typeof query>
+    let result: Result<Row>
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-      results = await pgpQueryable.query<any>(query.sql, query.values.length > 0 ? query.values : undefined)
+      result = await pgpQueryable.result<any>(query.sql, query.values.length > 0 ? query.values : undefined)
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
       throw new QueryError(error.message, {
@@ -85,7 +85,7 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
     }
 
     try {
-      return {rows: await Promise.all(results.map(query.parse))}
+      return {...result, rows: await Promise.all(result.rows.map(query.parse))}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
       throw new QueryError(`Parsing rows failed`, {
