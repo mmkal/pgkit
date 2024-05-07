@@ -53,14 +53,25 @@ export const unquoted_identifier = (identifier: string, schema?: string, identit
 
 export const canSkipQuotes = (identifier: string) => /^[_a-z]+$/.test(identifier)
 
-export const quoted_identifier = (identifier: string, schema?: string, identity_arguments?: string) => {
-  // if (canSkipQuotes(identifier) && !schema && !identity_arguments) {
-  //   return identifier // no need for quotes
-  // }
+// deviation: the original `schemainstpect` project has a single `quoted_identifier` function that receives schema and identifier.
+// this separates out the quoting from the schema part, because some migrations assume that the schema is inferred from the search path
+// (e.g. applications that run migrations multiple times on different schemas - it's important *not* to include the hard-coded schema in those cases)
+// so, `quoted_identifier` now *must* specify its schema. This avoids usage like `${quoted_identifier('myschema')}.${quoted_identifier('mytable')}`
+// which is used in some places in the original project. Instead, it's now `${quoted_identifier('mytable', 'myschema')}` so that the schema is always explicit.
+// that way, we can check against a configured search path to omit the schema.
+export const quotify = (identifier: string) => identifier.replaceAll(`"`, `""`)
 
-  // if (canSkipQuotes(identifier) && canSkipQuotes(schema) && !identity_arguments) {
-  //   return `${schema}.${identifier}` // no need for quotes
-  // }
+export const quoted_identifier = (
+  identifier: string,
+  schema: string,
+  // identity_arguments?: string, // deviation: removed to avoid overloads (see above). only used two places, they just have to do it manually
+): string => {
+  // todo: use async storage for search path, not an env var.
+  const searchPathParts = process.env.SCHEMAINSPECT_SEARCH_PATH?.split(',') || []
+  if (searchPathParts.includes(schema)) {
+    // console.log('shortcut', {schema, searchPathParts})
+    return quotify(identifier)
+  }
 
   if (!identifier && schema) {
     return `"${schema.replaceAll(`"`, '""')}"`
@@ -71,9 +82,10 @@ export const quoted_identifier = (identifier: string, schema?: string, identity_
     s = `"${schema.replaceAll(`"`, `""`)}".${s}`
   }
 
-  if (identity_arguments) {
-    s += `(${identity_arguments})`
-  }
+  // deviation: removed, see above
+  // if (identity_arguments) {
+  //   s += `(${identity_arguments})`
+  // }
 
   return s
 }

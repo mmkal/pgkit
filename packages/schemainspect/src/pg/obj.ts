@@ -17,10 +17,10 @@ import {Queryable, createClient, sql} from '@pgkit/client'
 import * as path from 'path'
 import {AutoThisAssigner} from '../auto-this'
 import {TopologicalSorter} from '../graphlib'
-import {ColumnInfo, Inspected, BaseInspectedSelectable, TableRelated, getQuotedFullTableName, pick} from '../inspected'
+import {ColumnInfo, Inspected, BaseInspectedSelectable, TableRelated, pick} from '../inspected'
 import {DBInspector} from '../inspector'
 import {asa, isa} from '../isa-asa'
-import {quoted_identifier, getResourceText} from '../misc'
+import {quoted_identifier, getResourceText, quotify} from '../misc'
 import {Queries} from '../types'
 import {groupBy, isEqual} from '../util'
 
@@ -416,15 +416,15 @@ export class InspectedTrigger extends AutoThisAssigner<InspectedTriggerParams, t
   }
 
   get quoted_full_name(): string {
-    return `${quoted_identifier(this.schema)}.${quoted_identifier(this.table_name)}.${quoted_identifier(this.name)}`
+    return `${quoted_identifier(this.table_name, this.schema)}.${quotify(this.name)}`
   }
 
   get quoted_full_selectable_name(): string {
-    return `${quoted_identifier(this.schema)}.${quoted_identifier(this.table_name)}`
+    return quoted_identifier(this.table_name, this.schema)
   }
 
   get drop_statement(): string {
-    return `drop trigger if exists "${this.name}" on "${this.schema}"."${this.table_name}";`
+    return `drop trigger if exists "${this.name}" on ${quoted_identifier(this.table_name, this.schema)};`
   }
 
   get create_statement(): string {
@@ -434,11 +434,11 @@ export class InspectedTrigger extends AutoThisAssigner<InspectedTriggerParams, t
       R: 'ENABLE REPLICA TRIGGER',
       A: 'ENABLE ALWAYS TRIGGER',
     }
-    const schema = quoted_identifier(this.schema)
-    const table = quoted_identifier(this.table_name)
-    const trigger_name = quoted_identifier(this.name)
+    // const schema = quoted_identifier(this.schema)
+    // const table = quoted_identifier(this.table_name)
+    const trigger_name = quotify(this.name)
     if (['D', 'R', 'A'].includes(this.enabled)) {
-      const table_alter = `ALTER TABLE ${schema}.${table} ${status_sql[this.enabled]} ${trigger_name}`
+      const table_alter = `ALTER TABLE ${this.quoted_full_selectable_name} ${status_sql[this.enabled]} ${trigger_name}`
       return `${this.full_definition};\n${table_alter};`
     }
 
@@ -485,7 +485,7 @@ export interface InspectedIndexParams {
 export const InspectedIndexParent = AutoThisAssigner<InspectedIndexParams, typeof Inspected>(Inspected)
 export class InspectedIndex extends InspectedIndexParent implements TableRelated {
   get quoted_full_table_name() {
-    return getQuotedFullTableName(this)
+    return quoted_identifier(this.table_name, this.schema)
   }
 
   get drop_statement(): string {
@@ -581,7 +581,7 @@ export class InspectedSequence extends AutoThisAssigner<InspectedSequenceParams,
 
   get quoted_table_and_column_name(): string | undefined {
     if (this.column_name && this.table_name) {
-      return `${this.quoted_full_table_name}.${quoted_identifier(this.column_name)}`
+      return `${this.quoted_full_table_name}.${quotify(this.column_name)}`
     }
 
     return undefined
@@ -650,7 +650,7 @@ export class InspectedEnum extends AutoThisAssigner<InspectedEnumParams, typeof 
 
   alter_rename_statement(new_name: string): string {
     const name = new_name
-    return `alter type ${this.quoted_full_name} rename to ${quoted_identifier(name)};`
+    return `alter type ${this.quoted_full_name} rename to ${quotify(name)};`
   }
 
   drop_statement_with_rename(new_name: string): string {
@@ -725,7 +725,7 @@ export class InspectedSchema extends Inspected {
   }
 
   get quoted_name(): string {
-    return quoted_identifier(this.schema)
+    return quotify(this.schema)
   }
 
   toJSON(): Record<string, unknown> {
@@ -744,7 +744,7 @@ export class InspectedType extends AutoThisAssigner<InspectedTypeParams, typeof 
     let sql = `create type ${this.signature} as (\n`
 
     const indent = ' '.repeat(4)
-    const typespec = Object.entries(this.columns).map(([name, _type]) => `${indent}${quoted_identifier(name)} ${_type}`)
+    const typespec = Object.entries(this.columns).map(([name, _type]) => `${indent}${quotify(name)} ${_type}`)
 
     sql += typespec.join(',\n')
     sql += '\n);'
@@ -862,7 +862,7 @@ export class InspectedConstraint extends InspectedConstraintParent implements Ta
   fk_columns_foreign: string | null
 
   get quoted_full_table_name() {
-    return getQuotedFullTableName(this)
+    return quoted_identifier(this.table_name, this.schema)
   }
 
   constructor(params: InspectedConstraintParams) {
@@ -928,7 +928,7 @@ export class InspectedConstraint extends InspectedConstraintParent implements Ta
   }
 
   get quoted_full_name(): string {
-    return `${quoted_identifier(this.schema)}.${quoted_identifier(this.table_name)}.${quoted_identifier(this.name)}`
+    return `${quoted_identifier(this.table_name, this.schema)}.${quotify(this.name)}`
   }
 
   toJSON(): Record<string, unknown> {
@@ -961,7 +961,7 @@ export class InspectedPrivilege extends InspectedPrivilegeParent {
   }
 
   get quoted_target_user(): string {
-    return quoted_identifier(this.target_user)
+    return quotify(this.target_user)
   }
 
   get drop_statement(): string {
@@ -1029,7 +1029,7 @@ export class InspectedRowPolicy extends InspectedRowPolicyParent implements Tabl
   }
 
   get quoted_full_table_name(): string {
-    return getQuotedFullTableName(this)
+    return quoted_identifier(this.table_name, this.schema)
   }
 
   get key(): string {
@@ -1319,12 +1319,9 @@ export class PostgreSQL extends DBInspector {
     this.deps = [...q]
 
     for (const dep of this.deps) {
-      const x = quoted_identifier(dep.name, dep.schema, dep.identity_arguments)
-      const x_dependent_on = quoted_identifier(
-        dep.name_dependent_on,
-        dep.schema_dependent_on,
-        dep.identity_arguments_dependent_on,
-      )
+      const parenthesize = (expr: string) => (expr ? `(${expr})` : '')
+      const x = `${quoted_identifier(dep.name, dep.schema)}${parenthesize(dep.identity_arguments)}`
+      const x_dependent_on = `${quoted_identifier(dep.name_dependent_on, dep.schema_dependent_on)}${parenthesize(dep.identity_arguments_dependent_on)}`
       this.selectables[x].dependent_on.push(x_dependent_on)
       isa.array(this.selectables[x].dependent_on, String)
       this.selectables[x].dependent_on.sort()
@@ -1517,7 +1514,7 @@ export class PostgreSQL extends DBInspector {
           return null
         }
 
-        const quoted_full_name = `${quoted_identifier(schema)}.${quoted_identifier(name)}`
+        const quoted_full_name = `${quoted_identifier(name, schema)}`
 
         return this.enums[quoted_full_name]
       }

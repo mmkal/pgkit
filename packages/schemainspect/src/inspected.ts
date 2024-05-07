@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {AutoThisAssigner, SomeOptional, SomeRequired} from './auto-this'
-import {AutoRepr, quoted_identifier, unquoted_identifier} from './misc'
+import {AutoRepr, SchemaIdentifier, quoted_identifier, quotify, unquoted_identifier} from './misc'
 import {InspectedConstraint, InspectedEnum, InspectedIndex} from './pg'
 import {Relationtype} from './types'
 
@@ -35,11 +35,11 @@ export abstract class Inspected extends AutoRepr {
   }
 
   get quoted_name() {
-    return quoted_identifier(this.name)
+    return quotify(this.name)
   }
 
   get quoted_schema() {
-    return quoted_identifier(this.schema)
+    return quotify(this.schema)
   }
 
   // todo: __ne__
@@ -61,10 +61,6 @@ export abstract class Inspected extends AutoRepr {
 
 export interface TableRelated {
   quoted_full_table_name: string
-}
-
-export const getQuotedFullTableName = (thing: {schema: string; table_name: string}) => {
-  return `${quoted_identifier(thing.schema)}.${quoted_identifier(thing.table_name)}`
 }
 
 interface ColumnInfoOptions {
@@ -173,7 +169,7 @@ export class ColumnInfo extends AutoThisAssigner<ColumnInfoOptions, typeof AutoR
   }
 
   get quoted_name(): string {
-    return quoted_identifier(this.name)
+    return quotify(this.name)
   }
 
   get creation_clause(): string {
@@ -244,7 +240,7 @@ export class ColumnInfo extends AutoThisAssigner<ColumnInfoOptions, typeof AutoR
   }
 
   get collation_subclause(): string {
-    const collate = this.collation ? ` collate ${quoted_identifier(this.collation)}` : ''
+    const collate = this.collation ? ` collate ${quotify(this.collation)}` : ''
     return collate
   }
 
