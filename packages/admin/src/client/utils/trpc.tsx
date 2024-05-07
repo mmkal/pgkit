@@ -30,8 +30,13 @@ export function useTrpcClient() {
           },
         }),
         queryCache: new QueryCache({
-          onError: error => {
-            toast.warning(String(error))
+          onError: (error, query) => {
+            toast.error(
+              <div>
+                {String(error)}
+                <pre>Query: {query.queryHash}</pre>
+              </div>,
+            )
           },
         }),
       }),

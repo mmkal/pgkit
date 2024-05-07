@@ -373,6 +373,31 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
   }
 
   /**
+   * Get a new instance of `this`. Options passed will be spread with `migratorOptions` passed to the constructor of the current instance.
+   * In subclasses with different constructor parameters, this should be overridden to return an instance of the subclass.
+   *
+   * @example
+   * ```ts
+   * class MyMigrator extends Migrator {
+   *   options: MyMigratorOptions
+   *   constructor(options: MyMigratorOptions) {
+   *     super(convertMyOptionsToBaseOptions(options))
+   *     this.options = options
+   *   }
+   *
+   *  cloneWith(options?: MigratorOptions) {
+   *    const MigratorClass = this.constructor as typeof MyMigrator
+   *    const myOptions = convertBaseOptionsToMyOptions(options)
+   *    return new MyMigrator({...this.options, ...options})
+   *  }
+   * ```
+   */
+  cloneWith(options?: Partial<MigratorOptions>) {
+    const MigratorClass = this.constructor as typeof Migrator
+    return new MigratorClass({...this.migratorOptions, ...options})
+  }
+
+  /**
    * @experimental
    * Creates a "down" migration equivalent to the specified "up" migration.
    */
@@ -384,8 +409,7 @@ export class Migrator extends umzug.Umzug<MigratorContext> {
         pgpOptions: this.client.pgpOptions,
       })
 
-      const MigratorClass = this.constructor as typeof Migrator // todo: how do we know we can pass the same kind of constructor parameters to this
-      const migrator = new MigratorClass({...this.migratorOptions, client})
+      const migrator = this.cloneWith({client})
 
       const create = () => this.client.query(sql`create database ${sql.identifier([dbName])}`)
 

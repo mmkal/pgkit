@@ -10,6 +10,9 @@ const createClientMemoized = pMemoize(async (connectionString: string) => {
 
 export const apiMiddleware = createExpressMiddleware({
   router: appRouter,
+  onError: props => {
+    console.error('trpc error', props.error)
+  },
   createContext: async ({req}) => {
     const connectionString =
       req.headers['connection-string']?.toString() ||
