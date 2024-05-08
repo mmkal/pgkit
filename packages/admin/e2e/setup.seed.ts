@@ -3,7 +3,7 @@ import {test} from './helpers'
 
 test('seed', async ({page, execute}) => {
   await page.goto(appUrl)
-  await page.locator('img[alt="pgkit"]').waitFor()
+  await page.locator('[data-component="logo"]').waitFor()
 
   await page.locator('button[role="menu"]').click()
   await page.locator('[data-header="connection-string"] input').fill(adminConnectionString)
