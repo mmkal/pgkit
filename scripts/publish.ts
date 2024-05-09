@@ -40,6 +40,7 @@ const main = async () => {
           ])
 
           ctx.packages = JSON.parse(list.stdout)
+          ctx.packages = ctx.packages.filter(pkg => !pkg.private)
 
           const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd']) // use `pnpm recursive exec` to get the correct topological sort order // https://github.com/pnpm/pnpm/issues/7716
           const pwds = pwdsCommand.stdout
