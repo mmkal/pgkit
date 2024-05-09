@@ -11,7 +11,7 @@ test('seed', async ({page, execute}) => {
   await page.getByRole('button', {name: 'Add to headers'}).click()
   await page.getByLabel('headers.connection-string').fill(adminConnectionString)
   await page.getByLabel('apiUrl').fill(apiUrl)
-  await page.reload()
+  await page.getByRole('button', {name: 'Save'}).click()
 
   await page.getByRole('button', {name: 'Open sql'}).click()
 
@@ -21,7 +21,7 @@ test('seed', async ({page, execute}) => {
 
   await page.getByRole('button', {name: 'Open settings'}).click()
   await page.getByLabel('headers.connection-string').fill(connectionString)
-  await page.reload()
+  await page.getByRole('button', {name: 'Save'}).click()
 
   await page.getByRole('button', {name: 'Open sql'}).click()
   await execute(`

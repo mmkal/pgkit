@@ -34,7 +34,16 @@ export const SettingsPanel = () => {
   return (
     <div className="h-full overflow-auto">
       <h1>Settings</h1>
-      <ZForm useFormProps={{defaultValues: value}} className="gap-5" schema={Settings} onTouch={update} />
+      <ZForm
+        useFormProps={{defaultValues: value, mode: 'onSubmit'}}
+        className="gap-5"
+        schema={Settings}
+        submitButton="Save"
+        onSubmit={values => {
+          update(values)
+          window.location.reload()
+        }}
+      />
     </div>
   )
 }

@@ -29,8 +29,8 @@ const getMigratorStuff = async (ctx: ServerContext) => {
   }
 }
 
-const formatMigrations = (migrations: {name: string; path?: string}[]) =>
-  migrations.map(m => ({name: m.name, path: m.path}))
+const formatMigrations = <Status extends string>(migrations: {name: string; path?: string; status?: Status}[]) =>
+  migrations.map(m => ({name: m.name, path: m.path, status: m.status}))
 
 export const migrationsRotuer = trpc.router({
   up: publicProcedure
