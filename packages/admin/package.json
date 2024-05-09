@@ -28,7 +28,7 @@
     "dev:server": "tsx watch src/server/dev",
     "e2e:setup": "playwright install",
     "e2e": "playwright test",
-    "demo-assets": "PLAYWRIGHT_DEMO=1 pnpm e2e --headed && mkdir -p gifs && cd playwright-report/data && ffmpeg -i $(ls . | grep .webm | head -n 1) -ss 1 -vcodec copy -acodec copy output.webm && gifski --fps 32 -o ../../assets/demo.gif output.webm",
+    "demo-assets": "PLAYWRIGHT_DEMO=1 pnpm e2e --headed && mkdir -p gifs && cd playwright-report/data && ffmpeg -i $(ls . | grep .webm | head -n 1) -ss 1 -vcodec copy -acodec copy output.webm && gifski --fps 32 -o ../../gifs/demo.gif output.webm",
     "test": "vitest run",
     "shadd": "shadcn-ui add",
     "v0": "git diff --exit-code && pbpaste | node v0.cjs",
