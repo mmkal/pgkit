@@ -80,6 +80,7 @@ export default function Component() {
               return (
                 <Button
                   key={v}
+                  aria-label={`Open ${v}`}
                   onClick={() => setView(v)}
                   variant={view === v ? 'secondary' : 'ghost'}
                   className={clsx(

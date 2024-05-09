@@ -3,11 +3,15 @@ import {trpc} from './trpc'
 import {PostgreSQLJson} from '@/packlets/autocomplete/suggest'
 
 export const useInspectQuery = () => {
+  const {data: healthy} = trpc.healthcheck.useQuery()
   const settings = useSettings()
-  const query = trpc.inspect.useQuery({
-    includeSchemas: settings.includeSchemas,
-    excludeSchemas: settings.excludeSchemas,
-  })
+  const query = trpc.inspect.useQuery(
+    {
+      includeSchemas: settings.includeSchemas,
+      excludeSchemas: settings.excludeSchemas,
+    },
+    {enabled: Boolean(healthy?.ok)},
+  )
 
   return query
 }

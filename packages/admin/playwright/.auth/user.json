@@ -5,20 +5,20 @@
       "origin": "http://localhost:5173",
       "localStorage": [
         {
-          "name": "headers.0.0.1",
-          "value": "{\"connection-string\":\"postgresql://postgres:postgres@localhost:5432/admin_test\"}"
+          "name": "sql-editor-wrap-text:0.0.1",
+          "value": "true"
         },
         {
-          "name": "sqler-layout.0.0.1",
-          "value": "\"horizontal\""
+          "name": "view.0.0.1",
+          "value": "\"sql\""
         },
         {
-          "name": "apiUrl.0.0.1",
-          "value": "\"http://localhost:7002\""
+          "name": "settings.0.0.2",
+          "value": "{\"apiUrl\":\"http://localhost:7002\",\"migrations\":{\"skipDestructiveActionWarning\":false},\"headers\":{\"connection-string\":\"postgresql://postgres:postgres@localhost:5432/admin_test\"}}"
         },
         {
           "name": "sql-editor-code:0.0.1",
-          "value": "\"select 'hello' as abc\""
+          "value": "\"delete from products;\\n\\ninsert into products\\n\\n  (product_no, name, price)\\nvalues\\n\\n  (1, 'apple', 100),\\n  (2, 'banana', 200),\\n  (3, 'carrot', 300);\\n\\nselect * from products where price > 150;\""
         }
       ]
     }
