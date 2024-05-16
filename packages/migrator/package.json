@@ -38,6 +38,7 @@
   "dependencies": {
     "@pgkit/client": "workspace:^",
     "@pgkit/migra": "workspace:^",
+    "@pgkit/formatter": "workspace:^",
     "@rushstack/ts-command-line": "^4.17.1",
     "umzug": "^3.7.0"
   }

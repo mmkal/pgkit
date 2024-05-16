@@ -93,6 +93,7 @@ const useMigrations = () => {
       </>
     ),
   }).disable(settings.migrations.skipDestructiveActionWarning)
+  const rebase = trpc.migrations.rebase.useMutation(mutationConfig)
 
   const update = trpc.migrations.update.useMutation(mutationConfig)
   // const downify = trpc.migrations.downify.useMutation({
@@ -101,15 +102,18 @@ const useMigrations = () => {
   //     return util.migrations.invalidate()
   //   },
   // })
-  const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
+  const updateDefintionsFromDB = trpc.migrations.updateDefintionsFromDB.useMutation(mutationConfig)
+  const updateDBFromDefinitions = trpc.migrations.updateDBFromDefinitions.useMutation(mutationConfig)
 
   return {
     list,
     create,
     up,
     down,
+    rebase,
     update,
-    definitions,
+    updateDefintionsFromDB,
+    updateDBFromDefinitions,
   }
 }
 
@@ -117,7 +121,7 @@ function _Migrations() {
   const [fileState] = file.useState()
   const [workingFS, setWorkingFS] = workingFSContext.useState()
 
-  const {create, list, up, update, definitions} = useMigrations()
+  const {create, list, up, update, updateDBFromDefinitions, updateDefintionsFromDB} = useMigrations()
 
   const filesData = React.useMemo(() => {
     const fsEntries = (list.data?.migrations || [])
@@ -129,7 +133,14 @@ function _Migrations() {
       .sort((x, y) => x[0].localeCompare(y[0]))
     const fsJson = Object.fromEntries(fsEntries)
     const files = fsEntries.map(e => e[0])
-    const current = list.data?.migrations.find(f => f.path === fileState)
+    let current: {path: string; content: string; status?: 'pending' | 'executed'} | undefined =
+      list.data?.migrations.find(f => f.path === fileState)
+    if (!current && fileState === list.data?.definitions.filepath) {
+      current = {
+        path: list.data.definitions.filepath,
+        content: list.data.definitions.content,
+      }
+    }
 
     const workingContent = !current || workingFS[current.path] === current.content ? undefined : workingFS[current.path]
 
@@ -156,7 +167,13 @@ function _Migrations() {
             <div className="flex justify-between h-[60px] items-center border-b pl-3">
               <span className="font-semibold">Migrations</span>
               <div className="flex gap-1 pr-1.5">
-                <Button title="Create migration" onClick={() => create.mutate({name: prompt('name?')!})}>
+                <Button
+                  title="Create migration"
+                  onClick={() => {
+                    const name = prompt('name?')
+                    if (name) create.mutate({name})
+                  }}
+                >
                   <icons.SquarePlus />
                 </Button>
 
@@ -214,7 +231,7 @@ function _Migrations() {
                     </ContextMenuItem> */}
                   </ContextMenuContent>
                 </ContextMenu>
-                <Button title="Create definitions file" onClick={() => definitions.mutate()}>
+                <Button title="Create definitions file" onClick={() => updateDefintionsFromDB.mutate()}>
                   <icons.Book />
                 </Button>
               </div>
@@ -309,7 +326,7 @@ const _sampleFilesJson: Record<string, string> = {
 export const FileTree = (tree: File | Folder) => {
   const [fileState, setFileState] = file.useState()
 
-  const {up, down, list} = useMigrations()
+  const {up, down, rebase, list, updateDBFromDefinitions} = useMigrations()
 
   if (tree.type === 'file') {
     const fileInfo = list.data?.migrations.find(f => f.path === tree.path)
@@ -326,6 +343,16 @@ export const FileTree = (tree: File | Folder) => {
                 <icons.File className="mr-2 h-4 w-4" />
                 {basename(tree.path)}
               </span>
+              {fileState === list.data?.definitions.filepath && (
+                <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
+                  <ContextMenuItem className="p-0">
+                    <Button className="gap-2" onClick={() => updateDBFromDefinitions.mutate()}>
+                      <icons.Book />
+                      Update database to match this definitions file
+                    </Button>
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              )}
               {fileInfo?.status === 'pending' && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
@@ -342,6 +369,12 @@ export const FileTree = (tree: File | Folder) => {
                     <Button className="gap-2" onClick={() => down.mutate({to: fileInfo.name})}>
                       <icons.CircleArrowDown />
                       Revert migrations down to this one
+                    </Button>
+                  </ContextMenuItem>
+                  <ContextMenuItem className="p-0">
+                    <Button className="gap-2" onClick={() => rebase.mutate({from: fileInfo.name})}>
+                      <icons.CircleArrowDown />
+                      Rebase migrations from this one
                     </Button>
                   </ContextMenuItem>
                 </ContextMenuContent>

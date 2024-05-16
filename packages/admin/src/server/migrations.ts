@@ -3,7 +3,21 @@ import * as fs from 'fs'
 import * as path from 'path'
 import {z} from 'zod'
 import {ServerContext} from './context.js'
-import {publicProcedure, trpc} from './trpc.js'
+import {publicProcedure as baseProcedure, trpc} from './trpc.js'
+
+const migrationsProcedure = baseProcedure
+  .input(z.object({confirmation: z.string().optional()}).optional())
+  .use(({input, ctx, next}) => {
+    return next({
+      ctx: {
+        ...ctx,
+        confirm: async (sql: string) => {
+          return Boolean(sql.trim())
+          return Boolean(sql.trim() && input?.confirmation?.trim() === sql.trim())
+        },
+      },
+    })
+  })
 
 const getMigrator = async (ctx: ServerContext) => {
   const migrationsDir = path.join(process.cwd(), 'zignoreme/migrator')
@@ -32,12 +46,8 @@ const getMigratorStuff = async (ctx: ServerContext) => {
 const formatMigrations = <Status extends string>(migrations: {name: string; path?: string; status?: Status}[]) =>
   migrations.map(m => ({name: m.name, path: m.path, status: m.status}))
 
-const confirm = (_sql: string) => {
-  return true
-}
-
 export const migrationsRotuer = trpc.router({
-  up: publicProcedure
+  up: migrationsProcedure
     .input(
       z
         .object({
@@ -49,7 +59,7 @@ export const migrationsRotuer = trpc.router({
       const migrator = await getMigrator(ctx)
       return formatMigrations(await migrator.up(input as never))
     }),
-  down: publicProcedure
+  down: migrationsProcedure
     .input(
       z.object({
         // step: z.number().int().optional(),
@@ -58,17 +68,27 @@ export const migrationsRotuer = trpc.router({
     )
     .mutation(async ({ctx, input}) => {
       const migrator = await getMigrator(ctx)
-      await migrator.goto({name: input.to, confirm})
+      await migrator.goto({name: input.to, confirm: ctx.confirm})
     }),
-  pending: publicProcedure.query(async ({ctx}) => {
+  rebase: migrationsProcedure
+    .input(
+      z.object({
+        from: z.string(),
+      }),
+    )
+    .mutation(async ({ctx, input}) => {
+      const migrator = await getMigrator(ctx)
+      await migrator.rebase({from: input.from, confirm: ctx.confirm})
+    }),
+  pending: migrationsProcedure.query(async ({ctx}) => {
     const migrator = await getMigrator(ctx)
     return formatMigrations(await migrator.pending())
   }),
-  executed: publicProcedure.query(async ({ctx}) => {
+  executed: migrationsProcedure.query(async ({ctx}) => {
     const migrator = await getMigrator(ctx)
     return formatMigrations(await migrator.executed())
   }),
-  list: publicProcedure.query(async ({ctx}) => {
+  list: migrationsProcedure.query(async ({ctx}) => {
     const migrator = await getMigrator(ctx)
     const all = await migrator.list()
 
@@ -98,7 +118,7 @@ export const migrationsRotuer = trpc.router({
       },
     }
   }),
-  create: publicProcedure
+  create: migrationsProcedure
     .input(
       z.object({
         name: z.string(),
@@ -121,7 +141,7 @@ export const migrationsRotuer = trpc.router({
   //     await fs.promises.writeFile(downPath, content)
   //     return {downPath, content}
   //   }),
-  update: publicProcedure
+  update: migrationsProcedure
     .input(
       z.object({
         path: z.string(),
@@ -131,12 +151,7 @@ export const migrationsRotuer = trpc.router({
     .mutation(async ({ctx, input}) => {
       const migrator = await getMigrator(ctx)
       const pending = await migrator.pending()
-      let found: {name: string} | undefined = pending.find(x => x.path === input.path)
-
-      if (!found) {
-        const executed = await migrator.executed()
-        found = executed.find(x => migrator.downPath(x.path) === input.path)
-      }
+      const found: {name: string} | undefined = pending.find(x => x.path === input.path)
 
       if (!found) {
         console.log({pending})
@@ -157,8 +172,12 @@ export const migrationsRotuer = trpc.router({
   //   const {sql} = await migrator.runMigra()
   //   return {sql}
   // }),
-  definitions: publicProcedure.mutation(async ({ctx}) => {
+  updateDefintionsFromDB: migrationsProcedure.mutation(async ({ctx}) => {
     const migrator = await getMigrator(ctx)
     await migrator.updateDDLFromDB()
+  }),
+  updateDBFromDefinitions: migrationsProcedure.mutation(async ({ctx}) => {
+    const migrator = await getMigrator(ctx)
+    await migrator.updateDBFromDDL({confirm: ctx.confirm})
   }),
 })

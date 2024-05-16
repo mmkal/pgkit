@@ -370,6 +370,9 @@ importers:
       prettier-plugin-sql-cst:
         specifier: ^0.11.5
         version: 0.11.5
+      sql-formatter:
+        specifier: ^15.2.0
+        version: 15.2.0
     devDependencies:
       eslint:
         specifier: ^8.57.0
@@ -435,6 +438,9 @@ importers:
       '@pgkit/client':
         specifier: workspace:^
         version: link:../client
+      '@pgkit/formatter':
+        specifier: workspace:^
+        version: link:../formatter
       '@pgkit/migra':
         specifier: workspace:^
         version: link:../migra
@@ -6702,7 +6708,6 @@ packages:
   /get-stdin@8.0.0:
     resolution: {integrity: sha512-sY22aA6xchAzprjyqmSEQv4UbAAzRN0L2dQB0NlN5acTTK9Don6nhoc3eAbUnpZiCANAMfd/+40kVdKfFygohg==}
     engines: {node: '>=10'}
-    dev: true
 
   /get-stdin@9.0.0:
     resolution: {integrity: sha512-dVKBjfWisLAicarI2Sf+JuBE/DghV4UzNAVe9yhEJuzeREd3JhOTE9cUaJTeSa77fsbQUK3pcOpJfM59+VKZaA==}
@@ -10357,7 +10362,6 @@ packages:
       argparse: 2.0.1
       get-stdin: 8.0.0
       nearley: 2.20.1
-    dev: true
 
   /sql-parser-cst@0.28.0:
     resolution: {integrity: sha512-LNxy0X6C04iXRx83DXbK6PVwIvj1deEVN9wZAf139KeD32/oEQfFBL2RmXyElrgqCO99hQLJKbbQL40j4yx/uw==}
