@@ -25,7 +25,7 @@ const getMigratorStuff = async (ctx: ServerContext) => {
   return {
     migrationsDir: migrator.migratorOptions.migrationsPath,
     migrator,
-    definitionsFile: migrator.migratorOptions.definitionsFile, // path.join(migrationsDir, 'definitions.sql'),
+    definitionsFile: migrator.definitionsFile,
   }
 }
 
@@ -157,9 +157,8 @@ export const migrationsRotuer = trpc.router({
   //   const {sql} = await migrator.runMigra()
   //   return {sql}
   // }),
-  // definitions: publicProcedure.mutation(async ({ctx}) => {
-  //   const migrator = await getMigrator(ctx)
-  //   const stuff = await getMigratorStuff(ctx)
-  //   await migrator.writeDefinitionFile(stuff.definitionsFile!)
-  // }),
+  definitions: publicProcedure.mutation(async ({ctx}) => {
+    const migrator = await getMigrator(ctx)
+    await migrator.updateDDLFromDB()
+  }),
 })

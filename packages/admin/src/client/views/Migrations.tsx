@@ -93,6 +93,7 @@ const useMigrations = () => {
       </>
     ),
   }).disable(settings.migrations.skipDestructiveActionWarning)
+
   const update = trpc.migrations.update.useMutation(mutationConfig)
   // const downify = trpc.migrations.downify.useMutation({
   //   onSuccess: data => {
@@ -100,26 +101,30 @@ const useMigrations = () => {
   //     return util.migrations.invalidate()
   //   },
   // })
-  // const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
+  const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
 
-  return {list, create, up, down, update}
+  return {
+    list,
+    create,
+    up,
+    down,
+    update,
+    definitions,
+  }
 }
 
 function _Migrations() {
   const [fileState] = file.useState()
   const [workingFS, setWorkingFS] = workingFSContext.useState()
 
-  const {create, list, up, down, update, downify, definitions} = useMigrations()
+  const {create, list, up, update, definitions} = useMigrations()
 
   const filesData = React.useMemo(() => {
     const fsEntries = (list.data?.migrations || [])
       .flatMap(m => {
-        return [
-          [m.path, m.content],
-          [m.downPath!, m.downContent!],
-        ] as Array<[string, string]>
+        return [[m.path, m.content]] as Array<[string, string]>
       })
-      // .concat(list.data?.definitions.content ? [[list.data.definitions.filepath, list.data.definitions.content]] : [])
+      .concat(list.data?.definitions.content ? [[list.data.definitions.filepath, list.data.definitions.content]] : [])
       .filter(e => e[0])
       .sort((x, y) => x[0].localeCompare(y[0]))
     const fsJson = Object.fromEntries(fsEntries)
@@ -248,14 +253,6 @@ function _Migrations() {
                   />
                 </div>
               </form>
-              <Button
-                title="Autogenerate down migration"
-                disabled={!filesData.currentFile}
-                onClick={() => downify.mutate({name: filesData.currentFile!.name})}
-              >
-                <icons.MoveDown />
-                <icons.Wand />
-              </Button>
               <Button
                 title="Delete"
                 disabled={filesData.currentFile?.status === 'executed'}
