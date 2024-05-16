@@ -40,7 +40,7 @@ function isProperEvent(event: unknown): event is keyof typeof MESSAGE_FORMATS {
   return typeof event === 'string' && event in MESSAGE_FORMATS
 }
 
-export type Logger = NonNullable<UmzugOptions['logger']>
+export type Logger = Pick<typeof console, 'info' | 'warn' | 'error'>
 
 /* eslint-enable @typescript-eslint/restrict-template-expressions */
 export function prettifyAndLog(level: keyof Logger, message: LogMessage): void {

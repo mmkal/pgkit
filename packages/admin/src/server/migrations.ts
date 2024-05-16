@@ -32,12 +32,15 @@ const getMigratorStuff = async (ctx: ServerContext) => {
 const formatMigrations = <Status extends string>(migrations: {name: string; path?: string; status?: Status}[]) =>
   migrations.map(m => ({name: m.name, path: m.path, status: m.status}))
 
+const confirm = (_sql: string) => {
+  return true
+}
+
 export const migrationsRotuer = trpc.router({
   up: publicProcedure
     .input(
       z
         .object({
-          step: z.number().int().optional(),
           to: z.string().optional(),
         })
         .default({}),
@@ -48,16 +51,14 @@ export const migrationsRotuer = trpc.router({
     }),
   down: publicProcedure
     .input(
-      z
-        .object({
-          step: z.number().int().optional(),
-          to: z.string().or(z.literal(0)).optional(),
-        })
-        .default({}),
+      z.object({
+        // step: z.number().int().optional(),
+        to: z.string(), //.or(z.literal(0)).optional(),
+      }),
     )
     .mutation(async ({ctx, input}) => {
       const migrator = await getMigrator(ctx)
-      return formatMigrations(await migrator.down(input as never))
+      await migrator.goto({name: input.to, confirm})
     }),
   pending: publicProcedure.query(async ({ctx}) => {
     const migrator = await getMigrator(ctx)
@@ -69,24 +70,18 @@ export const migrationsRotuer = trpc.router({
   }),
   list: publicProcedure.query(async ({ctx}) => {
     const migrator = await getMigrator(ctx)
-    const pending = await migrator.pending()
-    const executed = await migrator.executed()
-    const all = [
-      ...executed.map(x => ({...x, status: 'executed' as const})),
-      ...pending.map(x => ({...x, status: 'pending' as const})), //
-    ]
+    const all = await migrator.list()
 
     const migrations = formatMigrations(all)
       .map(m => {
-        const downPath = migrator.downPath(m.path!)
-        return {
-          ...m,
-          path: m.path!,
-          content: fs.readFileSync(m.path!, 'utf8'),
-          ...(fs.existsSync(downPath) && {
-            downPath,
-            downContent: fs.readFileSync(downPath, 'utf8'),
-          }),
+        try {
+          return {
+            ...m,
+            path: m.path!,
+            content: fs.readFileSync(m.path!, 'utf8'),
+          }
+        } catch {
+          throw new Error(`Failed to read migration file ${m.path}`)
         }
       })
       .sort((a, b) => a.path.localeCompare(b.path))
@@ -113,19 +108,19 @@ export const migrationsRotuer = trpc.router({
       const migrator = await getMigrator(ctx)
       await migrator.create({name: input.name})
     }),
-  downify: publicProcedure
-    .input(
-      z.object({name: z.string()}), //
-    )
-    .mutation(async ({input, ctx}) => {
-      const migrator = await getMigrator(ctx)
-      const {content, info} = await migrator.generateDownMigration({name: input.name})
+  // downify: publicProcedure
+  //   .input(
+  //     z.object({name: z.string()}), //
+  //   )
+  //   .mutation(async ({input, ctx}) => {
+  //     const migrator = await getMigrator(ctx)
+  //     const {content, info} = await migrator.generateDownMigration({name: input.name})
 
-      const downPath = migrator.downPath(info.migration.path as string)
-      await fs.promises.mkdir(path.dirname(downPath), {recursive: true})
-      await fs.promises.writeFile(downPath, content)
-      return {downPath, content}
-    }),
+  //     const downPath = migrator.downPath(info.migration.path as string)
+  //     await fs.promises.mkdir(path.dirname(downPath), {recursive: true})
+  //     await fs.promises.writeFile(downPath, content)
+  //     return {downPath, content}
+  //   }),
   update: publicProcedure
     .input(
       z.object({
@@ -136,11 +131,11 @@ export const migrationsRotuer = trpc.router({
     .mutation(async ({ctx, input}) => {
       const migrator = await getMigrator(ctx)
       const pending = await migrator.pending()
-      let found = pending.find(x => x.path === input.path)
+      let found: {name: string} | undefined = pending.find(x => x.path === input.path)
 
       if (!found) {
         const executed = await migrator.executed()
-        found = executed.find(x => migrator.downPath(x.path!) === input.path)
+        found = executed.find(x => migrator.downPath(x.path) === input.path)
       }
 
       if (!found) {
@@ -157,14 +152,14 @@ export const migrationsRotuer = trpc.router({
         await fs.promises.writeFile(input.path, input.content)
       }
     }),
-  migra: publicProcedure.query(async ({ctx}) => {
-    const migrator = await getMigrator(ctx)
-    const {sql} = await migrator.runMigra()
-    return {sql}
-  }),
-  definitions: publicProcedure.mutation(async ({ctx}) => {
-    const migrator = await getMigrator(ctx)
-    const stuff = await getMigratorStuff(ctx)
-    await migrator.writeDefinitionFile(stuff.definitionsFile!)
-  }),
+  // migra: publicProcedure.query(async ({ctx}) => {
+  //   const migrator = await getMigrator(ctx)
+  //   const {sql} = await migrator.runMigra()
+  //   return {sql}
+  // }),
+  // definitions: publicProcedure.mutation(async ({ctx}) => {
+  //   const migrator = await getMigrator(ctx)
+  //   const stuff = await getMigratorStuff(ctx)
+  //   await migrator.writeDefinitionFile(stuff.definitionsFile!)
+  // }),
 })

@@ -94,15 +94,15 @@ const useMigrations = () => {
     ),
   }).disable(settings.migrations.skipDestructiveActionWarning)
   const update = trpc.migrations.update.useMutation(mutationConfig)
-  const downify = trpc.migrations.downify.useMutation({
-    onSuccess: data => {
-      setFileState(data.downPath)
-      return util.migrations.invalidate()
-    },
-  })
-  const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
+  // const downify = trpc.migrations.downify.useMutation({
+  //   onSuccess: data => {
+  //     setFileState(data.downPath)
+  //     return util.migrations.invalidate()
+  //   },
+  // })
+  // const definitions = trpc.migrations.definitions.useMutation(mutationConfig)
 
-  return {list, create, up, down, update, downify, definitions}
+  return {list, create, up, down, update}
 }
 
 function _Migrations() {
@@ -119,7 +119,7 @@ function _Migrations() {
           [m.downPath!, m.downContent!],
         ] as Array<[string, string]>
       })
-      .concat(list.data?.definitions.content ? [[list.data.definitions.filepath, list.data.definitions.content]] : [])
+      // .concat(list.data?.definitions.content ? [[list.data.definitions.filepath, list.data.definitions.content]] : [])
       .filter(e => e[0])
       .sort((x, y) => x[0].localeCompare(y[0]))
     const fsJson = Object.fromEntries(fsEntries)
@@ -155,7 +155,7 @@ function _Migrations() {
                   <icons.SquarePlus />
                 </Button>
 
-                <ContextMenu>
+                {/* <ContextMenu>
                   <ContextMenuTrigger>
                     <Button title="Revert migrations" onClick={async () => down.mutate()}>
                       <icons.CircleArrowDown />
@@ -171,7 +171,7 @@ function _Migrations() {
                       </ContextMenuItem>
                     )}
                   </ContextMenuContent>
-                </ContextMenu>
+                </ContextMenu> */}
                 <ContextMenu>
                   <ContextMenuTrigger>
                     <Button title="Apply migrations" onClick={() => up.mutate()}>
@@ -180,7 +180,7 @@ function _Migrations() {
                   </ContextMenuTrigger>
                   <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                     {!numPending && <ContextMenuItem disabled>No migrations to apply</ContextMenuItem>}
-                    {Array.from({length: numPending || 0}).map((_, i) => {
+                    {/* {Array.from({length: numPending || 0}).map((_, i) => {
                       const step = i + 1
 
                       const Icon = icons[`Tally${step}` as 'Tally1']
@@ -191,7 +191,7 @@ function _Migrations() {
                           Apply {step} migration{step > 1 ? 's' : ''}
                         </ContextMenuItem>
                       )
-                    })}
+                    })} */}
                     {/* <ContextMenuItem onClick={() => up.mutate({step: 1})}>
                       <icons.CircleArrowUp />
                       <icons.Tally1 />

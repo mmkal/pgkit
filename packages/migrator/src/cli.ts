@@ -22,7 +22,7 @@ export class RepairAction extends CommandLineAction {
   }
 
   protected async onExecute(): Promise<void> {
-    await this.migrator.repair({dryRun: this.dryRunFlag.value})
+    // await this.migrator.repair({dryRun: this.dryRunFlag.value})
   }
 }
 
@@ -48,7 +48,7 @@ export class DefinitionsAction extends CommandLineAction {
   }
 
   protected async onExecute(): Promise<void> {
-    await this.migrator.writeDefinitionFile(this.sqlFileParameter.value)
+    // await this.migrator.writeDefinitionFile(this.sqlFileParameter.value)
   }
 }
 
@@ -73,7 +73,7 @@ export class DiffAction extends CommandLineAction {
   }
 
   protected async onExecute(): Promise<void> {
-    await this.migrator.diffCreate([this.sqlFileParameter.value])
+    // await this.migrator.diffCreate([this.sqlFileParameter.value])
   }
 }
 
