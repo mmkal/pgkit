@@ -75,7 +75,7 @@ const useMigrations = () => {
 
   const update = trpc.migrations.update.useMutation(mutationConfig)
   const updateDefintionsFromDB = trpc.migrations.updateDefintionsFromDB.useMutation(mutationConfig)
-  const updateDBFromDefinitions = trpc.migrations.updateDBFromDefinitions.useMutation(mutationConfig)
+  const updateDBFromDefinitions = useConfirmable(trpc.migrations.updateDBFromDefinitions.useMutation(mutationConfig))
 
   return {
     list,
@@ -127,7 +127,6 @@ function _Migrations() {
   }, [list.data, fileState, workingFS])
 
   const numPending = list.data?.migrations.filter(m => m.status === 'pending').length
-  const numExecuted = list.data?.migrations.filter(m => m.status === 'executed').length
 
   return (
     // <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -327,10 +326,10 @@ export const FileTree = (tree: File | Folder) => {
                 <icons.File className="mr-2 h-4 w-4" />
                 {basename(tree.path)}
               </span>
-              {fileState === list.data?.definitions.filepath && (
+              {tree.path === list.data?.definitions.filepath && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2" onClick={() => updateDBFromDefinitions.mutate()}>
+                    <Button className="gap-2 flex-1 justify-start" onClick={() => updateDBFromDefinitions.mutate()}>
                       <icons.Book />
                       Update database to match this definitions file
                     </Button>
@@ -340,7 +339,7 @@ export const FileTree = (tree: File | Folder) => {
               {fileInfo?.status === 'pending' && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2" onClick={() => up.mutate({to: fileInfo.name})}>
+                    <Button className="gap-2 flex-1 justify-start" onClick={() => up.mutate({to: fileInfo.name})}>
                       <icons.CircleArrowUp />
                       Apply migrations up to this one
                     </Button>
@@ -350,13 +349,13 @@ export const FileTree = (tree: File | Folder) => {
               {fileInfo?.status === 'executed' && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2" onClick={() => down.mutate({to: fileInfo.name})}>
+                    <Button className="gap-2 flex-1 justify-start" onClick={() => down.mutate({to: fileInfo.name})}>
                       <icons.CircleArrowDown />
                       Revert migrations down to this one
                     </Button>
                   </ContextMenuItem>
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2" onClick={() => rebase.mutate({from: fileInfo.name})}>
+                    <Button className="gap-2 flex-1 justify-start" onClick={() => rebase.mutate({from: fileInfo.name})}>
                       <icons.CircleArrowDown />
                       Rebase migrations from this one
                     </Button>
