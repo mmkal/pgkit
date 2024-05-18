@@ -1,5 +1,7 @@
 # @pgkit/migrator
 
+>Note: @pgkit/migrator is being re-written. See [the new docs](./new.md).
+
 A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
 
 [![Node CI](https://github.com/mmkal/pgkit/workflows/CI/badge.svg)](https://github.com/mmkal/pgkit/actions?query=workflow%3ACI)
