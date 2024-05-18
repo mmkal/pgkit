@@ -443,7 +443,12 @@ const main = async () => {
     const {stdout: uncommitedChanges} = await execa('git', ['status', '--porcelain', '--', '.'], {
       cwd: pkg.path,
     })
-    const sections = [...stdout.split('\n').map(line => `- ${line}`), uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges]
+    const commitBullets = stdout.split('\n').filter(Boolean).map(line => `- ${line}`)
+    const sections = [
+      commitBullets.length && '<h3>Commits</h3>\n',
+      ...commitBullets,
+      uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
+    ]
     return sections.filter(Boolean).join('\n')
   }
 
@@ -487,10 +492,12 @@ const main = async () => {
           `<summary>Dependency ${depPkg.name} changed (${bumpedDeps.updated[dep]})</summary>`,
           '',
           '<blockquote>',
-          ...(depChanges
+          depChanges
             .split('\n')
             .filter(line => !line.match(/^<!-- data-change-type=".*" -->$/))
-            .map(line => (line.trim() ? `${line}` : line)) || bumpedDeps.updated[dep]),
+            .map(line => (line.trim() ? `${line}` : line))
+            .join('\n')
+              || `${bumpedDeps.updated[dep]} (Version bump)`,
           '</blockquote>',
           '</details>',
         ].join('\n')
