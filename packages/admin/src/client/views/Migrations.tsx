@@ -2,13 +2,11 @@ import {ContextMenuTrigger} from '@radix-ui/react-context-menu'
 import clsx from 'clsx'
 import React from 'react'
 import {useLocalStorage} from 'react-use'
-import {z} from 'zod'
-import {useSettings} from '../settings'
+import {toast} from 'sonner'
 import {MeasuredCodeMirror} from '../sql-codemirror'
 import {createCascadingState} from '../utils/cascading-state'
-import {useDestructive} from '../utils/destructive'
+import {useConfirmable} from '../utils/destructive'
 import {trpc} from '../utils/trpc'
-import {ZForm} from '../utils/zform'
 import {parseFileTree, basename, File, Folder, commonPrefix} from './file-tree'
 import {Button} from '@/components/ui/button'
 import {CollapsibleTrigger, CollapsibleContent, Collapsible} from '@/components/ui/collapsible'
@@ -58,50 +56,24 @@ const workingFSContext = createCascadingState({} as Record<string, string>, v =>
 export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 
 const useMigrations = () => {
-  const [_, setFileState] = file.useState()
-  const settings = useSettings()
-
   const util = trpc.useUtils()
   const mutationConfig = {
-    onSuccess: () => util.migrations.invalidate(),
+    onSuccess: () => Promise.all([util.migrations.invalidate(), util.inspect.invalidate()]),
   }
 
   const list = trpc.migrations.list.useQuery()
 
   const create = trpc.migrations.create.useMutation(mutationConfig)
   const up = trpc.migrations.up.useMutation(mutationConfig)
-  const down = useDestructive(trpc.migrations.down.useMutation(mutationConfig), 'Are you sure?', {
-    description: (
-      <>
-        <div className="mb-3">This may delete data which will not be restored even if you reapply the migration.</div>
-        <ZForm
-          schema={z.object({
-            dontShowAgain: z.boolean().field({
-              label: "Don't show this warning again (can be changed later in settings)",
-            }),
-          })}
-          onTouch={value =>
-            settings.update({
-              ...settings,
-              migrations: {
-                ...settings.migrations,
-                skipDestructiveActionWarning: value.dontShowAgain,
-              },
-            })
-          }
-        />
-      </>
-    ),
-  }).disable(settings.migrations.skipDestructiveActionWarning)
+  const down = useConfirmable(trpc.migrations.down.useMutation(mutationConfig))
   const rebase = trpc.migrations.rebase.useMutation(mutationConfig)
+  const check = trpc.migrations.check.useMutation({
+    ...mutationConfig,
+    onSuccess: () => toast.success('Migrations are in a valid state'),
+  })
+  const repair = useConfirmable(trpc.migrations.repair.useMutation(mutationConfig))
 
   const update = trpc.migrations.update.useMutation(mutationConfig)
-  // const downify = trpc.migrations.downify.useMutation({
-  //   onSuccess: data => {
-  //     setFileState(data.downPath)
-  //     return util.migrations.invalidate()
-  //   },
-  // })
   const updateDefintionsFromDB = trpc.migrations.updateDefintionsFromDB.useMutation(mutationConfig)
   const updateDBFromDefinitions = trpc.migrations.updateDBFromDefinitions.useMutation(mutationConfig)
 
@@ -111,6 +83,8 @@ const useMigrations = () => {
     up,
     down,
     rebase,
+    check,
+    repair,
     update,
     updateDefintionsFromDB,
     updateDBFromDefinitions,
@@ -121,7 +95,7 @@ function _Migrations() {
   const [fileState] = file.useState()
   const [workingFS, setWorkingFS] = workingFSContext.useState()
 
-  const {create, list, up, update, updateDBFromDefinitions, updateDefintionsFromDB} = useMigrations()
+  const {create, list, up, update, ...migrations} = useMigrations()
 
   const filesData = React.useMemo(() => {
     const fsEntries = (list.data?.migrations || [])
@@ -231,8 +205,18 @@ function _Migrations() {
                     </ContextMenuItem> */}
                   </ContextMenuContent>
                 </ContextMenu>
-                <Button title="Create definitions file" onClick={() => updateDefintionsFromDB.mutate()}>
+                <Button title="Create definitions file" onClick={() => migrations.updateDefintionsFromDB.mutate()}>
                   <icons.Book />
+                </Button>
+                <Button title="Check migrations" onClick={() => migrations.check.mutate()}>
+                  <icons.FileQuestion />
+                </Button>
+                <Button
+                  disabled={!migrations.check.isError}
+                  title={migrations.check.isError ? 'Repair migrations' : 'Use check to find issues first'}
+                  onClick={() => migrations.repair.mutate()}
+                >
+                  <icons.Wrench />
                 </Button>
               </div>
             </div>

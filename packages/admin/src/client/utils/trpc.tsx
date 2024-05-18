@@ -29,7 +29,10 @@ export function useTrpcClient() {
       new QueryClient({
         mutationCache: new MutationCache({
           onError: error => {
-            toast.error(String(error))
+            const message = String(error)
+            if (message.includes('confirmation_missing:')) return // handled elsewhere
+
+            toast.error(message)
           },
         }),
         queryCache: new QueryCache({

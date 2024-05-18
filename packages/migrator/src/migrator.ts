@@ -298,7 +298,7 @@ export class Migrator {
 
     let nameSuffix = params?.name
     if (!nameSuffix && content) {
-      nameSuffix = nameQuery([content]) + '.sql'
+      nameSuffix = nameQuery([content]).replace(/_[\da-z]+$/, '') + '.sql'
     }
 
     if (!content) {

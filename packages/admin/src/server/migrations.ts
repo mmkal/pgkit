@@ -12,8 +12,13 @@ const migrationsProcedure = baseProcedure
       ctx: {
         ...ctx,
         confirm: async (sql: string) => {
-          return Boolean(sql.trim())
-          return Boolean(sql.trim() && input?.confirmation?.trim() === sql.trim())
+          if (sql.trim() && input?.confirmation?.trim() === sql.trim()) {
+            return true
+          }
+          if (!sql.trim()) {
+            return false
+          }
+          throw new Error('confirmation_missing:' + sql.trim())
         },
       },
     })
@@ -70,6 +75,14 @@ export const migrationsRotuer = trpc.router({
       const migrator = await getMigrator(ctx)
       await migrator.goto({name: input.to, confirm: ctx.confirm})
     }),
+  check: migrationsProcedure.mutation(async ({ctx}) => {
+    const migrator = await getMigrator(ctx)
+    await migrator.check()
+  }),
+  repair: migrationsProcedure.mutation(async ({ctx}) => {
+    const migrator = await getMigrator(ctx)
+    await migrator.repair({confirm: ctx.confirm})
+  }),
   rebase: migrationsProcedure
     .input(
       z.object({
