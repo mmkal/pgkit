@@ -3,15 +3,17 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {Procedure, Router, TRPCError, inferRouterContext, initTRPC} from '@trpc/server'
 import * as cleye from 'cleye'
+import chalk from 'picocolors'
 import {ZodError, z} from 'zod'
 import ztjs from 'zod-to-json-schema'
-import {fromError} from 'zod-validation-error'
+import * as zodValidationError from 'zod-validation-error'
 
 export type TrpcCliParams<R extends Router<any>> = {
   router: R
   context?: inferRouterContext<R>
   argv?: string[]
   getAlias?: (fullName: string, meta: {command: string; flags: Record<string, unknown>}) => string
+  onSuccess?: (result: unknown) => void
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -44,7 +46,7 @@ export const trpcCli = async <R extends Router<any>>({
             ? (value._def.inputs[0] as never)
             : (z.intersection(...(value._def.inputs as [never, never])) as never)
 
-        const jsonSchema = ztjs(zodSchema) // todo: inspect zod schema directly, don't convert to json-schema first
+        const jsonSchema = value._def.inputs.length > 0 ? ztjs(zodSchema) : {} // todo: inspect zod schema directly, don't convert to json-schema first
 
         const objectProperties = (sch: typeof jsonSchema) => ('properties' in sch ? sch.properties : {})
 
@@ -68,7 +70,7 @@ export const trpcCli = async <R extends Router<any>>({
         const properties = flattenedProperties(jsonSchema)
 
         if (Object.entries(properties).length === 0) {
-          throw new TypeError(`Schemas looking like ${Object.keys(jsonSchema).join(', ')} are not supported`)
+          //   throw new TypeError(`Schemas looking like ${Object.keys(jsonSchema).join(', ')} are not supported`)
         }
 
         const flags = Object.fromEntries(
@@ -165,12 +167,15 @@ export const trpcCli = async <R extends Router<any>>({
 
   const caller = initTRPC.context<typeof context>().create({}).createCallerFactory(appRouter)(context)
 
-  const die = (message: string, cause?: unknown) => {
+  const die = (message: string, {cause, help: showHelp}: {cause?: unknown; help?: boolean} = {}) => {
     if (parsedArgv.flags.fullErrors) {
       throw (cause as Error) || new Error(message)
     }
     // eslint-disable-next-line no-console
-    console.error(message)
+    console.error(chalk.red(message))
+    if (showHelp) {
+      parsedArgv.showHelp()
+    }
     // eslint-disable-next-line unicorn/no-process-exit
     process.exit(1)
   }
@@ -202,9 +207,9 @@ export const trpcCli = async <R extends Router<any>>({
             path: ['--' + iss.path[0], ...iss.path.slice(1)],
           }))
 
-          const prettyError = fromError(cause, {prefixSeparator: '\n  - ', issueSeparator: '\n  - '})
+          const prettyError = zodValidationError.fromError(cause, {prefixSeparator: '\n  - ', issueSeparator: '\n  - '})
 
-          return die(prettyError.message, cause)
+          return die(prettyError.message, {cause, help: true})
         } finally {
           cause.issues = originalIssues
         }

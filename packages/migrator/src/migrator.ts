@@ -187,7 +187,18 @@ export class Migrator {
   /**
    * Applies pending migrations.
    */
-  async up(params?: {to?: string}) {
+  async up(input?: {to?: string} | {step?: number}) {
+    let params: {to?: string} = {}
+    if ('to' in input) {
+      params = input
+    } else if ('step' in input) {
+      const pending = await this.pending()
+      const target = pending.at(input.step)
+      if (!target) {
+        throw new Error(`Couldn't find ${input.step} pending migrations`, {cause: {pending}})
+      }
+      params = {to: target?.name}
+    }
     const pending = await this.pending()
     const toIndex = params?.to ? pending.findIndex(m => m.name === params.to) : pending.length
     if (toIndex === -1) {
