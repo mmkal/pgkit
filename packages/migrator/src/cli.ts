@@ -2,6 +2,7 @@ import {createClient, sql} from '@pgkit/client'
 import {CommandLineAction, CommandLineFlagParameter, CommandLineStringParameter} from '@rushstack/ts-command-line'
 import * as trpcServer from '@trpc/server'
 import {prompt} from 'enquirer'
+import tasuku from 'tasuku'
 import z from 'zod'
 import {Confirm, Migrator} from './migrator'
 import {trpcCli} from './trpc-cli'
@@ -27,8 +28,8 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       .meta({description: 'Apply pending migrations'})
       .input(
         z.union([
-          z.object({to: z.string().optional()}), //
-          z.object({step: z.number().optional()}),
+          z.object({to: z.string().optional(), step: z.undefined()}), //
+          z.object({step: z.number(), to: z.undefined()}),
         ]),
       )
       .mutation(async ({input}) => {
@@ -36,16 +37,14 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       }),
     list: trpc.procedure
       .meta({
-        description: 'List all migrations, along with their status, file path and content',
+        description: 'List migrations, along with their status, file path and content',
       })
-      .query(async () => {
-        return migrator.list()
-      }),
-    search: trpc.procedure
-      .meta({description: 'Find a migration by name'})
       .input(
         z.object({
-          query: z.string().describe('Search query - migrations with names containing this string will be returned'),
+          query: z
+            .string()
+            .optional()
+            .describe('Search query - migrations with names containing this string will be returned'),
           status: z.enum(['pending', 'executed']).optional(),
           result: z.enum(['first', 'last', 'one', 'maybeOne', 'all']).default('all'),
           output: z.enum(['name', 'path', 'content', 'object', 'json']).default('object'),
@@ -55,7 +54,7 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
         const list = await migrator.list()
         const results = list
           .filter(m => {
-            return m.name.includes(input.query) && m.status === (input.status || m.status)
+            return m.name.includes(input.query || '') && m.status === (input.status || m.status)
           })
           .map(m => {
             if (input.output === 'name') return m.name
@@ -79,6 +78,14 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
         if (input.result === 'maybeOne' && results.length !== 1) return undefined
         if (input.result === 'first') return results[0]
         if (input.result === 'last') return results.at(-1)
+      }),
+    unlock: trpc.procedure
+      .meta({
+        description:
+          'Release the advisory lock for this migrator on the database. This is useful if the migrator is stuck due to a previous crash',
+      })
+      .mutation(async () => {
+        return migrator.unlock({confirm})
       }),
     latest: trpc.procedure
       .meta({
@@ -131,12 +138,13 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
         description:
           'Go "back" to a specific migration. This will calculate the diff required to get to the target migration, then apply it',
       })
-      .input(z.object({name: z.string()}))
+      .input(
+        z.object({
+          name: z.string().describe('Name of the migration to go to. Use "list" to see available migrations.'),
+        }),
+      )
       .mutation(async ({input}) => {
-        return migrator.goto({
-          name: input.name,
-          confirm,
-        })
+        return migrator.goto({name: input.name, confirm})
       }),
     wipe: trpc.procedure
       .meta({
@@ -144,6 +152,30 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       })
       .mutation(async () => {
         return migrator.wipe({confirm})
+      }),
+    ddl: trpc.procedure
+      .meta({
+        description: 'Sync the database with the definitions file',
+      })
+      .input(
+        z.object({
+          updateDb: z.boolean().optional().describe(`Update the database from the definitions file`),
+          updateFile: z.boolean().optional().describe(`Update the definitions file from the database`),
+        }),
+      )
+      .mutation(async ({input}) => {
+        if (Boolean(input.updateDb) === Boolean(input.updateFile)) {
+          throw new trpcServer.TRPCError({
+            message: `You must specify exactly one of updateDb or updateFile (got ${JSON.stringify(input)})`,
+            code: 'BAD_REQUEST',
+          })
+        }
+        // eslint-disable-next-line unicorn/prefer-ternary
+        if (input.updateDb) {
+          return migrator.updateDBFromDDL({confirm})
+        } else {
+          return migrator.updateDDLFromDB()
+        }
       }),
   })
 
@@ -164,7 +196,10 @@ export const createMigratorCli = (migrator: Migrator) => {
 
   const appRouter = createMigratorRouter(migrator, {confirm})
 
-  return trpcCli({router: appRouter})
+  return migrator.configStorage.run(
+    {task: tasuku}, // use tasuku for logging
+    async () => trpcCli({router: appRouter}),
+  )
 }
 
 if (require.main === module) {
@@ -173,8 +208,11 @@ if (require.main === module) {
     migrationsPath: '/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations',
     migrationTableName: 'admin_test_migrations',
   })
-  createMigratorCli(migrator).then(result => {
-    if (result != null) console.log(result)
+
+  // eslint-disable-next-line unicorn/prefer-top-level-await
+  void createMigratorCli(migrator).then(result => {
+    if (result != null) migrator.logger.info(result)
+    // eslint-disable-next-line unicorn/no-process-exit
     process.exit()
   })
 }

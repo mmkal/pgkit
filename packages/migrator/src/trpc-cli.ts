@@ -25,8 +25,6 @@ export const trpcCli = async <R extends Router<any>>({
 }: TrpcCliParams<R>) => {
   const parsedArgv = cleye.cli(
     {
-      name: 'trpc-cli',
-      version: '0.0.0',
       flags: {
         fullErrors: {
           type: Boolean,
@@ -165,10 +163,12 @@ export const trpcCli = async <R extends Router<any>>({
     argv,
   )
 
+  const {fullErrors, ...unknownFlags} = parsedArgv.unknownFlags
+
   const caller = initTRPC.context<typeof context>().create({}).createCallerFactory(appRouter)(context)
 
   const die = (message: string, {cause, help = true}: {cause?: unknown; help?: boolean} = {}) => {
-    if (parsedArgv.flags.fullErrors) {
+    if (fullErrors) {
       throw (cause as Error) || new Error(message)
     }
     // eslint-disable-next-line no-console
@@ -187,14 +187,15 @@ export const trpcCli = async <R extends Router<any>>({
     die(`Command "${parsedArgv._.join(' ')}" not recognised.`)
   }
 
-  if (Object.entries(parsedArgv.unknownFlags).length > 0) {
-    const s = Object.entries(parsedArgv.unknownFlags).length === 1 ? '' : 's'
+  if (Object.entries(unknownFlags).length > 0) {
+    const s = Object.entries(unknownFlags).length === 1 ? '' : 's'
     return die(`Unexpected flag${s}: ${Object.keys(parsedArgv.unknownFlags).join(', ')}`)
   }
 
   try {
+    const {help, ...flags} = parsedArgv.flags
     // @ts-expect-error cleye types are dynamic
-    return (await caller[parsedArgv.command](parsedArgv.flags)) as never
+    return (await caller[parsedArgv.command](flags)) as never
   } catch (err) {
     if (err instanceof TRPCError) {
       const cause = err.cause
@@ -215,6 +216,9 @@ export const trpcCli = async <R extends Router<any>>({
       }
       if (err.code === 'INTERNAL_SERVER_ERROR') {
         throw cause
+      }
+      if (err.code === 'BAD_REQUEST') {
+        return die(err.message, {cause: err})
       }
     }
     throw err

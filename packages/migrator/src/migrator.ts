@@ -1,11 +1,11 @@
 import {sql, Client, Connection, createClient, nameQuery} from '@pgkit/client'
 import {formatSql} from '@pgkit/formatter'
 import * as migra from '@pgkit/migra'
+import {AsyncLocalStorage} from 'async_hooks'
 import {createHash, randomInt} from 'crypto'
 import {readFileSync} from 'fs'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import task from 'tasuku'
 import * as umzug from 'umzug'
 import * as templates from './templates'
 import {MigratorContext} from './types'
@@ -38,8 +38,96 @@ export interface MigratorOptions {
   connectMethod?: 'transaction' | 'connect'
 }
 
+type Logger = {
+  info: (...args: unknown[]) => void
+  warn: (...args: unknown[]) => void
+  error: (...args: unknown[]) => void
+}
+
+const noopLogger: Logger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+}
+
+type Task = <T>(name: string, fn: () => Promise<T>) => Promise<{result: T}>
+
+const noopTask = async <T>(name: string, fn: () => Promise<T>) => {
+  return {result: await fn()}
+}
+
+type MigratorConfig = {
+  /**
+   * A function which wraps its callback, can be used to add logging before/after completion. Compatible with [tasuku](https://npmjs.com/package/tasuku), for example.
+   * @example Using tasuku
+   * ```ts
+   * import task from 'tasuku'
+   *
+   * const migrator = new Migrator(___)
+   *
+   * migrator.useConfig({task}, async () => {
+   *  await migrator.up()
+   * })
+   * ```
+   *
+   * @example Using a custom task function
+   * ```ts
+   * const migrator = new Migrator(___)
+   *
+   * migrator.useConfig({
+   *    task: async (name, fn) => {
+   *      migrator.logger.info('Starting', name)
+   *      const result = await fn()
+   *      migrator.logger.info('Finished', name)
+   *      return {result}
+   *    },
+   *    async () => {
+   *      await migrator.up()
+   *    })
+   * })
+   * ```
+   */
+  task: Task
+  logger: Logger
+}
+
 export class Migrator {
+  configStorage = new AsyncLocalStorage<Partial<MigratorConfig>>()
+
   constructor(readonly migratorOptions: MigratorOptions) {}
+
+  useConfig<T>(config: MigratorConfig, fn: (previous: MigratorConfig) => Promise<T>) {
+    const previous = this.config
+    return this.configStorage.run(config, () => fn(previous))
+  }
+
+  protected get defaultConfig(): MigratorConfig {
+    return {
+      task: async (name, fn) => {
+        this.logger.info('Starting', name)
+        const result = await fn()
+        this.logger.info('Finished', name)
+        return {result}
+      },
+      logger: console,
+    }
+  }
+
+  protected get config(): MigratorConfig {
+    const store = this.configStorage.getStore()
+    return {
+      ...this.defaultConfig,
+      ...store,
+    }
+  }
+
+  get logger(): MigratorConfig['logger'] {
+    return this.config.logger
+  }
+
+  get task(): Task {
+    return this.config.task
+  }
 
   /** Glob pattern with `migrationsPath` as `cwd`. Could be overridden to support nested directories */
   protected migrationsGlob() {
@@ -130,7 +218,7 @@ export class Migrator {
     const start = Date.now()
     const timeout = setTimeout(() => {
       const message = `Waiting for lock. This may mean another process is simultaneously running migrations. You may want to issue a command like "set lock_timeout = '10s'" if this happens frequently. Othrewise, this command may wait until the process is killed.`
-      console.warn({message})
+      this.logger.warn(message)
     }, this.lockWarningMs)
     await this.client.any(sql`select pg_advisory_lock(${this.advisoryLockId()})`)
     clearTimeout(timeout)
@@ -138,10 +226,10 @@ export class Migrator {
   }
 
   async releaseAdvisoryLock() {
-    await this.client.any(sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch(error => {
-      console.error({
+    await this.client.any(sql`select pg_advisory_unlock(${this.advisoryLockId()})`).catch((error: unknown) => {
+      this.logger.error({
         message: `Failed to unlock. This is expected if the lock acquisition timed out. Otherwise, you may need to run "select pg_advisory_unlock(${this.advisoryLockId()})" manually`,
-        originalError: error,
+        cause: error,
       })
     })
   }
@@ -190,11 +278,11 @@ export class Migrator {
    */
   async up(input?: {to?: string} | {step?: number}) {
     let params: {to?: string} = {}
-    if ('to' in input) {
+    if ('to' in input && input.to !== undefined) {
       params = input
-    } else if ('step' in input) {
+    } else if ('step' in input && input.step !== undefined) {
       const pending = await this.pending()
-      const target = pending.at(input.step)
+      const target = pending.at(input.step - 1)
       if (!target) {
         throw new Error(`Couldn't find ${input.step} pending migrations`, {cause: {pending}})
       }
@@ -209,13 +297,21 @@ export class Migrator {
     await this.useContext(async context => {
       const list = pending.slice(0, toIndex + 1)
       for (const m of list) {
-        await task(`Applying ${m.name}`, async () => {
+        await this.task(`Applying ${m.name}`, async () => {
           const p = {...m, context}
           await this.applyMigration(p)
           await this.logMigration(p)
         })
       }
     })
+  }
+
+  async unlock(params: {confirm: Confirm}) {
+    const message =
+      '*** WARNING: This will release the advisory lock. If you have multiple servers running migrations, this could cause more than one to try to apply migrations simultaneously. Are you sure?'
+    if (await params.confirm(message)) {
+      await this.releaseAdvisoryLock()
+    }
   }
 
   async latest(params?: {skipCheck?: boolean}) {
@@ -245,8 +341,10 @@ export class Migrator {
   async goto(params: {name: string; confirm: Confirm; purgeDisk?: boolean}) {
     const diffTo = await this.getDiff({to: params.name})
     if (await params.confirm(diffTo)) {
-      await this.client.query(sql.raw(diffTo))
-      await this.baseline({name: params.name, purgeDisk: params.purgeDisk})
+      await this.useAdvisoryLock(async () => {
+        await this.client.query(sql.raw(diffTo))
+        await this.baseline({name: params.name, purgeDisk: params.purgeDisk})
+      })
     }
   }
 
@@ -378,6 +476,10 @@ export class Migrator {
   async updateDDLFromDB() {
     const {sql: diff} = await this.wrapMigra('EMPTY', this.client)
     await fs.writeFile(this.definitionsFile, diff)
+    return {
+      path: this.definitionsFile,
+      content: diff,
+    }
   }
 
   async getRepairDiff() {
@@ -506,25 +608,29 @@ export class Migrator {
     const shadowClient = createClient(shadowConnectionString, {pgpOptions: this.client.pgpOptions})
 
     try {
-      await this.client.query(sql`create database ${sql.identifier([shadowDbName])}`)
+      await this.task(`Creating shadow db`, () =>
+        this.client.query(sql`create database ${sql.identifier([shadowDbName])}`),
+      )
 
       return await cb(shadowClient)
     } finally {
-      await shadowClient.end()
-      await this.client
-        .query(sql`drop database ${sql.identifier([shadowDbName])} with (force)`)
-        .catch(async e => {
-          if (e.message.includes('syntax error at or near "with"')) {
-            // postgresql 12 backcompat
-            await this.client.query(sql`drop database ${sql.identifier([shadowDbName])}`)
-            return
-          }
-          throw e
-        })
-        .catch(e => {
-          if (e.message.includes('does not exist')) return // todo: check this error message?
-          throw e
-        })
+      await this.task(`Destroying shadow db`, async () => {
+        await shadowClient.end()
+        await this.client
+          .query(sql`drop database ${sql.identifier([shadowDbName])} with (force)`)
+          .catch(async e => {
+            if (e.message.includes('syntax error at or near "with"')) {
+              // postgresql 12 backcompat
+              await this.client.query(sql`drop database ${sql.identifier([shadowDbName])}`)
+              return
+            }
+            throw e
+          })
+          .catch(e => {
+            if (e.message.includes('does not exist')) return // todo: check this error message?
+            throw e
+          })
+      })
     }
   }
 
@@ -535,8 +641,13 @@ export class Migrator {
   async useShadowMigrator<T>(cb: (migrator: Migrator) => Promise<T>) {
     return await this.useShadowClient(async shadowClient => {
       const shadowMigrator = this.cloneWith({client: shadowClient})
-      await shadowMigrator.getOrCreateMigrationsTable()
-      return await cb(shadowMigrator)
+      return shadowMigrator.configStorage.run(
+        {logger: noopLogger, task: noopTask}, // Don't output "Apply migration x" etc. for shadow migrations
+        async () => {
+          await shadowMigrator.getOrCreateMigrationsTable()
+          return await cb(shadowMigrator)
+        },
+      )
     })
   }
 
