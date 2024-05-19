@@ -1,4 +1,4 @@
-import {createClient} from '@pgkit/client'
+import {createClient, sql} from '@pgkit/client'
 import {CommandLineAction, CommandLineFlagParameter, CommandLineStringParameter} from '@rushstack/ts-command-line'
 import * as trpcServer from '@trpc/server'
 import {prompt} from 'enquirer'
@@ -10,6 +10,19 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
   const trpc = trpcServer.initTRPC.context().meta<{description: string}>().create({})
 
   const appRotuer = trpc.router({
+    sql: trpc.procedure
+      .meta({description: 'Query the database'})
+      .input(
+        z.object({
+          query: z.string(),
+          method: z
+            .enum(['any', 'many', 'one', 'maybeOne', 'query', 'anyFirst', 'oneFirst', 'maybeOneFirst'])
+            .default('any'),
+        }),
+      )
+      .mutation(async ({input}) => {
+        return migrator.client[input.method](sql.raw(input.query))
+      }),
     up: trpc.procedure
       .meta({description: 'Apply pending migrations'})
       .input(
@@ -32,26 +45,38 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       .meta({description: 'Find a migration by name'})
       .input(
         z.object({
-          substring: z.string(),
+          query: z.string().describe('Search query - migrations with names containing this string will be returned'),
           status: z.enum(['pending', 'executed']).optional(),
-          result: z.enum(['first', 'last', 'single', 'singleOrNull', 'all']).default('first'),
+          result: z.enum(['first', 'last', 'one', 'maybeOne', 'all']).default('all'),
+          output: z.enum(['name', 'path', 'content', 'object', 'json']).default('object'),
         }),
       )
       .query(async ({input}) => {
         const list = await migrator.list()
-        const results = list.filter(m => {
-          return m.name.includes(input.substring) && m.status === (input.status || m.status)
-        })
+        const results = list
+          .filter(m => {
+            return m.name.includes(input.query) && m.status === (input.status || m.status)
+          })
+          .map(m => {
+            if (input.output === 'name') return m.name
+            if (input.output === 'path') return m.path
+            if (input.output === 'content') return m.content
+            if (input.output === 'json') return m
+            return m
+          })
 
         if (input.result === 'all') return results
 
-        if (input.result === 'single' && results.length !== 1) {
-          throw new Error(`Expected exactly one migration, found ${results.length}`, {
-            cause: {results},
-          })
+        if (input.result === 'one' && results.length !== 1) {
+          throw new Error(
+            `Expected exactly one migration matching query ${JSON.stringify(input.query)}, found ${results.length}`,
+            {
+              cause: {results},
+            },
+          )
         }
 
-        if (input.result === 'singleOrNull' && results.length !== 1) return undefined
+        if (input.result === 'maybeOne' && results.length !== 1) return undefined
         if (input.result === 'first') return results[0]
         if (input.result === 'last') return results.at(-1)
       }),
@@ -66,6 +91,27 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       )
       .query(async ({input}) => {
         return migrator.latest(input)
+      }),
+    create: trpc.procedure
+      .meta({description: 'Create a new migration file'})
+      .input(
+        z.object({
+          content: z
+            .string()
+            .optional()
+            .describe(
+              'SQL content of the migration. If not specified, content will be generated based on the calculated diff between the existing migrations and the current database state.',
+            ),
+          name: z
+            .string()
+            .optional()
+            .describe(
+              'Name of the migration file. If not specified, a name will be generated based on the content of the migraiton',
+            ),
+        }),
+      )
+      .mutation(async ({input}) => {
+        return migrator.create(input)
       }),
     check: trpc.procedure
       .meta({description: 'Verify that your database is in an expected state, matching your migrations'})
@@ -91,6 +137,13 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
           name: input.name,
           confirm,
         })
+      }),
+    wipe: trpc.procedure
+      .meta({
+        description: 'Wipe the database - remove all tables, views etc.',
+      })
+      .mutation(async () => {
+        return migrator.wipe({confirm})
       }),
   })
 

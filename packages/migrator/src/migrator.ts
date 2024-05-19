@@ -5,6 +5,7 @@ import {createHash, randomInt} from 'crypto'
 import {readFileSync} from 'fs'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import task from 'tasuku'
 import * as umzug from 'umzug'
 import * as templates from './templates'
 import {MigratorContext} from './types'
@@ -205,16 +206,15 @@ export class Migrator {
       throw new Error(`Migration ${params?.to} not found`, {cause: {pending}})
     }
 
-    return this.useContext(async context => {
+    await this.useContext(async context => {
       const list = pending.slice(0, toIndex + 1)
       for (const m of list) {
-        console.log(`Applying migration ${m.name} (${this.client.connectionString()})`)
-        const p = {...m, context}
-        await this.applyMigration(p)
-        await this.logMigration(p)
-        console.log(`Applied migration ${m.name} (${this.client.connectionString()})`)
+        await task(`Applying ${m.name}`, async () => {
+          const p = {...m, context}
+          await this.applyMigration(p)
+          await this.logMigration(p)
+        })
       }
-      return list
     })
   }
 
@@ -243,7 +243,7 @@ export class Migrator {
    * In production, create a regular migration which does whichever `drop x` or `alter y` commands are necessary.
    */
   async goto(params: {name: string; confirm: Confirm; purgeDisk?: boolean}) {
-    const diffTo = await this.getDiffTo(params)
+    const diffTo = await this.getDiff({to: params.name})
     if (await params.confirm(diffTo)) {
       await this.client.query(sql.raw(diffTo))
       await this.baseline({name: params.name, purgeDisk: params.purgeDisk})
@@ -463,12 +463,26 @@ export class Migrator {
    * Uses `migra` to generate a diff between the current database and the state of a database at the specified migration.
    * This can be used to go "down" to a specific migration.
    */
-  async getDiffTo(target: {name: string}) {
+  async getDiff(params: {to: string}) {
     const {sql: content} = await this.useShadowMigrator(async shadowMigrator => {
-      await shadowMigrator.up({to: target.name})
+      await shadowMigrator.up({to: params.to})
       return this.wrapMigra(this.client, shadowMigrator.client, {unsafe: true})
     })
     return content
+  }
+
+  async wipeDiff() {
+    const {sql: content} = await this.useShadowClient(async shaowClient => {
+      return this.wrapMigra(this.client, shaowClient, {unsafe: true})
+    })
+    return content
+  }
+
+  async wipe(params: {confirm: Confirm}) {
+    const diff = await this.wipeDiff()
+    if (await params.confirm(diff)) {
+      await this.client.query(sql.raw(diff))
+    }
   }
 
   /**
