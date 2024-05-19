@@ -1,5 +1,33 @@
 import {CommandLineAction, CommandLineFlagParameter, CommandLineStringParameter} from '@rushstack/ts-command-line'
+import * as trpcServer from '@trpc/server'
+import z from 'zod'
 import {Migrator} from './migrator'
+import {trpcCli} from './trpc-cli'
+
+export const createMigratorRouter = (migrator: Migrator) => {
+  const trpc = trpcServer.initTRPC.context().meta<{description: string}>().create({})
+
+  const appRotuer = trpc.router({
+    up: trpc.procedure
+      .meta({description: 'Apply pending migrations'})
+      .input(
+        z.object({
+          to: z.string().optional(),
+        }),
+      )
+      .mutation(async ({ctx, input}) => {
+        return migrator.up(input)
+      }),
+  })
+
+  return appRotuer
+}
+
+export const createMigratorCli = (migrator: Migrator) => {
+  const appRouter = createMigratorRouter(migrator)
+
+  return trpcCli({router: appRouter})
+}
 
 export class RepairAction extends CommandLineAction {
   private dryRunFlag?: CommandLineFlagParameter
