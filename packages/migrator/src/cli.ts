@@ -1,7 +1,8 @@
+import * as prompt from '@inquirer/prompts'
 import {createClient, sql} from '@pgkit/client'
 import {CommandLineAction, CommandLineFlagParameter, CommandLineStringParameter} from '@rushstack/ts-command-line'
 import * as trpcServer from '@trpc/server'
-import {prompt} from 'enquirer'
+import * as colors from 'picocolors'
 import tasuku from 'tasuku'
 import z from 'zod'
 import {Confirm, Migrator} from './migrator'
@@ -12,17 +13,32 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
 
   const appRotuer = trpc.router({
     sql: trpc.procedure
-      .meta({description: 'Query the database'})
+      .meta({
+        description:
+          'Query the database. Not strictly related to migrations, but can be used for debugging. Use with caution!',
+      })
       .input(
         z.object({
           query: z.string(),
+          singlequote: z
+            .string()
+            .describe("Character to use in place of ' - use to avoid having to do bash quote-escaping")
+            .optional(),
+          doublequote: z
+            .string()
+            .describe('Character to use in place of " - use to avoid having to do bash quote-escaping')
+            .optional(),
           method: z
             .enum(['any', 'many', 'one', 'maybeOne', 'query', 'anyFirst', 'oneFirst', 'maybeOneFirst'])
             .default('any'),
         }),
       )
       .mutation(async ({input}) => {
-        return migrator.client[input.method](sql.raw(input.query))
+        let query = input.query
+        if (input.singlequote) query = query.replaceAll(input.singlequote, `'`)
+        if (input.doublequote) query = query.replaceAll(input.doublequote, `"`)
+
+        return migrator.client[input.method](sql.raw(query))
       }),
     up: trpc.procedure
       .meta({description: 'Apply pending migrations'})
@@ -36,7 +52,10 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
         return migrator.up(input)
       }),
     baseline: trpc.procedure
-      .meta({description: 'Baseline the database at the specified migration'})
+      .meta({
+        description:
+          'Baseline the database at the specified migration. This forcibly edits the migrations table to mark all migrations up to this point as executed. Useful for introducing the migrator to an existing database.',
+      })
       .input(
         z.object({
           to: z.string(),
@@ -45,6 +64,23 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       )
       .mutation(async ({input}) => {
         return migrator.baseline({...input, to: input.to})
+      }),
+    rebase: trpc.procedure
+      .meta({
+        description:
+          'Rebase the migrations from the specified migration. This deletes all migration files after this point, and replaces them with a squashed migration based on the calculated diff required to reach the current database state.',
+      })
+      .input(
+        z.object({
+          from: z
+            .string()
+            .describe(
+              'Name of the migration to rebase from. This migration will remain, all subsequent ones will be replaced with a squashed migration. Use `list` to see available migrations.',
+            ),
+        }),
+      )
+      .mutation(async ({input}) => {
+        return migrator.rebase({...input, confirm})
       }),
     list: trpc.procedure
       .meta({
@@ -194,30 +230,33 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
 }
 
 export const createMigratorCli = (migrator: Migrator) => {
-  const confirm = async (sql: string) => {
-    if (!sql.trim()) return false
+  const confirm = async (input: string) => {
+    if (!input.trim()) return false
 
-    const result = await prompt({
-      type: 'confirm',
-      name: 'confirm',
-      message: `Please confirm you want to run the following SQL:\n\n${sql}`,
-    } as const)
-    return (result as {confirm: boolean}).confirm
+    return prompt.confirm({
+      message: `${colors.underline('Please confirm you want to run the following')}:\n\n${input}`,
+    })
   }
 
-  const appRouter = createMigratorRouter(migrator, {confirm})
+  const router = createMigratorRouter(migrator, {confirm})
 
   return migrator.configStorage.run(
     {task: tasuku}, // use tasuku for logging
-    async () => trpcCli({router: appRouter}),
+    async () => trpcCli({router}),
   )
 }
 
 if (require.main === module) {
+  const vars = {
+    PGKIT_CLIENT: 'postgresql://postgres:postgres@localhost:5432/postgres',
+    PGKIT_MIGRATIONS_PATH: process.cwd() + 'migrations/scripts',
+    PGKIT_MIGRATIONS_TABLE_NAME: undefined as string | undefined,
+    ...(process.env as {}),
+  }
   const migrator = new Migrator({
-    client: createClient(`postgresql://postgres:postgres@localhost:5432/postgres`),
-    migrationsPath: '/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations',
-    migrationTableName: 'admin_test_migrations',
+    client: createClient(vars.PGKIT_CLIENT),
+    migrationsPath: vars.PGKIT_MIGRATIONS_PATH,
+    migrationTableName: vars.PGKIT_MIGRATIONS_TABLE_NAME,
   })
 
   // eslint-disable-next-line unicorn/prefer-top-level-await

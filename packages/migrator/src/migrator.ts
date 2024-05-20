@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/switch-case-braces */
 import {sql, Client, Connection, createClient, nameQuery} from '@pgkit/client'
 import {formatSql} from '@pgkit/formatter'
 import * as migra from '@pgkit/migra'
@@ -287,7 +288,7 @@ export class Migrator {
 
   async unlock(params: {confirm: Confirm}) {
     const message =
-      '*** WARNING: This will release the advisory lock. If you have multiple servers running migrations, this could cause more than one to try to apply migrations simultaneously. Are you sure?'
+      '*** WARNING ***: This will release the advisory lock. If you have multiple servers running migrations, this could cause more than one to try to apply migrations simultaneously. Are you sure?'
     if (await params.confirm(message)) {
       await this.releaseAdvisoryLock()
     }
@@ -376,7 +377,7 @@ export class Migrator {
   /**
    * Creates a new migration file. By default, uses the definitions file to generate the content.
    * You can override this behavior by passing in a `content` parameter.
-   * Pass in empty string if you're not sure what to write and don't want to use the definitions file.
+   * Pass in empty string or something like `-- placeholder` if you're not sure what to write and don't want to use the definitions file.
    */
   async create(params?: {name?: string; content?: string}) {
     let content = params?.content
@@ -389,22 +390,36 @@ export class Migrator {
       nameSuffix = nameQuery([content]).replace(/_[\da-z]+$/, '') + '.sql'
     }
 
-    if (!content) {
-      content = '-- Write your migration here'
-    }
-
     if (!nameSuffix) {
       nameSuffix = 'update.sql'
     }
 
     const name = this.filePrefix() + nameSuffix
     const filepath = path.join(this.migratorOptions.migrationsPath, name)
-    if (!filepath.endsWith('.sql')) {
-      throw new Error(`Only SQL migrations are supported right now. Got ${filepath}`)
+
+    if (!content) {
+      content = this.template(filepath)
     }
 
     await fs.writeFile(filepath, content)
     return {name, path: filepath, content}
+  }
+
+  template(filepath: string) {
+    const ext = path.extname(filepath)
+    const esm = typeof require?.main === 'object'
+
+    if (ext === '.js' && esm) return templates.esm
+    if (ext === '.js') return templates.cjs
+    if (ext === '.ts') return templates.typescript
+    if (ext === '.mjs') return templates.esm
+    if (ext === '.cjs') return templates.cjs
+
+    if (['.ts', '.cts', '.mts'].includes(ext)) return templates.typescript
+
+    if (ext === '.sql') return templates.sql
+
+    return ''
   }
 
   /**
@@ -428,6 +443,7 @@ export class Migrator {
       const created = await this.create({content: diff})
       await this.baseline({to: created.name})
     }
+    return this.list()
   }
 
   async diffVsDDL() {
@@ -587,29 +603,25 @@ export class Migrator {
     const shadowClient = createClient(shadowConnectionString, {pgpOptions: this.client.pgpOptions})
 
     try {
-      await this.task(`Creating shadow db`, () =>
-        this.client.query(sql`create database ${sql.identifier([shadowDbName])}`),
-      )
+      await this.client.query(sql`create database ${sql.identifier([shadowDbName])}`)
 
       return await cb(shadowClient)
     } finally {
-      await this.task(`Destroying shadow db`, async () => {
-        await shadowClient.end()
-        await this.client
-          .query(sql`drop database ${sql.identifier([shadowDbName])} with (force)`)
-          .catch(async e => {
-            if (e.message.includes('syntax error at or near "with"')) {
-              // postgresql 12 backcompat
-              await this.client.query(sql`drop database ${sql.identifier([shadowDbName])}`)
-              return
-            }
-            throw e
-          })
-          .catch(e => {
-            if (e.message.includes('does not exist')) return // todo: check this error message?
-            throw e
-          })
-      })
+      await shadowClient.end()
+      await this.client
+        .query(sql`drop database ${sql.identifier([shadowDbName])} with (force)`)
+        .catch(async e => {
+          if (e.message.includes('syntax error at or near "with"')) {
+            // postgresql 12 backcompat
+            await this.client.query(sql`drop database ${sql.identifier([shadowDbName])}`)
+            return
+          }
+          throw e
+        })
+        .catch(e => {
+          if (e.message.includes('does not exist')) return // todo: check this error message?
+          throw e
+        })
     }
   }
 

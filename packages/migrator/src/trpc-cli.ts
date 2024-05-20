@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import {Procedure, Router, TRPCError, inferRouterContext, initTRPC} from '@trpc/server'
 import * as cleye from 'cleye'
-import chalk from 'picocolors'
+import colors from 'picocolors'
 import {ZodError, z} from 'zod'
 import ztjs from 'zod-to-json-schema'
 import * as zodValidationError from 'zod-validation-error'
@@ -163,7 +163,8 @@ export const trpcCli = async <R extends Router<any>>({
     argv,
   )
 
-  const {fullErrors, ...unknownFlags} = parsedArgv.unknownFlags
+  let {fullErrors, ...unknownFlags} = parsedArgv.unknownFlags
+  fullErrors ||= parsedArgv.flags.fullErrors
 
   const caller = initTRPC.context<NonNullable<typeof context>>().create({}).createCallerFactory(appRouter)(context)
 
@@ -172,7 +173,7 @@ export const trpcCli = async <R extends Router<any>>({
       throw (cause as Error) || new Error(message)
     }
     // eslint-disable-next-line no-console
-    console.error(chalk.red(message))
+    console.error(colors.red(message))
     if (help) {
       parsedArgv.showHelp()
     }
@@ -181,6 +182,10 @@ export const trpcCli = async <R extends Router<any>>({
   }
 
   const command = parsedArgv.command as keyof typeof caller
+
+  if (!command && parsedArgv._.length === 0) {
+    return die('No command provided.')
+  }
 
   if (!command) {
     die(`Command "${parsedArgv._.join(' ')}" not recognised.`)
@@ -201,9 +206,9 @@ export const trpcCli = async <R extends Router<any>>({
       if (cause instanceof ZodError) {
         const originalIssues = cause.issues
         try {
-          cause.issues = cause.issues.map(iss => ({
-            ...iss,
-            path: ['--' + iss.path[0], ...iss.path.slice(1)],
+          cause.issues = cause.issues.map(issue => ({
+            ...issue,
+            path: ['--' + issue.path[0], ...issue.path.slice(1)],
           }))
 
           const prettyError = zodValidationError.fromError(cause, {prefixSeparator: '\n  - ', issueSeparator: '\n  - '})
@@ -222,57 +227,4 @@ export const trpcCli = async <R extends Router<any>>({
     }
     throw err
   }
-}
-
-if (require.main === module) {
-  const trpc = initTRPC.context<{foo: 1}>().create({})
-
-  const fooRouter = trpc.router({
-    readonly: trpc.router({
-      list: trpc.procedure
-        .meta({description: 'heyyyyy'})
-        .input(
-          z.object({
-            filter: z.string().optional(),
-          }),
-        )
-        .query(({input}) => {
-          console.log({input}, '<<<list')
-          return [{foo: 1}]
-        }),
-    }),
-    down: trpc.procedure
-      .input(
-        z.union([
-          z.object({to: z.string()}).strict(), //
-          z.object({step: z.number()}).strict(),
-        ]),
-      )
-      .mutation(input => {
-        console.log({downinput: input}, '<<<down')
-      }),
-    up: trpc.procedure
-      .input(
-        z.object({
-          ss: z.string().optional(),
-        }),
-      )
-      .input(
-        z.object({
-          // bb: z.boolean(),
-          // ee: z.enum(['a', 'b']),
-          nn: z.number().describe('numbeer of things').min(2).max(10).describe('two thru ten').optional(),
-          aa: z.array(z.string()).optional(),
-          uu: z.union([z.number(), z.string()]).optional(),
-          oo: z.object({x: z.string()}),
-        }),
-      )
-      .mutation(({input}) => {
-        console.log({upinput: input}, '<<<up')
-      }),
-  })
-
-  void trpcCli({
-    router: fooRouter,
-  })
 }

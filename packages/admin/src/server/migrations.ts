@@ -62,7 +62,8 @@ export const migrationsRotuer = trpc.router({
     )
     .mutation(async ({ctx, input}) => {
       const migrator = await getMigrator(ctx)
-      return formatMigrations(await migrator.up(input as never))
+      await migrator.up(input as never)
+      return formatMigrations(await migrator.list())
     }),
   down: migrationsProcedure
     .input(
