@@ -10,3 +10,7 @@ Some principles:
 - dry-run by default - only perform any side-effects when explicitly requested:
   - pre-publish version bumping is done in a "staging area" - a temp directory, so that any aborted attempts _can't_ have an affect on the source repo
   - publishing is skipped unless an explicit CLI argument is passed
+- use git commit messages for changelogs
+- preview offline
+- work with any registry
+- no "one-way doors" - switch at-will between fixed and independent versioning
