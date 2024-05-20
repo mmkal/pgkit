@@ -5,7 +5,7 @@
     ],
     "target": "ES2022",
     "module": "NodeNext",
-    "strict": false,
+    "strict": true,
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
     "noErrorTruncation": true,

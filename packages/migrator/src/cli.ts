@@ -35,6 +35,17 @@ export const createMigratorRouter = (migrator: Migrator, {confirm}: {confirm: Co
       .mutation(async ({input}) => {
         return migrator.up(input)
       }),
+    baseline: trpc.procedure
+      .meta({description: 'Baseline the database at the specified migration'})
+      .input(
+        z.object({
+          to: z.string(),
+          purgeDisk: z.boolean().optional(),
+        }),
+      )
+      .mutation(async ({input}) => {
+        return migrator.baseline({...input, to: input.to})
+      }),
     list: trpc.procedure
       .meta({
         description: 'List migrations, along with their status, file path and content',
@@ -243,7 +254,7 @@ export class RepairAction extends CommandLineAction {
 }
 
 export class DefinitionsAction extends CommandLineAction {
-  private sqlFileParameter: CommandLineStringParameter
+  // private sqlFileParameter: CommandLineStringParameter
 
   constructor(private readonly migrator: Migrator) {
     super({
@@ -254,13 +265,13 @@ export class DefinitionsAction extends CommandLineAction {
   }
 
   protected onDefineParameters(): void {
-    this.sqlFileParameter = this.defineStringParameter({
-      parameterLongName: '--output',
-      parameterShortName: '-o',
-      description: 'Path to the SQL file',
-      argumentName: 'FILE',
-      required: true,
-    })
+    // this.sqlFileParameter = this.defineStringParameter({
+    //   parameterLongName: '--output',
+    //   parameterShortName: '-o',
+    //   description: 'Path to the SQL file',
+    //   argumentName: 'FILE',
+    //   required: true,
+    // })
   }
 
   protected async onExecute(): Promise<void> {

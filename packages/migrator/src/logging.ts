@@ -1,5 +1,3 @@
-import {UmzugOptions} from 'umzug'
-
 type LogMessage = Record<string, unknown>
 const createMessageFormats = <T extends Record<string, (msg: LogMessage) => [string, LogMessage]>>(formats: T) =>
   formats

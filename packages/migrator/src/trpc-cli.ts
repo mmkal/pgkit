@@ -34,7 +34,7 @@ export const trpcCli = async <R extends Router<any>>({
       },
       commands: Object.entries(appRouter._def.procedures).map(([commandName, _value]) => {
         const value = _value as Procedure<any, any>
-        value._def.inputs.forEach(input => {
+        value._def.inputs.forEach((input: unknown) => {
           if (!(input instanceof z.ZodType)) {
             throw new TypeError(`Only zod schemas are supported, got ${input}`)
           }
@@ -54,12 +54,12 @@ export const trpcCli = async <R extends Router<any>>({
           }
           if ('allOf' in sch) {
             return Object.fromEntries(
-              sch.allOf.flatMap(subSchema => Object.entries(flattenedProperties(subSchema as typeof jsonSchema))),
+              sch.allOf!.flatMap(subSchema => Object.entries(flattenedProperties(subSchema as typeof jsonSchema))),
             )
           }
           if ('anyOf' in sch) {
             return Object.fromEntries(
-              sch.anyOf.flatMap(subSchema => Object.entries(flattenedProperties(subSchema as typeof jsonSchema))),
+              sch.anyOf!.flatMap(subSchema => Object.entries(flattenedProperties(subSchema as typeof jsonSchema))),
             )
           }
           return {}
@@ -97,7 +97,7 @@ export const trpcCli = async <R extends Router<any>>({
                 break
               }
               default: {
-                cliType = x => x
+                cliType = (x: unknown) => x
                 break
               }
             }
@@ -115,7 +115,7 @@ export const trpcCli = async <R extends Router<any>>({
                   })
                   .sort(([a], [b]) => {
                     const scores = [a, b].map(k => (k === 'description' ? 0 : 1))
-                    return scores[0] - scores[1]
+                    return scores[0]! - scores[1]!
                   })
                   .map(([k, vv], i) => {
                     if (k === 'description' && i === 0) return String(vv)
@@ -126,7 +126,7 @@ export const trpcCli = async <R extends Router<any>>({
               )
             }
 
-            let description = getDescription(propertyValue)
+            let description: string | undefined = getDescription(propertyValue)
             if ('required' in jsonSchema && !jsonSchema.required?.includes(propertyKey)) {
               description = `${description} (optional)`.trim()
             }
@@ -165,7 +165,7 @@ export const trpcCli = async <R extends Router<any>>({
 
   const {fullErrors, ...unknownFlags} = parsedArgv.unknownFlags
 
-  const caller = initTRPC.context<typeof context>().create({}).createCallerFactory(appRouter)(context)
+  const caller = initTRPC.context<NonNullable<typeof context>>().create({}).createCallerFactory(appRouter)(context)
 
   const die = (message: string, {cause, help = true}: {cause?: unknown; help?: boolean} = {}) => {
     if (fullErrors) {
@@ -180,7 +180,6 @@ export const trpcCli = async <R extends Router<any>>({
     process.exit(1)
   }
 
-  // @ts-expect-error cleye types are dynamic
   const command = parsedArgv.command as keyof typeof caller
 
   if (!command) {

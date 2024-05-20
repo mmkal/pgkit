@@ -448,8 +448,8 @@ importers:
         specifier: ^4.17.1
         version: 4.17.1
       '@trpc/server':
-        specifier: ^10.45.1
-        version: 10.45.1
+        specifier: ^10.45.2
+        version: 10.45.2
       cleye:
         specifier: ^1.3.2
         version: 1.3.2
@@ -469,14 +469,14 @@ importers:
         specifier: ^3.7.0
         version: 3.7.0
       zod:
-        specifier: ^3.22.4
-        version: 3.22.4
+        specifier: ^3.23.8
+        version: 3.23.8
       zod-to-json-schema:
         specifier: ^3.23.0
-        version: 3.23.0(zod@3.22.4)
+        version: 3.23.0(zod@3.23.8)
       zod-validation-error:
         specifier: ^3.3.0
-        version: 3.3.0(zod@3.22.4)
+        version: 3.3.0(zod@3.23.8)
     devDependencies:
       '@types/lodash':
         specifier: ^4.14.202
@@ -3176,6 +3176,10 @@ packages:
 
   /@trpc/server@10.45.1:
     resolution: {integrity: sha512-KOzBEVaHW9IxEedUP9E50y0tYxAuvlzyjn80Bpemw4rcNbT4WtJnhkFPUY+qDJl7Crt3B/oY2qMgSxVWi9toLg==}
+    dev: false
+
+  /@trpc/server@10.45.2:
+    resolution: {integrity: sha512-wOrSThNNE4HUnuhJG6PfDRp4L2009KDVxsd+2VYH8ro6o/7/jwYZ8Uu5j+VaW+mOmc8EHerHzGcdbGNQSAUPgg==}
     dev: false
 
   /@ts-morph/common@0.19.0:
@@ -12126,25 +12130,29 @@ packages:
       '@types/yoga-layout': 1.9.2
     dev: false
 
-  /zod-to-json-schema@3.23.0(zod@3.22.4):
+  /zod-to-json-schema@3.23.0(zod@3.23.8):
     resolution: {integrity: sha512-az0uJ243PxsRIa2x1WmNE/pnuA05gUq/JB8Lwe1EDCCL/Fz9MgjYQ0fPlyc2Tcv6aF2ZA7WM5TWaRZVEFaAIag==}
     peerDependencies:
       zod: ^3.23.3
     dependencies:
-      zod: 3.22.4
+      zod: 3.23.8
     dev: false
 
-  /zod-validation-error@3.3.0(zod@3.22.4):
+  /zod-validation-error@3.3.0(zod@3.23.8):
     resolution: {integrity: sha512-Syib9oumw1NTqEv4LT0e6U83Td9aVRk9iTXPUQr1otyV1PuXQKOvOwhMNqZIq5hluzHP2pMgnOmHEo7kPdI2mw==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       zod: ^3.18.0
     dependencies:
-      zod: 3.22.4
+      zod: 3.23.8
     dev: false
 
   /zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
+
+  /zod@3.23.8:
+    resolution: {integrity: sha512-XBx9AXhXktjUqnepgTiE5flcKIYWi/rme0Eaj+5Y0lftuGBq+jyRu/md4WnuxqgP1ubdpNCsYEYPxrzVHD8d6g==}
+    dev: false
 
   github.com/mmkal/np/6a58244afa28fd7d3f8c4dc4b6457c22d74e82de(typescript@5.3.3):
     resolution: {tarball: https://codeload.github.com/mmkal/np/tar.gz/6a58244afa28fd7d3f8c4dc4b6457c22d74e82de}

@@ -121,17 +121,12 @@ export class Migrator {
     }
   }
 
-  get logger(): MigratorConfig['logger'] {
+  get logger(): Logger {
     return this.config.logger
   }
 
   get task(): Task {
     return this.config.task
-  }
-
-  /** Glob pattern with `migrationsPath` as `cwd`. Could be overridden to support nested directories */
-  protected migrationsGlob() {
-    return './*.{sql,js,ts,cjs,mjs}'
   }
 
   /** Gets a hexadecimal integer to pass to postgres's `select pg_advisory_lock()` function */
@@ -144,22 +139,6 @@ export class Migrator {
   protected migrationTableNameIdentifier() {
     const table = this.migratorOptions.migrationTableName || 'migrations'
     return sql.identifier(Array.isArray(table) ? table : [table])
-  }
-
-  protected template(filepath: string): Array<[string, string]> {
-    if (filepath.endsWith('.ts')) {
-      return [[filepath, templates.typescript]]
-    }
-
-    if (filepath.endsWith('.js') || filepath.endsWith('.cjs')) {
-      return [[filepath, templates.cjs]]
-    }
-
-    if (filepath.endsWith('.mjs')) {
-      return [[filepath, templates.esm]]
-    }
-
-    return [[filepath, templates.sqlUp]]
   }
 
   protected async applyMigration(params: {name: string; path: string; context: MigratorContext}) {
@@ -278,9 +257,9 @@ export class Migrator {
    */
   async up(input?: {to?: string} | {step?: number}) {
     let params: {to?: string} = {}
-    if ('to' in input && input.to !== undefined) {
+    if (input && 'to' in input && input.to !== undefined) {
       params = input
-    } else if ('step' in input && input.step !== undefined) {
+    } else if (input && 'step' in input && input.step !== undefined) {
       const pending = await this.pending()
       const target = pending.at(input.step - 1)
       if (!target) {
@@ -343,7 +322,7 @@ export class Migrator {
     if (await params.confirm(diffTo)) {
       await this.useAdvisoryLock(async () => {
         await this.client.query(sql.raw(diffTo))
-        await this.baseline({name: params.name, purgeDisk: params.purgeDisk})
+        await this.baseline({to: params.name, purgeDisk: params.purgeDisk})
       })
     }
   }
@@ -352,11 +331,11 @@ export class Migrator {
    * Marks all migrations up to and including the specified migration as executed in the database.
    * Useful when introducing this migrator to an existing database, and you know that the database matches the state up to a specific migration.
    */
-  async baseline(params: {name: string; purgeDisk?: boolean}) {
+  async baseline(params: {to: string; purgeDisk?: boolean}) {
     const list = await this.list()
-    const index = list.findIndex(m => m.name === params.name)
+    const index = list.findIndex(m => m.name === params.to)
     if (index === -1) {
-      throw new Error(`Migration ${params.name} not found`, {
+      throw new Error(`Migration ${params.to} not found`, {
         cause: {list},
       })
     }
@@ -445,9 +424,9 @@ export class Migrator {
   async rebase(params: {from: string; confirm: Confirm; name?: string}) {
     const diff = await this.getDiffFrom({name: params.from})
     if (await params.confirm(diff)) {
-      await this.baseline({name: params.from, purgeDisk: true})
+      await this.baseline({to: params.from, purgeDisk: true})
       const created = await this.create({content: diff})
-      await this.baseline({name: created.name})
+      await this.baseline({to: created.name})
     }
   }
 
