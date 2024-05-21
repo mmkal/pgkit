@@ -65,7 +65,7 @@ const useMigrations = () => {
 
   const create = trpc.migrations.create.useMutation(mutationConfig)
   const up = trpc.migrations.up.useMutation(mutationConfig)
-  const down = useConfirmable(trpc.migrations.down.useMutation(mutationConfig))
+  const down = useConfirmable(trpc.migrations.goto.useMutation(mutationConfig))
   const rebase = trpc.migrations.rebase.useMutation(mutationConfig)
   const check = trpc.migrations.check.useMutation({
     ...mutationConfig,
@@ -74,8 +74,9 @@ const useMigrations = () => {
   const repair = useConfirmable(trpc.migrations.repair.useMutation(mutationConfig))
 
   const update = trpc.migrations.update.useMutation(mutationConfig)
-  const updateDefintionsFromDB = trpc.migrations.updateDefintionsFromDB.useMutation(mutationConfig)
-  const updateDBFromDefinitions = useConfirmable(trpc.migrations.updateDBFromDefinitions.useMutation(mutationConfig))
+  const definitions = trpc.migrations.definitions.filepath.useQuery()
+  const updateDefintionsFromDB = trpc.migrations.definitions.updateFile.useMutation(mutationConfig)
+  const updateDBFromDefinitions = useConfirmable(trpc.migrations.definitions.updateDb.useMutation(mutationConfig))
 
   return {
     list,
@@ -86,6 +87,7 @@ const useMigrations = () => {
     check,
     repair,
     update,
+    definitions,
     updateDefintionsFromDB,
     updateDBFromDefinitions,
   }
@@ -126,7 +128,7 @@ function _Migrations() {
     }
   }, [list.data, fileState, workingFS])
 
-  const numPending = list.data?.migrations.filter(m => m.status === 'pending').length
+  const numPending = list.data?.filter(m => m.status === 'pending').length
 
   return (
     // <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -309,10 +311,10 @@ const _sampleFilesJson: Record<string, string> = {
 export const FileTree = (tree: File | Folder) => {
   const [fileState, setFileState] = file.useState()
 
-  const {up, down, rebase, list, updateDBFromDefinitions} = useMigrations()
+  const {up, down, rebase, list, definitions, updateDBFromDefinitions} = useMigrations()
 
   if (tree.type === 'file') {
-    const fileInfo = list.data?.migrations.find(f => f.path === tree.path)
+    const fileInfo = list.data?.find(f => f.path === tree.path)
     return (
       <div className="flex cursor-pointer items-center rounded-lg DISABLEDpx-3 DISABLEDpy-2 px-px DISABLEDtext-gray-500 transition-all hover:text-gray-200 dark:DISABLEDtext-gray-400 dark:DISABLEDhover:text-gray-50">
         <ContextMenu>
@@ -326,7 +328,7 @@ export const FileTree = (tree: File | Folder) => {
                 <icons.File className="mr-2 h-4 w-4" />
                 {basename(tree.path)}
               </span>
-              {tree.path === list.data?.definitions.filepath && (
+              {tree.path === definitions.data?.path && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
                     <Button className="gap-2 flex-1 justify-start" onClick={() => updateDBFromDefinitions.mutate()}>
@@ -349,7 +351,7 @@ export const FileTree = (tree: File | Folder) => {
               {fileInfo?.status === 'executed' && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2 flex-1 justify-start" onClick={() => down.mutate({to: fileInfo.name})}>
+                    <Button className="gap-2 flex-1 justify-start" onClick={() => down.mutate({name: fileInfo.name})}>
                       <icons.CircleArrowDown />
                       Revert migrations down to this one
                     </Button>

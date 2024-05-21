@@ -12,17 +12,11 @@ export type TrpcCliParams<R extends Router<any>> = {
   router: R
   context?: inferRouterContext<R>
   argv?: string[]
-  getAlias?: (fullName: string, meta: {command: string; flags: Record<string, unknown>}) => string
-  onSuccess?: (result: unknown) => void
+  alias?: (fullName: string, meta: {command: string; flags: Record<string, unknown>}) => string
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const trpcCli = async <R extends Router<any>>({
-  router: appRouter,
-  argv,
-  context,
-  getAlias,
-}: TrpcCliParams<R>) => {
+export const trpcCli = async <R extends Router<any>>({router: appRouter, argv, context, alias}: TrpcCliParams<R>) => {
   const parsedArgv = cleye.cli(
     {
       flags: {
@@ -36,7 +30,7 @@ export const trpcCli = async <R extends Router<any>>({
         const value = _value as Procedure<any, any>
         value._def.inputs.forEach((input: unknown) => {
           if (!(input instanceof z.ZodType)) {
-            throw new TypeError(`Only zod schemas are supported, got ${input}`)
+            throw new TypeError(`Only zod schemas are supported, got ${input?.constructor.name}`)
           }
         })
         const zodSchema: z.ZodType<any> =
@@ -144,18 +138,16 @@ export const trpcCli = async <R extends Router<any>>({
         )
 
         Object.entries(flags).forEach(([fullName, flag]) => {
-          const alias = getAlias?.(fullName, {command: commandName, flags})
-          if (alias) {
-            Object.assign(flag, {alias})
+          const a = alias?.(fullName, {command: commandName, flags})
+          if (a) {
+            Object.assign(flag, {alias: a})
           }
         })
 
         return cleye.command({
           name: commandName,
-          ...(value.meta?.description && {
-            help: {description: value.meta?.description},
-          }),
-          flags: flags,
+          help: value.meta,
+          flags: flags as {},
         })
       }) as cleye.Command[],
     },

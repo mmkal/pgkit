@@ -29,7 +29,7 @@ export type RunnableMigration = umzug.RunnableMigration<MigratorContext>
 
 export interface MigratorOptions {
   /** @pgkit/client instance */
-  client: Client
+  client: string | Client
   migrationsPath: string
   migrationTableName?: string | string[]
   /**
@@ -95,7 +95,12 @@ type MigratorConfig = {
 export class Migrator {
   configStorage = new AsyncLocalStorage<Partial<MigratorConfig>>()
 
-  constructor(readonly migratorOptions: MigratorOptions) {}
+  client: Client
+
+  constructor(readonly migratorOptions: MigratorOptions) {
+    this.client =
+      typeof migratorOptions.client === 'string' ? createClient(migratorOptions.client) : migratorOptions.client
+  }
 
   useConfig<T>(config: MigratorConfig, fn: (previous: MigratorConfig) => Promise<T>) {
     const previous = this.config
@@ -179,10 +184,6 @@ export class Migrator {
   /** Wait this many milliseconds before logging a message warning that the advisory lock hasn't been acquired yet. */
   get lockWarningMs() {
     return 1000
-  }
-
-  get client() {
-    return this.migratorOptions.client
   }
 
   get definitionsFile() {

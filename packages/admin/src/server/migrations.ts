@@ -1,4 +1,5 @@
 import {Migrator} from '@pgkit/migrator'
+import {createMigratorRouter} from '@pgkit/migrator/dist/router.js'
 import * as fs from 'fs'
 import * as path from 'path'
 import {z} from 'zod'
@@ -51,7 +52,9 @@ const getMigratorStuff = async (ctx: ServerContext) => {
 const formatMigrations = <Status extends string>(migrations: {name: string; path?: string; status?: Status}[]) =>
   migrations.map(m => ({name: m.name, path: m.path, status: m.status}))
 
-export const migrationsRotuer = trpc.router({
+// export const migrationsRouter2 = createMigratorRouter()
+
+export const migrationsRouter = trpc.router({
   up: migrationsProcedure
     .input(
       z
