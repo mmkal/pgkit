@@ -19,29 +19,61 @@ export interface MigratorRouterMeta {
   examples?: string | string[]
 }
 
-export type TRPCLike<Ctx> = {_config: {$types: {ctx: Ctx}}}
-export type TRPCContext<T extends TRPCLike<unknown>> = T['_config']['$types']['ctx']
+/** Helper type that IMO should exist in trpc. Basically a type which a trpc-procedure with context of type `Ctx` will satisfy */
+export type TRPCProcedureLike<Ctx> = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mutation: (resolver: (opts: {ctx: Ctx; input: any}) => any) => any
+}
 
-export const createMigratorRouter = <Parent extends TRPCLike<unknown>>(params?: {
-  trpc: Parent
-  mapContext: (ctx: TRPCContext<Parent>) => MigratorRouterContext
-}) => {
-  const baseTrpc = trpcServer.initTRPC
-    .context<MigratorRouterContext>()
-    .meta<MigratorRouterMeta>()
-    .create({...(params?.trpc._config as {})})
+/** Parameters needed for a helper function returning a router, which can be used as a sub-router for another. */
+export interface TRPCHelperParams<Ctx> {
+  /** The `trpc.procedure` function. A middleware can be used to align context types. */
+  procedure: TRPCProcedureLike<Ctx>
+}
 
-  const procedure = params
-    ? baseTrpc.procedure.use(({ctx, next}) => {
-        return next({
-          ctx: params.mapContext(ctx as never),
-        })
-      })
-    : baseTrpc.procedure
+export const migratorTrpc = trpcServer.initTRPC
+  .context<MigratorRouterContext>()
+  .meta<MigratorRouterMeta>()
+  .create() satisfies TRPCHelperParams<MigratorRouterContext> // use `satisfies` to make sure the `TRPCProcedureLike` type helper is correct
 
-  const trpc = {procedure, router: baseTrpc.router}
+/**
+ * Get a router with procedures needed to manage migrations.
+ *
+ * @param procedure - TRPC procedure builder for the router this will be attached to. Must have the correct context type
+ *
+ * @example
+ * import {createMigratorRouter, Migrator} from '@pgkit/migrator'
+ * import {initTRPC} from '@trpc/server'
+ *
+ * const t = initTRPC.context<YourAppContext>().create()
+ *
+ * export const yourAppRouter = t.router({
+ *   yourProcedeure: t.procedure.query(async () => 'Hello, world!'),
+ *   migrations: getMigrationsRouter(),
+ * })
+ *
+ * function getMigrationsRouter() {
+ *   return createMigratorRouter(
+ *     t.procedure.use(async ({ctx, next}) => {
+ *       return next({
+ *         ctx: {
+ *           migrator: new Migrator(___),
+ *           confirm: async (sql: string) => {
+ *             return ctx.whitelistedSql.includes(sql)
+ *           },
+ *         }
+ *       })
+ *     })
+ *   )
+ * }
+ */
+export const createMigratorRouter = ({procedure}: TRPCHelperParams<MigratorRouterContext>) => {
+  // Take advantage of trpc being overly lax about merging routers with different contexts: https://github.com/trpc/trpc/issues/4306
+  // We have used the `TRPCProcedureLike` type to ensure that the context is correct for the procedure builder, and trpc will merge the routers without checking the context
+  // This means any router with a different context type can use this helper to creater a migrations sub-router, by just defining a middleware that sets the correct context
+  const trpc = {router: migratorTrpc.router, procedure: procedure} as typeof migratorTrpc
 
-  const appRotuer = trpc.router({
+  const appRotuer = migratorTrpc.router({
     sql: trpc.procedure
       .meta({
         description:
@@ -233,7 +265,7 @@ export const createMigratorRouter = <Parent extends TRPCLike<unknown>>(params?: 
     repair: trpc.procedure
       .meta({
         description:
-          'If your migrations are not in a valid state, this will calculate the diff required to move your databse to a valid state, and apply it',
+          'If your migrations are not in a valid state, this will calculate the diff required to move your database to a valid state, and apply it',
       })
       .mutation(async ({ctx}) => {
         return ctx.migrator.repair({confirm: ctx.confirm})

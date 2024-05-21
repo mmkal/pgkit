@@ -4,6 +4,7 @@ import React from 'react'
 import {useLocalStorage} from 'react-use'
 import {toast} from 'sonner'
 import {MeasuredCodeMirror} from '../sql-codemirror'
+import {MutationButton} from '../utils/MutationButton'
 import {createCascadingState} from '../utils/cascading-state'
 import {useConfirmable} from '../utils/destructive'
 import {trpc} from '../utils/trpc'
@@ -58,15 +59,26 @@ export const Migrations = file.wrap(workingFSContext.wrap(_Migrations))
 const useMigrations = () => {
   const util = trpc.useUtils()
   const mutationConfig = {
-    onSuccess: () => Promise.all([util.migrations.invalidate(), util.inspect.invalidate()]),
+    onSuccess: async () => {
+      await Promise.all([
+        util.migrations.invalidate(),
+        util.inspect.invalidate(),
+        util.migrations.definitions.invalidate(),
+      ])
+    },
   }
 
-  const list = trpc.migrations.list.useQuery()
+  const list = trpc.migrations.rawList.useQuery()
 
-  const create = trpc.migrations.create.useMutation(mutationConfig)
+  const create = trpc.migrations.create.useMutation()
   const up = trpc.migrations.up.useMutation(mutationConfig)
   const down = useConfirmable(trpc.migrations.goto.useMutation(mutationConfig))
-  const rebase = trpc.migrations.rebase.useMutation(mutationConfig)
+  const rebase = trpc.migrations.rebase.useMutation({
+    onSuccess: async data => {
+      await mutationConfig.onSuccess()
+      toast.success(`Migrations rebased successfully. Last executed migration now set to: ${data.at(-1)?.name}`)
+    },
+  })
   const check = trpc.migrations.check.useMutation({
     ...mutationConfig,
     onSuccess: () => toast.success('Migrations are in a valid state'),
@@ -83,7 +95,7 @@ const useMigrations = () => {
     create,
     up,
     down,
-    rebase,
+    rebase: useConfirmable(rebase),
     check,
     repair,
     update,
@@ -97,25 +109,24 @@ function _Migrations() {
   const [fileState] = file.useState()
   const [workingFS, setWorkingFS] = workingFSContext.useState()
 
-  const {create, list, up, update, ...migrations} = useMigrations()
+  const list = trpc.migrations.rawList.useQuery()
+  const definitions = trpc.migrations.definitions.filepath.useQuery()
 
   const filesData = React.useMemo(() => {
-    const fsEntries = (list.data?.migrations || [])
+    const fsEntries = (list.data || [])
       .flatMap(m => {
         return [[m.path, m.content]] as Array<[string, string]>
       })
-      .concat(list.data?.definitions.content ? [[list.data.definitions.filepath, list.data.definitions.content]] : [])
+      .concat(definitions.data?.content ? [[definitions.data.path, definitions.data.content]] : [])
       .filter(e => e[0])
       .sort((x, y) => x[0].localeCompare(y[0]))
     const fsJson = Object.fromEntries(fsEntries)
     const files = fsEntries.map(e => e[0])
-    let current: {path: string; content: string; status?: 'pending' | 'executed'} | undefined =
-      list.data?.migrations.find(f => f.path === fileState)
-    if (!current && fileState === list.data?.definitions.filepath) {
-      current = {
-        path: list.data.definitions.filepath,
-        content: list.data.definitions.content,
-      }
+    let current: {path: string; content: string | null; status?: 'pending' | 'executed'} | undefined = list.data?.find(
+      f => f.path === fileState,
+    )
+    if (!current && fileState === definitions.data?.path) {
+      current = definitions.data
     }
 
     const workingContent = !current || workingFS[current.path] === current.content ? undefined : workingFS[current.path]
@@ -142,7 +153,19 @@ function _Migrations() {
             <div className="flex justify-between h-[60px] items-center border-b pl-3">
               <span className="font-semibold">Migrations</span>
               <div className="flex gap-1 pr-1.5">
-                <Button
+                <MutationButton title="Wipe DB" icon="Bomb" mutation={trpc.migrations.wipe} />
+                <MutationButton
+                  title="Create migration"
+                  icon="SquarePlus"
+                  mutation={trpc.migrations.create}
+                  args={() => {
+                    const name = prompt('name?')
+                    if (!name) return null
+
+                    return [{name}] as const
+                  }}
+                />
+                {/* <Button
                   title="Create migration"
                   onClick={() => {
                     const name = prompt('name?')
@@ -150,7 +173,7 @@ function _Migrations() {
                   }}
                 >
                   <icons.SquarePlus />
-                </Button>
+                </Button> */}
 
                 {/* <ContextMenu>
                   <ContextMenuTrigger>
@@ -171,9 +194,7 @@ function _Migrations() {
                 </ContextMenu> */}
                 <ContextMenu>
                   <ContextMenuTrigger>
-                    <Button title="Apply migrations" onClick={() => up.mutate()}>
-                      <icons.CircleArrowUp />
-                    </Button>
+                    <MutationButton title="Apply migrations" icon="CircleArrowUp" mutation={trpc.migrations.up} />
                   </ContextMenuTrigger>
                   <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                     {!numPending && <ContextMenuItem disabled>No migrations to apply</ContextMenuItem>}
@@ -206,19 +227,24 @@ function _Migrations() {
                     </ContextMenuItem> */}
                   </ContextMenuContent>
                 </ContextMenu>
-                <Button title="Create definitions file" onClick={() => migrations.updateDefintionsFromDB.mutate()}>
-                  <icons.Book />
-                </Button>
-                <Button title="Check migrations" onClick={() => migrations.check.mutate()}>
-                  <icons.FileQuestion />
-                </Button>
-                <Button
-                  disabled={!migrations.check.isError}
-                  title={migrations.check.isError ? 'Repair migrations' : 'Use check to find issues first'}
-                  onClick={() => migrations.repair.mutate()}
-                >
-                  <icons.Wrench />
-                </Button>
+                <MutationButton
+                  title="Create definitions file"
+                  icon="Book"
+                  mutation={trpc.migrations.definitions.updateFile}
+                />
+                <MutationButton
+                  title="Repair migrations"
+                  icon="Wrench"
+                  mutation={trpc.migrations.repair}
+                  options={{
+                    onSuccess: data => {
+                      const message = data.updated
+                        ? 'Database state repaired successfully'
+                        : 'Database state was already valid'
+                      toast.success(message)
+                    },
+                  }}
+                />
               </div>
             </div>
             <div className="flex-1 overflow-auto py-2">
@@ -255,20 +281,25 @@ function _Migrations() {
                   />
                 </div>
               </form>
-              <Button
+              <MutationButton
                 title="Delete"
-                disabled={filesData.currentFile?.status === 'executed'}
-                onClick={() => update.mutate({path: fileState, content: null})}
-              >
-                <icons.Trash2 />
-              </Button>
-              <Button
+                icon="Trash2"
+                mutation={trpc.migrations.update}
+                args={[{path: fileState, content: null}]}
+              />
+              <MutationButton
                 title="Save"
+                icon="Save"
+                mutation={trpc.migrations.update}
+                options={{
+                  onSuccess: data => {
+                    alert('saved it' + JSON.stringify(data))
+                    setWorkingFS({...workingFS, [fileState]: undefined as never})
+                  },
+                }}
+                args={() => [{path: fileState, content: filesData.currentFile!.workingContent!.slice()}] as const}
                 disabled={!filesData.currentFile?.workingContent}
-                onClick={() => update.mutate({path: fileState, content: filesData.currentFile!.workingContent!})}
-              >
-                <icons.Save />
-              </Button>
+              />
             </div>
           </header>
           <main className="flex-1 p-4 md:p-6">

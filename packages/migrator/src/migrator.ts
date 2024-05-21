@@ -420,7 +420,7 @@ export class Migrator {
 
     if (ext === '.sql') return templates.sql
 
-    return ''
+    throw new Error(`Unsupported file extension ${ext}`)
   }
 
   /**
@@ -481,7 +481,7 @@ export class Migrator {
   async getRepairDiff() {
     const exectued = await this.executed()
     return this.useShadowMigrator(async shadowMigrator => {
-      await shadowMigrator.up({to: exectued.at(-1)?.name})
+      if (exectued.length > 0) await shadowMigrator.up({to: exectued.at(-1)?.name})
       const {sql: diff} = await this.wrapMigra(this.client, shadowMigrator.client)
       return diff.trim()
     })
@@ -492,6 +492,7 @@ export class Migrator {
     if (await params.confirm(diff)) {
       await this.client.query(sql.raw(diff))
     }
+    return {success: true, updated: diff.trim().length > 0}
   }
 
   async check() {

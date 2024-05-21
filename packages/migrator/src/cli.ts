@@ -4,7 +4,7 @@ import * as path from 'path'
 import * as colors from 'picocolors'
 import tasuku from 'tasuku'
 import {Migrator} from './migrator'
-import {createMigratorRouter} from './router'
+import {migratorTrpc, createMigratorRouter} from './router'
 import {trpcCli} from './trpc-cli'
 
 export const createMigratorCli = (migrator: Migrator) => {
@@ -16,7 +16,7 @@ export const createMigratorCli = (migrator: Migrator) => {
     })
   }
 
-  const router = createMigratorRouter()
+  const router = createMigratorRouter(migratorTrpc)
 
   return migrator.configStorage.run(
     {task: tasuku}, // use tasuku for logging

@@ -25,7 +25,7 @@
     "start": "node dist/server/index.js",
     "dev": "pnpm /dev:/",
     "dev:client": "vite",
-    "dev:server": "tsx watch src/server/dev",
+    "dev:server": "PGKIT_MIGRATIONS_PATH=/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations PGKIT_MIGRATIONS_TABLE_NAME=admin_test_migrations tsx watch src/server/dev",
     "e2e:setup": "playwright install",
     "e2e": "playwright test",
     "demo-assets": "PLAYWRIGHT_DEMO=1 pnpm e2e --headed && mkdir -p gifs && cd playwright-report/data && ffmpeg -i $(ls . | grep .webm | head -n 1) -ss 1 -vcodec copy -acodec copy output.webm && gifski --fps 32 -o ../../gifs/demo.gif output.webm",

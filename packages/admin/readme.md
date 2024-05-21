@@ -63,7 +63,7 @@ npm install @pgkit/admin
 npx pgkit-admin
 ```
 
-You can then set the `connection-string` header in the UI. When developing against a local databse, this is all you'll need to do.
+You can then set the `connection-string` header in the UI. When developing against a local database, this is all you'll need to do.
 
 ## Use as a library
 

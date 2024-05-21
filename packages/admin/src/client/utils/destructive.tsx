@@ -19,7 +19,9 @@ export function useDestructive<T extends {mutateAsync: Function}>(
 }
 
 export type RQMutationLike<P extends unknown[]> = {
+  mutate: (...args: P) => unknown
   mutateAsync: (...args: P) => Promise<unknown>
+  isLoading: boolean
 }
 
 export function useConfirmable<T extends RQMutationLike<any[]>>(input: T, options?: {auto?: boolean}): T {

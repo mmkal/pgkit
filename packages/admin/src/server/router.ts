@@ -1,18 +1,14 @@
 import {sql} from '@pgkit/client'
 import * as migra from '@pgkit/migra'
-import {Migrator} from '@pgkit/migrator'
-import {MigratorRouterContext, createMigratorRouter} from '@pgkit/migrator/dist/router.js'
 import {PostgreSQL} from '@pgkit/schemainspect'
-import {TRPCError, inferRouterContext} from '@trpc/server'
+import {TRPCError} from '@trpc/server'
 import {stringify as csvStringify} from 'csv-stringify/sync'
 import {fetchomatic} from 'fetchomatic'
-import {writeFile} from 'fs/promises'
 import {z} from 'zod'
-import {migrationsRouter, migrationsRouter2} from './migrations.js'
+import {migrations2} from './migrations.js'
 import {runQuery} from './query.js'
 import {publicProcedure, trpc} from './trpc.js'
 
-trpc._config.$types.ctx
 export const appRouter = trpc.router({
   healthcheck: publicProcedure.query(
     async () => ({ok: 1}), //
@@ -148,22 +144,7 @@ export const appRouter = trpc.router({
         now: Date.now(),
       }
     }),
-  migrations: trpc.mergeRouters(
-    createMigratorRouter({
-      trpc,
-      mapContext: parentCtx => ({
-        confirm: async () => false,
-        migrator: new Migrator({}),
-      }),
-    }),
-    trpc.router({
-      update: publicProcedure
-        .input(z.object({path: z.string(), content: z.string()})) //
-        .mutation(async ({input}) => {
-          await writeFile(input.path, input.content)
-        }),
-    }),
-  ),
+  migrations: migrations2,
 })
 
 const filterInspected = (
