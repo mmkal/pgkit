@@ -439,7 +439,15 @@ export class Migrator {
    */
   async rebase(params: {from: string; confirm: Confirm; name?: string}) {
     const diff = await this.getDiffFrom({name: params.from})
-    if (await params.confirm(diff)) {
+    const steps = [
+      `- Baseline migrations to ${params.from}`, //
+      `- Delete all subsequent migration files`,
+      `- Create new migration named ${nameQuery([diff]).replace(/_[\da-z]+$/, '')} with content:\n    ${diff.replaceAll('\n', '\n    ')}`,
+      `- Baseline migrations to the created migration`,
+      '',
+      `Note: this will not update the database other than the migrations table. It will modify your filesystem.`,
+    ]
+    if (await params.confirm(`## Steps:\n\n${steps.join('\n')}`)) {
       await this.baseline({to: params.from, purgeDisk: true})
       const created = await this.create({content: diff})
       await this.baseline({to: created.name})

@@ -73,6 +73,7 @@
     "express": "^4.18.2",
     "fetchomatic": "^0.0.2",
     "lucide-react": "^0.373.0",
+    "markdown-to-jsx": "^7.4.7",
     "next-themes": "^0.3.0",
     "p-memoize": "^7.1.1",
     "pgsql-ast-parser": "^12.0.1",

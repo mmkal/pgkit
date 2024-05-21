@@ -372,26 +372,33 @@ export const FileTree = (tree: File | Folder) => {
               {fileInfo?.status === 'pending' && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2 flex-1 justify-start" onClick={() => up.mutate({to: fileInfo.name})}>
-                      <icons.CircleArrowUp />
+                    <MutationButton icon="CircleArrowUp" mutation={trpc.migrations.up} args={[{to: fileInfo.name}]}>
                       Apply migrations up to this one
-                    </Button>
+                    </MutationButton>
                   </ContextMenuItem>
                 </ContextMenuContent>
               )}
               {fileInfo?.status === 'executed' && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2 flex-1 justify-start" onClick={() => down.mutate({name: fileInfo.name})}>
-                      <icons.CircleArrowDown />
+                    <MutationButton
+                      className="gap-2 flex-1 justify-start"
+                      icon="CircleArrowDown"
+                      mutation={trpc.migrations.goto}
+                      args={[{name: fileInfo.name}]}
+                    >
                       Revert migrations down to this one
-                    </Button>
+                    </MutationButton>
                   </ContextMenuItem>
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2 flex-1 justify-start" onClick={() => rebase.mutate({from: fileInfo.name})}>
-                      <icons.CircleArrowDown />
+                    <MutationButton
+                      className="gap-2 flex-1 justify-start"
+                      icon="Briefcase"
+                      mutation={trpc.migrations.rebase}
+                      args={[{from: fileInfo.name}]}
+                    >
                       Rebase migrations from this one
-                    </Button>
+                    </MutationButton>
                   </ContextMenuItem>
                 </ContextMenuContent>
               )}

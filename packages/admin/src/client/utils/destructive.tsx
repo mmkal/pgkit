@@ -33,16 +33,13 @@ export function useConfirmable<T extends RQMutationLike<any[]>>(input: T, option
         if (confirmation) {
           const yes =
             options?.auto ||
-            (await alerter.confirm(
-              'This action may be destructive. Please confirm you want to run the following SQL:',
-              {
-                description: (
-                  <div className="max-h-[300px] overflow-auto">
-                    <pre>{confirmation}</pre>
-                  </div>
-                ),
-              },
-            ))
+            (await alerter.confirm('This action may be destructive. Please confirm you want to run the following:', {
+              description: (
+                <div className="max-h-[300px] overflow-auto">
+                  <pre>{confirmation}</pre>
+                </div>
+              ),
+            }))
           if (yes) return input.mutateAsync({...params, confirmation})
         }
       }
