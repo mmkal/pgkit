@@ -32,7 +32,12 @@ export function useTrpcClient() {
             const message = String(error)
             if (message.includes('confirmation_missing:')) return // handled elsewhere
 
-            toast.error(message)
+            const casted = (error || {}) as {toasted?: boolean}
+            if (!casted?.toasted) {
+              // workaround: we wrap some mutations in a useConfirmable hook that will cause errors to bubble up twice
+              toast.error(message)
+              casted.toasted = true
+            }
           },
         }),
         queryCache: new QueryCache({

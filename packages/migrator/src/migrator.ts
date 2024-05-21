@@ -395,32 +395,34 @@ export class Migrator {
       nameSuffix = 'update.sql'
     }
 
+    const template = this.templates[path.extname(nameSuffix)]
+    if (typeof template !== 'string') {
+      // eslint-disable-next-line unicorn/prefer-type-error
+      throw new Error(`Unsupported file extension ${JSON.stringify(path.extname(nameSuffix))}`)
+    }
+
     const name = this.filePrefix() + nameSuffix
     const filepath = path.join(this.migratorOptions.migrationsPath, name)
 
     if (!content) {
-      content = this.template(filepath)
+      content = template
     }
 
     await fs.writeFile(filepath, content)
     return {name, path: filepath, content}
   }
 
-  template(filepath: string) {
-    const ext = path.extname(filepath)
-    const esm = typeof require?.main === 'object'
-
-    if (ext === '.js' && esm) return templates.esm
-    if (ext === '.js') return templates.cjs
-    if (ext === '.ts') return templates.typescript
-    if (ext === '.mjs') return templates.esm
-    if (ext === '.cjs') return templates.cjs
-
-    if (['.ts', '.cts', '.mts'].includes(ext)) return templates.typescript
-
-    if (ext === '.sql') return templates.sql
-
-    throw new Error(`Unsupported file extension ${ext}`)
+  get templates(): Record<string, string> {
+    const js = typeof require?.main === 'object' ? templates.cjs : templates.esm
+    return {
+      '.js': js,
+      '.ts': templates.typescript,
+      '.cts': templates.typescript,
+      '.mts': templates.typescript,
+      '.mjs': templates.esm,
+      '.cjs': templates.cjs,
+      '.sql': templates.sql,
+    }
   }
 
   /**

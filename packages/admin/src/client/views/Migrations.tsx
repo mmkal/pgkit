@@ -5,6 +5,7 @@ import {useLocalStorage} from 'react-use'
 import {toast} from 'sonner'
 import {MeasuredCodeMirror} from '../sql-codemirror'
 import {MutationButton} from '../utils/MutationButton'
+import {useAlerter} from '../utils/alerter'
 import {createCascadingState} from '../utils/cascading-state'
 import {useConfirmable} from '../utils/destructive'
 import {trpc} from '../utils/trpc'
@@ -112,6 +113,8 @@ function _Migrations() {
   const list = trpc.migrations.rawList.useQuery()
   const definitions = trpc.migrations.definitions.filepath.useQuery()
 
+  const alerter = useAlerter()
+
   const filesData = React.useMemo(() => {
     const fsEntries = (list.data || [])
       .flatMap(m => {
@@ -158,8 +161,8 @@ function _Migrations() {
                   title="Create migration"
                   icon="SquarePlus"
                   mutation={trpc.migrations.create}
-                  args={() => {
-                    const name = prompt('name?')
+                  args={async () => {
+                    const name = await alerter.prompt('name?')
                     if (!name) return null
 
                     return [{name}] as const
@@ -240,7 +243,7 @@ function _Migrations() {
                     onSuccess: data => {
                       const message = data.updated
                         ? 'Database state repaired successfully'
-                        : 'Database state was already valid'
+                        : 'Database state already valid'
                       toast.success(message)
                     },
                   }}
@@ -342,7 +345,7 @@ const _sampleFilesJson: Record<string, string> = {
 export const FileTree = (tree: File | Folder) => {
   const [fileState, setFileState] = file.useState()
 
-  const {up, down, rebase, list, definitions, updateDBFromDefinitions} = useMigrations()
+  const {list, definitions} = useMigrations()
 
   if (tree.type === 'file') {
     const fileInfo = list.data?.find(f => f.path === tree.path)
@@ -362,10 +365,11 @@ export const FileTree = (tree: File | Folder) => {
               {tree.path === definitions.data?.path && (
                 <ContextMenuContent className="mt-5 bg-gray-800 text-gray-100">
                   <ContextMenuItem className="p-0">
-                    <Button className="gap-2 flex-1 justify-start" onClick={() => updateDBFromDefinitions.mutate()}>
-                      <icons.Book />
-                      Update database to match this definitions file
-                    </Button>
+                    <MutationButton
+                      className="gap-2 flex-1 justify-start"
+                      icon="Book"
+                      mutation={trpc.migrations.definitions.updateDb}
+                    />
                   </ContextMenuItem>
                 </ContextMenuContent>
               )}
