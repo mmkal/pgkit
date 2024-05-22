@@ -463,8 +463,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       trpc-cli:
-        specifier: ^0.0.1
-        version: 0.0.1(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.1.4
+        version: 0.1.4(@trpc/server@10.45.2)(zod@3.23.8)
       umzug:
         specifier: ^3.7.0
         version: 3.7.0
@@ -11025,10 +11025,11 @@ packages:
     hasBin: true
     dev: true
 
-  /trpc-cli@0.0.1(@trpc/server@10.45.2)(zod@3.23.8):
-    resolution: {integrity: sha512-jzDQaI/We3Buuk9Kzay7BQjVIb4zVy39orJ1N+EeglVvfNCvVQk5brA5PDEBqoVZsJSqakRFEWMlmg2ApnibQg==}
+  /trpc-cli@0.1.4(@trpc/server@10.45.2)(zod@3.23.8):
+    resolution: {integrity: sha512-GFCdsx+A+72rsPIM4MBAYWDxeKghhb/lK1WjsAIDiD8fwrrfZtHWybujGbie5DUCW/cGWed1qSojfsIRGIeXUg==}
+    engines: {node: '>=18'}
     peerDependencies:
-      '@trpc/server': '>=11'
+      '@trpc/server': '>=10'
       zod: '>=3'
     dependencies:
       '@trpc/server': 10.45.2

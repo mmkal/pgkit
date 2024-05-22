@@ -75,7 +75,7 @@ export const createMigratorRouter = ({
   // This means any router with a different context type can use this helper to creater a migrations sub-router, by just defining a middleware that sets the correct context
   const trpc = {router: migratorTrpc.router, procedure: procedure} as typeof migratorTrpc
 
-  const appRotuer = migratorTrpc.router({
+  const router = migratorTrpc.router({
     sql: trpc.procedure
       .meta({
         description:
@@ -284,31 +284,7 @@ export const createMigratorRouter = ({
       .mutation(async ({ctx}) => {
         return ctx.migrator.wipe({confirm: ctx.confirm})
       }),
-    ddl: trpc.procedure
-      .meta({
-        description: 'Sync the database with the definitions file',
-      })
-      .input(
-        z.object({
-          updateDb: z.boolean().optional().describe(`Update the database from the definitions file`),
-          updateFile: z.boolean().optional().describe(`Update the definitions file from the database`),
-        }),
-      )
-      .mutation(async ({input, ctx}) => {
-        if (Boolean(input.updateDb) === Boolean(input.updateFile)) {
-          throw new trpcServer.TRPCError({
-            message: `You must specify exactly one of updateDb or updateFile (got ${JSON.stringify(input)})`,
-            code: 'BAD_REQUEST',
-          })
-        }
-        // eslint-disable-next-line unicorn/prefer-ternary
-        if (input.updateDb) {
-          return ctx.migrator.updateDBFromDDL({confirm: ctx.confirm})
-        } else {
-          return ctx.migrator.updateDDLFromDB()
-        }
-      }),
   })
 
-  return appRotuer
+  return router
 }

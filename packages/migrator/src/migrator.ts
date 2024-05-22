@@ -7,7 +7,10 @@ import {createHash, randomInt} from 'crypto'
 import {existsSync, readFileSync} from 'fs'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import {trpcCli} from 'trpc-cli'
 import * as umzug from 'umzug'
+import {confirm} from './cli'
+import {createMigratorRouter} from './router'
 import * as templates from './templates'
 import {MigratorContext} from './types'
 
@@ -133,6 +136,11 @@ export class Migrator {
 
   get task(): Task {
     return this.config.task
+  }
+
+  cli() {
+    const router = createMigratorRouter()
+    return trpcCli({router, context: {migrator: this, confirm}})
   }
 
   /** Gets a hexadecimal integer to pass to postgres's `select pg_advisory_lock()` function */
