@@ -1,9 +1,9 @@
 import * as prompt from '@inquirer/prompts'
 import * as path from 'path'
 import * as colors from 'picocolors'
+import {trpcCli} from 'trpc-cli'
 import {Migrator} from './migrator'
 import {createMigratorRouter} from './router'
-import {trpcCli} from './trpc-cli'
 
 export const getMigratorFromEnv = () => {
   return new Migrator({
