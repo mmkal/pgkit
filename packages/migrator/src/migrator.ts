@@ -4,7 +4,7 @@ import {formatSql} from '@pgkit/formatter'
 import * as migra from '@pgkit/migra'
 import {AsyncLocalStorage} from 'async_hooks'
 import {createHash, randomInt} from 'crypto'
-import {readFileSync} from 'fs'
+import {existsSync, readFileSync} from 'fs'
 import * as fs from 'fs/promises'
 import * as path from 'path'
 import * as umzug from 'umzug'
@@ -411,6 +411,7 @@ export class Migrator {
       content = template
     }
 
+    await fs.mkdir(this.migratorOptions.migrationsPath, {recursive: true})
     await fs.writeFile(filepath, content)
     return {name, path: filepath, content}
   }
@@ -461,9 +462,9 @@ export class Migrator {
   }
 
   async diffVsDDL() {
-    const content = await fs.readFile(this.definitionsFile, 'utf8')
+    const content = await fs.readFile(this.definitionsFile, 'utf8').catch(() => '')
     return this.useShadowClient(async shadowClient => {
-      await shadowClient.query(sql.raw(content))
+      if (content.trim()) await shadowClient.query(sql.raw(content))
       const {sql: diff} = await this.wrapMigra(this.client, shadowClient)
       return diff.trim()
     })
@@ -520,7 +521,9 @@ export class Migrator {
     const executed = await this.client.any(sql<{name: string}>`select * from ${this.migrationTableNameIdentifier()}`)
     const executedNames = new Set(executed.map(r => r.name))
 
-    const dir = await fs.readdir(this.migratorOptions.migrationsPath)
+    const dir = existsSync(this.migratorOptions.migrationsPath)
+      ? await fs.readdir(this.migratorOptions.migrationsPath)
+      : []
     const files = dir.filter(f => f.endsWith('.sql'))
 
     return Promise.all(

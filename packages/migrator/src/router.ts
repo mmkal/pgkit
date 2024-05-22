@@ -67,7 +67,9 @@ export const migratorTrpc = trpcServer.initTRPC
  *   )
  * }
  */
-export const createMigratorRouter = ({procedure}: TRPCHelperParams<MigratorRouterContext>) => {
+export const createMigratorRouter = ({
+  procedure = migratorTrpc.procedure,
+}: Partial<TRPCHelperParams<MigratorRouterContext>> = {}) => {
   // Take advantage of trpc being overly lax about merging routers with different contexts: https://github.com/trpc/trpc/issues/4306
   // We have used the `TRPCProcedureLike` type to ensure that the context is correct for the procedure builder, and trpc will merge the routers without checking the context
   // This means any router with a different context type can use this helper to creater a migrations sub-router, by just defining a middleware that sets the correct context
@@ -169,13 +171,6 @@ export const createMigratorRouter = ({procedure}: TRPCHelperParams<MigratorRoute
       .meta({
         description: 'List migrations, along with their status, file path and content',
       })
-      .query(async ({ctx}) => {
-        return ctx.migrator.list()
-      }),
-    search: trpc.procedure
-      .meta({
-        description: 'Search migrations, along with their status, file path and content',
-      })
       .input(
         z.object({
           query: z
@@ -184,7 +179,7 @@ export const createMigratorRouter = ({procedure}: TRPCHelperParams<MigratorRoute
             .describe('Search query - migrations with names containing this string will be returned'),
           status: z.enum(['pending', 'executed']).optional(),
           result: z.enum(['first', 'last', 'one', 'maybeOne', 'all']).default('all'),
-          output: z.enum(['name', 'path', 'content', 'object', 'json']).default('object'),
+          output: z.enum(['name', 'path', 'content', 'object']).default('object'),
         }),
       )
       .query(async ({input, ctx}) => {
@@ -197,7 +192,6 @@ export const createMigratorRouter = ({procedure}: TRPCHelperParams<MigratorRoute
             if (input.output === 'name') return m.name
             if (input.output === 'path') return m.path
             if (input.output === 'content') return m.content
-            if (input.output === 'json') return m
             return m
           })
 
