@@ -54,3 +54,36 @@ Flags:
       --full-errors        Throw unedited raw errors rather than summarising to make more human-readable.
   -h, --help               Show help
 ```
+
+## Configuration
+
+Right now, the built-in CLI is configured via environment variables.
+
+<table>
+<thead>
+<tr>
+<th>Environment Variable</th>
+<th>Description</th>
+<th>Default Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PGKIT_CONNECTION_STRING</td>
+<td>postgresql client connection string</td>
+<td>postgresql://postgres:postgres@localhost:5432/postgres</td>
+</tr>
+<tr>
+<td>PGKIT_MIGRATIONS_PATH</td>
+<td>Path to folder containing migraitons scripts</td>
+<td>${cwd}/migrations</td>
+</tr>
+<tr>
+<td>PGKIT_MIGRATIONS_TABLE_NAME</td>
+<td>Name for table to store migration history in</td>
+<td>migrations</td>
+</tr>
+</tbody>
+</table>
+
+In future, a `pgkit.config.ts` file will (probably) be supported.

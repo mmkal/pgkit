@@ -67,9 +67,7 @@ export const migratorTrpc = trpcServer.initTRPC
  *   )
  * }
  */
-export const createMigratorRouter = ({
-  procedure = migratorTrpc.procedure,
-}: Partial<TRPCHelperParams<MigratorRouterContext>> = {}) => {
+export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouterContext> = migratorTrpc.procedure) => {
   // Take advantage of trpc being overly lax about merging routers with different contexts: https://github.com/trpc/trpc/issues/4306
   // We have used the `TRPCProcedureLike` type to ensure that the context is correct for the procedure builder, and trpc will merge the routers without checking the context
   // This means any router with a different context type can use this helper to creater a migrations sub-router, by just defining a middleware that sets the correct context
