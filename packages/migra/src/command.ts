@@ -1,6 +1,9 @@
 import {Queryable, createClient} from '@pgkit/client'
 import {PostgreSQL} from '@pgkit/schemainspect'
+import {initTRPC} from '@trpc/server'
 import {readFile} from 'fs/promises'
+import {trpcCli, TrpcCliMeta} from 'trpc-cli'
+import {z} from 'zod'
 import {Migration} from './migra'
 
 // todo: deviation: always return a PostgreSQL instance, and make `Migration.create` only accept PostgreSQL instances
@@ -28,6 +31,7 @@ const argContext = async (x: Queryable | string): Promise<PostgreSQL | Queryable
   return createClient(x)
 }
 
+type CLI = {flags: any}
 export type Flags = Partial<CLI['flags']>
 
 export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable | string, args: Flags = {}) => {
@@ -95,64 +99,59 @@ export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable 
   // return 2
 }
 
-export const getCli = async () => {
-  const {default: meow} = await import('meow')
-  const cli = meow(
-    `
-      Usage
-          $ command [input]
-
-      Options
-          --unsafe, -u  Prevent migra from erroring upon generation of drop statements.
-          --schema, -s  Restrict output to statements for a particular schema
-          --excludeSchema, -e  Restrict output to statements for all schemas except the specified schema
-          --createExtensionsOnly, -c  Only output "create extension..." statements, nothing else.
-          --ignoreExtensionVersions, -i  Ignore the versions when comparing extensions.
-          --withPrivileges, -w  Also output privilege differences (ie. grant/revoke statements)
-          --forceUtf8, -f  Force UTF-8 encoding for output
-          --dburlFrom, -d  The database you want to migrate.
-          --dburlTarget, -t  The database you want to use as the target.
-
-      Examples
-          $ command --unsafe --schema mySchema
-    `,
-    {
-      flags: {
-        unsafe: {type: 'boolean', shortFlag: 'u'},
-        schema: {type: 'string', shortFlag: 's'},
-        excludeSchema: {type: 'string', shortFlag: 'e'},
-        createExtensionsOnly: {type: 'boolean', shortFlag: 'c'},
-        ignoreExtensionVersions: {type: 'boolean', shortFlag: 'i'},
-        withPrivileges: {type: 'boolean', shortFlag: 'w'},
-        forceUtf8: {type: 'boolean', shortFlag: 'f'},
-      },
-      importMeta: {
-        url: `file://${__filename}`,
-        dirname: __dirname,
-        filename: __filename,
-        resolve: x => x,
-      },
-    },
-  )
-
-  return cli
-}
-
-export type CLI = Awaited<ReturnType<typeof getCli>>
-
-export const do_command = async () => {
-  const cli = await getCli()
-  const [dburlFrom, dburlTarget] = cli.input
-  if (!dburlFrom || !dburlTarget) {
-    cli.showHelp(1)
-  }
-
-  const {sql} = await run(dburlFrom, dburlTarget, cli.flags)
-  return sql
-  // process.exit(status)
-}
+const t = initTRPC.meta<TrpcCliMeta>().create()
+const router = t.router({
+  run: t.procedure
+    .meta({
+      description: 'Diff two databases and output the statements to migrate from one to the other.',
+      examples: [
+        `migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a'`,
+        `migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' --unsafe`,
+      ],
+    })
+    .input(
+      z.tuple([
+        z.string().describe('dburlFrom'),
+        z.string().describe('dburlTarget'),
+        z
+          .object({
+            unsafe: z
+              .boolean()
+              .default(false)
+              .describe('Prevent migra from erroring upon generation of drop statements.'),
+            schema: z.string().optional().describe('Restrict output to statements for a particular schema'),
+            excludeSchema: z
+              .string()
+              .optional()
+              .describe('Restrict output to statements for all schemas except the specified schema'),
+            createExtensionsOnly: z
+              .boolean()
+              .default(false)
+              .describe('Only output "create extension..." statements, nothing else.'),
+            ignoreExtensionVersions: z
+              .boolean()
+              .default(false)
+              .describe('Ignore the versions when comparing extensions.'),
+            withPrivileges: z
+              .boolean()
+              .default(false)
+              .describe('Also output privilege differences (ie. grant/revoke statements)'),
+            forceUtf8: z.boolean().default(false).describe('Force UTF-8 encoding for output'),
+          })
+          .optional(),
+      ]),
+    )
+    .query(async ({input: [dburlFrom, dburlTarget, args]}) => {
+      const {sql} = await run(dburlFrom, dburlTarget, args)
+      return sql
+    }),
+})
 
 if (require.main === module) {
   // eslint-disable-next-line unicorn/prefer-top-level-await, no-console
-  void do_command().then(console.log)
+  const cli = trpcCli({
+    router,
+    default: {procedure: 'run'},
+  })
+  void cli.run()
 }
