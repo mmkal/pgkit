@@ -4,6 +4,7 @@
     "description": "A CLI to generate PostgeSQL schema diff scripts",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "bin": "dist/command.js",
     "author": "mmkal",
     "repository": {
         "type": "git",

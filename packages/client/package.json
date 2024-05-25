@@ -9,7 +9,7 @@
     "src"
   ],
   "scripts": {
-    "prepare": "pnpm build",
+    "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
   },

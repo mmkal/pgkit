@@ -19,7 +19,7 @@
   "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme",
   "scripts": {
     "_dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5432/postgres\"",
-    "prepare": "pnpm build",
+    "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
   },

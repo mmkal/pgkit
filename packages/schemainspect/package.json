@@ -15,7 +15,7 @@
     "directory": "packages/schemainspect"
   },
   "scripts": {
-    "prepare": "pnpm build",
+    "prepack": "pnpm build",
     "codegen": "ts-node scripts/generate-types.ts",
     "build": "tsc --sourceMap -p tsconfig.lib.json",
     "test": "vitest run"

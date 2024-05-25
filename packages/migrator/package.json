@@ -5,6 +5,7 @@
   "author": "mmkal",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "bin": "dist/bin.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/mmkal/slonik-tools",
@@ -14,10 +15,9 @@
   "files": [
     "dist"
   ],
-  "bin": "dist/bin.js",
   "scripts": {
     "dev": "PGKIT_MIGRATIONS_PATH=/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations PGKIT_MIGRATIONS_TABLE_NAME=admin_test_migrations tsx src/bin",
-    "prepare": "pnpm build",
+    "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
   },
