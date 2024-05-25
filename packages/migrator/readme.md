@@ -1,6 +1,6 @@
 # @pgkit/migrator
 
->Note: @pgkit/migrator is being re-written. See [the new docs](./new.md).
+>Note: @pgkit/migrator is being re-written. Docs are _mostly_ updated.
 
 A cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
 
@@ -18,359 +18,339 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
 <details>
   <summary>Contents</summary>
 
-<!-- codegen:start {preset: markdownTOC, minDepth: 2} -->
+<!-- codegen:start {preset: markdownTOC, minDepth: 2, maxDepth: 3} -->
 - [Motivation](#motivation)
+- [Installation](#installation)
 - [Usage](#usage)
-   - [JavaScript and TypeScript migrations](#javascript-and-typescript-migrations)
-   - [Running migrations](#running-migrations)
-   - [More commands](#more-commands)
-   - [Controlling migrations](#controlling-migrations)
-- [Commands](#commands)
-   - [up](#up)
-   - [down](#down)
-   - [pending](#pending)
-   - [executed](#executed)
-   - [create](#create)
-   - [repair](#repair)
-   - [Examples](#examples)
-   - [Running programatically](#running-programatically)
+   - [Commands](#commands)
+   - [Command: up](#command-up)
+   - [Command: create](#command-create)
+   - [Command: list](#command-list)
+   - [Command: latest](#command-latest)
+   - [Command: check](#command-check)
+   - [Command: repair](#command-repair)
+   - [Command: goto](#command-goto)
+   - [Command: baseline](#command-baseline)
+   - [Command: rebase](#command-rebase)
+   - [Command: definitions.filepath](#command-definitionsfilepath)
+   - [Command: definitions.updateDb](#command-definitionsupdatedb)
+   - [Command: definitions.updateFile](#command-definitionsupdatefile)
+   - [Command: unlock](#command-unlock)
+   - [Command: wipe](#command-wipe)
+   - [Command: sql](#command-sql)
 - [Configuration](#configuration)
-- [Implementation](#implementation)
 <!-- codegen:end -->
 
 </details>
+# @pgkit/migrator
+
+A migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client)
+
+Features:
+
+- SQL-first - write migrations using plain-old SQL. Just write `create table ...` statements.
+- Flexible - migrations can also be written in javascript or typescript for more dynamic use-cases.
+- DDL generation - read and write from a definitions file, making it easy to see what your whole schema looks like.
+- Smart `create` - tinker with your database manually, then automatically create a migration file based on the drift.
+- `goto`: Automatic "down" migrations. Uses [migra](https://npmjs.com/package/@pgkit/migra) to go "back" to a specific migration.
+- `rebase` migrations - rewrite and squash migrations past a certain point to consolidate working changes into one.
+- `check` migrations to see if your database state matches what it should be based on the list of migrations
+- `repair` to update the database to match the state described by your migrations
+- `baseline` - mark an existing database as up-to-date, making it easy to introduce this tool to existing projects, and avoids worry about version updates.
+- Ready for distributed systems - database-level advisory locking makes it safe for multiple servers to run migrations at the same time
+- Footgun-protection - any destructive changes require explicit confirmation
+- Transaction support - apply all your migrations if they succeed, or none of them if any fail
+
+## Installation
+
+```
+npm install @pgkit/migrator
+```
 
 ## Usage
 
-```bash
-npm install --save-dev @pgkit/migrator
-```
-
-Then in a file called `migrate.js`:
-```javascript
-const {Migrator} = require('@pgkit/migrator')
-const {createClient} = require('@pgkit/client')
-
-// in an existing project, this may be setup in another module
-const client = createClient(process.env.POSTGRES_CONNECTION_STRING) // e.g. 'postgresql://postgres:postgres@localhost:5433/postgres'
-
-const migrator = new Migrator({
-  migrationsPath: __dirname + '/migrations',
-  migrationTableName: 'migration',
-  client,
-  logger: Migrator.prettyLogger,
-})
-
-migrator.runAsCLI()
-```
-
-By calling `runAsCLI()`, `migrate.js` has now become a runnable cli script via `node migrate.js` or just `node migrate`:
-
-```bash
-node migrate create --name users.sql
-```
-This generates placeholder migration sql scripts in the directory specified by `migrationsPath` called something like `2019-06-17T03-27.users.sql` and `down/2019-06-17T03-27.users.sql`.
-
-You can now edit the generated sql files to `create table users(name text)` for the 'up' migration and `drop table users` for the 'down' migration.
-
-### JavaScript and TypeScript migrations
-  
-These are expected to be modules with a required `up` export and an optional `down` export. Each of these functions will have an object passed to them with a client instance, and a `sql` tag function. You can see a [javascript](./test/generated/run/migrations/03.three.js) and a [typescript](./test/generated/run/migrations/04.four.ts) example in the tests.
- 
-Note: if writing migrations in typescript, you will likely want to use a tool like [ts-node](https://npmjs.com/package/ts-node) to enable loading typescript modules. You can either add `require('ts-node/register/transpile-only')` at the top of your `migrate.js` file, or run `node -r ts-node/register/transpile-only migrate ...` instead of `node migrate ...`.
-
-(Using `ts-node/register/transpile-only` performs faster than `ts-node/register`, and is safe to use if type-checking is performed separately).
-
-**Recommendation**: where possible, it's better to use SQL migrations than JavaScript or TypeScript. They're more portable and less likely to have side-effects beyond the DB.
-
-### Running migrations
-
-To run all "up" migrations:
-
-```bash
-node migrate up
-```
-
-The `users` table will now have been created.
-
-To revert the last migration:
-
-```bash
-node migrate down
-```
-
-The `users` table will now have been dropped again.
-
-### More commands
-
-To print the list of migrations that have already been applied:
-
-```bash
-node migrate executed
-```
-
-To print the list of migrations that are due to be applied:
-
-```bash
-node migrate pending
-```
-
-### Controlling migrations
-
-By default, `node migrate down` reverts only the most recent migration.
-
-It is also possible to migrate up or down "to" a specific migration. For example, if you have run migrations `one.sql`, `two.sql`, `three.sql` and `four.sql`, you can revert `three.sql` and `four.sql` by running `node migrate down --to three.sql`. Note that the range is *inclusive*. To revert all migrations in one go, run `node migrate down --to 0`. Note also that the migration names will usually contain a timestamp prefix, and can be listed with `node migrate pending` or `node migrate executed`.
-
-Conversely, `node migrate up` runs all `up` migrations by default. To run only up to a certain migaton, run `node migrate up --to two.sql`. This will run migrations `one.sql` and `two.sql` - again, the range is *inclusive* of the name.
-
-See [commands](#commands) for more options, and [examples](#examples) to see how you can use the CLI.
-
-<!-- generate umzug's CLI section, since this package just exposes an umzug helper -->
-<!-- codegen:start {preset: custom, source: ./codegen.js} -->
-## Commands
+You can run it out of the box as a CLI:
 
 ```
-usage: node migrate [-h] <command> ...
-
-@pgkit/migrator - PostgreSQL migration tool
-
-Positional arguments:
-  <command>
-    up        Applies pending migrations
-    down      Revert migrations
-    pending   Lists pending migrations
-    executed  Lists executed migrations
-    create    Create a migration file
-    repair    Repair hashes in the migration table
-
-Optional arguments:
-  -h, --help  Show this help message and exit.
-
-For detailed help about a specific command, use: node migrate <command> -h
+npx @pgkit/migrator --help
 ```
 
-### up
+<!-- codegen:start {preset: custom, command: up, source: ./scripts/codegen.ts, require: tsx/cjs, export: cliToMarkdown, cli: src/bin} -->
+### Commands
 
-```
-usage: node migrate up [-h] [--to NAME] [--step COUNT] [--name MIGRATION]
-                   [--rerun {THROW,SKIP,ALLOW}]
-                   
+- [`up`](#command-up) - Apply pending migrations
+- [`create`](#command-create) - Create a new migration file
+- [`list`](#command-list) - List migrations, along with their status, file path and content
+- [`latest`](#command-latest) - Get the latest migration
+- [`check`](#command-check) - Verify that your database is in an expected state, matching your migrations
+- [`repair`](#command-repair) - If your migrations are not in a valid state, this will calculate the diff required to move your database to a valid state, and apply it
+- [`goto`](#command-goto) - Go "back" to a specific migration. This will calculate the diff required to get to the target migration, then apply it
+- [`baseline`](#command-baseline) - Baseline the database at the specified migration. This forcibly edits the migrations table to mark all migrations up to this point as executed. Useful for introducing the migrator to an existing database.
+- [`rebase`](#command-rebase) - Rebase the migrations from the specified migration. This deletes all migration files after this point, and replaces them with a squashed migration based on the calculated diff required to reach the current database state.
+- [`definitions.filepath`](#command-definitions.filepath) - Get the path to the definitions file
+- [`definitions.updateDb`](#command-definitions.updateDb) - Update the database from the definitions file
+- [`definitions.updateFile`](#command-definitions.updateFile) - Update the definitions file from the database
+- [`unlock`](#command-unlock) - Release the advisory lock for this migrator on the database. This is useful if the migrator is stuck due to a previous crash
+- [`wipe`](#command-wipe) - Wipe the database - remove all tables, views etc.
+- [`sql`](#command-sql) - Query the database. Not strictly related to migrations, but can be used for debugging. Use with caution!
 
-Performs all migrations. See --help for more options
+---
 
-Optional arguments:
-  -h, --help            Show this help message and exit.
-  --to NAME             All migrations up to and including this one should be 
-                        applied.
-  --step COUNT          Run this many migrations. If not specified, all will 
-                        be applied.
-  --name MIGRATION      Explicity declare migration name(s) to be applied.
-  --rerun {THROW,SKIP,ALLOW}
-                        Specify what action should be taken when a migration 
-                        that has already been applied is passed to --name. 
-                        The default value is "THROW".
-```
+### Command: up
 
-### down
+Apply pending migrations
 
-```
-usage: node migrate down [-h] [--to NAME] [--step COUNT] [--name MIGRATION]
-                     [--rerun {THROW,SKIP,ALLOW}]
-                     
+#### Usage
 
-Undoes previously-applied migrations. By default, undoes the most recent 
-migration only. Use --help for more options. Useful in development to start 
-from a clean slate. Use with care in production!
+- `up [flags...]`
 
-Optional arguments:
-  -h, --help            Show this help message and exit.
-  --to NAME             All migrations up to and including this one should be 
-                        reverted. Pass "0" to revert all.
-  --step COUNT          Run this many migrations. If not specified, one will 
-                        be reverted.
-  --name MIGRATION      Explicity declare migration name(s) to be reverted.
-  --rerun {THROW,SKIP,ALLOW}
-                        Specify what action should be taken when a migration 
-                        that has already been reverted is passed to --name. 
-                        The default value is "THROW".
-```
+#### Flags
 
-### pending
+- `--step <number>` - Apply this many migrations; Exclusive minimum: 0
+- `--to <string>` - Only apply migrations up to this one
+- `-h, --help` - Show help
 
-```
-usage: node migrate pending [-h] [--json]
+---
 
-Prints migrations returned by `umzug.pending()`. By default, prints migration 
-names one per line.
+### Command: create
 
-Optional arguments:
-  -h, --help  Show this help message and exit.
-  --json      Print pending migrations in a json format including names and 
-              paths. This allows piping output to tools like jq. Without this 
-              flag, the migration names will be printed one per line.
-```
+Create a new migration file
 
-### executed
+#### Usage
 
-```
-usage: node migrate executed [-h] [--json]
+- `create [flags...]`
 
-Prints migrations returned by `umzug.executed()`. By default, prints 
-migration names one per line.
+#### Flags
 
-Optional arguments:
-  -h, --help  Show this help message and exit.
-  --json      Print executed migrations in a json format including names and 
-              paths. This allows piping output to tools like jq. Without this 
-              flag, the migration names will be printed one per line.
-```
+- `--content <string>` - SQL content of the migration. If not specified, content will be generated based on the calculated diff between the existing migrations and the current database state.
+- `--name <string>` - Name of the migration file. If not specified, a name will be generated based on the content of the migraiton
+- `-h, --help` - Show help
 
-### create
+---
 
-```
-usage: node migrate create [-h] --name NAME [--prefix {TIMESTAMP,DATE,NONE}]
-                       [--folder PATH] [--allow-extension EXTENSION]
-                       [--skip-verify] [--allow-confusing-ordering]
-                       
+### Command: list
 
-Generates a placeholder migration file using a timestamp as a prefix. By 
-default, mimics the last existing migration, or guesses where to generate the 
-file if no migration exists yet.
+List migrations, along with their status, file path and content
 
-Optional arguments:
-  -h, --help            Show this help message and exit.
-  --name NAME           The name of the migration file. e.g. my-migration.js, 
-                        my-migration.ts or my-migration.sql. Note - a prefix 
-                        will be added to this name, usually based on a 
-                        timestamp. See --prefix
-  --prefix {TIMESTAMP,DATE,NONE}
-                        The prefix format for generated files. TIMESTAMP uses 
-                        a second-resolution timestamp, DATE uses a 
-                        day-resolution timestamp, and NONE removes the prefix 
-                        completely. The default value is "TIMESTAMP".
-  --folder PATH         Path on the filesystem where the file should be 
-                        created. The new migration will be created as a 
-                        sibling of the last existing one if this is omitted.
-  --allow-extension EXTENSION
-                        Allowable extension for created files. By default .js,
-                         .ts and .sql files can be created. To create txt 
-                        file migrations, for example, you could use '--name 
-                        my-migration.txt --allow-extension .txt' This 
-                        parameter may alternatively be specified via the 
-                        UMZUG_ALLOW_EXTENSION environment variable.
-  --skip-verify         By default, the generated file will be checked after 
-                        creation to make sure it is detected as a pending 
-                        migration. This catches problems like creation in the 
-                        wrong folder, or invalid naming conventions. This 
-                        flag bypasses that verification step.
-  --allow-confusing-ordering
-                        By default, an error will be thrown if you try to 
-                        create a migration that will run before a migration 
-                        that already exists. This catches errors which can 
-                        cause problems if you change file naming conventions. 
-                        If you use a custom ordering system, you can disable 
-                        this behavior, but it's strongly recommended that you 
-                        don't! If you're unsure, just ignore this option.
-```
+#### Usage
 
-### repair
+- `list [flags...]`
 
-```
-usage: node migrate repair [-h] [-d]
+#### Flags
 
-If, for any reason, the hashes are incorrectly stored in the database, you 
-can recompute them using this command. Note that due to a bug in 
-@pgkit/migrator v0.8.X-v0.9-X the hashes were incorrectly calculated, so 
-this command is recommended after upgrading to v0.10.
+- `--output <string>` - Result properties to return; Enum: name,path,content,object (default: "object")
+- `--query <string>` - Search query - migrations with names containing this string will be returned
+- `--result <string>` - Which result(s) to return; Enum: first,last,one,maybeOne,all (default: "all")
+- `--status <string>` - Filter by status; Enum: pending,executed
+- `-h, --help` - Show help
 
-Optional arguments:
-  -h, --help     Show this help message and exit.
-  -d, --dry-run  No changes are actually made
-```
+---
+
+### Command: latest
+
+Get the latest migration
+
+#### Usage
+
+- `latest [flags...]`
+
+#### Flags
+
+- `--skip-check` - Skip checking that migrations are in a valid state
+- `-h, --help` - Show help
+
+---
+
+### Command: check
+
+Verify that your database is in an expected state, matching your migrations
+
+#### Usage
+
+- `check [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: repair
+
+If your migrations are not in a valid state, this will calculate the diff required to move your database to a valid state, and apply it
+
+#### Usage
+
+- `repair [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: goto
+
+Go "back" to a specific migration. This will calculate the diff required to get to the target migration, then apply it
+
+#### Usage
+
+- `goto [flags...]`
+
+#### Flags
+
+- `--name <string>` - Name of the migration to go to. Use "list" to see available migrations.
+- `-h, --help` - Show help
+
+---
+
+### Command: baseline
+
+Baseline the database at the specified migration. This forcibly edits the migrations table to mark all migrations up to this point as executed. Useful for introducing the migrator to an existing database.
+
+#### Usage
+
+- `baseline [flags...]`
+
+#### Flags
+
+- `--purge-disk` - Delete files subsequent to the specified migration (optional)
+- `--to <string>` - Name of the migration to baseline to. Use `list` to see available migrations.
+- `-h, --help` - Show help
+
+---
+
+### Command: rebase
+
+Rebase the migrations from the specified migration. This deletes all migration files after this point, and replaces them with a squashed migration based on the calculated diff required to reach the current database state.
+
+#### Usage
+
+- `rebase [flags...]`
+
+#### Flags
+
+- `--from <string>` - Name of the migration to rebase from. This migration will remain, all subsequent ones will be replaced with a squashed migration. Use `list` to see available migrations.
+- `-h, --help` - Show help
+
+---
+
+### Command: definitions.filepath
+
+Get the path to the definitions file
+
+#### Usage
+
+- `definitions.filepath [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: definitions.updateDb
+
+Update the database from the definitions file
+
+#### Usage
+
+- `definitions.updateDb [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: definitions.updateFile
+
+Update the definitions file from the database
+
+#### Usage
+
+- `definitions.updateFile [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: unlock
+
+Release the advisory lock for this migrator on the database. This is useful if the migrator is stuck due to a previous crash
+
+#### Usage
+
+- `unlock [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: wipe
+
+Wipe the database - remove all tables, views etc.
+
+#### Usage
+
+- `wipe [flags...]`
+
+#### Flags
+
+- `-h, --help` - Show help
+
+---
+
+### Command: sql
+
+Query the database. Not strictly related to migrations, but can be used for debugging. Use with caution!
+
+#### Usage
+
+- `sql [flags...]`
+
+#### Flags
+
+- `--doublequote <string>` - Character to use in place of " - use to avoid having to do bash quote-escaping (optional)
+- `--method <string>` - Enum: any,many,one,maybeOne,query,anyFirst,oneFirst,maybeOneFirst (optional) (default: "any")
+- `--query <string>`
+- `--singlequote <string>` - Character to use in place of ' - use to avoid having to do bash quote-escaping (optional)
+- `-h, --help` - Show help
 <!-- codegen:end -->
-
-### Examples
-
-Assuming `migrate.js` is a script setup something like:
-
-```js
-const {Migrator} = require('@pgkit/migrator')
-
-const migrator = new Migrator(/* ... */)
-migrator.runAsCLI()
-```
-
-Here are some ways you could use it:
-
-```bash
-ndoe migrate --help # shows help
-
-node migrate up # runs all pending migrations
-
-node migrate down # reverts the last-run migration
-
-node migrate down --to 0 # reverts all migrations
-node migrate up --to some-specific-migration.sql # runs all migrations up to and including some-specific-migration.sql
-node migrate down --to some-other-migration.sql # reverts all migrations down to and including some-other-migration.sql
-
-node migrate up --step 2 # runs the next two migrations
-node migrate down --step 2 # reverts the two most recent migrations
-
-node migrate up --name m1.sql --name m2.sql # runs only m1.sql and m2.sql. Throws if they aren't pending.
-node migrate up --name m1.sql --name m2.sql --rerun ALLOW # runs m1.sql and m2.sql, even if they've already been executed
-node migrate up --name m1.sql --name m2.sql --rerun SKIP # runs m1.sql and m2.sql, if they haven't already been executed. Skips if they have.
-
-node migrate down --name m1.sql --name m2.sql # reverts only m1.sql and m2.sql. Throws if they haven't been executed.
-node migrate down --name m1.sql --name m2.sql --rerun ALLOW # runs m1.sql and m2.sql, even if they haven't been executed yet.
-node migrate down --name m1.sql --name m2.sql --rerun SKIP # runs m1.sql and m2.sql, if they have already been executed. Skips if they haven't.
-
-node migrate up --help # shows help for `up`
-node migrate down --help # shows help for `down`
-
-node migrate create --name some-migration.sql # creates a new migration, prefixed with timestamp, in the migrations folder
-
-node migrate pending # lists pending migrations
-node migrate executed # lists executed migrations
-
-node migrate repair --dry-run # logs which migrations are in need of a repair
-node migrate repair # repairs them
-```
-
-### Running programatically
-
-To run migrations programmatically, you can import the `migrator` object from another file. For example, in a lambda handler:
-
-```javascript
-module.exports.handler = () => require('./migrate').up()
-```
-
-Or, you could write a script which seeds data in test environments:
-
-```javascript
-import {migrator, client} from './migrate'
-import {sql} from '@pgkit/client'
-
-export const seed = async () => {
-  const migrations = await migrator.up()
-  if (migrations.some(m => m.file.endsWith('.users.sql'))) {
-    await client.query(sql`insert into users(name) values('foo')`)
-  }
-}
-```
 
 ## Configuration
 
-parameters for the `Migrator` constructor:
+Right now, the built-in CLI is configured via environment variables.
 
-| property | description | default value |
-|--------|------------|-------------|
-| `client` | database pool instance, created by `createPool` or `createClient`. | N/A |
-| `migrationsPath` | path pointing to directory on filesystem where migration files will live. | N/A |
-| `migrationTableName` | the name for the table migrations information will be stored in. You can change this to avoid a clash with existing tables, or to conform with your team's naming standards. Set to an array to change the schema e.g. `['public', 'dbmigrations']` | N/A |
-| `logger` | how information about the migrations will be logged. You can set to `console` to log raw objects to console, `undefined` to prevent logs appearing at all, use `Migrator.prettyLogger` or supply a custom logger. | `undefined` |
+<table>
+<thead>
+<tr>
+<th>Environment Variable</th>
+<th>Description</th>
+<th>Default Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PGKIT_CONNECTION_STRING</td>
+<td>postgresql client connection string</td>
+<td>postgresql://postgres:postgres@localhost:5432/postgres</td>
+</tr>
+<tr>
+<td>PGKIT_MIGRATIONS_PATH</td>
+<td>Path to folder containing migraitons scripts</td>
+<td>${cwd}/migrations</td>
+</tr>
+<tr>
+<td>PGKIT_MIGRATIONS_TABLE_NAME</td>
+<td>Name for table to store migration history in</td>
+<td>migrations</td>
+</tr>
+</tbody>
+</table>
 
-`Migrator.prettyLogger` logs all messages to console. Known events are prettified to strings, unknown events or unexpected message properties in known events are logged as objects.
-
-## Implementation
-
-Under the hood, the library thinly wraps [umzug](https://npmjs.com/package/umzug) with a custom pgkit-based storage implementation.
+In future, a `pgkit.config.ts` file will (probably) be supported.
