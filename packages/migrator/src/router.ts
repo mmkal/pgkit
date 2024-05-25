@@ -107,8 +107,9 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
       .input(
         z
           .union([
-            z.object({to: z.string().optional(), step: z.undefined()}), //
-            z.object({step: z.number(), to: z.undefined()}),
+            z.object({}).strict(), //
+            z.object({to: z.string().describe('Only apply migrations up to this one')}),
+            z.object({step: z.number().int().positive().describe('Apply this many migrations')}),
           ])
           .optional(),
       )
@@ -122,8 +123,8 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
       })
       .input(
         z.object({
-          to: z.string(),
-          purgeDisk: z.boolean().optional(),
+          to: z.string().describe('Name of the migration to baseline to. Use `list` to see available migrations.'),
+          purgeDisk: z.boolean().default(false).describe('Delete files subsequent to the specified migration'),
         }),
       )
       .mutation(async ({input, ctx}) => {
@@ -147,12 +148,16 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
         return ctx.migrator.rebase({...input, confirm: ctx.confirm})
       }),
     definitions: trpc.router({
-      filepath: trpc.procedure.meta({description: 'Get the path to the definitions file'}).query(async ({ctx}) => {
-        return {
-          path: ctx.migrator.definitionsFile,
-          content: await readFile(ctx.migrator.definitionsFile, 'utf8'),
-        }
-      }),
+      filepath: trpc.procedure
+        .meta({
+          description: 'Get the path to the definitions file',
+        })
+        .query(async ({ctx}) => {
+          return {
+            path: ctx.migrator.definitionsFile,
+            content: await readFile(ctx.migrator.definitionsFile, 'utf8'),
+          }
+        }),
       updateDb: trpc.procedure
         .meta({description: 'Update the database from the definitions file'})
         .mutation(async ({ctx}) => {
@@ -164,7 +169,6 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
           return ctx.migrator.updateDDLFromDB()
         }),
     }),
-
     list: trpc.procedure
       .meta({
         description: 'List migrations, along with their status, file path and content',
@@ -175,9 +179,15 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
             .string()
             .optional()
             .describe('Search query - migrations with names containing this string will be returned'),
-          status: z.enum(['pending', 'executed']).optional(),
-          result: z.enum(['first', 'last', 'one', 'maybeOne', 'all']).default('all'),
-          output: z.enum(['name', 'path', 'content', 'object']).default('object'),
+          status: z.enum(['pending', 'executed']).optional().describe('Filter by status'),
+          result: z
+            .enum(['first', 'last', 'one', 'maybeOne', 'all'])
+            .default('all')
+            .describe('Which result(s) to return'),
+          output: z
+            .enum(['name', 'path', 'content', 'object'])
+            .default('object')
+            .describe('Result properties to return'),
         }),
       )
       .query(async ({input, ctx}) => {
