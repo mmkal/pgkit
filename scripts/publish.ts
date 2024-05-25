@@ -347,10 +347,10 @@ const main = async () => {
   }
   const loadRegistryPackageJson = (pkg: PkgMeta) => {
     const filepath = packageJsonFilepath(pkg, 'registry')
-    if (!fs.existsSync(path.dirname(filepath))) {
+    if (!fs.existsSync(path.join(pkg.folder, 'registry'))) {
       // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
       throw new Error(
-        `Registry package.json folder for ${filepath} doesn't exist yet. Has the "Pull registry packages" step run yet?`,
+        `Registry package.json folder for ${filepath} doesn't exist yet. Has the "Pulling \${pkg.name}" step run yet?`,
       )
     }
 
