@@ -472,8 +472,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       trpc-cli:
-        specifier: ^0.2.2
-        version: 0.2.2(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.3.0
+        version: 0.3.0(@trpc/server@10.45.2)(zod@3.23.8)
       umzug:
         specifier: ^3.7.0
         version: 3.7.0
@@ -11124,8 +11124,8 @@ packages:
       zod-validation-error: 3.3.0(zod@3.23.8)
     dev: false
 
-  /trpc-cli@0.2.2(@trpc/server@10.45.2)(zod@3.23.8):
-    resolution: {integrity: sha512-+NypGyxu3reFxq+CSPQVbcqrqIKQCdFc6arlTMbF2OfUhYwUGpeWf+uU3KsanVPb85EgI9sGiXtmuhkbxyuZmg==}
+  /trpc-cli@0.3.0(@trpc/server@10.45.2)(zod@3.23.8):
+    resolution: {integrity: sha512-FahEW3lt9L3eMVbDD3tpCkmxkDGnarfpC4vmJJWoIBy8sreAwbWY7meAhtKM4UrTbEk2Qq4Pg9hkySsu0Cio7w==}
     engines: {node: '>=18'}
     peerDependencies:
       '@trpc/server': '>=10'
