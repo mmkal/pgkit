@@ -208,7 +208,7 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
         }),
       )
       .mutation(async ({input, ctx}) => {
-        return ctx.migrator.baseline({...input, to: input.to})
+        return ctx.migrator.baseline({...input, to: input.to, confirm: ctx.confirm})
       }),
     rebase: trpc.procedure
       .meta({

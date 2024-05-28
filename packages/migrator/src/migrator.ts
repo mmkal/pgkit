@@ -9,6 +9,7 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import {trpcCli} from 'trpc-cli'
 import * as umzug from 'umzug'
+import {inspect} from 'util'
 import {confirm} from './cli'
 import {createMigratorRouter} from './router'
 import * as templates from './templates'
@@ -25,6 +26,7 @@ export interface PendingMigration extends BaseListedMigration {
 }
 export interface ExecutedMigration extends BaseListedMigration {
   status: 'executed'
+  drifted: boolean
 }
 export type ListedMigration = PendingMigration | ExecutedMigration
 
@@ -150,9 +152,23 @@ export class Migrator {
     return Number.parseInt(hex, 16)
   }
 
-  protected migrationTableNameIdentifier() {
+  protected get migrationTable() {
     const table = this.migratorOptions.migrationTableName || 'migrations'
-    return sql.identifier(Array.isArray(table) ? table : [table])
+    if (table.length === 0) {
+      throw new Error(`Invalid migration table name: ${JSON.stringify(table)}`)
+    } else if (Array.isArray(table) && table.length > 2) {
+      throw new Error(`Invalid migration table name: ${table.join('.')}`)
+    } else if (Array.isArray(table)) {
+      return {schema: table.at(-2) || null, table: table.at(-1)!}
+    } else {
+      return {schema: null, table}
+    }
+  }
+
+  protected migrationTableNameIdentifier() {
+    return this.migrationTable.schema
+      ? sql.identifier([this.migrationTable.schema, this.migrationTable.table])
+      : sql.identifier([this.migrationTable.table])
   }
 
   protected async applyMigration(params: {name: string; path: string; context: MigratorContext}) {
@@ -175,18 +191,18 @@ export class Migrator {
   }
 
   protected async getOrCreateMigrationsTable() {
-    await Migrator.getOrCreateMigrationsTable({client: this.client, table: this.migrationTableNameIdentifier()})
+    await this.client.query(this.createMigrationsTableSQL)
   }
 
-  static async getOrCreateMigrationsTable(params: {client: Client; table: ReturnType<typeof sql.identifier>}) {
-    // todo: use migra to make sure the table has the right definition?
-    await params.client.query(sql`
-      create table if not exists ${params.table}(
+  protected get createMigrationsTableSQL() {
+    return sql`
+      create table if not exists ${this.migrationTableNameIdentifier()}(
         name text primary key,
-        hash text not null,
+        content text not null,
+        status text,
         date timestamptz not null default now()
       )
-    `)
+    `
   }
 
   /** Wait this many milliseconds before logging a message warning that the advisory lock hasn't been acquired yet. */
@@ -232,17 +248,18 @@ export class Migrator {
     }
   }
 
+  protected content(name: string) {
+    return readFileSync(path.join(this.migratorOptions.migrationsPath, name), 'utf8')
+  }
+
   protected hash(name: string) {
-    return createHash('md5')
-      .update(readFileSync(path.join(this.migratorOptions.migrationsPath, name), 'utf8').trim().replaceAll(/\s+/g, ' '))
-      .digest('hex')
-      .slice(0, 10)
+    return createHash('md5').update(this.content(name).trim().replaceAll(/\s+/g, ' ')).digest('hex').slice(0, 10)
   }
 
   protected async logMigration({name, context}: {name: string; context: MigratorContext}) {
     await context.connection.query(sql`
-      insert into ${this.migrationTableNameIdentifier()}(name, hash)
-      values (${name}, ${this.hash(name)})
+      insert into ${this.migrationTableNameIdentifier()}(name, content, status)
+      values (${name}, ${this.content(name)}, 'executed')
     `)
   }
 
@@ -256,7 +273,7 @@ export class Migrator {
   protected async repairMigration({name, hash, context}: {name: string; hash: string; context: MigratorContext}) {
     await context.connection.one(sql`
       update ${this.migrationTableNameIdentifier()}
-      set hash = ${hash}
+      set content = ${hash}, status = 'executed'
       where name = ${name}
       returning *
     `)
@@ -332,16 +349,43 @@ export class Migrator {
     if (await params.confirm(diffTo)) {
       await this.useAdvisoryLock(async () => {
         await this.client.query(sql.raw(diffTo))
-        await this.baseline({to: params.name, purgeDisk: params.purgeDisk})
+        await this.baseline({to: params.name, purgeDisk: params.purgeDisk, confirm: async () => true})
       })
     }
+  }
+
+  private async getMigrationsTableInspected() {
+    const emptyDiff = await this.wrapMigra('EMPTY', this.client)
+    return Object.values(emptyDiff.result.changes.i_target.tables).find(table => {
+      return (
+        table.name === this.migrationTable.table &&
+        (!this.migrationTable.schema || table.schema === this.migrationTable.schema)
+      )
+    })
+  }
+
+  private async getMigrationsTableFixStatements() {
+    const currentTable = await this.getMigrationsTableInspected()
+    const expectedTable = await this.useShadowMigrator(async shadowMigrator => {
+      await shadowMigrator.getOrCreateMigrationsTable()
+      return shadowMigrator.getMigrationsTableInspected()
+    })
+
+    if (JSON.stringify(currentTable) === JSON.stringify(expectedTable)) {
+      return []
+    }
+
+    return [
+      sql`drop table if exists ${this.migrationTableNameIdentifier()}`, //
+      this.createMigrationsTableSQL,
+    ]
   }
 
   /**
    * Marks all migrations up to and including the specified migration as executed in the database.
    * Useful when introducing this migrator to an existing database, and you know that the database matches the state up to a specific migration.
    */
-  async baseline(params: {to: string; purgeDisk?: boolean}) {
+  async baseline(params: {to: string; purgeDisk?: boolean; confirm: Confirm}) {
     const list = await this.list()
     const index = list.findIndex(m => m.name === params.to)
     if (index === -1) {
@@ -349,18 +393,32 @@ export class Migrator {
         cause: {list},
       })
     }
-    await this.useContext(async context => {
-      await context.connection.query(sql`
-        delete from ${this.migrationTableNameIdentifier()}
-      `)
-      const records = list.slice(0, index + 1).map(m => ({name: m.name, hash: m.name}))
 
-      // jsonb_to_recordset preferable over unnest I guess? https://contra.com/p/P7kB2RPO-bulk-inserting-nested-data-into-the-database-part-ii
-      await context.connection.query(sql`
-        insert into ${this.migrationTableNameIdentifier()} (name, hash)
+    const records = list.slice(0, index + 1).map(m => ({
+      name: m.name,
+      content: m.content,
+      status: 'executed',
+    }))
+    const queries = [
+      ...(await this.getMigrationsTableFixStatements()),
+      sql`delete from ${this.migrationTableNameIdentifier()}`,
+      sql`
+        insert into ${this.migrationTableNameIdentifier()} (name, content, status)
         select *
-        from jsonb_to_recordset(${JSON.stringify(records)}) AS t(name text, hash text)
-      `)
+        from jsonb_to_recordset(${JSON.stringify(records)}) AS t(name text, content text, status)
+      `,
+    ]
+
+    const confirmable = queries
+      .map(q => this.renderStatement(q)) //
+      .join('\n\n---\n\n')
+    const ok = await params.confirm(confirmable)
+    if (!ok) return
+
+    await this.useContext(async context => {
+      for (const query of queries) {
+        await context.connection.query(query)
+      }
 
       if (params.purgeDisk) {
         for (const m of list.slice(index + 1)) {
@@ -368,6 +426,17 @@ export class Migrator {
         }
       }
     })
+  }
+
+  renderStatement(q: {sql: string; values: unknown[]}) {
+    const lines = [
+      q.sql
+        .replace(/^\n/, '')
+        .replaceAll(q.sql.match(/^\n?(\s*)/)![1]!, '')
+        .trim(),
+      q.values.length > 0 ? `parameters: [${q.values.join(',')}]` : (undefined as never),
+    ]
+    return lines.filter(Boolean).join('\n').trim()
   }
 
   /**
@@ -452,19 +521,33 @@ export class Migrator {
    * usually be considered permanent. Any destructive commands in production should be in an explicit new migration.
    */
   async rebase(params: {from: string; confirm: Confirm; name?: string}) {
+    const tableFixStatements = await this.getMigrationsTableFixStatements()
     const diff = await this.getDiffFrom({name: params.from})
-    const steps = [
+    const lines = [
+      '## Steps that will be automatically applied on confirmation:',
+      [
+        '- First, recreate the migrations table which is not correctly initialised:',
+        '',
+        tableFixStatements.map(q => this.renderStatement(q)).join('\n\n'),
+        '',
+        '---',
+        '',
+        'Then, perform the actual baseline:',
+        '',
+      ]
+        .filter(() => tableFixStatements.length > 0)
+        .join('\n'),
       `- Baseline migrations to ${params.from}`, //
       `- Delete all subsequent migration files`,
-      `- Create new migration named ${nameQuery([diff]).replace(/_[\da-z]+$/, '')} with content:\n    ${diff.replaceAll('\n', '\n    ')}`,
+      `- Create new migration named "{timestamp}.${nameQuery([diff]).replace(/_[\da-z]+$/, '')}.sql" with content:\n    ${diff.replaceAll('\n', '\n    ')}`,
       `- Baseline migrations to the created migration`,
       '',
       `Note: this will not update the database other than the migrations table. It will modify your filesystem.`,
     ]
-    if (await params.confirm(`## Steps:\n\n${steps.join('\n')}`)) {
-      await this.baseline({to: params.from, purgeDisk: true})
+    if (await params.confirm(lines.join('\n'))) {
+      await this.baseline({to: params.from, purgeDisk: true, confirm: async () => true})
       const created = await this.create({content: diff})
-      await this.baseline({to: created.name})
+      await this.baseline({to: created.name, confirm: async () => true})
     }
     return this.list()
   }
@@ -526,8 +609,12 @@ export class Migrator {
 
   async list(): Promise<ListedMigration[]> {
     await this.getOrCreateMigrationsTable()
-    const executed = await this.client.any(sql<{name: string}>`select * from ${this.migrationTableNameIdentifier()}`)
-    const executedNames = new Set(executed.map(r => r.name))
+    const executed = await this.client.any(
+      sql<{name: string; content: string}>`
+        select * from ${this.migrationTableNameIdentifier()}
+      `,
+    )
+    const executedByName = new Map(executed.map(r => [r.name, r]))
 
     const dir = existsSync(this.migratorOptions.migrationsPath)
       ? await fs.readdir(this.migratorOptions.migrationsPath)
@@ -537,11 +624,19 @@ export class Migrator {
     return Promise.all(
       files.map(async (name): Promise<ListedMigration> => {
         const filepath = path.join(this.migratorOptions.migrationsPath, name)
+        const maybeExecuted = executedByName.get(name)
+        const content = await fs.readFile(filepath, 'utf8')
+        const base = {name, path: filepath, content}
+
+        if (!maybeExecuted) {
+          return {...base, status: 'pending'}
+        }
+
         return {
-          name,
-          path: filepath,
-          content: await fs.readFile(filepath, 'utf8'),
-          status: executedNames.has(name) ? 'executed' : 'pending',
+          ...base,
+          status: 'executed',
+          content: maybeExecuted.content,
+          drifted: content !== maybeExecuted.content,
         }
       }),
     )
