@@ -30,7 +30,7 @@ describe('transaction', () => {
     expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: up migration failed: Migration m2.sql (up) failed: Original error: [Query insert-rollback_happens_f3252ca]: duplicate key value violates unique constraint "rollback_happens_pkey"]`,
+      `[Error: Applying m2.sql failed: Error: [Query insert-rollback_happens_f3252ca]: duplicate key value violates unique constraint "rollback_happens_pkey"]`,
     )
 
     await expect(pool.any(sql`select * from rollback_happens`)).resolves.toEqual([])
@@ -67,7 +67,7 @@ describe('global', () => {
     expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: up migration failed: Migration m2.sql (up) failed: Original error: [Query insert-disabled_transaction_test_table_091833d]: duplicate key value violates unique constraint "disabled_transaction_test_table_pkey"]`,
+      `[Error: Applying m2.sql failed: Error: [Query insert-disabled_transaction_test_table_091833d]: duplicate key value violates unique constraint "disabled_transaction_test_table_pkey"]`,
     )
 
     await expect(pool.any(sql`select id from disabled_transaction_test_table`)).resolves.toEqual([{id: 1}])

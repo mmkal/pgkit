@@ -140,7 +140,7 @@ export class Migrator {
     return (name, fn) =>
       this.config.task(name, async () => {
         return fn().catch((cause: unknown) => {
-          throw new Error(`Task ${name} failed`, {cause})
+          throw new Error(`${name} failed: ${String(cause) || 'Unknown error'}`, {cause})
         })
       })
   }

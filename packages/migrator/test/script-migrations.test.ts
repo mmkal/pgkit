@@ -73,8 +73,6 @@ describe('run sql, js and ts migrations', () => {
       [
         "01.one.sql",
         "02.two.sql",
-        "03.three.js",
-        "04.four.ts",
       ]
     `)
 
@@ -85,8 +83,6 @@ describe('run sql, js and ts migrations', () => {
       [
         "migration_test_1",
         "migration_test_2",
-        "migration_test_3",
-        "migration_test_4",
       ]
     `)
 

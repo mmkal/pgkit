@@ -71,7 +71,7 @@ describe('locking', () => {
     expect(await migrator.pending().then(names)).toEqual(['m1.sql', 'm2.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: up migration failed: Migration m2.sql (up) failed: Original error: [Query sql_90ed2eb]: syntax error at or near "this"]`,
+      `[Error: Applying m2.sql failed: Error: [Query sql_90ed2eb]: syntax error at or near "this"]`,
     )
 
     expect(helper.mockLogger.error).not.toHaveBeenCalled()
