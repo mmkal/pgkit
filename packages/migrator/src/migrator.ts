@@ -9,7 +9,6 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import {trpcCli} from 'trpc-cli'
 import * as umzug from 'umzug'
-import {inspect} from 'util'
 import {confirm} from './cli'
 import {createMigratorRouter} from './router'
 import * as templates from './templates'
@@ -137,7 +136,12 @@ export class Migrator {
   }
 
   get task(): Task {
-    return this.config.task
+    return (name, fn) =>
+      this.config.task(name, async () => {
+        return fn().catch((cause: unknown) => {
+          throw new Error(`Task ${name} failed`, {cause})
+        })
+      })
   }
 
   cli() {
@@ -399,20 +403,19 @@ export class Migrator {
       content: m.content,
       status: 'executed',
     }))
+    const tableFixStatements = await this.getMigrationsTableFixStatements()
     const queries = [
-      ...(await this.getMigrationsTableFixStatements()),
+      ...tableFixStatements,
       sql`delete from ${this.migrationTableNameIdentifier()}`,
       sql`
         insert into ${this.migrationTableNameIdentifier()} (name, content, status)
         select *
-        from jsonb_to_recordset(${JSON.stringify(records)}) AS t(name text, content text, status)
+        from jsonb_to_recordset(${JSON.stringify(records, null, 2)})
+          as t(name text, content text, status text)
       `,
     ]
 
-    const confirmable = queries
-      .map(q => this.renderStatement(q)) //
-      .join('\n\n---\n\n')
-    const ok = await params.confirm(confirmable)
+    const ok = await params.confirm(this.renderConfirmable(queries))
     if (!ok) return
 
     await this.useContext(async context => {
@@ -426,6 +429,14 @@ export class Migrator {
         }
       }
     })
+
+    const diff = await this.getRepairDiff()
+    if (diff.length > 0) {
+      throw new Error(
+        `Baselined successfully, but database is now out of sync with migrations. Try using \`repair\` to update the database, or \`create\` to add a migration with the diff`,
+        {cause: {diff}},
+      )
+    }
   }
 
   renderStatement(q: {sql: string; values: unknown[]}) {
@@ -437,6 +448,10 @@ export class Migrator {
       q.values.length > 0 ? `parameters: [${q.values.join(',')}]` : (undefined as never),
     ]
     return lines.filter(Boolean).join('\n').trim()
+  }
+
+  renderConfirmable(queries: {sql: string; values: unknown[]}[], sep = '\n\n---\n\n') {
+    return queries.map(q => this.renderStatement(q)).join(sep)
   }
 
   /**
@@ -460,7 +475,8 @@ export class Migrator {
   async create(params?: {name?: string; content?: string}) {
     let content = params?.content
     if (typeof content !== 'string') {
-      content = await this.diffVsDDL()
+      const diff = await this.getRepairDiff()
+      content = diff.map(d => d.sql).join('\n\n')
     }
 
     let nameSuffix = params?.name
@@ -528,7 +544,7 @@ export class Migrator {
       [
         '- First, recreate the migrations table which is not correctly initialised:',
         '',
-        tableFixStatements.map(q => this.renderStatement(q)).join('\n\n'),
+        this.renderConfirmable(tableFixStatements, '\n\n'),
         '',
         '---',
         '',
@@ -539,33 +555,36 @@ export class Migrator {
         .join('\n'),
       `- Baseline migrations to ${params.from}`, //
       `- Delete all subsequent migration files`,
-      `- Create new migration named "{timestamp}.${nameQuery([diff]).replace(/_[\da-z]+$/, '')}.sql" with content:\n    ${diff.replaceAll('\n', '\n    ')}`,
-      `- Baseline migrations to the created migration`,
+      diff &&
+        `- Create new migration named "{timestamp}.${nameQuery([diff], 'migration').replace(/_[\da-z]+$/, '')}.sql" with content:\n    ${diff.replaceAll('\n', '\n    ')}`,
+      diff && `- Baseline migrations to the created migration`,
       '',
       `Note: this will not update the database other than the migrations table. It will modify your filesystem.`,
     ]
     if (await params.confirm(lines.join('\n'))) {
       await this.baseline({to: params.from, purgeDisk: true, confirm: async () => true})
-      const created = await this.create({content: diff})
-      await this.baseline({to: created.name, confirm: async () => true})
+      if (diff) {
+        const created = await this.create({content: diff})
+        await this.baseline({to: created.name, confirm: async () => true})
+      }
     }
     return this.list()
   }
 
-  async diffVsDDL() {
+  async diffToDefinitions() {
     const content = await fs.readFile(this.definitionsFile, 'utf8').catch(() => '')
     return this.useShadowClient(async shadowClient => {
-      if (content.trim()) await shadowClient.query(sql.raw(content))
+      if (content) await shadowClient.query(sql.raw(content))
       const {sql: diff} = await this.wrapMigra(this.client, shadowClient)
-      return diff.trim()
+      return diff
     })
   }
 
   /**
    * Uses the definitions file to update the database schema.
    */
-  async updateDBFromDDL(params: {confirm: Confirm}) {
-    const diff = await this.diffVsDDL()
+  async updateDbToMatchDefinitions(params: {confirm: Confirm}) {
+    const diff = await this.diffToDefinitions()
     if (await params.confirm(diff)) {
       await this.client.query(sql.raw(diff))
     }
@@ -574,37 +593,83 @@ export class Migrator {
   /**
    * Uses the current state of the database to overwrite the definitions file.
    */
-  async updateDDLFromDB() {
+  async updateDefinitionsToMatchDb(params: {confirm: Confirm}) {
     const {sql: diff} = await this.wrapMigra('EMPTY', this.client)
-    await fs.writeFile(this.definitionsFile, diff)
+    const oldContent = await fs.readFile(this.definitionsFile, 'utf8').catch(() => '')
+    const changed = formatSql(diff) !== formatSql(oldContent)
+
+    const doUpdate = changed && (await params.confirm(diff))
+
+    if (doUpdate) {
+      await fs.writeFile(this.definitionsFile, diff)
+    }
     return {
       path: this.definitionsFile,
+      changed,
+      updated: doUpdate,
       content: diff,
     }
   }
 
+  /**
+   * Calculates the SQL required to alter the DB to match what it *should* be for the latest executed migration.
+   * Also recreates the migrations records if necessary (in case migration files have been altered or retroactively added to the filesystem).
+   */
   async getRepairDiff() {
-    const exectued = await this.executed()
-    return this.useShadowMigrator(async shadowMigrator => {
-      if (exectued.length > 0) await shadowMigrator.up({to: exectued.at(-1)?.name})
+    const executed = await this.executed()
+    const shadow = await this.useShadowMigrator(async shadowMigrator => {
+      if (executed.length > 0) await shadowMigrator.up({to: executed.at(-1)?.name})
       const {sql: diff} = await this.wrapMigra(this.client, shadowMigrator.client)
-      return diff.trim()
+      return {diff, executed: await shadowMigrator.executed()}
     })
+
+    const newRecords = shadow.executed.map(m => ({name: m.name, content: m.content, status: 'executed'}))
+    type MigrationRecord = {name: string; content: string; status: string}
+    const oldRecords = await this.client
+      .any(sql<Partial<MigrationRecord>>`select * from ${this.migrationTableNameIdentifier()}`)
+      .then(rs => rs.map((r): MigrationRecord => ({name: r.name!, content: r.content!, status: r.status!})))
+
+    const recordsNeedUpdate = JSON.stringify(newRecords) !== JSON.stringify(oldRecords)
+
+    return [
+      {
+        needed: shadow.diff.length > 0,
+        query: sql.raw(shadow.diff),
+      },
+      {
+        needed: recordsNeedUpdate,
+        query: sql`
+          delete from ${this.migrationTableNameIdentifier()};
+
+          insert into ${this.migrationTableNameIdentifier()} (name, content, status)
+          select *
+          from jsonb_to_recordset(${JSON.stringify(newRecords, null, 2)})
+            as t(name text, content text, status text);
+        `,
+      },
+    ].flatMap(q => (q.needed ? [q.query] : []))
   }
 
   async repair(params: {confirm: Confirm}) {
     const diff = await this.getRepairDiff()
-    if (await params.confirm(diff)) {
-      await this.client.query(sql.raw(diff))
+    const confirmed = await params.confirm(this.renderConfirmable(diff))
+    if (!confirmed) {
+      return {drifted: diff.length > 0, updated: false}
     }
-    return {success: true, updated: diff.trim().length > 0}
+
+    for (const q of diff) {
+      await this.client.query(q)
+    }
+
+    return {drifted: diff.length > 0, updated: true}
   }
 
   async check() {
     const diff = await this.getRepairDiff()
-    if (diff) {
+    if (diff.length > 0) {
       throw new Error(`Database is out of sync with migrations. Try using repair`, {cause: {diff}})
     }
+    return 'Database is in sync with migrations'
   }
 
   async list(): Promise<ListedMigration[]> {
@@ -785,7 +850,7 @@ export class Migrator {
     const result = await migra.run(args[0], args[1], {unsafe: true, ...args[2]})
     return {
       result,
-      sql: formatSql(result.sql),
+      sql: formatSql(result.sql).trim(),
     }
   }
 }

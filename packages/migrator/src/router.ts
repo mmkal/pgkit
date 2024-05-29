@@ -241,12 +241,12 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
       updateDb: trpc.procedure
         .meta({description: 'Update the database from the definitions file'})
         .mutation(async ({ctx}) => {
-          return ctx.migrator.updateDBFromDDL({confirm: ctx.confirm})
+          return ctx.migrator.updateDbToMatchDefinitions({confirm: ctx.confirm})
         }),
       updateFile: trpc.procedure
         .meta({description: 'Update the definitions file from the database'})
         .mutation(async ({ctx}) => {
-          return ctx.migrator.updateDDLFromDB()
+          return ctx.migrator.updateDefinitionsToMatchDb({confirm: ctx.confirm})
         }),
     }),
     unlock: trpc.procedure
