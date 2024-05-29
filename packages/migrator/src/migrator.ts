@@ -19,6 +19,7 @@ export interface BaseListedMigration {
   name: string
   path: string
   content: string
+  note?: string
 }
 export interface PendingMigration extends BaseListedMigration {
   status: 'pending'
@@ -260,10 +261,22 @@ export class Migrator {
     return createHash('md5').update(this.content(name).trim().replaceAll(/\s+/g, ' ')).digest('hex').slice(0, 10)
   }
 
+  /**
+   * Determine if a given migration name should be considered repeatable.
+   */
+  protected isRepeatable(name: string) {
+    return name.match(/repeatable\.\w+$/)
+  }
+
   protected async logMigration({name, context}: {name: string; context: MigratorContext}) {
     await context.connection.query(sql`
       insert into ${this.migrationTableNameIdentifier()}(name, content, status)
       values (${name}, ${this.content(name)}, 'executed')
+      on conflict (name) do update
+      set
+        content = excluded.content,
+        status = excluded.status,
+        date = excluded.date
     `)
   }
 
@@ -307,7 +320,8 @@ export class Migrator {
     await this.useContext(async context => {
       const list = pending.slice(0, toIndex + 1)
       for (const m of list) {
-        await this.task(`Applying ${m.name}`, async () => {
+        const taskName = ['Applying', m.name, m.note && `(${m.note})`].filter(Boolean).join(' ')
+        await this.task(taskName, async () => {
           const p = {...m, context}
           await this.applyMigration(p)
           await this.logMigration(p)
@@ -697,11 +711,19 @@ export class Migrator {
           return {...base, status: 'pending'}
         }
 
+        const drifted = content !== maybeExecuted.content
+        if (drifted && this.isRepeatable(name)) {
+          return {...base, note: 'content updated', status: 'pending'}
+        }
+
         return {
           ...base,
           status: 'executed',
           content: maybeExecuted.content,
-          drifted: content !== maybeExecuted.content,
+          drifted,
+          ...(drifted && {
+            note: 'Migration file content has updated since execution - try using repair',
+          }),
         }
       }),
     )
