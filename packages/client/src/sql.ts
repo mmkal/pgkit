@@ -117,18 +117,6 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
         break
       }
 
-      case 'sql': {
-        const [parts, ...fragmentValues] = param.templateArgs()
-        for (const [j, part] of parts.entries()) {
-          sql += part
-          if (j < fragmentValues.length) {
-            values.push(fragmentValues[j])
-            sql += '$' + String(j + 1)
-          }
-        }
-        break
-      }
-
       case 'identifier': {
         param.args[0].forEach((name, j, {length}) => {
           values.push(name)
@@ -156,7 +144,19 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
           sql += part
           if (j < fragmentValues.length) {
             values.push(fragmentValues[j])
-            sql += '$' + String(j + 1)
+            sql += '$' + String(values.length + j)
+          }
+        }
+        break
+      }
+
+      case 'sql': {
+        const [parts, ...fragmentValues] = param.templateArgs()
+        for (const [j, part] of parts.entries()) {
+          sql += part
+          if (j < fragmentValues.length) {
+            values.push(fragmentValues[j])
+            sql += '$' + String(values.length + j)
           }
         }
         break
