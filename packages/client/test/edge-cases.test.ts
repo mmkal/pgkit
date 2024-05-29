@@ -17,25 +17,25 @@ beforeEach(async () => {
 
 test('nested parameterized `sql` tag', async () => {
   const complexQuery = sql`
-    insert into edge_cases_test values (2, ${'two'})
-    ${sql`on conflict (id) do update set name = ${'two!'}`}
+    insert into edge_cases_test values (4, ${'four'})
+    ${sql`on conflict (id) do update set name = ${'four!'}`}
     returning *
   `
 
   expect(complexQuery).toMatchInlineSnapshot(`
     {
-      "name": "insert_93cdbb5",
+      "name": "insert_e99c9be",
       "parse": [Function],
       "sql": "
-        insert into edge_cases_test values (2, $1)
-        on conflict (id) do update set name = $1
+        insert into edge_cases_test values (4, $1)
+        on conflict (id) do update set name = $2
         returning *
       ",
       "templateArgs": [Function],
       "token": "sql",
       "values": [
-        "two",
-        "two!",
+        "four",
+        "four!",
       ],
     }
   `)
@@ -45,9 +45,46 @@ test('nested parameterized `sql` tag', async () => {
 
   const result1 = await client.any(complexQuery)
 
-  expect(result1).toEqual([{id: 2, name: 'two'}])
+  expect(result1).toEqual([{id: 4, name: 'four'}])
 
   const result2 = await client.any(complexQuery)
 
-  expect(result2).toEqual([{id: 2, name: 'two!'}])
+  expect(result2).toEqual([{id: 4, name: 'four!'}])
+})
+
+test('nested parameterized `sql.fragment` tag', async () => {
+  const complexQuery = sql`
+    insert into edge_cases_test values (4, ${'four'})
+    ${sql.fragment`on conflict (id) do update set name = ${'four!'}`}
+    returning *
+  `
+
+  expect(complexQuery).toMatchInlineSnapshot(`
+    {
+      "name": "insert_e99c9be",
+      "parse": [Function],
+      "sql": "
+        insert into edge_cases_test values (4, $1)
+        on conflict (id) do update set name = $2
+        returning *
+      ",
+      "templateArgs": [Function],
+      "token": "sql",
+      "values": [
+        "four",
+        "four!",
+      ],
+    }
+  `)
+  // `set name = $1` was a bug in the original implementation
+  // it was because $1 was the position in the inner sql tag, but it should have been incremented based on the number of prior values in the outer tag
+  expect(complexQuery.sql).not.toContain('set name = $1')
+
+  const result1 = await client.any(complexQuery)
+
+  expect(result1).toEqual([{id: 4, name: 'four'}])
+
+  const result2 = await client.any(complexQuery)
+
+  expect(result2).toEqual([{id: 4, name: 'four!'}])
 })
