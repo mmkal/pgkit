@@ -230,8 +230,11 @@ export class Migrator {
       const message = `Waiting for lock. This may mean another process is simultaneously running migrations. You may want to issue a command like "set lock_timeout = '10s'" if this happens frequently. Othrewise, this command may wait until the process is killed.`
       this.logger.warn(message)
     }, this.lockWarningMs)
-    await this.client.any(sql`select pg_advisory_lock(${this.advisoryLockId()})`)
-    clearTimeout(timeout)
+    try {
+      await this.client.any(sql`select pg_advisory_lock(${this.advisoryLockId()})`)
+    } finally {
+      clearTimeout(timeout)
+    }
     return {took: Date.now() - start}
   }
 
@@ -257,10 +260,6 @@ export class Migrator {
     return readFileSync(path.join(this.migratorOptions.migrationsPath, name), 'utf8')
   }
 
-  protected hash(name: string) {
-    return createHash('md5').update(this.content(name).trim().replaceAll(/\s+/g, ' ')).digest('hex').slice(0, 10)
-  }
-
   /**
    * Determine if a given migration name should be considered repeatable.
    */
@@ -284,15 +283,6 @@ export class Migrator {
     await context.connection.query(sql`
       delete from ${this.migrationTableNameIdentifier()}
       where name = ${name}
-    `)
-  }
-
-  protected async repairMigration({name, hash, context}: {name: string; hash: string; context: MigratorContext}) {
-    await context.connection.one(sql`
-      update ${this.migrationTableNameIdentifier()}
-      set content = ${hash}, status = 'executed'
-      where name = ${name}
-      returning *
     `)
   }
 
