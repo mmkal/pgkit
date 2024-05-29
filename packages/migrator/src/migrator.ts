@@ -14,7 +14,7 @@ import {createMigratorRouter} from './router'
 import * as templates from './templates'
 import {MigratorContext} from './types'
 
-export type Confirm = (sql: string) => Promise<boolean>
+export type Confirm = (sql: string) => boolean | Promise<boolean>
 export interface BaseListedMigration {
   name: string
   path: string

@@ -13,7 +13,7 @@ const millisPerDay = 1000 * 60 * 60 * 24
 const fakeDates = range(0, 100).map(days => new Date(new Date('2000').getTime() + days * millisPerDay).toISOString())
 
 const toISOSpy = jest.spyOn(Date.prototype, 'toISOString')
-toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1])
+toISOSpy.mockImplementation(() => fakeDates[toISOSpy.mock.calls.length - 1]!)
 
 describe('run sql, js and ts migrations', () => {
   const migrationsPath = path.join(__dirname, 'generated/run/migrations')
@@ -58,7 +58,6 @@ describe('run sql, js and ts migrations', () => {
       client: helper.pool,
       migrationsPath,
       migrationTableName: 'migration_meta_1',
-      logger: {debug: log, info: log, warn: log, error: log},
     })
 
     expect(await migrationTables()).toEqual([])
@@ -89,7 +88,7 @@ describe('run sql, js and ts migrations', () => {
     expect(await executed()).toEqual(allMigrations)
     expect(await pending()).toEqual([])
 
-    await migrator.down({to: 0 as const})
+    await migrator.wipe({confirm: () => true})
     expect(await executed()).toEqual([])
 
     await migrator.up({to: '03.three.js'})

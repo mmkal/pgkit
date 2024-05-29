@@ -22,6 +22,7 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
 - [Motivation](#motivation)
 - [Installation](#installation)
 - [Usage](#usage)
+   - [Principles](#principles)
    - [Commands](#commands)
    - [Command: up](#command-up)
    - [Command: create](#command-create)
@@ -74,6 +75,103 @@ You can run it out of the box as a CLI:
 ```
 npx @pgkit/migrator --help
 ```
+
+### Principles
+
+This library aims to eliminate the tradeoff between developer experience and reliability. It's meant to be very easy to get started and write migrations, while also being as flexible as possible for almost any use-case.
+
+With that in mind, here are some design decisions:
+
+#### No "down" migrations
+
+Down migrations (or ["Undo" migrations in Flyway](https://documentation.red-gate.com/fd/tutorial-undo-migrations-184127627.html)) are a nice idea, but in practice, they almost always end up being untested code that lives forever in your codebase, and almost certainly doesn't work. Instead of down migrations, @pgkit/migrator splits the use case for them into two:
+
+1. In development, [migra](https://npmjs.com/package/@pgkit/migra) is under the hood in order to *generate diffs* between the states represented by any migrations, and apply them after user confirmation. This allows for a much more powerful `goto` feature - so you can just do `node migrate goto --name 123.yourmigration.sql`.
+2. In production, you just shouldn't use `down` migrations at all. If you need to drop a table that was created by a previous migration, just create a regular migration called `drop-foo.sql`. This way, your migration files can serve as a reliable history of all the changes you made in production.
+
+Re 2. - of course, if you _really_ want to shell into your production server and run `node migrate goto ...`, you still can. But this is not advised.
+
+#### Be smart, be safe
+
+@pgkit/migrator aims to go beyond a "dumb" migration tool. That is, it uses [migra](https://npmjs.com/package/@pgkit/migra) to calculate the SQL required to get to target states - but it will never _apply_ those diffs without confirming with the end-user first. One example of this is the `goto` feature above - but there's also [`check`](#command-check), [`repair`](#command-repair), [`rebase`](#command-rebase), [`wipe`](#command-wipe) and others.
+
+When run as a CLI, the SQL that will be executed by one of these "smart" commands will be written to standard out, and wait for a "Y" to be entered into the terminal.
+
+#### Allow overrides where appropriate
+
+The package exposes a `Migrator` class, which has everything you need baked into it for most migration needs. But if you have a custom setup and still want to take advantage of @pgkit/migrator features, all you need to do is extend the class. Some examples
+
+##### Customise repeatable migrations
+
+By default, migration files ending in `.repeatable.sql` are considered repeatable. The `isRepeatable` method can be overriden to change this
+
+```ts
+import {Migrator as Base} from '@pgkit/migrator'
+
+export class Migrator extends Base {
+  isRepeatable(name: string) {
+    return name.startsWith('R_')
+  }
+}
+```
+
+###### Use a different definitions file
+
+The default definitions file lives in the parent folder of the migration scripts:
+
+```ts
+import {Migrator as Base} from '@pgkit/migrator'
+
+export class Migrator extends Base {
+  get definitionsFiles() {
+    return `/path/to/definitions.sql`
+  }
+}
+```
+
+Have a look at the [API docs](./src/migrator.ts) for more methods that can be overriden.
+
+#### Keep track of the whole database definition
+
+Raw database migrations are a bad way for a human to understand what state the database is in. Say you're building a healthcare application. You might first create a patient table migration:
+
+```sql
+create table patient(id int, given_name text, family_name text, birth_date date);
+```
+
+Later, you might need to store the patient's gender. You'd create a new migration adding the column:
+
+```sql
+alter table patient
+add column gender text;
+```
+
+Now the definition of the patient table is split across two files, and there's no one place in code to look to see what the patient table looks like. Instead of relying on an external tool with a custom UI to solve for this, you can use @pgkit/migrator's ability to sync the datbase with a `definitions.sql` file. After running each migration, you can run the [`definitions.updateFile`](#command-definitions.updateFile) command to update definitions.sql, which in the above example will result in a single statement describing the `patient` table:
+
+```sql
+create table patient(id int, given_name text, family_name text, gender text);
+```
+
+What's more, you can *modify* this definitions file to add or remove columns at will, then use the [`definitions.updateDb`](#command-definitions.updateDb) command to update your local database based on the definitions file while developing. Once you're satisfied with the state of your database, the [`create`](#command-create) command will automatically a generate a migration file to make sure the individual migrations bring your production database to exactly the same state. (The generated code should be committed and code-reviewed like any other, of course.)
+
+#### Easy to get started, easy to upgrade
+
+The [`baseline`](#command-baseline) makes it easy to introduce @pgkit/migrator to an existing project. This can be used when your database is in a known-good state, as represented by the migration files. It will update the migrations table to mark all migrations up to a certain point as executed. This also serves as a reassurance the it will always be possible to upgrade to future versions, including if you need to [override behaviour yourself](#allow-overrides-where-appropriate).
+
+#### Easy locally, somewhat easy in production
+
+There's a built in CLI for local use (or production, via a shell on your production server), and there's a [tRPC](https://trpc.io) router exposed so you can deploy it to an internal admin API if you like, with any auth solution you want.
+
+#### Use-case parity with Flyway
+
+This one is more subjective, since there isn't a one-to-one *feature* mapping between @pgkit/migrator and Flyway. Flyway is a great tool, but it has some pretty painful requirements to run - the main one being Java. @pgkit/migrator is a pure-nodejs tool (you might have some luck running through bun or deno too). The same tool is designed to work on your local machine and in production.
+
+Some features of Flyway are missing at time of writing, though:
+
+1. Ant-style placeholders within `.sql` scripts. For these, you would need to use javascript migrations.
+1. Java migrations! These won't be supported - but if you really want to write these, you might have some luck by extending the `Migrator` class (if you do this, please write a blog about it!)
+1. Databases other than PostgreSQL.
+1. Code checking - though this might be covered by other tools in the pgkit family in future.
 
 <!-- codegen:start {preset: custom, command: up, source: ./scripts/codegen.ts, require: tsx/cjs, export: cliToMarkdown, cli: src/bin} -->
 ### Commands
