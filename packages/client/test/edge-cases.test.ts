@@ -15,43 +15,39 @@ beforeEach(async () => {
   `)
 })
 
-test('conditional nested `sql` tag', async () => {
+test('nested parameterized `sql` tag', async () => {
   const complexQuery = sql`
-    insert into edge_cases_test values (4, ${'four'})
-    ${
-      Math.random() >= 0
-        ? sql`on conflict (id) do update set name = ${'four!'}` //
-        : sql``
-    }
+    insert into edge_cases_test values (2, ${'two'})
+    ${sql`on conflict (id) do update set name = ${'two!'}`}
     returning *
   `
 
   expect(complexQuery).toMatchInlineSnapshot(`
     {
-      "name": "insert_e99c9be",
+      "name": "insert_93cdbb5",
       "parse": [Function],
       "sql": "
-        insert into edge_cases_test values (4, $1)
-        on conflict (id) do update set name = $2
+        insert into edge_cases_test values (2, $1)
+        on conflict (id) do update set name = $1
         returning *
       ",
       "templateArgs": [Function],
       "token": "sql",
       "values": [
-        "four",
-        "four!",
+        "two",
+        "two!",
       ],
     }
   `)
   // `set name = $1` was a bug in the original implementation
   // it was because $1 was the position in the inner sql tag, but it should have been incremented based on the number of prior values in the outer tag
-  //   expect(complexQuery.sql).not.toContain('set name = $1')
+  expect(complexQuery.sql).not.toContain('set name = $1')
 
   const result1 = await client.any(complexQuery)
 
-  expect(result1).toEqual([{id: 4, name: 'four'}])
+  expect(result1).toEqual([{id: 2, name: 'two'}])
 
   const result2 = await client.any(complexQuery)
 
-  expect(result2).toEqual([{id: 4, name: 'four!'}])
+  expect(result2).toEqual([{id: 2, name: 'two!'}])
 })
