@@ -146,19 +146,19 @@ alter table patient
 add column gender text;
 ```
 
-Now the definition of the patient table is split across two files, and there's no one place in code to look to see what the patient table looks like. Instead of relying on an external tool with a custom UI to solve for this, you can use @pgkit/migrator's ability to sync the datbase with a `definitions.sql` file. After running each migration, you can run the [`definitions.updateFile`](#command-definitions.updateFile) command to update definitions.sql, which in the above example will result in a single statement describing the `patient` table:
+Now the definition of the patient table is split across two files, and there's no one place in code to look to see what the patient table looks like. Instead of relying on an external tool with a custom UI to solve for this, you can use @pgkit/migrator's ability to sync the datbase with a `definitions.sql` file. After running each migration, you can run the [`definitions.updateFile`](#command-definitions.updateFile) command to update definitions.sql, which in the above example will result in a single statement describing the `patient` table. And it's not a custom schema definition language specific to this library. It's just SQL:
 
 ```sql
 create table patient(id int, given_name text, family_name text, gender text);
 ```
 
-What's more, you can *modify* this definitions file to add or remove columns at will, then use the [`definitions.updateDb`](#command-definitions.updateDb) command to update your local database based on the definitions file while developing. Once you're satisfied with the state of your database, the [`create`](#command-create) command will automatically a generate a migration file to make sure the individual migrations bring your production database to exactly the same state. (The generated code should be committed and code-reviewed like any other, of course.)
+What's more, you can *modify* this definitions file to add or remove columns at will, then use the [`definitions.updateDb`](#command-definitions.updateDb) command to update your local database based on the definitions file while developing. Once you're satisfied with the state of your database, the [`create`](#command-create) command will automatically a generate a migration file to make sure the individual migrations bring your production database to exactly the same state (the generated code should be committed and code-reviewed like any other, of course).
 
-#### Easy to get started, easy to upgrade
+#### Easy to get started and to upgrade
 
 The [`baseline`](#command-baseline) makes it easy to introduce @pgkit/migrator to an existing project. This can be used when your database is in a known-good state, as represented by the migration files. It will update the migrations table to mark all migrations up to a certain point as executed. This also serves as a reassurance the it will always be possible to upgrade to future versions, including if you need to [override behaviour yourself](#allow-overrides-where-appropriate).
 
-#### Easy locally, somewhat easy in production
+#### Easy locally and in production
 
 There's a built in CLI for local use (or production, via a shell on your production server), and there's a [tRPC](https://trpc.io) router exposed so you can deploy it to an internal admin API if you like, with any auth solution you want.
 
