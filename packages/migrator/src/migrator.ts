@@ -349,15 +349,20 @@ export class Migrator {
    * Calculates the SQL required to forcible go to a specific migration, and applies it if the `confirm` function returns true.
    * This can be used to go "down" to a specific migration (or up, but in most cases the `up` command would be more appropriate).
    *
-   * Remember: "goto considered harmful" - the generated SQL may be destructive, and should be reviewed. This should usually not be used in production.
-   * In production, create a regular migration which does whichever `drop x` or `alter y` commands are necessary.
+   * Remember: "goto considered harmful" - the generated SQL may be destructive, and should be reviewed.
+   * This should usually not be used in production, unless it's required to introduce this tool to an existing system.
+   * In production, you would usually prefer to create a regular migration which does whichever `drop x` or `alter y` commands are necessary.
    */
   async goto(params: {name: string; confirm: Confirm; purgeDisk?: boolean}) {
     const diffTo = await this.getDiff({to: params.name})
     if (await params.confirm(diffTo)) {
       await this.useAdvisoryLock(async () => {
         await this.client.query(sql.raw(diffTo))
-        await this.baseline({to: params.name, purgeDisk: params.purgeDisk, confirm: async () => true})
+        await this.baseline({
+          to: params.name,
+          purgeDisk: params.purgeDisk,
+          confirm: async () => true,
+        })
       })
     }
   }
@@ -437,7 +442,7 @@ export class Migrator {
     const diff = await this.getRepairDiff()
     if (diff.length > 0) {
       throw new Error(
-        `Baselined successfully, but database is now out of sync with migrations. Try using \`repair\` to update the database, or \`create\` to add a migration with the diff`,
+        `Baselined successfully, but database is now out of sync with migrations. Try using \`repair\` to update the database.`,
         {cause: {diff}},
       )
     }
