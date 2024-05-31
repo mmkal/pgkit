@@ -23,7 +23,7 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
 - [Installation](#installation)
 - [Usage](#usage)
    - [Principles](#principles)
-   - [Commands](#commands)
+   - [commands](#commands)
    - [Command: up](#command-up)
    - [Command: create](#command-create)
    - [Command: list](#command-list)
@@ -34,8 +34,8 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
    - [Command: baseline](#command-baseline)
    - [Command: rebase](#command-rebase)
    - [Command: definitions.filepath](#command-definitionsfilepath)
-   - [Command: definitions.updateDb](#command-definitionsupdatedb)
-   - [Command: definitions.updateFile](#command-definitionsupdatefile)
+   - [Command: definitions.updatedb](#command-definitionsupdatedb)
+   - [Command: definitions.updatefile](#command-definitionsupdatefile)
    - [Command: unlock](#command-unlock)
    - [Command: wipe](#command-wipe)
    - [Command: sql](#command-sql)
@@ -174,7 +174,7 @@ Some features of Flyway are missing at time of writing, though:
 1. Code checking - though this might be covered by other tools in the pgkit family in future.
 
 <!-- codegen:start {preset: custom, command: up, source: ./scripts/codegen.ts, require: tsx/cjs, export: cliToMarkdown, cli: src/bin} -->
-### Commands
+### commands
 
 - [`up`](#command-up) - Apply pending migrations
 - [`create`](#command-create) - Create a new migration file
@@ -198,11 +198,11 @@ Some features of Flyway are missing at time of writing, though:
 
 Apply pending migrations
 
-#### Usage
+#### usage
 
 - `up [flags...]`
 
-#### Flags
+#### flags
 
 - `--step <number>` - Apply this many migrations; Exclusive minimum: 0
 - `--to <string>` - Only apply migrations up to this one
@@ -214,11 +214,11 @@ Apply pending migrations
 
 Create a new migration file
 
-#### Usage
+#### usage
 
 - `create [flags...]`
 
-#### Flags
+#### flags
 
 - `--content <string>` - SQL content of the migration. If not specified, content will be generated based on the calculated diff between the existing migrations and the current database state.
 - `--name <string>` - Name of the migration file. If not specified, a name will be generated based on the content of the migraiton
@@ -230,11 +230,11 @@ Create a new migration file
 
 List migrations, along with their status, file path and content
 
-#### Usage
+#### usage
 
 - `list [flags...]`
 
-#### Flags
+#### flags
 
 - `--output <string>` - Result properties to return; Enum: name,path,content,object (default: "object")
 - `--query <string>` - Search query - migrations with names containing this string will be returned
@@ -248,11 +248,11 @@ List migrations, along with their status, file path and content
 
 Get the latest migration
 
-#### Usage
+#### usage
 
 - `latest [flags...]`
 
-#### Flags
+#### flags
 
 - `--skip-check` - Skip checking that migrations are in a valid state
 - `-h, --help` - Show help
@@ -263,11 +263,11 @@ Get the latest migration
 
 Verify that your database is in an expected state, matching your migrations
 
-#### Usage
+#### usage
 
 - `check [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
@@ -277,11 +277,11 @@ Verify that your database is in an expected state, matching your migrations
 
 If your migrations are not in a valid state, this will calculate the diff required to move your database to a valid state, and apply it
 
-#### Usage
+#### usage
 
 - `repair [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
@@ -291,11 +291,11 @@ If your migrations are not in a valid state, this will calculate the diff requir
 
 Go "back" to a specific migration. This will calculate the diff required to get to the target migration, then apply it
 
-#### Usage
+#### usage
 
 - `goto [flags...]`
 
-#### Flags
+#### flags
 
 - `--name <string>` - Name of the migration to go to. Use "list" to see available migrations.
 - `-h, --help` - Show help
@@ -306,11 +306,11 @@ Go "back" to a specific migration. This will calculate the diff required to get 
 
 Baseline the database at the specified migration. This forcibly edits the migrations table to mark all migrations up to this point as executed. Useful for introducing the migrator to an existing database.
 
-#### Usage
+#### usage
 
 - `baseline [flags...]`
 
-#### Flags
+#### flags
 
 - `--purge-disk` - Delete files subsequent to the specified migration (optional)
 - `--to <string>` - Name of the migration to baseline to. Use `list` to see available migrations.
@@ -322,11 +322,11 @@ Baseline the database at the specified migration. This forcibly edits the migrat
 
 Rebase the migrations from the specified migration. This deletes all migration files after this point, and replaces them with a squashed migration based on the calculated diff required to reach the current database state.
 
-#### Usage
+#### usage
 
 - `rebase [flags...]`
 
-#### Flags
+#### flags
 
 - `--from <string>` - Name of the migration to rebase from. This migration will remain, all subsequent ones will be replaced with a squashed migration. Use `list` to see available migrations.
 - `-h, --help` - Show help
@@ -337,39 +337,39 @@ Rebase the migrations from the specified migration. This deletes all migration f
 
 Get the path to the definitions file
 
-#### Usage
+#### usage
 
 - `definitions.filepath [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
 ---
 
-### Command: definitions.updateDb
+### Command: definitions.updatedb
 
 Update the database from the definitions file
 
-#### Usage
+#### usage
 
 - `definitions.updateDb [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
 ---
 
-### Command: definitions.updateFile
+### Command: definitions.updatefile
 
 Update the definitions file from the database
 
-#### Usage
+#### usage
 
 - `definitions.updateFile [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
@@ -379,11 +379,11 @@ Update the definitions file from the database
 
 Release the advisory lock for this migrator on the database. This is useful if the migrator is stuck due to a previous crash
 
-#### Usage
+#### usage
 
 - `unlock [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
@@ -393,11 +393,11 @@ Release the advisory lock for this migrator on the database. This is useful if t
 
 Wipe the database - remove all tables, views etc.
 
-#### Usage
+#### usage
 
 - `wipe [flags...]`
 
-#### Flags
+#### flags
 
 - `-h, --help` - Show help
 
@@ -407,11 +407,11 @@ Wipe the database - remove all tables, views etc.
 
 Query the database. Not strictly related to migrations, but can be used for debugging. Use with caution!
 
-#### Usage
+#### usage
 
 - `sql [flags...]`
 
-#### Flags
+#### flags
 
 - `--doublequote <string>` - Character to use in place of " - use to avoid having to do bash quote-escaping (optional)
 - `--method <string>` - Enum: any,many,one,maybeOne,query,anyFirst,oneFirst,maybeOneFirst (optional) (default: "any")
