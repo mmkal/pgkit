@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/switch-case-braces */
-import {sql, Client, Connection, createClient, nameQuery} from '@pgkit/client'
+import {sql, Client, Connection, createClient, nameQuery, Queryable} from '@pgkit/client'
 import {formatSql} from '@pgkit/formatter'
 import * as migra from '@pgkit/migra'
 import {AsyncLocalStorage} from 'async_hooks'
@@ -12,57 +12,55 @@ import * as umzug from 'umzug'
 import {confirm} from './cli'
 import {createMigratorRouter} from './router'
 import * as templates from './templates'
-import {MigratorContext} from './types'
+
+export interface MigratorContext {
+  connection: Queryable
+  sql: typeof sql
+}
+
+export type Migration = (params: umzug.MigrationParams<MigratorContext>) => Promise<void>
 
 export type Confirm = (sql: string) => boolean | Promise<boolean>
+
 export interface BaseListedMigration {
   name: string
   path: string
   content: string
   note?: string
 }
+
 export interface PendingMigration extends BaseListedMigration {
   status: 'pending'
 }
+
 export interface ExecutedMigration extends BaseListedMigration {
   status: 'executed'
   drifted: boolean
 }
+
 export type ListedMigration = PendingMigration | ExecutedMigration
 
 export type RunnableMigration = umzug.RunnableMigration<MigratorContext>
 
-// export interface MigratorOptions {
-// /** @pgkit/client instance */
-// client: string | Client
-// migrationsPath: string
-// migrationTableName?: string | string[]
-// /**
-//  * Whether to use `client.transaction(tx => ...)` or `client.connect(cn => ...)` when running up/down migrations
-//  * @default `transaction`
-//  */
-// connectMethod?: 'transaction' | 'connect'
-// }
-
-type Logger = {
+export type Logger = {
   info: (...args: unknown[]) => void
   warn: (...args: unknown[]) => void
   error: (...args: unknown[]) => void
 }
 
-const noopLogger: Logger = {
+export const noopLogger: Logger = {
   info: () => {},
   warn: () => {},
   error: () => {},
 }
 
-type Task = <T>(name: string, fn: () => Promise<T>) => Promise<{result: T}>
+export type Task = <T>(name: string, fn: () => Promise<T>) => Promise<{result: T}>
 
-const noopTask = async <T>(name: string, fn: () => Promise<T>) => {
+export const noopTask = async <T>(name: string, fn: () => Promise<T>) => {
   return {result: await fn()}
 }
 
-type MigratorConfig = {
+export interface MigratorConfig {
   /** @pgkit/client instance */
   client: Client
   migrationsPath: string
@@ -140,9 +138,8 @@ export class Migrator {
     return this.config.client
   }
 
-  useConfig<T>(config: MigratorConfig, fn: (previous: MigratorConfig) => Promise<T>) {
-    const previous = this.config
-    return this.configStorage.run(config, () => fn(previous))
+  useConfig<T>(config: Partial<MigratorConfig>, fn: () => Promise<T>) {
+    return this.configStorage.run(config, () => fn())
   }
 
   protected get config(): MigratorConfig {
@@ -504,7 +501,8 @@ export class Migrator {
    */
   async create(params?: {name?: string; content?: string}) {
     let content = params?.content
-    if (typeof content !== 'string') {
+    const isSql = !params?.name || params.name.endsWith('.sql')
+    if (typeof content !== 'string' && isSql) {
       const diff = await this.getRepairDiff()
       content = diff.map(d => d.sql).join('\n\n')
     }
@@ -762,7 +760,8 @@ export class Migrator {
 
   async wipe(params: {confirm: Confirm}) {
     const diff = await this.wipeDiff()
-    if (await params.confirm(diff)) {
+    const warning = '### THIS WILL DELETE EVERYTHING IN YOUR DATABASE! ###'
+    if (await params.confirm(warning + '\n\n' + diff)) {
       await this.client.query(sql.raw(diff))
     }
   }
@@ -832,7 +831,7 @@ export class Migrator {
   async useShadowClientConfig<T>(cb: (params: {parent: {client: Client}}) => Promise<T>) {
     const parent = {client: this.client}
     return await this.useShadowClient(async client => {
-      return this.configStorage.run({client, logger: noopLogger, task: noopTask}, async () => {
+      return this.useConfig({client, logger: noopLogger, task: noopTask}, async () => {
         await this.getOrCreateMigrationsTable()
         return await cb({parent})
       })
