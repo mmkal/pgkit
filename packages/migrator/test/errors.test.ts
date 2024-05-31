@@ -26,7 +26,7 @@ describe('errors', () => {
     expect(await migrator.pending().then(helper.names)).toEqual(['m1.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: up migration failed: Migration m1.sql (up) failed: Original error: [Query create_1488734]: syntax error at or near ";"]`,
+      `[Error: Applying m1.sql failed: Error: [Query create_1488734]: syntax error at or near ";"]`,
     )
   })
 
@@ -51,7 +51,7 @@ describe('errors', () => {
     expect(await migrator.pending().then(helper.names)).toEqual(['m1.sql', 'm2.sql', 'm3.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: up migration failed: Migration m3.sql (up) failed: Original error: [Query create_fe7cef3]: syntax error at or near ";"]`,
+      `[Error: Applying m3.sql failed: Error: [Query create_fe7cef3]: syntax error at or near ";"]`,
     )
 
     expect(await helper.pool.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(`
@@ -90,7 +90,7 @@ describe('errors', () => {
     expect(await migrator.pending().then(helper.names)).toEqual(['m1.sql', 'm2.sql', 'm3.sql'])
 
     await expect(migrator.up()).rejects.toThrowErrorMatchingInlineSnapshot(
-      `[Error: up migration failed: Migration m3.sql (up) failed: Original error: [Query create_fe7cef3]: syntax error at or near ";"]`,
+      `[Error: Applying m3.sql failed: Error: [Query create_fe7cef3]: syntax error at or near ";"]`,
     )
 
     expect(await helper.pool.any(sql`select * from errors_table1`).catch(e => e)).toMatchInlineSnapshot(

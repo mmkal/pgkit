@@ -2,7 +2,7 @@
 import * as pgMem from 'pg-mem'
 import * as pgSqlAstParser from 'pgsql-ast-parser'
 import {beforeAll, beforeEach, expect, test, vi} from 'vitest'
-import {createClient, sql} from '../src'
+import {FieldInfo, createClient, sql} from '../src'
 
 export let client: Awaited<ReturnType<typeof createClient>>
 let sqlProduced = [] as {sql: string; values: any[]}[]
@@ -122,6 +122,28 @@ test('Query logging', async () => {
             {
               "id": 3,
               "name": "three"
+            }
+          ],
+          "command": "SELECT",
+          "rowCount": 3,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": 40444,
+              "columnID": 1,
+              "dataTypeID": 23,
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": 40444,
+              "columnID": 2,
+              "dataTypeID": 25,
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
             }
           ]
         }
@@ -261,7 +283,11 @@ test('mocking', async () => {
           }
           return value
         })
-        return fakeDb.public.query(statement)
+        const result = fakeDb.public.query(statement)
+        return {
+          ...result,
+          fields: result.fields as {}[] as FieldInfo[],
+        }
       }
     },
   })

@@ -45,27 +45,51 @@ const CREATE_FUNCTION_FORMAT = `
       language {language} {volatility} {strictness} {security_type};
 `
 
-const ALL_RELATIONS_QUERY = resource_text('sql/relations.sql')
-const ALL_RELATIONS_QUERY_9 = resource_text('sql/relations9.sql')
-const SCHEMAS_QUERY = resource_text('sql/schemas.sql')
-const INDEXES_QUERY = resource_text('sql/indexes.sql')
-const SEQUENCES_QUERY = resource_text('sql/sequences.sql')
-const CONSTRAINTS_QUERY = resource_text('sql/constraints.sql')
-const FUNCTIONS_QUERY = resource_text('sql/functions.sql')
-const TYPES_QUERY = resource_text('sql/types.sql')
-const DOMAINS_QUERY = resource_text('sql/domains.sql')
-const EXTENSIONS_QUERY = resource_text('sql/extensions.sql')
-const ENUMS_QUERY = resource_text('sql/enums.sql')
-  // deviation: node-postgres doesn't parse enum arrays to js arrays: https://github.com/brianc/node-pg-types/issues/56 https://github.com/vitaly-t/pg-promise/issues/716
-  .replace('SELECT e.enumlabel', 'SELECT e.enumlabel::text')
-const DEPS_QUERY = resource_text('sql/deps.sql')
-const PRIVILEGES_QUERY = resource_text('sql/privileges.sql')
-const TRIGGERS_QUERY = resource_text('sql/triggers.sql')
-const COLLATIONS_QUERY = resource_text('sql/collations.sql')
-const COLLATIONS_QUERY_9 = resource_text('sql/collations9.sql')
-const RLSPOLICIES_QUERY = resource_text('sql/rlspolicies.sql')
-  // deviation: node-postgres doesn't parse unknown types to js arrays: https://github.com/brianc/node-pg-types/issues/56 https://github.com/vitaly-t/pg-promise/issues/716
-  .replace('pg_get_userbyid(o)', 'pg_get_userbyid(o)::text')
+function loadQueries() {
+  const ALL_RELATIONS_QUERY = resource_text('sql/relations.sql')
+  const ALL_RELATIONS_QUERY_9 = resource_text('sql/relations9.sql')
+  const SCHEMAS_QUERY = resource_text('sql/schemas.sql')
+  const INDEXES_QUERY = resource_text('sql/indexes.sql')
+  const SEQUENCES_QUERY = resource_text('sql/sequences.sql')
+  const CONSTRAINTS_QUERY = resource_text('sql/constraints.sql')
+  const FUNCTIONS_QUERY = resource_text('sql/functions.sql')
+  const TYPES_QUERY = resource_text('sql/types.sql')
+  const DOMAINS_QUERY = resource_text('sql/domains.sql')
+  const EXTENSIONS_QUERY = resource_text('sql/extensions.sql')
+  const ENUMS_QUERY = resource_text('sql/enums.sql')
+    // deviation: node-postgres doesn't parse enum arrays to js arrays: https://github.com/brianc/node-pg-types/issues/56 https://github.com/vitaly-t/pg-promise/issues/716
+    .replace('SELECT e.enumlabel', 'SELECT e.enumlabel::text')
+  const DEPS_QUERY = resource_text('sql/deps.sql')
+  const PRIVILEGES_QUERY = resource_text('sql/privileges.sql')
+  const TRIGGERS_QUERY = resource_text('sql/triggers.sql')
+  const COLLATIONS_QUERY = resource_text('sql/collations.sql')
+  const COLLATIONS_QUERY_9 = resource_text('sql/collations9.sql')
+  const RLSPOLICIES_QUERY = resource_text('sql/rlspolicies.sql')
+    // deviation: node-postgres doesn't parse unknown types to js arrays: https://github.com/brianc/node-pg-types/issues/56 https://github.com/vitaly-t/pg-promise/issues/716
+    .replace('pg_get_userbyid(o)', 'pg_get_userbyid(o)::text')
+
+  return {
+    SCHEMAS_QUERY,
+    ENUMS_QUERY,
+    ALL_RELATIONS_QUERY,
+    ALL_RELATIONS_QUERY_9,
+    COLLATIONS_QUERY_9,
+    INDEXES_QUERY,
+    SEQUENCES_QUERY,
+    CONSTRAINTS_QUERY,
+    EXTENSIONS_QUERY,
+    FUNCTIONS_QUERY,
+    PRIVILEGES_QUERY,
+    TRIGGERS_QUERY,
+    COLLATIONS_QUERY,
+    RLSPOLICIES_QUERY,
+    TYPES_QUERY,
+    DOMAINS_QUERY,
+    DEPS_QUERY,
+  }
+}
+
+let queries: ReturnType<typeof loadQueries> | null = null
 
 function format(formatString: string, ...args: any[]): string {
   return formatString.replaceAll('{}', () => {
@@ -1148,6 +1172,28 @@ export class PostgreSQL extends DBInspector {
     // }
 
     this.pg_version = pg_version
+
+    queries ||= loadQueries()
+
+    const {
+      ALL_RELATIONS_QUERY,
+      ALL_RELATIONS_QUERY_9,
+      COLLATIONS_QUERY,
+      COLLATIONS_QUERY_9,
+      RLSPOLICIES_QUERY,
+      INDEXES_QUERY,
+      SEQUENCES_QUERY,
+      CONSTRAINTS_QUERY,
+      FUNCTIONS_QUERY,
+      TYPES_QUERY,
+      DOMAINS_QUERY,
+      EXTENSIONS_QUERY,
+      ENUMS_QUERY,
+      DEPS_QUERY,
+      SCHEMAS_QUERY,
+      PRIVILEGES_QUERY,
+      TRIGGERS_QUERY,
+    } = queries
 
     const processed = (q: string) => {
       if (!q) {

@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "PGKIT_MIGRATIONS_PATH=/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations PGKIT_MIGRATIONS_TABLE_NAME=admin_test_migrations tsx src/bin",
+    "dev": "PGKIT_MIGRATIONS_PATH=/Users/mmkal/src/pgkit/packages/admin/zignoreme/migrator/migrations PGKIT_MIGRATIONS_TABLE_NAME=admin_test_migrations tsx src/bin",
     "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"

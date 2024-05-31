@@ -56,6 +56,28 @@ test('one error', async () => {
                 "id": 3,
                 "name": "three"
               }
+            ],
+            "command": "SELECT",
+            "rowCount": 2,
+            "fields": [
+              {
+                "name": "id",
+                "tableID": 40346,
+                "columnID": 1,
+                "dataTypeID": 23,
+                "dataTypeSize": 4,
+                "dataTypeModifier": -1,
+                "format": "text"
+              },
+              {
+                "name": "name",
+                "tableID": 40346,
+                "columnID": 2,
+                "dataTypeID": 25,
+                "dataTypeSize": -1,
+                "dataTypeModifier": -1,
+                "format": "text"
+              }
             ]
           }
         }
@@ -85,6 +107,28 @@ test('maybeOne error', async () => {
               "id": 3,
               "name": "three"
             }
+          ],
+          "command": "SELECT",
+          "rowCount": 2,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": 40346,
+              "columnID": 1,
+              "dataTypeID": 23,
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": 40346,
+              "columnID": 2,
+              "dataTypeID": 25,
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
           ]
         }
       }
@@ -104,7 +148,29 @@ test('many error', async () => {
           "values": []
         },
         "result": {
-          "rows": []
+          "rows": [],
+          "command": "SELECT",
+          "rowCount": 0,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": 40346,
+              "columnID": 1,
+              "dataTypeID": 23,
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": 40346,
+              "columnID": 2,
+              "dataTypeID": 25,
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
+          ]
         }
       }
     }
@@ -131,7 +197,7 @@ test('syntax error', async () => {
           "code": "42601",
           "position": "10",
           "file": "scan.l",
-          "line": "1145",
+          "line": "1176",
           "routine": "scanner_yyerror",
           "query": "select * frooom test_errors"
         }

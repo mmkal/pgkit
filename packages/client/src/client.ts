@@ -76,7 +76,11 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
     let result: Result<Row>
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-      result = await pgpQueryable.result<any>(query.sql, query.values.length > 0 ? query.values : undefined)
+      const {rows, command, rowCount, fields} = await pgpQueryable.result<any>(
+        query.sql,
+        query.values.length > 0 ? query.values : undefined,
+      )
+      result = {rows, command, rowCount, fields}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
       throw new QueryError(error.message, {

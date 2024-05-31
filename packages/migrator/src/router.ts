@@ -2,7 +2,8 @@ import {sql} from '@pgkit/client'
 import * as trpcServer from '@trpc/server'
 import {readFile} from 'fs/promises'
 import z from 'zod'
-import {Confirm, Migrator} from './migrator'
+import {Migrator} from './migrator'
+import {Confirm} from './types'
 
 export interface MigratorRouterContext {
   migrator: Migrator
@@ -208,7 +209,7 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
         }),
       )
       .mutation(async ({input, ctx}) => {
-        return ctx.migrator.baseline({...input, to: input.to})
+        return ctx.migrator.baseline({...input, to: input.to, confirm: ctx.confirm})
       }),
     rebase: trpc.procedure
       .meta({
@@ -241,12 +242,12 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
       updateDb: trpc.procedure
         .meta({description: 'Update the database from the definitions file'})
         .mutation(async ({ctx}) => {
-          return ctx.migrator.updateDBFromDDL({confirm: ctx.confirm})
+          return ctx.migrator.updateDbToMatchDefinitions({confirm: ctx.confirm})
         }),
       updateFile: trpc.procedure
         .meta({description: 'Update the definitions file from the database'})
         .mutation(async ({ctx}) => {
-          return ctx.migrator.updateDDLFromDB()
+          return ctx.migrator.updateDefinitionsToMatchDb({confirm: ctx.confirm})
         }),
     }),
     unlock: trpc.procedure
