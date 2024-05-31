@@ -51,7 +51,13 @@ export const unquoted_identifier = (identifier: string, schema?: string, identit
   return s
 }
 
-export const canSkipQuotes = (identifier: string) => /^[_a-z]+$/.test(identifier)
+// todo: @pgkit/keywords package which is a bit more comprehensive, there *might* be more than three postgresql keywords out there.
+// use codegen to parse this: https://www.postgresql.org/docs/current/sql-keywords-appendix.html
+const keywords = new Set(['select', 'insert', 'update'])
+export const canSkipQuotes = (identifier: string) => {
+  const isKeyword = keywords.has(identifier.toLowerCase())
+  return !isKeyword && /^[a-z][\d_a-z]+$/.test(identifier)
+}
 
 // deviation: the original `schemainstpect` project has a single `quoted_identifier` function that receives schema and identifier.
 // this separates out the quoting from the schema part, because some migrations assume that the schema is inferred from the search path
@@ -59,7 +65,12 @@ export const canSkipQuotes = (identifier: string) => /^[_a-z]+$/.test(identifier
 // so, `quoted_identifier` now *must* specify its schema. This avoids usage like `${quoted_identifier('myschema')}.${quoted_identifier('mytable')}`
 // which is used in some places in the original project. Instead, it's now `${quoted_identifier('mytable', 'myschema')}` so that the schema is always explicit.
 // that way, we can check against a configured search path to omit the schema.
-export const quotify = (identifier: string) => identifier.replaceAll(`"`, `""`)
+export const quotify = (identifier: string) => {
+  if (process.env.SCHEMAINSPECT_TRY_TO_SKIP_QUOTES && canSkipQuotes(identifier)) {
+    return identifier
+  }
+  return `"${identifier.replaceAll(`"`, `""`)}"`
+}
 
 export const quoted_identifier = (
   identifier: string,
@@ -69,7 +80,6 @@ export const quoted_identifier = (
   // todo: use async storage for search path, not an env var.
   const searchPathParts = process.env.SCHEMAINSPECT_SEARCH_PATH?.split(',') || []
   if (searchPathParts.includes(schema)) {
-    // console.log('shortcut', {schema, searchPathParts})
     return quotify(identifier)
   }
 
