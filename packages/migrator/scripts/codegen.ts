@@ -2,6 +2,8 @@ import {execaSync} from '@rebundled/execa'
 import {CodegenPreset} from 'eslint-plugin-mmkal'
 import stripAnsi from 'strip-ansi'
 
+const startCase = (str: string) => str.slice(0, 1).toUpperCase() + str.slice(1).toLowerCase()
+
 export const help: import('eslint-plugin-mmkal').CodegenPreset<{command?: string}> = ({options}) => {
   const {stdout} = execaSync('./node_modules/.bin/tsx', ['src/bin', options.command!, '--help'].filter(Boolean), {
     all: true as never,
@@ -30,7 +32,7 @@ export const cliToMarkdown: CodegenPreset<{cli: string}> = ({options: {cli}}) =>
     const {stdout} = execaSync('./node_modules/.bin/tsx', ['src/bin', cmd.name, '--help'])
     const parsed = parseCLIHelp(stdout)
     const first = Object.values(parsed.sections)[0]!
-    first.title = `Command: ${first.title}`
+    first.title = `Command: ${first.title.toLowerCase()}`
     parsed.sections.flags!.rows.sort((a, b) => {
       const scores = [a, b].map(r => (r.name.includes('--help') ? 1 : 0))
       return scores[0]! - scores[1]!
@@ -41,7 +43,7 @@ export const cliToMarkdown: CodegenPreset<{cli: string}> = ({options: {cli}}) =>
   //   if (Math.random()) return JSON.stringify({rootParsed}, null, 2) + '\n\n' + parsedHelpToMarkdown(rootParsed)
 
   return [
-    parsedHelpToMarkdown(rootParsed), //
+    parsedHelpToMarkdown(rootParsed).replace('### Commands', '## Commands'), //
     ...commands.map(parsedHelpToMarkdown),
   ].join('\n\n---\n\n')
 }
@@ -88,7 +90,7 @@ function parseCLIHelp(text: string) {
       })
 
     return {
-      title: (title || `Section ${i + 1}`).toLowerCase(),
+      title: startCase(title || `Section ${i + 1}`),
       description: description.join('\n').trim(),
       body,
       rows,
@@ -97,6 +99,6 @@ function parseCLIHelp(text: string) {
 
   return {
     raw: text,
-    sections: Object.fromEntries(sections.map(s => [s.title, s] as const)),
+    sections: Object.fromEntries(sections.map(s => [s.title.toLowerCase(), s] as const)),
   }
 }
