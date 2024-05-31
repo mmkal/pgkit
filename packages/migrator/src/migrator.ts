@@ -32,17 +32,17 @@ export type ListedMigration = PendingMigration | ExecutedMigration
 
 export type RunnableMigration = umzug.RunnableMigration<MigratorContext>
 
-export interface MigratorOptions {
-  /** @pgkit/client instance */
-  client: string | Client
-  migrationsPath: string
-  migrationTableName?: string | string[]
-  /**
-   * Whether to use `client.transaction(tx => ...)` or `client.connect(cn => ...)` when running up/down migrations
-   * @default `transaction`
-   */
-  connectMethod?: 'transaction' | 'connect'
-}
+// export interface MigratorOptions {
+// /** @pgkit/client instance */
+// client: string | Client
+// migrationsPath: string
+// migrationTableName?: string | string[]
+// /**
+//  * Whether to use `client.transaction(tx => ...)` or `client.connect(cn => ...)` when running up/down migrations
+//  * @default `transaction`
+//  */
+// connectMethod?: 'transaction' | 'connect'
+// }
 
 type Logger = {
   info: (...args: unknown[]) => void
@@ -63,6 +63,16 @@ const noopTask = async <T>(name: string, fn: () => Promise<T>) => {
 }
 
 type MigratorConfig = {
+  /** @pgkit/client instance */
+  client: Client
+  migrationsPath: string
+  migrationTableName?: string | string[]
+  /**
+   * Whether to use `client.transaction(tx => ...)` or `client.connect(cn => ...)` when running up/down migrations
+   * @default `transaction`
+   */
+  connectMethod?: 'transaction' | 'connect'
+
   /**
    * A function which wraps its callback, can be used to add logging before/after completion. Compatible with [tasuku](https://npmjs.com/package/tasuku), for example.
    * @example Using tasuku
@@ -97,23 +107,23 @@ type MigratorConfig = {
   logger: Logger
 }
 
+export interface MigratorConstructorParams extends Omit<MigratorConfig, 'client' | 'task' | 'logger'> {
+  client: string | Client
+  task?: Task
+  logger?: Logger
+}
+
 export class Migrator {
   configStorage = new AsyncLocalStorage<Partial<MigratorConfig>>()
 
-  client: Client
+  /**
+   * The config set in the constructor of the class. Note: in almost all cases, you should use @see config instead,
+   * since the client could be overriden.
+   */
+  protected initialConfig: MigratorConfig
 
-  constructor(readonly migratorOptions: MigratorOptions) {
-    this.client =
-      typeof migratorOptions.client === 'string' ? createClient(migratorOptions.client) : migratorOptions.client
-  }
-
-  useConfig<T>(config: MigratorConfig, fn: (previous: MigratorConfig) => Promise<T>) {
-    const previous = this.config
-    return this.configStorage.run(config, () => fn(previous))
-  }
-
-  protected get defaultConfig(): MigratorConfig {
-    return {
+  constructor(params: MigratorConstructorParams) {
+    this.initialConfig = {
       task: async (name, fn) => {
         this.logger.info('Starting', name)
         const result = await fn()
@@ -121,13 +131,24 @@ export class Migrator {
         return {result}
       },
       logger: console,
+      ...params,
+      client: typeof params.client === 'string' ? createClient(params.client) : params.client,
     }
+  }
+
+  get client() {
+    return this.config.client
+  }
+
+  useConfig<T>(config: MigratorConfig, fn: (previous: MigratorConfig) => Promise<T>) {
+    const previous = this.config
+    return this.configStorage.run(config, () => fn(previous))
   }
 
   protected get config(): MigratorConfig {
     const store = this.configStorage.getStore()
     return {
-      ...this.defaultConfig,
+      ...this.initialConfig,
       ...store,
     }
   }
@@ -152,13 +173,13 @@ export class Migrator {
 
   /** Gets a hexadecimal integer to pass to postgres's `select pg_advisory_lock()` function */
   protected advisoryLockId() {
-    const hashable = '@pgkit/migrator advisory lock:' + JSON.stringify(this.migratorOptions.migrationTableName)
+    const hashable = '@pgkit/migrator advisory lock:' + JSON.stringify(this.config.migrationTableName)
     const hex = createHash('md5').update(hashable).digest('hex').slice(0, 8)
     return Number.parseInt(hex, 16)
   }
 
   protected get migrationTable() {
-    const table = this.migratorOptions.migrationTableName || 'migrations'
+    const table = this.config.migrationTableName || 'migrations'
     if (table.length === 0) {
       throw new Error(`Invalid migration table name: ${JSON.stringify(table)}`)
     } else if (Array.isArray(table) && table.length > 2) {
@@ -216,11 +237,11 @@ export class Migrator {
   }
 
   get definitionsFile() {
-    return path.join(this.migratorOptions.migrationsPath, '../definitions.sql')
+    return path.join(this.config.migrationsPath, '../definitions.sql')
   }
 
   async connect<T>(fn: (connection: Connection) => Promise<T>) {
-    const {connectMethod = 'transaction'} = this.migratorOptions
+    const {connectMethod = 'transaction'} = this.config
     return this.client[connectMethod](fn)
   }
 
@@ -257,7 +278,7 @@ export class Migrator {
   }
 
   protected content(name: string) {
-    return readFileSync(path.join(this.migratorOptions.migrationsPath, name), 'utf8')
+    return readFileSync(path.join(this.config.migrationsPath, name), 'utf8')
   }
 
   /**
@@ -354,7 +375,7 @@ export class Migrator {
    * In production, you would usually prefer to create a regular migration which does whichever `drop x` or `alter y` commands are necessary.
    */
   async goto(params: {name: string; confirm: Confirm; purgeDisk?: boolean}) {
-    const diffTo = await this.getDiff({to: params.name})
+    const diffTo = await this.getDiffTo({name: params.name})
     if (await params.confirm(diffTo)) {
       await this.useAdvisoryLock(async () => {
         await this.client.query(sql.raw(diffTo))
@@ -379,9 +400,9 @@ export class Migrator {
 
   private async getMigrationsTableFixStatements() {
     const currentTable = await this.getMigrationsTableInspected()
-    const expectedTable = await this.useShadowMigrator(async shadowMigrator => {
-      await shadowMigrator.getOrCreateMigrationsTable()
-      return shadowMigrator.getMigrationsTableInspected()
+    const expectedTable = await this.useShadowClientConfig(async () => {
+      await this.getOrCreateMigrationsTable()
+      return this.getMigrationsTableInspected()
     })
 
     if (JSON.stringify(currentTable) === JSON.stringify(expectedTable)) {
@@ -507,13 +528,13 @@ export class Migrator {
     }
 
     const name = this.filePrefix() + nameSuffix
-    const filepath = path.join(this.migratorOptions.migrationsPath, name)
+    const filepath = path.join(this.config.migrationsPath, name)
 
     if (!content) {
       content = template
     }
 
-    await fs.mkdir(this.migratorOptions.migrationsPath, {recursive: true})
+    await fs.mkdir(this.config.migrationsPath, {recursive: true})
     await fs.writeFile(filepath, content)
     return {name, path: filepath, content}
   }
@@ -626,10 +647,10 @@ export class Migrator {
    */
   async getRepairDiff() {
     const executed = await this.executed()
-    const shadow = await this.useShadowMigrator(async shadowMigrator => {
-      if (executed.length > 0) await shadowMigrator.up({to: executed.at(-1)?.name})
-      const {sql: diff} = await this.wrapMigra(this.client, shadowMigrator.client)
-      return {diff, executed: await shadowMigrator.executed()}
+    const shadow = await this.useShadowClientConfig(async ({parent}) => {
+      if (executed.length > 0) await this.up({to: executed.at(-1)?.name})
+      const {sql: diff} = await this.wrapMigra(parent.client, this.client)
+      return {diff, executed: await this.executed()}
     })
 
     const newRecords = shadow.executed.map(m => ({name: m.name, content: m.content, status: 'executed'}))
@@ -690,14 +711,12 @@ export class Migrator {
     )
     const executedByName = new Map(executed.map(r => [r.name, r]))
 
-    const dir = existsSync(this.migratorOptions.migrationsPath)
-      ? await fs.readdir(this.migratorOptions.migrationsPath)
-      : []
+    const dir = existsSync(this.config.migrationsPath) ? await fs.readdir(this.config.migrationsPath) : []
     const files = dir.filter(f => f.endsWith('.sql'))
 
     return Promise.all(
       files.map(async (name): Promise<ListedMigration> => {
-        const filepath = path.join(this.migratorOptions.migrationsPath, name)
+        const filepath = path.join(this.config.migrationsPath, name)
         const maybeExecuted = executedByName.get(name)
         const content = await fs.readFile(filepath, 'utf8')
         const base = {name, path: filepath, content}
@@ -734,43 +753,6 @@ export class Migrator {
     return list.filter((m): m is ExecutedMigration => m.status === 'executed')
   }
 
-  /**
-   * Get a new instance of `this`. Options passed will be spread with `migratorOptions` passed to the constructor of the current instance.
-   * In subclasses with different constructor parameters, this should be overridden to return an instance of the subclass.
-   *
-   * @example
-   * ```ts
-   * class MyMigrator extends Migrator {
-   *   options: MyMigratorOptions
-   *   constructor(options: MyMigratorOptions) {
-   *     super(convertMyOptionsToBaseOptions(options))
-   *     this.options = options
-   *   }
-   *
-   *  cloneWith(options?: MigratorOptions) {
-   *    const MigratorClass = this.constructor as typeof MyMigrator
-   *    const myOptions = convertBaseOptionsToMyOptions(options)
-   *    return new MyMigrator({...this.options, ...options})
-   *  }
-   * ```
-   */
-  cloneWith(options?: Partial<MigratorOptions>) {
-    const MigratorClass = this.constructor as typeof Migrator
-    return new MigratorClass({...this.migratorOptions, ...options})
-  }
-
-  /**
-   * Uses `migra` to generate a diff between the current database and the state of a database at the specified migration.
-   * This can be used to go "down" to a specific migration.
-   */
-  async getDiff(params: {to: string}) {
-    const {sql: content} = await this.useShadowMigrator(async shadowMigrator => {
-      await shadowMigrator.up({to: params.to})
-      return this.wrapMigra(this.client, shadowMigrator.client, {unsafe: true})
-    })
-    return content
-  }
-
   async wipeDiff() {
     const {sql: content} = await this.useShadowClient(async shaowClient => {
       return this.wrapMigra(this.client, shaowClient, {unsafe: true})
@@ -786,12 +768,24 @@ export class Migrator {
   }
 
   /**
+   * Uses `migra` to generate a diff between the current database and the state of a database at the specified migration.
+   * This is used by @see goto to go "down" to a specific migration.
+   */
+  async getDiffTo(params: {name: string}) {
+    const {sql: content} = await this.useShadowClientConfig(async ({parent}) => {
+      await this.up({to: params.name})
+      return this.wrapMigra(parent.client, this.client, {unsafe: true})
+    })
+    return content
+  }
+
+  /**
    * Uses `migra` to generate a diff between the state of a database at the specified migration, and the current state of the database.
    */
   async getDiffFrom(params: {name: string}) {
-    const {sql: content} = await this.useShadowMigrator(async shadowMigrator => {
-      await shadowMigrator.up({to: params.name})
-      return this.wrapMigra(shadowMigrator.client, this.client, {unsafe: true})
+    const {sql: content} = await this.useShadowClientConfig(async ({parent}) => {
+      await this.up({to: params.name})
+      return this.wrapMigra(this.client, parent.client, {unsafe: true})
     })
     return content
   }
@@ -829,19 +823,19 @@ export class Migrator {
   }
 
   /**
-   * Creates a temporary database, and runs the provided callback with a migrator instance connected to the temporary database.
+   * Creates a temporary database, and runs the provided callback with the migrator instance connected to the temporary database.
+   * Within the scope of the callback, the migrator instance will be configured to use the temporary database. This is useful for
+   * calculating diffs between the current database and the state of the database at a specific migration.
+   * The callback will be passed an object with the original client as `parent.client`.
    * After the callback resolves or rejects, the temporary database is dropped forcefully.
    */
-  async useShadowMigrator<T>(cb: (migrator: Migrator) => Promise<T>) {
-    return await this.useShadowClient(async shadowClient => {
-      const shadowMigrator = this.cloneWith({client: shadowClient})
-      return shadowMigrator.configStorage.run(
-        {logger: noopLogger, task: noopTask}, // Don't output "Apply migration x" etc. for shadow migrations
-        async () => {
-          await shadowMigrator.getOrCreateMigrationsTable()
-          return await cb(shadowMigrator)
-        },
-      )
+  async useShadowClientConfig<T>(cb: (params: {parent: {client: Client}}) => Promise<T>) {
+    const parent = {client: this.client}
+    return await this.useShadowClient(async client => {
+      return this.configStorage.run({client, logger: noopLogger, task: noopTask}, async () => {
+        await this.getOrCreateMigrationsTable()
+        return await cb({parent})
+      })
     })
   }
 
