@@ -718,7 +718,7 @@ export class Migrator {
   async useShadowClient<T>(cb: (client: Client) => Promise<T>) {
     const shadowDbName = `shadow_${Date.now()}_${randomInt(1_000_000)}`
     const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDbName)
-    const shadowClient = createClient(shadowConnectionString, {pgpOptions: this.client.pgpOptions})
+    const shadowClient = createClient(shadowConnectionString, this.client.options)
 
     try {
       await this.client.query(sql`create database ${sql.identifier([shadowDbName])}`)
