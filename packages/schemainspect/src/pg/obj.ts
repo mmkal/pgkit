@@ -20,14 +20,21 @@ import {TopologicalSorter} from '../graphlib'
 import {ColumnInfo, Inspected, BaseInspectedSelectable, TableRelated, pick} from '../inspected'
 import {DBInspector} from '../inspector'
 import {asa, isa} from '../isa-asa'
-import {quoted_identifier, getResourceText, quotify} from '../misc'
+import {quoted_identifier, quotify} from '../misc'
+import {queries as queryContents} from '../queries'
 import {Queries} from '../types'
 import {groupBy, isEqual} from '../util'
 
 // keep close to the python by fiddling with __dirname
 // __dirname=/foo/bar/{src,dist}/pg -> /foo/bar/queries/pg
 // no plans to support anything other than pg but may as well keep it similar to the original
-const resource_text = getResourceText(path.join(__dirname, '../../queries', path.basename(__dirname)))
+const resource_text = (relativePath: string): string => {
+  const filename = relativePath.replace('sql/', '')
+  if (filename in queryContents) {
+    return queryContents[filename]
+  }
+  throw new Error(`Resource not found: ${relativePath}`)
+}
 
 // const textwrap = String
 
