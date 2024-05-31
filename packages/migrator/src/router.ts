@@ -2,7 +2,8 @@ import {sql} from '@pgkit/client'
 import * as trpcServer from '@trpc/server'
 import {readFile} from 'fs/promises'
 import z from 'zod'
-import {Confirm, Migrator} from './migrator'
+import {Migrator} from './migrator'
+import {Confirm} from './types'
 
 export interface MigratorRouterContext {
   migrator: Migrator
