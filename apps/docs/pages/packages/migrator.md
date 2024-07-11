@@ -1,23 +1,27 @@
 # @pgkit/migrator
 
->Note: @pgkit/migrator is being re-written. Docs are _mostly_ updated.
-
-A cli migration tool for postgres, using [pgkit](/packages/client).
+A smart cli migration tool for postgres, using [pgkit](/packages/client).
 
 
-## Motivation
+Features:
 
-There are already plenty of migration tools out there - but if you have an existing project that uses pgkit, this will be the simplest to configure. Even if you don't, the setup required is minimal.
-
-By default, the migration scripts it runs are plain `.sql` files. No learning the quirks of an ORM, and how native postgres features map to API calls. It can also run `.js` or `.ts` files - but where possible, it's often preferable to keep it simple and stick to SQL.
-
-This isn't technically a cli - it's a cli _helper_. Most node migration libraries are command-line utilities, which require a separate `database.json` or `config.json` file where you have to hard-code in your connection credentials. This library uses a different approach - it exposes a javascript function which you pass a client instance into. The javascript file you make that call in then becomes a runnable migration CLI. The migrations can be invoked programmatically from the same config.
+- SQL-first - write migrations using plain-old SQL. Just write `create table ...` statements.
+- Flexible - migrations can also be written in javascript or typescript for more dynamic use-cases.
+- DDL generation - read and write from a definitions file, making it easy to see what your whole schema looks like.
+- Smart `create` - tinker with your database manually, then automatically create a migration file based on the drift.
+- `goto`: Automatic "down" migrations. Uses [migra](/packages/migra) to go "back" to a specific migration.
+- `rebase` migrations - rewrite and squash migrations past a certain point to consolidate working changes into one.
+- `check` migrations to see if your database state matches what it should be based on the list of migrations
+- `repair` to update the database to match the state described by your migrations
+- `baseline` - mark an existing database as up-to-date, making it easy to introduce this tool to existing projects, and avoids worry about version updates.
+- Ready for distributed systems - database-level advisory locking makes it safe for multiple servers to run migrations at the same time
+- Footgun-protection - any destructive changes require explicit confirmation
+- Transaction support - apply all your migrations if they succeed, or none of them if any fail
 
 <details>
   <summary>Contents</summary>
 
 <!-- codegen:start {preset: markdownTOC, minDepth: 2, maxDepth: 3} -->
-- [Motivation](#motivation)
 - [Installation](#installation)
 - [Usage](#usage)
    - [Principles](#principles)
@@ -41,24 +45,6 @@ This isn't technically a cli - it's a cli _helper_. Most node migration librarie
 <!-- codegen:end -->
 
 </details>
-# @pgkit/migrator
-
-A migration tool for postgres, using [pgkit](/packages/client)
-
-Features:
-
-- SQL-first - write migrations using plain-old SQL. Just write `create table ...` statements.
-- Flexible - migrations can also be written in javascript or typescript for more dynamic use-cases.
-- DDL generation - read and write from a definitions file, making it easy to see what your whole schema looks like.
-- Smart `create` - tinker with your database manually, then automatically create a migration file based on the drift.
-- `goto`: Automatic "down" migrations. Uses [migra](/packages/migra) to go "back" to a specific migration.
-- `rebase` migrations - rewrite and squash migrations past a certain point to consolidate working changes into one.
-- `check` migrations to see if your database state matches what it should be based on the list of migrations
-- `repair` to update the database to match the state described by your migrations
-- `baseline` - mark an existing database as up-to-date, making it easy to introduce this tool to existing projects, and avoids worry about version updates.
-- Ready for distributed systems - database-level advisory locking makes it safe for multiple servers to run migrations at the same time
-- Footgun-protection - any destructive changes require explicit confirmation
-- Transaction support - apply all your migrations if they succeed, or none of them if any fail
 
 ## Installation
 

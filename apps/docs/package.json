@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "description": "Documentation for pgkit.dev",
   "scripts": {
-    "build": "tsx scripts/build && next build",
+    "generate": "tsx scripts/build",
+    "build": "next build",
     "dev": "next dev"
   },
   "dependencies": {
