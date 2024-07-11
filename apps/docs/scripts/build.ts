@@ -41,9 +41,10 @@ const main2 = async () => {
     }
   }
   const packages = [
-    getPkg('client'), //
+    getPkg('client'),
     getPkg('migrator'),
     getPkg('admin'),
+    getPkg('typegen'),
     getPkg('schemainspect'),
     getPkg('migra'),
   ]
