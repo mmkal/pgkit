@@ -1,7 +1,7 @@
 {
   "name": "@pgkit/docs",
   "version": "0.0.1",
-  "description": "Documentation for PGKit",
+  "description": "Documentation for pgkit.dev",
   "scripts": {
     "build": "next build",
     "dev": "next dev"
