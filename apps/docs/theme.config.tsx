@@ -6,10 +6,24 @@ export default {
     link: 'https://github.com/mmkal/slonik-tools',
   },
   chat: {
-    link: 'https://discord.com/users/mmkal',
+    link: 'https://x.com/mmkalmmkal',
   },
   footer: {
     text: 'pgkit.dev',
+  },
+  banner: {
+    text: (
+      <>
+        🧪 pgkit is under active development. You can <i>probably</i> safely use it in production, since the underlying
+        driver is just pg-promise.
+        <br />
+        But if you don't want to be on the cutting edge of things, use it on a test project first, or{' '}
+        <a style={{textDecoration: 'underline'}} target="_blank" href="https://discord.com/users/mmkal">
+          DM me
+        </a>
+        .
+      </>
+    ),
   },
   docsRepositoryBase: 'https://github.com/mmkal/slonik-tools/tree/pgkit', // base URL for the docs repository
   useNextSeoProps: () => ({
