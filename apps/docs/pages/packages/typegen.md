@@ -1,8 +1,6 @@
 # @pgkit/typegen
 
 
-[![codecov](https://codecov.io/gh/mmkal/pgkit/branch/master/graph/badge.svg)](https://codecov.io/gh/mmkal/pgkit)
-
 A library that uses [pgkit](/packages/client) to generate typescript interfaces based on your sql queries.
 
 ## The idea

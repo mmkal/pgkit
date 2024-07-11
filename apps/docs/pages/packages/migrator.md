@@ -5,8 +5,6 @@
 A cli migration tool for postgres, using [pgkit](/packages/client).
 
 
-
-
 ## Motivation
 
 There are already plenty of migration tools out there - but if you have an existing project that uses pgkit, this will be the simplest to configure. Even if you don't, the setup required is minimal.
