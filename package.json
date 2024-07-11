@@ -24,8 +24,5 @@
         "type-fest": "^4.10.3",
         "typescript": ">=3.0.0",
         "util": "^0.12.3"
-    },
-    "dependencies": {
-        "next": "^14.2.5"
     }
 }
