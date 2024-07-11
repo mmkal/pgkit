@@ -1,0 +1,7 @@
+{
+  "client": "client",
+  "migrator": "migrator",
+  "admin": "admin",
+  "schemainspect": "schemainspect",
+  "migra": "migra"
+}

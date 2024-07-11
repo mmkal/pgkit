@@ -2,7 +2,7 @@
 
 A strongly-typed postgres client for node.js. Lets you execute SQL, without abstractions, safely.
 
-<img src="./images/logo.svg" alt="Logo" width="200"/>
+<img src="/images/logo.svg" alt="Logo" width="200"/>
 
 ## Introduction
 
@@ -29,11 +29,11 @@ The API design is based on [slonik](https://npmjs.com/package/slonik) - which re
 @pgkit/client is the basis for these libraries:
 
 <!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(client|^pgkit$))", sort: topological} -->
-- [@pgkit/typegen](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme) - Automatically generates typescript types from SQL queries
+- [@pgkit/typegen](/packages/typegen) - Automatically generates typescript types from SQL queries
 - [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
-- [@pgkit/migra](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
-- [@pgkit/admin](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
-- [@pgkit/migrator](https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme) - PostgeSQL migration tool
+- [@pgkit/migra](/packages/migra) - A CLI to generate PostgeSQL schema diff scripts
+- [@pgkit/admin](/packages/admin) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
+- [@pgkit/migrator](/packages/migrator) - PostgeSQL migration tool
 <!-- codegen:end -->
 
 Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python equivalents. They are fantastically useful, and hopefully more and more can be built on top of them in the future.
@@ -297,7 +297,7 @@ expect(result).toEqual([
 
 ### nested `sql` tag
 
-You can also use `` sql`...` `` to create a fragment of SQL, but it's recommended to use `sql.fragment` instead for explicitness. Support for [type-generation](https://npmjs.com/package/@pgkit/typegen) is better using `sql.fragment` too.
+You can also use `` sql`...` `` to create a fragment of SQL, but it's recommended to use `sql.fragment` instead for explicitness. Support for [type-generation](/packages/typegen) is better using `sql.fragment` too.
 
 ```typescript
 const idGreaterThan = (id: number) => sql`id > ${id}`
@@ -542,7 +542,7 @@ const maybeProfile = await client.maybeOne(profileQuery) // has type Profile | n
 
 ## Automatic type generation
 
-The companion library [@pgkit/typegen](https://npmjs.com/package/@pgkit/typegen) will automatically typescript types to your queries, by analyzing the SQL. This offers a pretty unique developer experience. You get the type-safety of an ORM, but without the tradeoffs: no vendor lock-in, no having to learn how to use the ORM rather than PostgreSQL, no auto-generated slow queries, no arbitrary limitations on the queries you can run.
+The companion library [@pgkit/typegen](/packages/typegen) will automatically typescript types to your queries, by analyzing the SQL. This offers a pretty unique developer experience. You get the type-safety of an ORM, but without the tradeoffs: no vendor lock-in, no having to learn how to use the ORM rather than PostgreSQL, no auto-generated slow queries, no arbitrary limitations on the queries you can run.
 
 Check out the typegen package for more details, but essentially it will analyse your SQL queries, and map PostgreSQL types to TypeScript, to transform code like this:
 
