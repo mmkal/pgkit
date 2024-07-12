@@ -33,7 +33,7 @@ export const Inspector = () => {
         startOnLoad: true,
         theme: 'dark',
         flowchart: {
-          useMaxWidth: 0,
+          useMaxWidth: false,
         },
       }),
     [],
