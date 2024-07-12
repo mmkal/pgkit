@@ -1,5 +1,7 @@
 # @pgkit/client
 
+![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+
 A strongly-typed postgres client for node.js. Lets you execute SQL, without abstractions, safely.
 
 <img src="/images/logo.svg" alt="Logo" width="200"/>
@@ -778,14 +780,12 @@ expect(sqlProduced).toMatchInlineSnapshot(`
 // Simplistic way of logging query times. For more accurate results, use process.hrtime()
 const log = vi.fn()
 const client = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
-  wrapQueryFn: queryFn => {
-    return async query => {
-      const start = Date.now()
-      const result = await queryFn(query)
-      const end = Date.now()
-      log({start, end, took: end - start, query, result})
-      return result
-    }
+  wrapQueryFn: queryFn => async query => {
+    const start = Date.now()
+    const result = await queryFn(query)
+    const end = Date.now()
+    log({start, end, took: end - start, query, result})
+    return result
   },
 })
 

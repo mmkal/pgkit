@@ -1,7 +1,8 @@
 # @pgkit/migrator
 
-A smart cli migration tool for postgres, using [pgkit](/packages/client).
+![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
 
+A smart cli migration tool for postgres, using [pgkit](/packages/client).
 
 Features:
 
