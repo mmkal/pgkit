@@ -10,7 +10,7 @@
   "author": "mmkal",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mmkal/slonik-tools",
+    "url": "https://github.com/mmkal/pgkit",
     "directory": "packages/schemainspect"
   },
   "scripts": {

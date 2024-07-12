@@ -11,10 +11,10 @@ expect.addSnapshotSerializer({
 test('commonPrefix', async () => {
   expect(
     commonPrefix([
-      '/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations/2024.04.25T03.55.50.patients.sql',
-      '/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations/down/2024.04.25T03.55.50.patients.sql',
+      '/Users/mmkal/src/pgkit/packages/admin/zignoreme/migrator/migrations/2024.04.25T03.55.50.patients.sql',
+      '/Users/mmkal/src/pgkit/packages/admin/zignoreme/migrator/migrations/down/2024.04.25T03.55.50.patients.sql',
     ]),
-  ).toMatchInlineSnapshot(`"/Users/mmkal/src/slonik-tools/packages/admin/zignoreme/migrator/migrations/"`)
+  ).toMatchInlineSnapshot(`"/Users/mmkal/src/pgkit/packages/admin/zignoreme/migrator/migrations/"`)
 })
 
 test('zreflect', async () => {

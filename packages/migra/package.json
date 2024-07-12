@@ -8,10 +8,10 @@
     "author": "mmkal",
     "repository": {
         "type": "git",
-        "url": "https://github.com/mmkal/slonik-tools",
+        "url": "https://github.com/mmkal/pgkit",
         "directory": "packages/migra"
     },
-    "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migra#readme",
+    "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/migra#readme",
     "files": [
         "dist"
     ],

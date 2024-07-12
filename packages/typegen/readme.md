@@ -1,8 +1,5 @@
 # @pgkit/typegen
 
-[![Node CI](https://github.com/mmkal/pgkit/workflows/CI/badge.svg)](https://github.com/mmkal/pgkit/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/mmkal/pgkit/branch/master/graph/badge.svg)](https://codecov.io/gh/mmkal/pgkit)
-
 A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql queries.
 
 ## The idea

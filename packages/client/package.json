@@ -23,10 +23,10 @@
   "author": "mmkal",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mmkal/slonik-tools",
+    "url": "https://github.com/mmkal/pgkit",
     "directory": "packages/client"
   },
-  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/client#readme",
+  "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/client#readme",
   "license": "ISC",
   "devDependencies": {
     "@stylistic/eslint-plugin": "^1.6.0",

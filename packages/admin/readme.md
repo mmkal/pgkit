@@ -43,7 +43,7 @@ It also became cleare that, after porting [schemainspect](https://npmjs.com/pack
 
 It can also be more easily deployed as an internal admin tool against deployed databases, for existing stacks with a node.js backend (e.g. using express or similar). See the [library usage section](#use-as-a-library).
 
-Finally, there is a lot that pgAdmin does that this library doesn't. Right now, @pgkit/admin doesn't run shell scripts, visualise query plans, have any special features around auto-vacuum, etc. (There is a a [schema-diffing tool](https://github.com/mmkal/slonik-tools/tree/HEAD/packages/migra#readme) in the pgkit family though) Having said that, there are plenty more features that can be added to this. It's open source, and it's a simple react app. Take a look at the [future](#future) section and feel free to open a pull request, or create an issue, if you have an idea of something you'd like added.
+Finally, there is a lot that pgAdmin does that this library doesn't. Right now, @pgkit/admin doesn't run shell scripts, visualise query plans, have any special features around auto-vacuum, etc. (There is a a [schema-diffing tool](https://github.com/mmkal/pgkit/tree/HEAD/packages/migra#readme) in the pgkit family though) Having said that, there are plenty more features that can be added to this. It's open source, and it's a simple react app. Take a look at the [future](#future) section and feel free to open a pull request, or create an issue, if you have an idea of something you'd like added.
 
 *[codemirror](https://codemirror.net) and [reactgrid](https://reactgrid.com) do the heavy UI lifting.
 

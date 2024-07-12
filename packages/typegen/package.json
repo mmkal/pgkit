@@ -13,10 +13,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/mmkal/slonik-tools",
+    "url": "https://github.com/mmkal/pgkit",
     "directory": "packages/admin"
   },
-  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/typegen#readme",
+  "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/typegen#readme",
   "scripts": {
     "_dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5432/postgres\"",
     "prepack": "pnpm build",

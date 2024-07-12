@@ -2,9 +2,6 @@
 
 A smart cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
 
-[![Node CI](https://github.com/mmkal/pgkit/workflows/CI/badge.svg)](https://github.com/mmkal/pgkit/actions?query=workflow%3ACI)
-[![codecov](https://codecov.io/gh/mmkal/pgkit/branch/main/graph/badge.svg)](https://codecov.io/gh/mmkal/pgkit)
-
 Features:
 
 - SQL-first - write migrations using plain-old SQL. Just write `create table ...` statements.

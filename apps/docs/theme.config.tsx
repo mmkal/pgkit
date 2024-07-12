@@ -4,7 +4,7 @@ import {useConfig} from 'nextra-theme-docs'
 export default {
   logo: <img width={150} src="/images/logo.svg" alt="logo" />,
   project: {
-    link: 'https://github.com/mmkal/slonik-tools',
+    link: 'https://github.com/mmkal/pgkit',
   },
   chat: {
     link: 'https://x.com/mmkalmmkal',
@@ -39,7 +39,7 @@ export default {
       </>
     ),
   },
-  docsRepositoryBase: 'https://github.com/mmkal/slonik-tools/tree/pgkit', // base URL for the docs repository
+  docsRepositoryBase: 'https://github.com/mmkal/pgkit/tree/pgkit', // base URL for the docs repository
   // useNextSeoProps: () => ({
   //   titleTemplate: '%s - pgkit',
   // }),

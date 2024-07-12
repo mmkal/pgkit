@@ -8,10 +8,10 @@
   "bin": "dist/bin.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mmkal/slonik-tools",
+    "url": "https://github.com/mmkal/pgkit",
     "directory": "packages/migrator"
   },
-  "homepage": "https://github.com/mmkal/slonik-tools/tree/pgkit/packages/migrator#readme",
+  "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/migrator#readme",
   "files": [
     "dist"
   ],
