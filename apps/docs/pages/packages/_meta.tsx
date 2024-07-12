@@ -1,4 +1,4 @@
-{
+export default {
   "client": "client",
   "migrator": "migrator",
   "admin": "admin",

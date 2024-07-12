@@ -54,7 +54,10 @@ const main2 = async () => {
 
   const packagesMeta = Object.fromEntries(packages.map(({name}) => [name, name] as const))
 
-  await fs.promises.writeFile(path.join(pagesDir, 'packages/_meta.json'), JSON.stringify(packagesMeta, null, 2))
+  await fs.promises.writeFile(
+    path.join(pagesDir, 'packages/_meta.tsx'),
+    'export default ' + JSON.stringify(packagesMeta, null, 2),
+  )
 
   await fs.promises.mkdir(path.join(appDir, 'public/images'), {recursive: true})
   await fs.promises.mkdir(path.join(appDir, 'public/gifs'), {recursive: true})
