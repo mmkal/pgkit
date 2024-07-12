@@ -18,12 +18,12 @@ export default {
       </svg>
     ),
   },
-  footer: {
-    content: 'pgkit.dev',
-  },
   backgroundColor: {
     // dark: 'rgb(31 41 55 / var(--tw-bg-opacity, 1))', // bg-gray-800
     dark: 'green',
+  },
+  footer: {
+    content: 'pgkit.dev',
   },
   banner: {
     content: (
