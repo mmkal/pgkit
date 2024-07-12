@@ -1,5 +1,7 @@
 # @pgkit/client
 
+![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+
 A strongly-typed postgres client for node.js. Lets you execute SQL, without abstractions, safely.
 
 <img src="./images/logo.svg" alt="Logo" width="200"/>
