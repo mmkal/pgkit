@@ -1,0 +1,7 @@
+.debugMermaid {
+    display: none;
+}
+
+.mermaid:has([aria-roledescription="error"]) + .debugMermaid {
+    display: block;
+}
