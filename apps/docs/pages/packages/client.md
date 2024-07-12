@@ -52,6 +52,7 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.array](#sqlarray)
    - [sql.identifier](#sqlidentifier)
    - [sql.unnest](#sqlunnest)
+   - [jsonb_to_recordset](#jsonb_to_recordset)
    - [sql.join](#sqljoin)
    - [sql.fragment](#sqlfragment)
    - [nested `sql` tag](#nested-sql-tag)
@@ -241,10 +242,10 @@ expect(Number(result)).toEqual(3)
 
 ```typescript
 const values = [
-  {id: 1, name: 'one'},
-  {id: 2, name: 'two'},
-  {id: 3, name: 'three'},
-  {id: 4, name: 'four'},
+  {id: 11, name: 'eleven'},
+  {id: 12, name: 'twelve'},
+  {id: 13, name: 'thirteen'},
+  {id: 14, name: 'fourteen'},
 ]
 const result = await client.any(sql`
   insert into usage_test(id, name)
@@ -257,10 +258,38 @@ const result = await client.any(sql`
 `)
 
 expect(result).toEqual([
-  {id: 1, name: 'one'},
-  {id: 2, name: 'two'},
-  {id: 3, name: 'three'},
-  {id: 4, name: 'four'},
+  {id: 11, name: 'eleven'},
+  {id: 12, name: 'twelve'},
+  {id: 13, name: 'thirteen'},
+  {id: 14, name: 'fourteen'},
+])
+```
+
+### jsonb_to_recordset
+
+`jsonb_to_recordset` is a PostgreSQL-native alternative to `sql.unnest`.
+
+```typescript
+const records = [
+  {id: 11, name: 'eleven'},
+  {id: 12, name: 'twelve'},
+  {id: 13, name: 'thirteen'},
+  {id: 14, name: 'fourteen'},
+]
+const result = await client.any(sql`
+  insert into usage_test(id, name)
+  select *
+  from jsonb_to_recordset(
+    ${JSON.stringify(records, null, 2)}
+  ) as x(id int, name text)
+  returning *
+`)
+
+expect(result).toEqual([
+  {id: 11, name: 'eleven'},
+  {id: 12, name: 'twelve'},
+  {id: 13, name: 'thirteen'},
+  {id: 14, name: 'fourteen'},
 ])
 ```
 
@@ -393,7 +422,7 @@ const result = await client.transaction(async tx => {
 
 expect(result).toEqual({search_path: 'abc'})
 const result2 = await client.one(sql`show search_path`)
-expect(result2).toEqual({search_path: '"$user", public'})
+expect(result2?.search_path).toMatch(/\bpublic\b/)
 ```
 
 ### transaction savepoints
@@ -749,12 +778,14 @@ expect(sqlProduced).toMatchInlineSnapshot(`
 // Simplistic way of logging query times. For more accurate results, use process.hrtime()
 const log = vi.fn()
 const client = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
-  wrapQueryFn: queryFn => async query => {
+  wrapQueryFn: queryFn => {
+    return async query => {
       const start = Date.now()
       const result = await queryFn(query)
       const end = Date.now()
       log({start, end, took: end - start, query, result})
       return result
+    }
   },
 })
 
@@ -796,6 +827,28 @@ expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
           {
             "id": 3,
             "name": "three"
+          }
+        ],
+        "command": "SELECT",
+        "rowCount": 3,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": 40444,
+            "columnID": 1,
+            "dataTypeID": 23,
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": 40444,
+            "columnID": 2,
+            "dataTypeID": 25,
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
           }
         ]
       }
@@ -941,7 +994,11 @@ const client = createClient('postgresql://', {
         }
         return value
       })
-      return fakeDb.public.query(statement)
+      const result = fakeDb.public.query(statement)
+      return {
+        ...result,
+        fields: result.fields as {}[] as FieldInfo[],
+      }
     }
   },
 })
@@ -1067,6 +1124,28 @@ await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMa
               "id": 3,
               "name": "three"
             }
+          ],
+          "command": "SELECT",
+          "rowCount": 2,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": 40346,
+              "columnID": 1,
+              "dataTypeID": 23,
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": 40346,
+              "columnID": 2,
+              "dataTypeID": 25,
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
           ]
         }
       }
@@ -1098,6 +1177,28 @@ await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects
             "id": 3,
             "name": "three"
           }
+        ],
+        "command": "SELECT",
+        "rowCount": 2,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": 40346,
+            "columnID": 1,
+            "dataTypeID": 23,
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": 40346,
+            "columnID": 2,
+            "dataTypeID": 25,
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
         ]
       }
     }
@@ -1119,7 +1220,29 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
         "values": []
       },
       "result": {
-        "rows": []
+        "rows": [],
+        "command": "SELECT",
+        "rowCount": 0,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": 40346,
+            "columnID": 1,
+            "dataTypeID": 23,
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": 40346,
+            "columnID": 2,
+            "dataTypeID": 25,
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
+        ]
       }
     }
   }
@@ -1148,7 +1271,7 @@ await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInline
         "code": "42601",
         "position": "10",
         "file": "scan.l",
-        "line": "1145",
+        "line": "1176",
         "routine": "scanner_yyerror",
         "query": "select * frooom test_errors"
       }
