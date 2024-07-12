@@ -73,14 +73,12 @@ test('Query logging', async () => {
   // Simplistic way of logging query times. For more accurate results, use process.hrtime()
   const log = vi.fn()
   const client = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
-    wrapQueryFn: queryFn => {
-      return async query => {
-        const start = Date.now()
-        const result = await queryFn(query)
-        const end = Date.now()
-        log({start, end, took: end - start, query, result})
-        return result
-      }
+    wrapQueryFn: queryFn => async query => {
+      const start = Date.now()
+      const result = await queryFn(query)
+      const end = Date.now()
+      log({start, end, took: end - start, query, result})
+      return result
     },
   })
 

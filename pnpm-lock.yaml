@@ -210,6 +210,9 @@ importers:
       markdown-to-jsx:
         specifier: ^7.4.7
         version: 7.4.7(react@18.2.0)
+      mermaid:
+        specifier: ^10.9.1
+        version: 10.9.1
       next-themes:
         specifier: ^0.3.0
         version: 0.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)

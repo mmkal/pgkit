@@ -11,7 +11,14 @@ const createClientMemoized = pMemoize(async (connectionString: string) => {
 export const apiMiddleware = createExpressMiddleware({
   router: appRouter,
   onError: props => {
-    console.error('trpc error', props.error)
+    let error: Error = props.error
+    const loggable: unknown[] = []
+    while (error?.cause) {
+      loggable.push(`${error.stack?.split('\n')[1]} caused by 👇`)
+      error = error.cause as Error
+    }
+    loggable.push(error)
+    console.error('trpc error', loggable)
   },
   createContext: async ({req}) => {
     const connectionString =
