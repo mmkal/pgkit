@@ -21,7 +21,9 @@ const main2 = async () => {
       })
       .replaceAll(`<img src=".`, `<img src="`)
       .split('\n')
-      .filter(line => !line.includes('[Node CI]') && !line.includes('codecov.io'))
+      .filter(
+        line => !line.includes('img.shields.io/twitter') && !line.includes('[Node CI]') && !line.includes('codecov.io'),
+      )
 
     return lines.join('\n')
   }

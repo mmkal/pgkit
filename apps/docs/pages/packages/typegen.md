@@ -1,6 +1,5 @@
 # @pgkit/typegen
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
 
 A library that uses [pgkit](/packages/client) to generate typescript interfaces based on your sql queries.
 

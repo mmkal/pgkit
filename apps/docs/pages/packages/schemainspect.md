@@ -1,6 +1,5 @@
 # `schemainspect`: SQL Schema Inspection for PostgreSQL
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
 
 Inspects tables, views, materialized views, constraints, indexes, sequences, enums, functions, and extensions. Handles table partitioning and inheritance.
 
