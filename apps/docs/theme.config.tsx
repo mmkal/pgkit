@@ -28,11 +28,10 @@ export default {
   banner: {
     content: (
       <>
-        🧪 pgkit is under active development. You can <i>probably</i> safely use it in production, since the underlying
-        driver is just pg-promise.
+        🧪 pgkit is under active development.
         <br />
-        But if you don't want to be on the cutting edge of things, use it on a test project first, or{' '}
-        <a style={{textDecoration: 'underline'}} target="_blank" href="https://discord.com/users/mmkal">
+        Use with caution/{' '}
+        <a style={{textDecoration: 'underline'}} target="_blank" href="https://x.com/mmkalmmkal">
           DM me
         </a>
         .
