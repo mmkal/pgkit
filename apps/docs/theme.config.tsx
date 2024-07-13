@@ -30,7 +30,7 @@ export default {
       <>
         🧪 pgkit is under active development.
         <br />
-        Use with caution/{' '}
+        Use with caution for now/{' '}
         <a style={{textDecoration: 'underline'}} target="_blank" href="https://x.com/mmkalmmkal">
           DM me
         </a>
