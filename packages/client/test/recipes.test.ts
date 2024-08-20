@@ -3,13 +3,14 @@ import * as pgMem from 'pg-mem'
 import * as pgSqlAstParser from 'pgsql-ast-parser'
 import {beforeAll, beforeEach, expect, test, vi} from 'vitest'
 import {FieldInfo, createClient, sql} from '../src'
+import {printPostgresErrorSnapshot} from './snapshots'
 
 export let client: Awaited<ReturnType<typeof createClient>>
 let sqlProduced = [] as {sql: string; values: any[]}[]
 
 expect.addSnapshotSerializer({
   test: () => true,
-  print: val => JSON.stringify(val, null, 2),
+  print: val => printPostgresErrorSnapshot(val),
 })
 
 beforeAll(async () => {
@@ -127,18 +128,18 @@ test('Query logging', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 40444,
+              "tableID": 123456789,
               "columnID": 1,
-              "dataTypeID": 23,
+              "dataTypeID": 123456789,
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 40444,
+              "tableID": 123456789,
               "columnID": 2,
-              "dataTypeID": 25,
+              "dataTypeID": 123456789,
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -192,6 +193,7 @@ test('query timeouts', async () => {
   })
 })
 
+/** You can use `wrapQueryFn` to dynamically choose different clients depending on the query type: */
 test('switchable clients', async () => {
   const shortTimeoutMs = 20
   const impatientClient = createClient(client.connectionString() + '?shortTimeout', {
@@ -214,14 +216,15 @@ test('switchable clients', async () => {
       return async query => {
         let clientToUse = patientClient
         try {
-          // use https://www.npmjs.com/package/pgsql-ast-parser - note that this is just an example, you may want to do something like route
+          // use https://www.npmjs.com/package/pgsql-ast-parser - just an example, you may want to do something like route
           // readonly queries to a readonly connection, and others to a readwrite connection.
           const parsed = pgSqlAstParser.parse(query.sql)
           if (parsed.every(statement => statement.type === 'select')) {
+            // we know this is a select statement, use the client with the short timeout
             clientToUse = impatientClient
           }
         } catch {
-          // ignore
+          // couldn't parse the query, use the default client
         }
 
         return clientToUse.query(query)
@@ -267,25 +270,15 @@ test('switchable clients', async () => {
   })
 })
 
+/** You can use `wrapQueryFn` to easily sub in an entirely different query mechanism: */
 test('mocking', async () => {
   const fakeDb = pgMem.newDb() // https://www.npmjs.com/package/pg-mem
   const client = createClient('postgresql://', {
     wrapQueryFn: () => {
       return async query => {
-        // not a great way to do pass to pg-mem, in search of a better one: https://github.com/oguimbal/pg-mem/issues/384
-        let statement = pgSqlAstParser.parse(query.sql)
-        statement = JSON.parse(JSON.stringify(statement), (key, value) => {
-          if (value?.type === 'parameter' && typeof value?.name === 'string') {
-            const literalValue = query.values[Number(value.name.slice(1)) - 1]
-            return {type: 'string', value: literalValue}
-          }
-          return value
-        })
-        const result = fakeDb.public.query(statement)
-        return {
-          ...result,
-          fields: result.fields as {}[] as FieldInfo[],
-        }
+        const formattedSql = pgMem.replaceQueryArgs$(query.sql, query.values)
+        const result = fakeDb.public.query(formattedSql)
+        return result as typeof result & {fields: FieldInfo[]}
       }
     },
   })

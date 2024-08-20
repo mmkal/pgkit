@@ -2,11 +2,12 @@ import * as lodash from 'lodash'
 import * as path from 'path'
 import {beforeAll, expect, test} from 'vitest'
 import {QueryError, createPool, sql} from '../src'
+import {printPostgresErrorSnapshot} from './snapshots'
 
 expect.addSnapshotSerializer({
   test: (val: any) => val instanceof Error,
   print: (val: any) =>
-    JSON.stringify(lodash.pick(val, ['message', 'pg_code', 'pg_code_name', 'cause', 'code']), null, 2),
+    printPostgresErrorSnapshot(lodash.pick(val, ['message', 'pg_code', 'pg_code_name', 'cause', 'code'])),
 })
 
 const repoRoot = path.resolve(process.cwd(), '../..')
@@ -62,18 +63,18 @@ test('one error', async () => {
             "fields": [
               {
                 "name": "id",
-                "tableID": 40346,
+                "tableID": 123456789,
                 "columnID": 1,
-                "dataTypeID": 23,
+                "dataTypeID": 123456789,
                 "dataTypeSize": 4,
                 "dataTypeModifier": -1,
                 "format": "text"
               },
               {
                 "name": "name",
-                "tableID": 40346,
+                "tableID": 123456789,
                 "columnID": 2,
-                "dataTypeID": 25,
+                "dataTypeID": 123456789,
                 "dataTypeSize": -1,
                 "dataTypeModifier": -1,
                 "format": "text"
@@ -113,18 +114,18 @@ test('maybeOne error', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 40346,
+              "tableID": 123456789,
               "columnID": 1,
-              "dataTypeID": 23,
+              "dataTypeID": 123456789,
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 40346,
+              "tableID": 123456789,
               "columnID": 2,
-              "dataTypeID": 25,
+              "dataTypeID": 123456789,
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -154,18 +155,18 @@ test('many error', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 40346,
+              "tableID": 123456789,
               "columnID": 1,
-              "dataTypeID": 23,
+              "dataTypeID": 123456789,
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 40346,
+              "tableID": 123456789,
               "columnID": 2,
-              "dataTypeID": 25,
+              "dataTypeID": 123456789,
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -197,7 +198,7 @@ test('syntax error', async () => {
           "code": "42601",
           "position": "10",
           "file": "scan.l",
-          "line": "1176",
+          "line": "123456789",
           "routine": "scanner_yyerror",
           "query": "select * frooom test_errors"
         }

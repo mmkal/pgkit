@@ -56,7 +56,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   await client.query(sql`
     drop table if exists test_slonik37;
-    create table test_slonik37(id int, name text);
+    create table test_slonik37(id int unique, name text);
     insert into test_slonik37 values (1, 'one'), (2, 'two'), (3, 'three');
   `)
 })
@@ -92,10 +92,10 @@ test('sql.identifier', async () => {
  */
 test('sql.unnest', async () => {
   const values = [
-    {id: 1, name: 'one'},
-    {id: 2, name: 'two'},
-    {id: 3, name: 'three'},
-    {id: 4, name: 'four'},
+    {id: 11, name: 'eleven'},
+    {id: 12, name: 'twelve'},
+    {id: 13, name: 'thirteen'},
+    {id: 14, name: 'fourteen'},
   ]
   const result = await client.any(sql`
     insert into test_slonik37(id, name)
@@ -108,10 +108,37 @@ test('sql.unnest', async () => {
   `)
 
   expect(result).toEqual([
-    {id: 1, name: 'one'},
-    {id: 2, name: 'two'},
-    {id: 3, name: 'three'},
-    {id: 4, name: 'four'},
+    {id: 11, name: 'eleven'},
+    {id: 12, name: 'twelve'},
+    {id: 13, name: 'thirteen'},
+    {id: 14, name: 'fourteen'},
+  ])
+})
+
+/**
+ * `jsonb_to_recordset` is a PostgreSQL-native alternative to `sql.unnest`.
+ */
+test('jsonb_to_recordset', async () => {
+  const records = [
+    {id: 11, name: 'eleven'},
+    {id: 12, name: 'twelve'},
+    {id: 13, name: 'thirteen'},
+    {id: 14, name: 'fourteen'},
+  ]
+  const result = await client.any(sql`
+    insert into test_slonik37(id, name)
+    select *
+    from jsonb_to_recordset(
+      ${JSON.stringify(records, null, 2)}
+    ) as x(id int, name text)
+    returning *
+  `)
+
+  expect(result).toEqual([
+    {id: 11, name: 'eleven'},
+    {id: 12, name: 'twelve'},
+    {id: 13, name: 'thirteen'},
+    {id: 14, name: 'fourteen'},
   ])
 })
 

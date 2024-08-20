@@ -752,25 +752,7 @@ await client.query(sql`
   )}
 `)
 
-expect(sqlProduced).toMatchInlineSnapshot(`
-  [
-    {
-      "sql": "\\n    insert into recipes_test(id, name)\\n    select *\\n    from unnest($1::int4[], $2::text[])\\n  ",
-      "values": [
-        [
-          1,
-          2,
-          3
-        ],
-        [
-          "one",
-          "two",
-          "three"
-        ]
-      ]
-    }
-  ]
-`)
+expect(sqlProduced).toMatchInlineSnapshot(`{}`)
 ```
 
 ### Query logging
@@ -795,65 +777,7 @@ expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
     start: expect.any(Number),
     end: expect.any(Number),
     took: expect.any(Number),
-  },
-  `
-    {
-      "start": {
-        "inverse": false
-      },
-      "end": {
-        "inverse": false
-      },
-      "took": {
-        "inverse": false
-      },
-      "query": {
-        "name": "select-recipes_test_8d7ce25",
-        "sql": "select * from recipes_test",
-        "token": "sql",
-        "values": []
-      },
-      "result": {
-        "rows": [
-          {
-            "id": 1,
-            "name": "one"
-          },
-          {
-            "id": 2,
-            "name": "two"
-          },
-          {
-            "id": 3,
-            "name": "three"
-          }
-        ],
-        "command": "SELECT",
-        "rowCount": 3,
-        "fields": [
-          {
-            "name": "id",
-            "tableID": 40444,
-            "columnID": 1,
-            "dataTypeID": 23,
-            "dataTypeSize": 4,
-            "dataTypeModifier": -1,
-            "format": "text"
-          },
-          {
-            "name": "name",
-            "tableID": 40444,
-            "columnID": 2,
-            "dataTypeID": 25,
-            "dataTypeSize": -1,
-            "dataTypeModifier": -1,
-            "format": "text"
-          }
-        ]
-      }
-    }
-  `,
-)
+  }, `{}`)
 ```
 
 ### query timeouts
@@ -878,22 +802,23 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
-    {
-      "cause": {
-        "query": {
-          "name": "select_9dcc021",
-          "sql": "select pg_sleep($1)",
-          "token": "sql",
-          "values": [
-            0.04
-          ]
-        },
-        "error": {
-          "query": "select pg_sleep(0.04)"
-        }
+  {
+    "message": "[Query select_9dcc021]: Query read timeout",
+    "cause": {
+      "query": {
+        "name": "select_9dcc021",
+        "sql": "select pg_sleep($1)",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
+      "error": {
+        "query": "select pg_sleep(0.04)"
       }
     }
-  `,
+  }
+`,
 )
 await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
   pg_sleep: '',
@@ -901,6 +826,8 @@ await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatc
 ```
 
 ### switchable clients
+
+You can use `wrapQueryFn` to dynamically choose different clients depending on the query type:
 
 ```typescript
 const shortTimeoutMs = 20
@@ -924,14 +851,15 @@ const appClient = createClient(client.connectionString(), {
     return async query => {
       let clientToUse = patientClient
       try {
-        // use https://www.npmjs.com/package/pgsql-ast-parser - note that this is just an example, you may want to do something like route
+        // use https://www.npmjs.com/package/pgsql-ast-parser - just an example, you may want to do something like route
         // readonly queries to a readonly connection, and others to a readwrite connection.
         const parsed = pgSqlAstParser.parse(query.sql)
         if (parsed.every(statement => statement.type === 'select')) {
+          // we know this is a select statement, use the client with the short timeout
           clientToUse = impatientClient
         }
       } catch {
-        // ignore
+        // couldn't parse the query, use the default client
       }
 
       return clientToUse.query(query)
@@ -947,6 +875,7 @@ await expect(
   `),
 ).rejects.toThrowErrorMatchingInlineSnapshot(`
   {
+    "message": "[Query select_6289211]: Query read timeout",
     "cause": {
       "query": {
         "name": "select_6289211",
@@ -979,25 +908,16 @@ await expect(
 
 ### mocking
 
+You can use `wrapQueryFn` to easily sub in an entirely different query mechanism:
+
 ```typescript
 const fakeDb = pgMem.newDb() // https://www.npmjs.com/package/pg-mem
 const client = createClient('postgresql://', {
   wrapQueryFn: () => {
     return async query => {
-      // not a great way to do pass to pg-mem, in search of a better one: https://github.com/oguimbal/pg-mem/issues/384
-      let statement = pgSqlAstParser.parse(query.sql)
-      statement = JSON.parse(JSON.stringify(statement), (key, value) => {
-        if (value?.type === 'parameter' && typeof value?.name === 'string') {
-          const literalValue = query.values[Number(value.name.slice(1)) - 1]
-          return {type: 'string', value: literalValue}
-        }
-        return value
-      })
-      const result = fakeDb.public.query(statement)
-      return {
-        ...result,
-        fields: result.fields as {}[] as FieldInfo[],
-      }
+      const formattedSql = pgMem.replaceQueryArgs$(query.sql, query.values)
+      const result = fakeDb.public.query(formattedSql)
+      return result as typeof result & {fields: FieldInfo[]}
     }
   },
 })
@@ -1129,18 +1049,18 @@ await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMa
           "fields": [
             {
               "name": "id",
-              "tableID": 40346,
+              "tableID": 123456789,
               "columnID": 1,
-              "dataTypeID": 23,
+              "dataTypeID": 123456789,
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 40346,
+              "tableID": 123456789,
               "columnID": 2,
-              "dataTypeID": 25,
+              "dataTypeID": 123456789,
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -1182,18 +1102,18 @@ await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects
         "fields": [
           {
             "name": "id",
-            "tableID": 40346,
+            "tableID": 123456789,
             "columnID": 1,
-            "dataTypeID": 23,
+            "dataTypeID": 123456789,
             "dataTypeSize": 4,
             "dataTypeModifier": -1,
             "format": "text"
           },
           {
             "name": "name",
-            "tableID": 40346,
+            "tableID": 123456789,
             "columnID": 2,
-            "dataTypeID": 25,
+            "dataTypeID": 123456789,
             "dataTypeSize": -1,
             "dataTypeModifier": -1,
             "format": "text"
@@ -1225,18 +1145,18 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
         "fields": [
           {
             "name": "id",
-            "tableID": 40346,
+            "tableID": 123456789,
             "columnID": 1,
-            "dataTypeID": 23,
+            "dataTypeID": 123456789,
             "dataTypeSize": 4,
             "dataTypeModifier": -1,
             "format": "text"
           },
           {
             "name": "name",
-            "tableID": 40346,
+            "tableID": 123456789,
             "columnID": 2,
-            "dataTypeID": 25,
+            "dataTypeID": 123456789,
             "dataTypeSize": -1,
             "dataTypeModifier": -1,
             "format": "text"
@@ -1270,7 +1190,7 @@ await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInline
         "code": "42601",
         "position": "10",
         "file": "scan.l",
-        "line": "1176",
+        "line": "123456789",
         "routine": "scanner_yyerror",
         "query": "select * frooom test_errors"
       }
