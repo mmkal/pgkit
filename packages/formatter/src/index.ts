@@ -26,6 +26,6 @@
 
 import {format} from 'sql-formatter'
 
-export const formatSql = async (sql: string) => {
+export const formatSql = (sql: string) => {
   return format(sql, {language: 'postgresql'})
 }

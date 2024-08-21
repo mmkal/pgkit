@@ -780,7 +780,7 @@ export class Migrator {
    */
   async wrapMigra(...args: Parameters<typeof migra.run>) {
     const result = await migra.run(args[0], args[1], {unsafe: true, ...args[2]})
-    const formatted = await formatSql(result.sql)
+    const formatted = formatSql(result.sql)
     return {
       result,
       sql: formatted.trim(),
