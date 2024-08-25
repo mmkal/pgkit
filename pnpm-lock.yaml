@@ -63,11 +63,11 @@ importers:
         specifier: ^14.2.4
         version: 14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0)
       nextra:
-        specifier: 3.0.0-alpha.31
-        version: 3.0.0-alpha.31(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3)
+        specifier: 3.0.0-alpha.33
+        version: 3.0.0-alpha.33(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3)
       nextra-theme-docs:
-        specifier: 3.0.0-alpha.31
-        version: 3.0.0-alpha.31(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(nextra@3.0.0-alpha.31(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
+        specifier: 3.0.0-alpha.33
+        version: 3.0.0-alpha.33(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(nextra@3.0.0-alpha.33(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -6036,16 +6036,16 @@ packages:
       sass:
         optional: true
 
-  nextra-theme-docs@3.0.0-alpha.31:
-    resolution: {integrity: sha512-DRf4FqT9YiJWPa0Vsp7HsTiaHpyD9xx2nCSb3LY6Z0bQ4Zf5PQPTQVrKNvxx/KnfPPdF6F09kUgFQyHmMt7Dxg==}
+  nextra-theme-docs@3.0.0-alpha.33:
+    resolution: {integrity: sha512-axI1CDCExYO8+u3510GNGPmXhpA4pq5zMFNvitox/s2Mc75WKSRk2SW5BeTCd5nYqBY9Kskd5p71eshKMsbX5g==}
     peerDependencies:
       next: '>=13'
-      nextra: 3.0.0-alpha.31
+      nextra: 3.0.0-alpha.33
       react: '>=16.13.1'
       react-dom: '>=16.13.1'
 
-  nextra@3.0.0-alpha.31:
-    resolution: {integrity: sha512-CrGo6ez3zWD9k2hOmoek6KGF63qQqWeGIrMcfSCVbrvBZ+Vb8XjHQ8xUtKW9eXSF3KTop05/cLjBOu/rsZob6A==}
+  nextra@3.0.0-alpha.33:
+    resolution: {integrity: sha512-gUdgdQcpXSVtLQR8FeK2Elm5RmU4IQ/tt4Ulo8z2TVVYto0dikjqu0xTZJ1DmUhheTEm08dgy5XnLynthVbcnQ==}
     engines: {node: '>=18'}
     peerDependencies:
       next: '>=13'
@@ -10364,26 +10364,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/eslint-plugin@7.3.1(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)':
-    dependencies:
-      '@eslint-community/regexpp': 4.10.0
-      '@typescript-eslint/parser': 7.1.0(eslint@8.57.0)(typescript@5.3.3)
-      '@typescript-eslint/scope-manager': 7.3.1
-      '@typescript-eslint/type-utils': 7.3.1(eslint@8.57.0)(typescript@5.3.3)
-      '@typescript-eslint/utils': 7.3.1(eslint@8.57.0)(typescript@5.3.3)
-      '@typescript-eslint/visitor-keys': 7.3.1
-      debug: 4.3.4
-      eslint: 8.57.0
-      graphemer: 1.4.0
-      ignore: 5.3.1
-      natural-compare: 1.4.0
-      semver: 7.6.0
-      ts-api-utils: 1.3.0(typescript@5.3.3)
-    optionalDependencies:
-      typescript: 5.3.3
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/eslint-plugin@7.3.1(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)':
     dependencies:
       '@eslint-community/regexpp': 4.10.0
@@ -12111,7 +12091,7 @@ snapshots:
 
   eslint-config-xo-typescript@1.0.1(@typescript-eslint/eslint-plugin@7.3.1(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3))(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
+      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
       '@typescript-eslint/parser': 7.3.1(eslint@8.57.0)(typescript@5.3.3)
       eslint: 8.57.0
       typescript: 5.3.3
@@ -12213,7 +12193,7 @@ snapshots:
       '@typescript-eslint/utils': 5.62.0(eslint@8.57.0)(typescript@5.3.3)
       eslint: 8.57.0
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
+      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -12254,7 +12234,7 @@ snapshots:
       '@rushstack/eslint-plugin-packlets': 0.8.1(eslint@8.57.0)(typescript@5.3.3)
       '@rushstack/eslint-plugin-security': 0.7.1(eslint@8.57.0)(typescript@5.3.3)
       '@types/eslint': 8.56.6
-      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
+      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
       '@typescript-eslint/parser': 7.3.1(eslint@8.57.0)(typescript@5.3.3)
       eslint-config-prettier: 9.1.0(eslint@8.57.0)
       eslint-config-xo: 0.43.1(eslint@8.57.0)
@@ -12507,7 +12487,7 @@ snapshots:
       '@typescript-eslint/utils': 7.3.1(eslint@8.57.0)(typescript@5.3.3)
       eslint: 8.57.0
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
+      '@typescript-eslint/eslint-plugin': 7.3.1(@typescript-eslint/parser@7.3.1(eslint@8.57.0)(typescript@5.3.3))(eslint@8.57.0)(typescript@5.3.3)
       vitest: 1.2.2(@types/node@20.11.17)(sass@1.71.0)
     transitivePeerDependencies:
       - supports-color
@@ -13418,7 +13398,7 @@ snapshots:
       run-async: 2.4.1
       rxjs: 6.6.7
       string-width: 4.2.3
-      strip-ansi: 6.0.1
+      strip-ansi: 6.0.0
       through: 2.3.8
 
   inquirer@9.2.14:
@@ -14933,7 +14913,7 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
-  nextra-theme-docs@3.0.0-alpha.31(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(nextra@3.0.0-alpha.31(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3))(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
+  nextra-theme-docs@3.0.0-alpha.33(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(nextra@3.0.0-alpha.33(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3))(react-dom@18.2.0(react@18.2.0))(react@18.2.0):
     dependencies:
       '@headlessui/react': 1.7.19(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@popperjs/core': 2.11.8
@@ -14944,13 +14924,13 @@ snapshots:
       intersection-observer: 0.12.2
       next: 14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0)
       next-themes: 0.3.0(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      nextra: 3.0.0-alpha.31(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3)
+      nextra: 3.0.0-alpha.33(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3)
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
       scroll-into-view-if-needed: 3.1.0
       zod: 3.23.8
 
-  nextra@3.0.0-alpha.31(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3):
+  nextra@3.0.0-alpha.33(@types/react@18.2.55)(next@14.2.4(@playwright/test@1.42.0)(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(sass@1.71.0))(react-dom@18.2.0(react@18.2.0))(react@18.2.0)(typescript@5.3.3):
     dependencies:
       '@headlessui/react': 1.7.19(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
       '@mdx-js/mdx': 3.0.1
