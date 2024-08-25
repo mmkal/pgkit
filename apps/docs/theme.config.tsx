@@ -8,6 +8,7 @@ export default {
   },
   chat: {
     link: 'https://x.com/mmkalmmkal',
+
     icon: (
       // from https://about.x.com/en/who-we-are/brand-toolkit
       <svg width="24" height="24" viewBox="0 0 1200 1227" fill="none" xmlns="http://www.w3.org/2000/svg">
