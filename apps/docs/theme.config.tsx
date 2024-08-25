@@ -10,9 +10,7 @@ export default {
   },
   footer: {
     text: 'pgkit.dev',
-  },
-  footer: {
-    content: 'pgkit.dev',
+    // content: 'pgkit.dev', // text->content in v3
   },
   banner: {
     text: (
