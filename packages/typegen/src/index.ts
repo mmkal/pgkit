@@ -42,15 +42,6 @@ export const generate = async (params: Partial<Options>) => {
   const {psql: _psql} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
 
   const _gdesc = (sql: string) => {
-    sql = sql.trim().replace(/;$/, '')
-    // // assert.ok(!sql.includes(';'), `Can't use \\gdesc on query containing a semicolon. Query: ${sql}`)
-    // if (sql.includes(';')) {
-    //   const simplified = tryOrDefault(
-    //     () => removeSimpleComments(sql),
-    //     tryOrDefault(() => toSql.statement(parseFirst(sql)), ''),
-    //   )
-    // }
-
     return neverthrow.ok(sql)
       .map(sql => sql.trim().replace(/;$/, ''))
       .andThen(sql => sql.includes(';') ? neverthrow.ok(removeSimpleComments(sql)) : neverthrow.ok(sql))
@@ -61,21 +52,6 @@ export const generate = async (params: Partial<Options>) => {
         }
         return new Error(message, {cause: err})
       }))
-
-    // try {
-    //   const result = await psql(`${sql} \\gdesc`)
-    //   return neverthrow.ok(result)
-    // } catch {
-    //   const simplified = tryOrDefault(
-    //     () => removeSimpleComments(sql),
-    //     tryOrDefault(() => toSql.statement(parseFirst(sql)), ''),
-    //   )
-
-    //   return await psql(`${simplified} \\gdesc`).then(
-    //     good => neverthrow.ok(good),
-    //     bad => neverthrow.err(new Error(`Simplified query failed: ${simplified} (original: ${sql})`, {cause: bad})),
-    //   )
-    // }
   }
 
   const psql = memoizee(_psql, {max: 1000})
@@ -234,7 +210,7 @@ export const generate = async (params: Partial<Options>) => {
     const describeQuery = async (query: ExtractedQuery) => {
       const typeability = getTypeability(query.template)
       if (typeability.isErr()) {
-        return typeability.mapErr(err => new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`, {cause: err}))
+        return typeability.mapErr(err => new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`, {cause: err})) satisfies neverthrow.Result<any, Error> as never
       }
 
       const fieldsResult = await getFields(query)
@@ -257,33 +233,6 @@ export const generate = async (params: Partial<Options>) => {
       }))
 
       return res
-
-
-      // try {
-      //   if (isUntypeable(query.template)) {
-      //     logger.debug(`${getLogQueryReference(query)} [!] Query is not typeable.`)
-      //     return null
-      //   }
-
-      //   return {
-      //     ...query,
-      //     fields: await getFields(query),
-      //     parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-      //   }
-      // } catch (e) {
-      //   console.error(e.stack)
-      //   let message = `${getLogQueryReference(query)} [!] Extracting types from query failed: ${e}.`
-      //   if (query.sql.includes('--')) {
-      //     message += ' Try moving comments to dedicated lines.'
-      //   }
-
-      //   if (query.sql.includes(';')) {
-      //     message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
-      //   }
-
-      //   logger.warn(message)
-      //   return null
-      // }
     }
 
     // use pgsql-ast-parser or fallback to add column information (i.e. nullability)

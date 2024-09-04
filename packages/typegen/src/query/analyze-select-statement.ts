@@ -1,4 +1,4 @@
-import {Client, Queryable, sql, Transactable} from '@pgkit/client'
+import {Queryable, sql, Transactable} from '@pgkit/client'
 import * as assert from 'assert'
 import * as lodash from 'lodash'
 import {parse, toSql} from 'pgsql-ast-parser'
@@ -61,6 +61,14 @@ export const analyzeSelectStatement = async (
     `
 
     const results = await t.any<SelectStatementAnalyzedColumn>(analyzedColumns)
+      .catch((e: unknown): SelectStatementAnalyzedColumn[] => {
+        if (String(e).match(/column .* has pseudo-type/)) {
+          // e.g. `select pg_advisory_lock(1)`
+          return []
+        }
+        throw e
+      })
+
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
 

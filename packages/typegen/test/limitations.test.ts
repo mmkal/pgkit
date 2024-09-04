@@ -285,7 +285,17 @@ test('queries with comments are modified', async () => {
             -- comment
             test_table -- comment
         ---
-
+         (original: 
+          select
+            1 as a, -- comment
+            -- comment
+            2 as b,
+            '--' as c, -- comment
+            id
+          from
+            -- comment
+            test_table -- comment
+        )
          Try moving comments to dedicated lines.
   `)
 })
@@ -348,7 +358,17 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
           )
           select * from def
         ---
-
+         (original: 
+          with abc as (
+            select table_name -- comment
+            from information_schema.tables
+          ),
+          def as (
+            select table_schema
+            from information_schema.tables, abc
+          )
+          select * from def
+        )
          Try moving comments to dedicated lines.
   `)
 })
