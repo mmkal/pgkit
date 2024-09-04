@@ -25,6 +25,7 @@ export const templateToValidSql = (template: string[]) => template.join('null')
  * - multi statements (that pgsql-ast-parser is able to process) e.g. `insert into foo(id) values (1); insert into foo(id) values (2);`
  * - statements that use identifiers (as opposed to param values) e.g. `select * from ${sql.identifier([tableFromVariableName])}`
  */
+// todo: change to `getTypeability` and return `neverthrow.Result<true, Error>` or something
 export const isUntypeable = (template: string[]) => {
   let untypeable = false
   try {
@@ -40,6 +41,7 @@ export const isUntypeable = (template: string[]) => {
     }))
     visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
   } catch {
+    
     // never mind?
   }
 

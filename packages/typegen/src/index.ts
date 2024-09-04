@@ -15,6 +15,7 @@ import {AnalyseQueryError, getColumnInfo, isUntypeable, removeSimpleComments} fr
 import {getParameterTypes} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
 import {changedFiles, checkClean, containsIgnoreComment, globList, maybeDo, tryOrDefault} from './util'
+import * as neverthrow from 'neverthrow'
 
 export type {Options} from './types'
 
@@ -42,19 +43,41 @@ export const generate = async (params: Partial<Options>) => {
 
   const {psql: _psql} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
 
-  const _gdesc = async (sql: string) => {
+  const _gdesc = (sql: string) => {
     sql = sql.trim().replace(/;$/, '')
-    assert.ok(!sql.includes(';'), `Can't use \\gdesc on query containing a semicolon`)
-    try {
-      return await psql(`${sql} \\gdesc`)
-    } catch {
-      const simplified = tryOrDefault(
-        () => removeSimpleComments(sql),
-        tryOrDefault(() => toSql.statement(parseFirst(sql)), ''),
-      )
+    // // assert.ok(!sql.includes(';'), `Can't use \\gdesc on query containing a semicolon. Query: ${sql}`)
+    // if (sql.includes(';')) {
+    //   const simplified = tryOrDefault(
+    //     () => removeSimpleComments(sql),
+    //     tryOrDefault(() => toSql.statement(parseFirst(sql)), ''),
+    //   )
+    // }
 
-      return await psql(`${simplified} \\gdesc`)
-    }
+    return neverthrow.ok(sql)
+      .map(sql => sql.trim().replace(/;$/, ''))
+      .andThen(sql => sql.includes(';') ? neverthrow.ok(removeSimpleComments(sql)) : neverthrow.ok(sql))
+      .asyncAndThen(simplified => neverthrow.fromPromise(psql(`${simplified} \\gdesc`), err => {
+        let message = `Query failed with ${err}:\n---\n${simplified}\n---\n`
+        if (simplified !== sql) {
+          message += ` (original: ${sql})`
+        }
+        return new Error(message, {cause: err})
+      }))
+
+    // try {
+    //   const result = await psql(`${sql} \\gdesc`)
+    //   return neverthrow.ok(result)
+    // } catch {
+    //   const simplified = tryOrDefault(
+    //     () => removeSimpleComments(sql),
+    //     tryOrDefault(() => toSql.statement(parseFirst(sql)), ''),
+    //   )
+
+    //   return await psql(`${simplified} \\gdesc`).then(
+    //     good => neverthrow.ok(good),
+    //     bad => neverthrow.err(new Error(`Simplified query failed: ${simplified} (original: ${sql})`, {cause: bad})),
+    //   )
+    // }
   }
 
   const psql = memoizee(_psql, {max: 1000})
@@ -65,15 +88,18 @@ export const generate = async (params: Partial<Options>) => {
     return relPath.startsWith('.') ? relPath : `./${relPath}`
   }
 
-  const getFields = async (query: ExtractedQuery): Promise<QueryField[]> => {
-    const rows = await gdesc(query.sql)
-    return Promise.all(
-      rows.map<Promise<QueryField>>(async row => ({
-        name: row.Column,
-        regtype: row.Type,
-        typescript: await getTypeScriptType(row.Type, row.Column),
-      })),
-    )
+  const getFields = async (query: ExtractedQuery) => {
+    const rowsResult = await gdesc(query.sql)
+    return rowsResult.asyncMap(async rows => {
+      return Promise.all(
+        rows.map<Promise<QueryField>>(async row => ({
+          name: row.Column,
+          regtype: row.Type,
+          typescript: await getTypeScriptType(row.Type, row.Column),
+        })),
+      )
+    })
+    
   }
 
   const regTypeToTypeScript = async (regtype: string) => {
@@ -175,50 +201,46 @@ export const generate = async (params: Partial<Options>) => {
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
 
-      const queriesToAnalyse = queriesToDescribe.map(async (query): Promise<AnalysedQuery | null> => {
+      const analysedQueryResults = await Promise.all(queriesToDescribe.map(async (query) => {
         const describedQuery = await describeQuery(query)
-        if (describedQuery === null) {
-          return null
-        }
+        return describedQuery.asyncMap(dq => analyseQuery(dq))
+      }))
 
-        return analyseQuery(describedQuery)
-      })
-
-      const analysedQueries = lodash.compact(await Promise.all(queriesToAnalyse))
+      const successful = analysedQueryResults.filter(res => res.isOk()).length
 
       if (queries.length > 0) {
         const ignoreMsg = ignoreCount > 0 ? ` (${ignoreCount} ignored)` : ''
         logger.info(
-          `${getLogPath(file)} finished. Processed ${analysedQueries.length}/${queries.length} queries${ignoreMsg}.`,
+          `${getLogPath(file)} finished. Processed ${successful}/${queries.length} queries${ignoreMsg}.`,
         )
       }
 
-      if (analysedQueries.length > 0) {
-        await writeTypes(analysedQueries)
+      if (successful > 0) {
+        await writeTypes(analysedQueryResults.flatMap(res => res.isOk() ? [res.value] : []))
       }
-
+      if (successful < queriesToDescribe.length) {
+        analysedQueryResults.forEach(res => {
+          if (res.isErr()) {
+            logger.warn(res.error.message)
+          }
+        })
+      }
       return {
         total: queries.length,
-        successful: analysedQueries.length,
+        successful,
         ignored: ignoreCount,
       }
     }
 
     // uses _gdesc or fallback to attain basic type information
-    const describeQuery = async (query: ExtractedQuery): Promise<DescribedQuery | null> => {
-      try {
-        if (isUntypeable(query.template)) {
-          logger.debug(`${getLogQueryReference(query)} [!] Query is not typeable.`)
-          return null
-        }
+    const describeQuery = async (query: ExtractedQuery) => {//}: Promise<DescribedQuery | null> => {
+      if (isUntypeable(query.template)) {
+        return neverthrow.err(new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`))
+      }
 
-        return {
-          ...query,
-          fields: await getFields(query),
-          parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-        }
-      } catch (e) {
-        let message = `${getLogQueryReference(query)} [!] Extracting types from query failed: ${e}.`
+      const fieldsResult = await getFields(query)
+      const res = await fieldsResult.mapErr(err => {
+        let message = `${getLogQueryReference(query)} [!] Extracting types from query failed:\n${err}\n`
         if (query.sql.includes('--')) {
           message += ' Try moving comments to dedicated lines.'
         }
@@ -227,9 +249,42 @@ export const generate = async (params: Partial<Options>) => {
           message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
         }
 
-        logger.warn(message)
-        return null
-      }
+        return new Error(message, {cause: err})
+      })
+      .asyncMap(async fields => ({
+        ...query,
+        fields,
+        parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+      }))
+
+      return res
+
+
+      // try {
+      //   if (isUntypeable(query.template)) {
+      //     logger.debug(`${getLogQueryReference(query)} [!] Query is not typeable.`)
+      //     return null
+      //   }
+
+      //   return {
+      //     ...query,
+      //     fields: await getFields(query),
+      //     parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+      //   }
+      // } catch (e) {
+      //   console.error(e.stack)
+      //   let message = `${getLogQueryReference(query)} [!] Extracting types from query failed: ${e}.`
+      //   if (query.sql.includes('--')) {
+      //     message += ' Try moving comments to dedicated lines.'
+      //   }
+
+      //   if (query.sql.includes(';')) {
+      //     message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
+      //   }
+
+      //   logger.warn(message)
+      //   return null
+      // }
     }
 
     // use pgsql-ast-parser or fallback to add column information (i.e. nullability)

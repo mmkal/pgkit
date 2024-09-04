@@ -488,9 +488,11 @@ test(`queries with syntax errors don't affect others`, async () => {
 
   expect(logger.warn).toHaveBeenCalledTimes(1)
   expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
+    - - >+
         ./test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
-        [!] Extracting types from query failed: Error: Error running psql query.
+        [!] Extracting types from query failed:
+
+        Error: Query failed with Error: Error running psql query.
 
         Query: "select this is a nonsense query which will cause an error \\\\gdesc"
 
@@ -501,7 +503,13 @@ test(`queries with syntax errors don't affect others`, async () => {
         Error: Empty output received
 
         Connection string:
-        postgresql://postgres:postgres@localhost:5432/options_test.
+        postgresql://postgres:postgres@localhost:5432/options_test:
+
+        ---
+
+        select this is a nonsense query which will cause an error
+
+        ---
   `)
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`

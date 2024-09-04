@@ -40,6 +40,7 @@
     "io-ts-extra": "^0.11.6",
     "lodash": "^4.17.21",
     "memoizee": "^0.4.15",
+    "neverthrow": "^7.1.0",
     "pgsql-ast-parser": "^11.1.0",
     "pluralize": "^8.0.0",
     "zod": "^3.23.8"

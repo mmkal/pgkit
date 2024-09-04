@@ -85,7 +85,7 @@ test('variable table name', async () => {
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
-  expect(logger.debug).toHaveBeenCalledWith(expect.stringMatching(/.*index.ts:\d+ \[!] Query is not typeable./))
+  expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/.*index.ts:\d+ \[!] Query is not typeable./))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -258,10 +258,12 @@ test('queries with comments are modified', async () => {
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
         ./test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
-        [!] Extracting types from query failed: Error: Error running psql query.
+        [!] Extracting types from query failed:
 
-        Query: "select 1 as a, -- comment 2 as b, '--' as c, -- comment id from
-        test_table -- comment \\\\gdesc"
+        Error: Query failed with Error: Error running psql query.
+
+        Query: "select 1 as a, -- comment -- comment 2 as b, '--' as c, -- comment
+        id from -- comment test_table -- comment \\\\gdesc"
 
         Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
         select 1 as a, \\n                       ^"
@@ -269,8 +271,22 @@ test('queries with comments are modified', async () => {
         Error: Empty output received
 
         Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test. Try moving
-        comments to dedicated lines.
+        postgresql://postgres:postgres@localhost:5432/limitations_test:
+
+        ---
+
+        select
+            1 as a, -- comment
+            -- comment
+            2 as b,
+            '--' as c, -- comment
+            id
+          from
+            -- comment
+            test_table -- comment
+        ---
+
+         Try moving comments to dedicated lines.
   `)
 })
 
@@ -304,7 +320,9 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
         ./test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
-        [!] Extracting types from query failed: Error: Error running psql query.
+        [!] Extracting types from query failed:
+
+        Error: Query failed with Error: Error running psql query.
 
         Query: "with abc as ( select table_name -- comment from
         information_schema.tables ), def as ( select table_schema from
@@ -316,8 +334,22 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
         Error: Empty output received
 
         Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test. Try moving
-        comments to dedicated lines.
+        postgresql://postgres:postgres@localhost:5432/limitations_test:
+
+        ---
+
+        with abc as (
+            select table_name -- comment
+            from information_schema.tables
+          ),
+          def as (
+            select table_schema
+            from information_schema.tables, abc
+          )
+          select * from def
+        ---
+
+         Try moving comments to dedicated lines.
   `)
 })
 
@@ -348,10 +380,28 @@ test('queries with semicolons are rejected', async () => {
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
         ./test/fixtures/limitations.test.ts/queries-with-semicolons-are-rejected/index.ts:4
-        [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
-        Can't use \\gdesc on query containing a semicolon. Try moving comments to
-        dedicated lines. Try removing trailing semicolons, separating
-        multi-statement queries into separate queries, using a template variable for
-        semicolons inside strings, or ignoring this query.
+        [!] Extracting types from query failed:
+
+        Error: Query failed with Error: Error running psql query.
+
+        Query: "update semicolon_query_table2 set col=2 returning 1; -- I love
+        semicolons \\\\gdesc"
+
+        Result: "psql:<stdin>:1: ERROR:  relation \\"semicolon_query_table2\\" does
+        not exist\\nLINE 1: update semicolon_query_table2 set col=2 returning
+        1;\\n               ^"
+
+        Error: Empty output received
+
+        Connection string:
+        postgresql://postgres:postgres@localhost:5432/limitations_test:
+
+        ---
+
+        update semicolon_query_table2 set col=2 returning 1; -- I love semicolons
+
+        ---
+
+         Try moving comments to dedicated lines. Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.
   `)
 })

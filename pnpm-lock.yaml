@@ -634,6 +634,9 @@ importers:
       chokidar:
         specifier: ^3.5.3
         version: 3.6.0
+      execa:
+        specifier: ^5.1.1
+        version: 5.1.1
       find-up:
         specifier: ^5.0.0
         version: 5.0.0
@@ -649,6 +652,9 @@ importers:
       memoizee:
         specifier: ^0.4.15
         version: 0.4.15
+      neverthrow:
+        specifier: ^7.1.0
+        version: 7.1.0
       pgsql-ast-parser:
         specifier: ^11.1.0
         version: 11.2.0
@@ -680,9 +686,6 @@ importers:
       eslint-plugin-mmkal:
         specifier: 0.7.0
         version: 0.7.0(eslint@8.57.0)(typescript@5.3.3)(vitest@1.2.2(@types/node@20.12.12)(sass@1.71.0))
-      execa:
-        specifier: ^5.1.1
-        version: 5.1.1
       expect-type:
         specifier: ^0.17.3
         version: 0.17.3
@@ -5933,6 +5936,10 @@ packages:
   negotiator@0.6.3:
     resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
     engines: {node: '>= 0.6'}
+
+  neverthrow@7.1.0:
+    resolution: {integrity: sha512-TQ+ucrkixq0lUL+KYcGBjiuyHKvJ/Vb7i6QsaPdTLjlqmHq8WuoWGg17VQnmcx23hKi5w0OTQuHP4HD9cyO0Vg==}
+    engines: {node: '>=18'}
 
   new-github-release-url@2.0.0:
     resolution: {integrity: sha512-NHDDGYudnvRutt/VhKFlX26IotXe1w0cmkDm6JGquh5bz/bDTw0LufSmH/GxTjEdpHEO+bVKFTwdrcGa/9XlKQ==}
@@ -14589,6 +14596,8 @@ snapshots:
 
   negotiator@0.6.3: {}
 
+  neverthrow@7.1.0: {}
+
   new-github-release-url@2.0.0:
     dependencies:
       type-fest: 2.19.0
@@ -17384,7 +17393,7 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       string-width: 4.2.3
-      strip-ansi: 6.0.0
+      strip-ansi: 6.0.1
 
   wrap-ansi@8.1.0:
     dependencies:
