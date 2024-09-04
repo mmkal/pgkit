@@ -109,7 +109,7 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
   }
 }
 
-interface ModifiedAST {
+export interface ModifiedAST {
   modifications: Array<'cte' | 'returning'>
   ast: pgsqlAST.Statement
 }
