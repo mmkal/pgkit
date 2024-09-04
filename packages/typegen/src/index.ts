@@ -5,6 +5,7 @@ import * as fs from 'fs'
 import {glob} from 'glob'
 import * as lodash from 'lodash'
 import memoizee = require('memoizee')
+import * as neverthrow from 'neverthrow'
 import * as path from 'path'
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
@@ -12,8 +13,7 @@ import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
 import {AnalyseQueryError, getColumnInfo, getTypeability, removeSimpleComments} from './query'
 import {getParameterTypes} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, containsIgnoreComment, globList, maybeDo, tryOrDefault} from './util'
-import * as neverthrow from 'neverthrow'
+import {changedFiles, checkClean, containsIgnoreComment, globList} from './util'
 
 export type {Options} from './types'
 
@@ -41,17 +41,20 @@ export const generate = async (params: Partial<Options>) => {
 
   const {psql: _psql} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
 
-  const _gdesc = (sql: string) => {
-    return neverthrow.ok(sql)
+  const _gdesc = (inputSql: string) => {
+    return neverthrow
+      .ok(inputSql)
       .map(sql => sql.trim().replace(/;$/, ''))
-      .andThen(sql => sql.includes(';') ? neverthrow.ok(removeSimpleComments(sql)) : neverthrow.ok(sql))
-      .asyncAndThen(simplified => neverthrow.fromPromise(psql(`${simplified} \\gdesc`), err => {
-        let message = `Query failed with ${err}:\n---\n${simplified}\n---\n`
-        if (simplified !== sql) {
-          message += ` (original: ${sql})`
-        }
-        return new Error(message, {cause: err})
-      }))
+      .andThen(sql => (sql.includes(';') ? neverthrow.ok(removeSimpleComments(sql)) : neverthrow.ok(sql)))
+      .asyncAndThen(simplified =>
+        neverthrow.fromPromise(psql(`${simplified} \\gdesc`), err => {
+          let message = `Query failed with ${err}:\n---\n${simplified}\n---\n`
+          if (simplified !== inputSql) {
+            message += ` (original: ${inputSql})`
+          }
+          return new Error(message, {cause: err})
+        }),
+      )
   }
 
   const psql = memoizee(_psql, {max: 1000})
@@ -73,7 +76,6 @@ export const generate = async (params: Partial<Options>) => {
         })),
       )
     })
-    
   }
 
   const regTypeToTypeScript = async (regtype: string) => {
@@ -152,9 +154,9 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     if (migrate) {
-      maybeDo(checkCleanWhen.includes('before-migrate'), checkClean)
+      if (checkCleanWhen.includes('before-migrate')) checkClean()
       await migrateLegacyCode(migrate)({files: await getFiles(), logger})
-      maybeDo(checkCleanWhen.includes('after-migrate'), checkClean)
+      if (checkCleanWhen.includes('after-migrate')) checkClean()
     }
 
     async function generateForFiles(files: string[]) {
@@ -175,22 +177,22 @@ export const generate = async (params: Partial<Options>) => {
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
 
-      const analysedQueryResults = await Promise.all(queriesToDescribe.map(async (query) => {
-        const describedQuery = await describeQuery(query)
-        return describedQuery.asyncMap(dq => analyseQuery(dq))
-      }))
+      const analysedQueryResults = await Promise.all(
+        queriesToDescribe.map(async query => {
+          const describedQuery = await describeQuery(query)
+          return describedQuery.asyncMap(dq => analyseQuery(dq))
+        }),
+      )
 
       const successful = analysedQueryResults.filter(res => res.isOk()).length
 
       if (queries.length > 0) {
         const ignoreMsg = ignoreCount > 0 ? ` (${ignoreCount} ignored)` : ''
-        logger.info(
-          `${getLogPath(file)} finished. Processed ${successful}/${queries.length} queries${ignoreMsg}.`,
-        )
+        logger.info(`${getLogPath(file)} finished. Processed ${successful}/${queries.length} queries${ignoreMsg}.`)
       }
 
       if (successful > 0) {
-        await writeTypes(analysedQueryResults.flatMap(res => res.isOk() ? [res.value] : []))
+        await writeTypes(analysedQueryResults.flatMap(res => (res.isOk() ? [res.value] : [])))
       }
       if (successful < queriesToDescribe.length) {
         analysedQueryResults.forEach(res => {
@@ -210,27 +212,30 @@ export const generate = async (params: Partial<Options>) => {
     const describeQuery = async (query: ExtractedQuery) => {
       const typeability = getTypeability(query.template)
       if (typeability.isErr()) {
-        return typeability.mapErr(err => new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`, {cause: err})) satisfies neverthrow.Result<any, Error> as never
+        return typeability.mapErr(
+          err => new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`, {cause: err}),
+        ) satisfies neverthrow.Result<unknown, Error> as never
       }
 
       const fieldsResult = await getFields(query)
-      const res = await fieldsResult.mapErr(err => {
-        let message = `${getLogQueryReference(query)} [!] Extracting types from query failed:\n${err}\n`
-        if (query.sql.includes('--')) {
-          message += ' Try moving comments to dedicated lines.'
-        }
+      const res = await fieldsResult
+        .mapErr(err => {
+          let message = `${getLogQueryReference(query)} [!] Extracting types from query failed:\n${err}\n`
+          if (query.sql.includes('--')) {
+            message += ' Try moving comments to dedicated lines.'
+          }
 
-        if (query.sql.includes(';')) {
-          message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
-        }
+          if (query.sql.includes(';')) {
+            message += ` Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.`
+          }
 
-        return new Error(message, {cause: err})
-      })
-      .asyncMap(async fields => ({
-        ...query,
-        fields,
-        parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
-      }))
+          return new Error(message, {cause: err})
+        })
+        .asyncMap(async fields => ({
+          ...query,
+          fields,
+          parameters: query.file.endsWith('.sql') ? await getParameters(query) : [],
+        }))
 
       return res
     }

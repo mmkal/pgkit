@@ -50,14 +50,6 @@ export const attempt = <T>(context: string, action: () => T): T => {
   }
 }
 
-export const maybeDo = <T>(shouldDo: boolean, action: () => T) => {
-  if (shouldDo) {
-    return action()
-  }
-
-  return null
-}
-
 export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {
   try {
     return fn()

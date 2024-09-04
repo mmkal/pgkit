@@ -60,11 +60,18 @@ export const analyzeSelectStatement = async (
         pg_temp.analyze_select_statement_columns(${selectStatementSql})
     `
 
-    const results = await t.any<SelectStatementAnalyzedColumn>(analyzedColumns)
+    const results = await t
+      .any<SelectStatementAnalyzedColumn>(analyzedColumns)
       .catch((e: unknown): SelectStatementAnalyzedColumn[] => {
-        if (String(e).match(/column .* has pseudo-type/)) {
+        const message = String(e)
+        // todo: neverthrow with error messages?
+        if (/column .* has pseudo-type/.test(message)) {
           // e.g. `select pg_advisory_lock(1)`
-          return []
+          // return []
+        }
+        if (/column .* specified more than once/.test(message)) {
+          // e.g. `select 1 as a, 2 as a`
+          // return []
         }
         throw e
       })

@@ -37,12 +37,17 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
     const singleSelectAst = modifiedAST.ast
     const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
 
+    if (analyzedSelectStatement.length === 0) {
+      // return getDefaultAnalysedQuery(query)
+    }
+
     return {
       ...query,
       suggestedTags: generateTags(query),
       fields: query.fields.map(field => getFieldInfo(analyzedSelectStatement, singleSelectAst, field)),
     }
   } catch (e) {
+    if (!String(e).includes('transaction is aborted')) console.error(e)
     const recover = getDefaultAnalysedQuery(query)
     throw new AnalyseQueryError(e, query, recover)
   }
