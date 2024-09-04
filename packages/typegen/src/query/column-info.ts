@@ -9,8 +9,8 @@ import {singular} from 'pluralize'
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {tryOrDefault} from '../util'
 import {memoizeQueryFn} from '../utils/memoize'
+import {SelectStatementAnalyzedColumn, analyzeSelectStatement} from './analyze-select-statement'
 import {aliasMappings, getASTModifiedToSingleSelect, getSuggestedTags, suggestedTags, templateToValidSql} from './parse'
-import {ViewResult, getViewResult} from './view-result'
 
 export class AnalyseQueryError extends Error {
   public readonly [Symbol.toStringTag] = 'AnalyseQueryError'
@@ -36,14 +36,14 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
 
     const singleSelectAst = modifiedAST.ast
     const singleSelectSql = toSql.statement(singleSelectAst)
-    const viewResult = modifiedAST.modifications.includes('cte')
+    const analyzedSelectStatement = modifiedAST.modifications.includes('cte')
       ? [] // not smart enough to figure out what types are referenced via a CTE
-      : await getViewResult(pool, singleSelectSql)
+      : await analyzeSelectStatement(pool, singleSelectSql)
 
     return {
       ...query,
       suggestedTags: generateTags(query),
-      fields: query.fields.map(field => getFieldInfo(viewResult, singleSelectAst, field)),
+      fields: query.fields.map(field => getFieldInfo(analyzedSelectStatement, singleSelectAst, field)),
     }
   } catch (e) {
     const recover = getDefaultAnalysedQuery(query)
@@ -51,16 +51,20 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
   }
 })
 
-const getFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement, field: QueryField) => {
-  const viewableAst =
-    viewResult[0]?.formatted_query === undefined
-      ? ast //
-      : getASTModifiedToSingleSelect(viewResult[0].formatted_query).ast // TODO: explore why this fallback might be needed - can't we always use the original ast?
+const getFieldInfo = (
+  selectStatementColumns: SelectStatementAnalyzedColumn[],
+  originalAst: SelectFromStatement,
+  field: QueryField,
+) => {
+  const ast =
+    selectStatementColumns.length > 0
+      ? getASTModifiedToSingleSelect(selectStatementColumns[0].formatted_query).ast
+      : originalAst // this can happen for `select count(*) from foo` type queries I think
 
-  const mappings = aliasMappings(viewableAst)
+  const mappings = aliasMappings(ast)
 
   const relatedResults = mappings.flatMap(c =>
-    viewResult
+    selectStatementColumns
       .map(v => ({
         ...v,
         hasNullableJoin: c.hasNullableJoin,
@@ -84,7 +88,7 @@ const getFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement, field:
   } else if (res?.hasNullableJoin) {
     nullability = 'nullable_via_join'
     // TODO: we're converting from sql to ast back and forth for `isNonNullableField`. this is probably unneded
-  } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(toSql.statement(viewableAst), field)) {
+  } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(toSql.statement(ast), field)) {
     nullability = 'not_null'
   } else {
     nullability = 'unknown'

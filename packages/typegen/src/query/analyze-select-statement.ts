@@ -4,12 +4,14 @@ import * as lodash from 'lodash'
 
 /**
  * Returns a list of results that stem from a special query used to retrieve type information from the database.
- * @param pool
- * @param viewFriendlySql the query to be analysed
- * @returns
+ * @param client
+ * @param selectStatementSql the query to be analysed - must be a single select statement
  */
-export const getViewResult = async (pool: Client, viewFriendlySql: string): Promise<ViewResult[]> => {
-  const viewResultQuery = sql<ViewResult>`
+export const analyzeSelectStatement = async (
+  client: Client,
+  selectStatementSql: string,
+): Promise<SelectStatementAnalyzedColumn[]> => {
+  const viewResultQuery = sql<SelectStatementAnalyzedColumn>`
     select
       schema_name,
       table_column_name,
@@ -18,12 +20,12 @@ export const getViewResult = async (pool: Client, viewFriendlySql: string): Prom
       comment,
       formatted_query
     from
-      pg_temp.gettypes(${viewFriendlySql})
+      pg_temp.analyze_select_statement_columns(${selectStatementSql})
   `
-  return pool.transaction(async t => {
-    await t.query(getTypesSql)
-    const results = await t.any<ViewResult>(viewResultQuery)
-    const deduped = lodash.uniqBy<ViewResult>(results, JSON.stringify)
+  return client.transaction(async t => {
+    await t.query(defineAnalyzeSelectStatementColumnsFunction)
+    const results = await t.any<SelectStatementAnalyzedColumn>(viewResultQuery)
+    const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
 
     assert.ok(
@@ -35,8 +37,8 @@ export const getViewResult = async (pool: Client, viewFriendlySql: string): Prom
   })
 }
 
-// this query is for a type in a temp schema so this tool doesn't work with it
-export type ViewResult = {
+// can't use typegen here because it relies on a function in a temp schema
+export type SelectStatementAnalyzedColumn = {
   /** postgres type: `text` */
   schema_name: string | null
 
@@ -59,7 +61,7 @@ export type ViewResult = {
 /**
  * A query, which creates a tmp table for the purpose of analysing types of another query
  */
-const getTypesSql = sql`
+const defineAnalyzeSelectStatementColumnsFunction = sql`
   drop type if exists pg_temp.types_type cascade;
 
   create type pg_temp.types_type as (
@@ -77,7 +79,7 @@ const getTypesSql = sql`
   -- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
   -- nullable: https://stackoverflow.com/a/63980243
 
-  create or replace function pg_temp.gettypes(sql_query text)
+  create or replace function pg_temp.analyze_select_statement_columns(sql_query text)
   returns setof pg_temp.types_type as
   $$
   declare
