@@ -16,25 +16,25 @@ export const analyzeSelectStatement = async (
 ): Promise<SelectStatementAnalyzedColumn[]> => {
   const selectStatementSql = toSql.statement(modifiedAST.ast)
 
-  return client.transaction(async t => {
-    await createAnalyzeSelectStatementColumnsFunction(t)
+  return client.transaction(async tx => {
+    await createAnalyzeSelectStatementColumnsFunction(tx)
 
     if (modifiedAST.modifications.includes('cte')) {
       if (!process.env.EXPERIMENTAL_CTE_TEMP_SCHEMA) {
         return []
       }
-      await t.query(sql`
+      await tx.query(sql`
         create schema mmkal_temp;
-        set search_path to ${sql.raw(await t.oneFirst<{search_path: string}>(sql`show search_path`))}, mmkal_temp;
+        set search_path to ${sql.raw(await tx.oneFirst<{search_path: string}>(sql`show search_path`))}, mmkal_temp;
       `)
 
-      console.log(`search path is ${await t.oneFirst<string>(sql`show search_path`)}`, modifiedAST)
+      console.log(`search path is ${await tx.oneFirst<string>(sql`show search_path`)}`, modifiedAST)
       const ast = parse(modifiedAST.originalSql)[0]
       if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
 
       for (const {statement, alias} of ast.bind) {
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
-        const analyzed = await analyzeSelectStatement(t, modifiedAst)
+        const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
         const raw = sql.raw(`
           create table mmkal_temp.${alias.name}(
@@ -42,39 +42,26 @@ export const analyzeSelectStatement = async (
           )
         `)
         console.log(raw)
-        await t.query(raw)
+        await tx.query(raw)
       }
-      return analyzeSelectStatement(t, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
+      return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
     }
 
-    const analyzedColumns = sql<SelectStatementAnalyzedColumn>`
-      select
-        schema_name,
-        table_column_name,
-        underlying_table_name,
-        is_underlying_nullable,
-        underlying_data_type,
-        comment,
-        formatted_query
-      from
-        pg_temp.analyze_select_statement_columns(${selectStatementSql})
-    `
-
-    const results = await t
-      .any<SelectStatementAnalyzedColumn>(analyzedColumns)
-      .catch((e: unknown): SelectStatementAnalyzedColumn[] => {
-        const message = String(e)
-        // todo: neverthrow with error messages?
-        if (/column .* has pseudo-type/.test(message)) {
-          // e.g. `select pg_advisory_lock(1)`
-          return []
-        }
-        if (/column .* specified more than once/.test(message)) {
-          // e.g. `select 1 as a, 2 as a`
-          return []
-        }
-        throw e
-      })
+    const results = await tx.any(
+      sql<SelectStatementAnalyzedColumn>`
+        select
+          schema_name,
+          table_column_name,
+          underlying_table_name,
+          is_underlying_nullable,
+          underlying_data_type,
+          comment,
+          formatted_query,
+          error_message
+        from
+          pg_temp.analyze_select_statement_columns(${selectStatementSql})
+      `,
+    )
 
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
@@ -83,13 +70,17 @@ export const analyzeSelectStatement = async (
       formattedSqlStatements.length <= 1,
       `Expected exactly 1 formatted sql, got ${formattedSqlStatements.length}`,
     )
-    await t.query(sql`drop schema if exists mmkal_temp cascade`)
+    await tx.query(sql`drop schema if exists mmkal_temp cascade`).catch(e => {
+      e.message += `${formattedSqlStatements.length} ${deduped[0]?.formatted_query || JSON.stringify(modifiedAST.originalSql)}`
+      throw e
+    })
 
     return deduped
   })
 }
 
 // can't use typegen here because it relies on a function in a temp schema
+// todo(client): zod isn't parsing?
 export const SelectStatementAnalyzedColumnSchema = z.object({
   /** postgres type: `text` */
   schema_name: z.string().nullable(),
@@ -111,6 +102,8 @@ export const SelectStatementAnalyzedColumnSchema = z.object({
 
   /** postgres type: `text` */
   formatted_query: z.string().nullable(),
+
+  error_message: z.string().nullable(),
 })
 
 export type SelectStatementAnalyzedColumn = z.infer<typeof SelectStatementAnalyzedColumnSchema>
@@ -131,7 +124,8 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
       underlying_table_name text,
       is_underlying_nullable text,
       underlying_data_type text,
-      formatted_query text
+      formatted_query text,
+      error_message text
     );
 
     -- taken from https://dataedo.com/kb/query/postgresql/list-views-columns
@@ -144,44 +138,68 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
     declare
       v_tmp_name text;
       returnrec types_type;
+      v_error_message text;
     begin
       v_tmp_name := 'temp_view_' || md5(sql_query);
+  
+      -- Attempt to create the temporary view
+      begin
+        execute 'drop view if exists ' || v_tmp_name;
+        execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
+      exception when others then
+        -- Capture the error message
+        get stacked diagnostics v_error_message = MESSAGE_TEXT;
+        raise notice 'Error creating temporary view: %', v_error_message;
+        -- Return an error record instead of raising an exception
+        returnrec := (null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+        return next returnrec;
+        return;
+      end;
+
+      -- If we've made it here, the view was created successfully
+      for returnrec in
+        select
+          view_column_usage.table_schema as schema_name,
+          view_column_usage.view_name as view_name,
+          c.column_name,
+          view_column_usage.column_name,
+          col_description(
+            to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
+            c.ordinal_position
+          ),
+          view_column_usage.table_name as underlying_table_name,
+          c.is_nullable as is_underlying_nullable,
+          c.data_type as underlying_data_type,
+          pg_get_viewdef(v_tmp_name) as formatted_query,
+          null as error_message
+        from
+          information_schema.columns c
+        join
+          information_schema.view_column_usage
+            on c.table_name = view_column_usage.table_name
+            and c.column_name = view_column_usage.column_name
+            and c.table_schema = view_column_usage.table_schema
+        where
+          c.table_name = v_tmp_name
+          or view_column_usage.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
+      loop
+        return next returnrec;
+      end loop;
+
       execute 'drop view if exists ' || v_tmp_name;
-      execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
 
-      FOR returnrec in
-      select
-        view_column_usage.table_schema as schema_name,
-        view_column_usage.view_name as view_name,
-        c.column_name,
-        view_column_usage.column_name,
-        col_description(
-          to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
-          c.ordinal_position
-        ),
-        view_column_usage.table_name as underlying_table_name,
-        c.is_nullable as is_underlying_nullable,
-        c.data_type as underlying_data_type,
-        pg_get_viewdef(v_tmp_name) as formatted_query
-      from
-        information_schema.columns c
-      join
-        information_schema.view_column_usage
-          on c.table_name = view_column_usage.table_name
-          and c.column_name = view_column_usage.column_name
-          and c.table_schema = view_column_usage.table_schema
-      where
-        c.table_name = v_tmp_name
-        or view_column_usage.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
-    loop
+    exception when others then
+      -- Capture any other errors that might occur
+      get stacked diagnostics v_error_message = MESSAGE_TEXT;
+      raise notice 'Error in analyze_select_statement_columns: %', v_error_message;
+      -- Ensure we attempt to drop the view even if an error occurred
+      execute 'drop view if exists ' || quote_ident(v_tmp_name);
+      -- Return an error record
+      returnrec := (null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
       return next returnrec;
-    end loop;
-
-    execute 'drop view if exists ' || v_tmp_name;
-
     end;
     $$
-    LANGUAGE 'plpgsql';
+    language plpgsql;
   `
   await queryable.query(query)
 }

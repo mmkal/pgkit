@@ -103,3 +103,12 @@ export const containsIgnoreComment = (() => {
   const ignoreKeywords = /--[^\S\n\f\r]*typegen-ignore|(\/\*\s*typegen-ignore\s*\*\/)/i
   return (query: string) => ignoreKeywords.test(query)
 })()
+
+export const promiseDotOneAtATime = async <T, U>(list: T[], fn: (item: T) => Promise<U>) => {
+  const results: U[] = []
+  for (const item of list) {
+    const result = await fn(item)
+    results.push(result)
+  }
+  return results
+}

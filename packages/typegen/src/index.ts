@@ -13,7 +13,7 @@ import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
 import {AnalyseQueryError, getColumnInfo, getTypeability, removeSimpleComments} from './query'
 import {getParameterTypes} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, containsIgnoreComment, globList} from './util'
+import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotOneAtATime} from './util'
 
 export type {Options} from './types'
 
@@ -160,7 +160,7 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     async function generateForFiles(files: string[]) {
-      const processedFiles = await Promise.all(files.map(generateForFile))
+      const processedFiles = await promiseDotOneAtATime(files, generateForFile)
 
       // gather stats for log
       const queriesTotal = processedFiles.reduce((sum, {total}) => sum + total, 0)
@@ -177,12 +177,10 @@ export const generate = async (params: Partial<Options>) => {
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
 
-      const analysedQueryResults = await Promise.all(
-        queriesToDescribe.map(async query => {
-          const describedQuery = await describeQuery(query)
-          return describedQuery.asyncMap(dq => analyseQuery(dq))
-        }),
-      )
+      const analysedQueryResults = await promiseDotOneAtATime(queriesToDescribe, async query => {
+        const describedQuery = await describeQuery(query)
+        return describedQuery.asyncMap(dq => analyseQuery(dq))
+      })
 
       const successfuls = analysedQueryResults.flatMap(res => {
         if (res.isOk()) return [res.value]

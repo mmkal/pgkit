@@ -72,6 +72,15 @@ export const getASTModifiedToSingleSelect = (sql: string): ModifiedAST => {
   return astToSelect({modifications: [], ast: statements[0], originalSql: sql})
 }
 
+export const isParseable = (sql: string): boolean => {
+  try {
+    pgsqlAST.parse(sql)
+    return true
+  } catch {
+    return false
+  }
+}
+
 export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.Statement[] => {
   try {
     return pgsqlAST.parse(sql)
