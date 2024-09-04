@@ -1,9 +1,9 @@
-import {Client, Queryable, sql} from '@pgkit/client'
+import {Client, Queryable, sql, Transactable} from '@pgkit/client'
 import * as assert from 'assert'
 import * as lodash from 'lodash'
-import {toSql} from 'pgsql-ast-parser'
+import {parse, toSql} from 'pgsql-ast-parser'
 import {z} from 'zod'
-import {ModifiedAST} from './parse'
+import {getASTModifiedToSingleSelect, ModifiedAST} from './parse'
 
 /**
  * Returns a list of results that stem from a special query used to retrieve type information from the database.
@@ -11,36 +11,56 @@ import {ModifiedAST} from './parse'
  * @param selectStatementSql the query to be analysed - must be a single select statement
  */
 export const analyzeSelectStatement = async (
-  client: Client,
+  client: Transactable,
   modifiedAST: ModifiedAST,
 ): Promise<SelectStatementAnalyzedColumn[]> => {
-  if (modifiedAST.modifications.includes('cte')) {
-    const ast = modifiedAST.ast
-    if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
-
-    // todo: iterate through the bind queries and analyze them, so we can replace the final query with their types
-    // const previouses = await Promise.all(
-    // )
-    return []
-  }
-
   const selectStatementSql = toSql.statement(modifiedAST.ast)
 
-  const viewResultQuery = sql<SelectStatementAnalyzedColumn>`
-    select
-      schema_name,
-      table_column_name,
-      underlying_table_name,
-      is_underlying_nullable,
-      underlying_data_type,
-      comment,
-      formatted_query
-    from
-      pg_temp.analyze_select_statement_columns(${selectStatementSql})
-  `
   return client.transaction(async t => {
     await createAnalyzeSelectStatementColumnsFunction(t)
-    const results = await t.any<SelectStatementAnalyzedColumn>(viewResultQuery)
+
+    if (modifiedAST.modifications.includes('cte')) {
+      if (!process.env.EXPERIMENTAL_CTE_TEMP_SCHEMA) {
+        return []
+      }
+      await t.query(sql`
+        create schema mmkal_temp;
+        set search_path to ${sql.raw(await t.oneFirst<{search_path: string}>(sql`show search_path`))}, mmkal_temp;
+      `)
+
+      console.log(`search path is ${await t.oneFirst<string>(sql`show search_path`)}`, modifiedAST)
+      const ast = parse(modifiedAST.originalSql)[0]
+      if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
+
+      for (const {statement, alias} of ast.bind) {
+        const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
+        const analyzed = await analyzeSelectStatement(t, modifiedAst)
+
+        const raw = sql.raw(`
+          create table mmkal_temp.${alias.name}(
+            ${analyzed.map(a => `${a.table_column_name} ${a.underlying_data_type}`).join(',\n')}
+          )
+        `)
+        console.log(raw)
+        await t.query(raw)
+      }
+      return analyzeSelectStatement(t, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
+    }
+
+    const analyzedColumns = sql<SelectStatementAnalyzedColumn>`
+      select
+        schema_name,
+        table_column_name,
+        underlying_table_name,
+        is_underlying_nullable,
+        underlying_data_type,
+        comment,
+        formatted_query
+      from
+        pg_temp.analyze_select_statement_columns(${selectStatementSql})
+    `
+
+    const results = await t.any<SelectStatementAnalyzedColumn>(analyzedColumns)
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
 
@@ -48,6 +68,7 @@ export const analyzeSelectStatement = async (
       formattedSqlStatements.length <= 1,
       `Expected exactly 1 formatted sql, got ${formattedSqlStatements.length}`,
     )
+    await t.query(sql`drop schema if exists mmkal_temp cascade`)
 
     return deduped
   })
@@ -115,28 +136,28 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
 
       FOR returnrec in
       select
-        vcu.table_schema as schema_name,
-        vcu.view_name as view_name,
+        view_column_usage.table_schema as schema_name,
+        view_column_usage.view_name as view_name,
         c.column_name,
-        vcu.column_name,
+        view_column_usage.column_name,
         col_description(
           to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
           c.ordinal_position
         ),
-        vcu.table_name as underlying_table_name,
+        view_column_usage.table_name as underlying_table_name,
         c.is_nullable as is_underlying_nullable,
         c.data_type as underlying_data_type,
         pg_get_viewdef(v_tmp_name) as formatted_query
       from
         information_schema.columns c
       join
-        information_schema.view_column_usage vcu
-          on c.table_name = vcu.table_name
-          and c.column_name = vcu.column_name
-          and c.table_schema = vcu.table_schema
+        information_schema.view_column_usage
+          on c.table_name = view_column_usage.table_name
+          and c.column_name = view_column_usage.column_name
+          and c.table_schema = view_column_usage.table_schema
       where
         c.table_name = v_tmp_name
-        or vcu.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
+        or view_column_usage.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
     loop
       return next returnrec;
     end loop;

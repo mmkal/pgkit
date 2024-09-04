@@ -59,7 +59,7 @@ export const isUntypeable = (template: string[]) => {
 export const getASTModifiedToSingleSelect = (sql: string): ModifiedAST => {
   const statements = parseWithWorkarounds(sql)
   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
-  return astToSelect({modifications: [], ast: statements[0]})
+  return astToSelect({modifications: [], ast: statements[0], originalSql: sql})
 }
 
 export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.Statement[] => {
@@ -112,12 +112,14 @@ export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.St
 export interface ModifiedAST {
   modifications: Array<'cte' | 'returning'>
   ast: pgsqlAST.Statement
+  originalSql: string
 }
 
-const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
+export const astToSelect = ({modifications, ast, originalSql}: ModifiedAST): ModifiedAST => {
   if ((ast.type === 'update' || ast.type === 'insert' || ast.type === 'delete') && ast.returning) {
     return {
       modifications: [...modifications, 'returning'],
+      originalSql,
       ast: {
         type: 'select',
         from: [
@@ -137,10 +139,11 @@ const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
     return astToSelect({
       modifications: [...modifications, 'cte'],
       ast: ast.in,
+      originalSql,
     })
   }
 
-  return {modifications, ast}
+  return {modifications, ast, originalSql}
 }
 
 /**
