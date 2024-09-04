@@ -27,30 +27,28 @@ export class AnalyseQueryError extends Error {
 // todo: get table description from obj_description(oid) (like column)
 
 export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery): Promise<AnalysedQuery> => {
-  const addColumnInfo = async (): Promise<AnalysedQuery> => {
+  try {
     const modifiedAST = getASTModifiedToSingleSelect(templateToValidSql(query.template))
 
     if (modifiedAST.ast.type !== 'select') {
       return getDefaultAnalysedQuery(query)
     }
 
-    const viewFriendlyAst = modifiedAST.ast
-    const viewFriendlySql = toSql.statement(viewFriendlyAst)
+    const singleSelectAst = modifiedAST.ast
+    const singleSelectSql = toSql.statement(singleSelectAst)
     const viewResult = modifiedAST.modifications.includes('cte')
       ? [] // not smart enough to figure out what types are referenced via a CTE
-      : await getViewResult(pool, viewFriendlySql)
+      : await getViewResult(pool, singleSelectSql)
 
     return {
       ...query,
       suggestedTags: generateTags(query),
-      fields: query.fields.map(field => getFieldInfo(viewResult, viewFriendlyAst, field)),
+      fields: query.fields.map(field => getFieldInfo(viewResult, singleSelectAst, field)),
     }
-  }
-
-  return addColumnInfo().catch(e => {
+  } catch (e) {
     const recover = getDefaultAnalysedQuery(query)
     throw new AnalyseQueryError(e, query, recover)
-  })
+  }
 })
 
 const getFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement, field: QueryField) => {
