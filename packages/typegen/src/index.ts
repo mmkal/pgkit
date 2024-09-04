@@ -179,7 +179,7 @@ export const generate = async (params: Partial<Options>) => {
 
       const analysedQueryResults = await promiseDotOneAtATime(queriesToDescribe, async query => {
         const describedQuery = await describeQuery(query)
-        return describedQuery.asyncMap(dq => analyseQuery(dq))
+        return describedQuery.asyncMap(dq => getColumnInfo(pool, dq))
       })
 
       const successfuls = analysedQueryResults.flatMap(res => {
@@ -235,24 +235,6 @@ export const generate = async (params: Partial<Options>) => {
         }))
 
       return res
-    }
-
-    // use pgsql-ast-parser or fallback to add column information (i.e. nullability)
-    const analyseQuery = async (query: DescribedQuery): Promise<AnalysedQuery> => {
-      return getColumnInfo(pool, query).catch(e => {
-        if (e instanceof AnalyseQueryError && undefined !== e.recover) {
-          // well this is not great, but we can recover from this with default values, which are better than nothing.
-          logger.debug(
-            `${getLogQueryReference(
-              query,
-            )} [!] Error parsing column details: column, comment and nullability might be incorrect.`,
-          )
-          return e.recover
-        }
-
-        /* istanbul ignore next */
-        throw e
-      })
     }
 
     if (!lazy) {

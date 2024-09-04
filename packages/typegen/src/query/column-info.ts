@@ -19,43 +19,25 @@ import {
   templateToValidSql,
 } from './parse'
 
-export class AnalyseQueryError extends Error {
-  public readonly [Symbol.toStringTag] = 'AnalyseQueryError'
-  constructor(
-    public readonly originalError: Error,
-    public readonly query: DescribedQuery,
-    public readonly recover?: AnalysedQuery,
-  ) {
-    super(`Error describing Query: ${originalError.message}`)
-  }
-}
-
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
 export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery) => {
-  try {
-    const originalSql = templateToValidSql(query.template)
-    const modifiedAST = getASTModifiedToSingleSelect(originalSql)
+  const originalSql = templateToValidSql(query.template)
+  const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 
-    if (modifiedAST.ast.type !== 'select') {
-      return getDefaultAnalysedQuery(query)
-    }
+  if (modifiedAST.ast.type !== 'select') {
+    return getDefaultAnalysedQuery(query)
+  }
 
-    const singleSelectAst = modifiedAST.ast
-    const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
-    const filteredStatements = analyzedSelectStatement.filter(c => !c.error_message)
+  const singleSelectAst = modifiedAST.ast
+  const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
+  const filteredStatements = analyzedSelectStatement.filter(c => !c.error_message)
 
-    return {
-      ...query,
-      suggestedTags: generateTags(query),
-      fields: query.fields.map(field => getFieldInfo(filteredStatements, singleSelectAst, field, originalSql)),
-    }
-  } catch (e) {
-    if (process.env.TYPEGEN_DEBUG_RECOVER && String(e).includes(process.env.TYPEGEN_DEBUG_RECOVER))
-      console.error('having to recover', query.template, e)
-    const recover = getDefaultAnalysedQuery(query)
-    throw new AnalyseQueryError(e, query, recover)
+  return {
+    ...query,
+    suggestedTags: generateTags(query),
+    fields: query.fields.map(field => getFieldInfo(filteredStatements, singleSelectAst, field, originalSql)),
   }
 })
 
