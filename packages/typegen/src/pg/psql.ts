@@ -1,7 +1,6 @@
 import {Client} from '@pgkit/client'
 import * as assert from 'assert'
 import {simplifyWhitespace} from '../util'
-import {enumTypesGetter, regTypeToPGTypeGetter} from './mappings'
 
 export type PSQLClient = ReturnType<typeof psqlClient>
 
@@ -36,11 +35,7 @@ export const psqlClient = (psqlCommand: string, pool: Client) => {
     }
   }
 
-  const getEnumTypes = enumTypesGetter(pool)
-
-  const getRegtypeToPGType = regTypeToPGTypeGetter(pool)
-
-  return {psql, getEnumTypes, getRegtypeToPGType}
+  return {psql}
 }
 
 /** Parse a psql output into a list of rows (string tuples) */

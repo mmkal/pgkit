@@ -625,6 +625,9 @@ importers:
       '@rebundled/execa':
         specifier: 8.0.2-next.0
         version: 8.0.2-next.0
+      '@rebundled/p-memoize':
+        specifier: 7.1.2-next.4
+        version: 7.1.2-next.4
       '@rushstack/ts-command-line':
         specifier: ^4.11.0
         version: 4.17.1
@@ -2066,6 +2069,10 @@ packages:
   '@rebundled/execa@8.0.2-next.2':
     resolution: {integrity: sha512-S3rd39mObqtVaXqShfiSiYf4F1pUjSXyONfk+VRvsrQt2i1pFTZZIEm7yGyplzPcWefY8/dA/XSivCMVkMGMHQ==}
     engines: {node: '>=18'}
+
+  '@rebundled/p-memoize@7.1.2-next.4':
+    resolution: {integrity: sha512-WvuM+9LAkignqZNgkWUlROTW9CFBj5ENVFIpPZkKis/vukUqQLiIZG63QT6nBxOoYfw+Yx707zv6iTXGN1Zp+Q==}
+    engines: {node: '>=14.16'}
 
   '@rollup/rollup-android-arm-eabi@4.9.6':
     resolution: {integrity: sha512-MVNXSSYN6QXOulbHpLMKYi60ppyO13W9my1qogeiAqtjb2yR4LSmfU2+POvDkLzhjYLXz9Rf9+9a3zFHW1Lecg==}
@@ -9713,6 +9720,11 @@ snapshots:
       npm-run-path: 5.2.0
       signal-exit: 4.1.0
       strip-final-newline: 4.0.0
+
+  '@rebundled/p-memoize@7.1.2-next.4':
+    dependencies:
+      mimic-fn: 4.0.0
+      type-fest: 3.13.1
 
   '@rollup/rollup-android-arm-eabi@4.9.6':
     optional: true

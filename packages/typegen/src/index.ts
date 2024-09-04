@@ -7,21 +7,16 @@ import * as lodash from 'lodash'
 import memoizee = require('memoizee')
 import * as path from 'path'
 
+import {parseFirst, toSql} from 'pgsql-ast-parser'
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
-import {psqlClient} from './pg'
-import {AnalyseQueryError, columnInfoGetter, isUntypeable, removeSimpleComments, simplifySql} from './query'
-import {parameterTypesGetter} from './query/parameters'
+import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
+import {AnalyseQueryError, getColumnInfo, isUntypeable, removeSimpleComments} from './query'
+import {getParameterTypes} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
 import {changedFiles, checkClean, containsIgnoreComment, globList, maybeDo, tryOrDefault} from './util'
 
 export type {Options} from './types'
-
-const groupBy = <T>(list: T[], fn: (item: T) => string) => {
-  const groups = {} as Record<string, T[]>
-  list.forEach(item => (groups[fn(item)] ||= []).push(item))
-  return groups
-}
 
 export const generate = async (params: Partial<Options>) => {
   const {
@@ -45,7 +40,7 @@ export const generate = async (params: Partial<Options>) => {
 
   const pool = createClient(connectionString, poolConfig)
 
-  const {psql: _psql, getEnumTypes, getRegtypeToPGType} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
+  const {psql: _psql} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
 
   const _gdesc = async (sql: string) => {
     sql = sql.trim().replace(/;$/, '')
@@ -55,7 +50,7 @@ export const generate = async (params: Partial<Options>) => {
     } catch {
       const simplified = tryOrDefault(
         () => removeSimpleComments(sql),
-        tryOrDefault(() => simplifySql(sql), ''),
+        tryOrDefault(() => toSql.statement(parseFirst(sql)), ''),
       )
 
       return await psql(`${simplified} \\gdesc`)
@@ -82,7 +77,7 @@ export const generate = async (params: Partial<Options>) => {
   }
 
   const regTypeToTypeScript = async (regtype: string) => {
-    const enumTypes = await getEnumTypes()
+    const enumTypes = await getEnumTypes(pool)
     return (
       defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
       enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
@@ -90,9 +85,8 @@ export const generate = async (params: Partial<Options>) => {
     )
   }
 
-  const getParameterTypes = parameterTypesGetter(pool)
   const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
-    const regtypes = await getParameterTypes(query.sql)
+    const regtypes = await getParameterTypes(pool, query.sql)
 
     const promises = regtypes.map(async (regtype, i) => ({
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
@@ -107,7 +101,7 @@ export const generate = async (params: Partial<Options>) => {
   const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
     assert.ok(regtype, `No regtype found!`)
 
-    const regtypeToPGType = await getRegtypeToPGType()
+    const regtypeToPGTypeDictionary = await getRegtypeToPGType(pool)
 
     if (regtype.endsWith('[]')) {
       const itemType = await getTypeScriptType(regtype.slice(0, -2), typeName)
@@ -119,7 +113,7 @@ export const generate = async (params: Partial<Options>) => {
       return getTypeScriptType(regtype.split('(')[0], typeName)
     }
 
-    const pgtype = regtypeToPGType[regtype]
+    const pgtype = regtypeToPGTypeDictionary[regtype]
 
     assert.ok(pgtype, `pgtype not found from regtype ${regtype}`)
 
@@ -137,8 +131,6 @@ export const generate = async (params: Partial<Options>) => {
     const logMsgExclude = exclude.length > 0 ? ` excluding ${exclude.join(', ')}` : ''
     const logMsgSince = since ? ` since ${since}` : ''
     logger.info(`Matching files in ${getLogPath(cwd)} with ${logMsgInclude}${logMsgExclude}${logMsgSince}`)
-
-    const getColumnInfo = columnInfoGetter(pool)
 
     const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
 
@@ -242,7 +234,7 @@ export const generate = async (params: Partial<Options>) => {
 
     // use pgsql-ast-parser or fallback to add column information (i.e. nullability)
     const analyseQuery = async (query: DescribedQuery): Promise<AnalysedQuery> => {
-      return getColumnInfo(query).catch(e => {
+      return getColumnInfo(pool, query).catch(e => {
         if (e instanceof AnalyseQueryError && undefined !== e.recover) {
           // well this is not great, but we can recover from this with default values, which are better than nothing.
           logger.debug(

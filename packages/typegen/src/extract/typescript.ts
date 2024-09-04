@@ -52,6 +52,7 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
       }
 
       queries.push({
+        type: 'extracted',
         text: node.getFullText(),
         source,
         file,

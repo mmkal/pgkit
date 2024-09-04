@@ -9,6 +9,7 @@ import {singular} from 'pluralize'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {tryOrDefault} from '../util'
+import {memoizeQueryFn} from '../utils/memoize'
 import {
   AliasMapping,
   aliasMappings,
@@ -35,8 +36,8 @@ export class AnalyseQueryError extends Error {
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const columnInfoGetter = (pool: Client) => {
-  const addColumnInfo = async (query: DescribedQuery): Promise<AnalysedQuery> => {
+export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery): Promise<AnalysedQuery> => {
+  const addColumnInfo = async (): Promise<AnalysedQuery> => {
     const viewFriendlyAst = templateToHopefullyViewableAST(query.template)
 
     if (viewFriendlyAst.type !== 'select') {
@@ -48,70 +49,65 @@ export const columnInfoGetter = (pool: Client) => {
       ? [] // not smart enough to figure out what types are referenced via a CTE
       : await getViewResult(pool, viewFriendlySql)
 
-    const getFieldInfo = buildGetFieldInfo(viewResult, viewFriendlyAst)
-
     return {
       ...query,
       suggestedTags: generateTags(query),
-      fields: query.fields.map(getFieldInfo),
+      fields: query.fields.map(field => getFieldInfo(viewResult, viewFriendlyAst, field)),
     }
   }
 
-  return async (query: DescribedQuery): Promise<AnalysedQuery> =>
-    addColumnInfo(query).catch(e => {
-      const recover = getDefaultAnalysedQuery(query)
-      throw new AnalyseQueryError(e, query, recover)
-    })
-}
+  return addColumnInfo().catch(e => {
+    const recover = getDefaultAnalysedQuery(query)
+    throw new AnalyseQueryError(e, query, recover)
+  })
+})
 
-const buildGetFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement) => {
+const getFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement, field: QueryField) => {
   const viewableAst =
     viewResult[0]?.formatted_query === undefined ? ast : getHopefullyViewableAST(viewResult[0].formatted_query) // TODO: explore why this fallback might be needed - can't we always use the original ast?
 
   const mappings = aliasMappings(viewableAst)
 
-  return function getFieldInfo(field: QueryField) {
-    const relatedResults = mappings.flatMap(c =>
-      viewResult
-        .map(v => ({
-          ...v,
-          hasNullableJoin: c.hasNullableJoin,
-        }))
-        .filter(v => {
-          assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
-          return (
-            c.queryColumn === field.name &&
-            c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
-            c.aliasFor === v.table_column_name
-          )
-        }),
-    )
+  const relatedResults = mappings.flatMap(c =>
+    viewResult
+      .map(v => ({
+        ...v,
+        hasNullableJoin: c.hasNullableJoin,
+      }))
+      .filter(v => {
+        assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
+        return (
+          c.queryColumn === field.name &&
+          c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
+          c.aliasFor === v.table_column_name
+        )
+      }),
+  )
 
-    const res = relatedResults.length === 1 ? relatedResults[0] : undefined
+  const res = relatedResults.length === 1 ? relatedResults[0] : undefined
 
-    // determine nullability
-    let nullability: AnalysedQueryField['nullability'] = 'unknown'
-    if (res?.is_underlying_nullable === 'YES') {
-      nullability = 'nullable'
-    } else if (res?.hasNullableJoin) {
-      nullability = 'nullable_via_join'
-      // TODO: we're converting from sql to ast back and forth for `isNonNullableField`. this is probably unneded
-    } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(astToViewFriendlySql(viewableAst), field)) {
-      nullability = 'not_null'
-    } else {
-      nullability = 'unknown'
-    }
+  // determine nullability
+  let nullability: AnalysedQueryField['nullability'] = 'unknown'
+  if (res?.is_underlying_nullable === 'YES') {
+    nullability = 'nullable'
+  } else if (res?.hasNullableJoin) {
+    nullability = 'nullable_via_join'
+    // TODO: we're converting from sql to ast back and forth for `isNonNullableField`. this is probably unneded
+  } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(astToViewFriendlySql(viewableAst), field)) {
+    nullability = 'not_null'
+  } else {
+    nullability = 'unknown'
+  }
 
-    return {
-      ...field,
-      nullability,
-      column: res && {
-        schema: res.schema_name,
-        table: res.underlying_table_name,
-        name: res.table_column_name,
-      },
-      comment: res?.comment || undefined,
-    }
+  return {
+    ...field,
+    nullability,
+    column: res && {
+      schema: res.schema_name,
+      table: res.underlying_table_name,
+      name: res.table_column_name,
+    },
+    comment: res?.comment || undefined,
   }
 }
 

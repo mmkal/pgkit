@@ -12,6 +12,7 @@ export const extractSQLFile: Options['extractQueries'] = file => {
   const sql = fs.readFileSync(file).toString()
   return [
     {
+      type: 'extracted',
       text: sql,
       file,
       line: 1,

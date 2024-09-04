@@ -170,6 +170,7 @@ export interface Options {
 export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>
 
 export interface ExtractedQuery {
+  type: 'extracted'
   text: string
   /** Path to file containing the query, relative to cwd */
   file: string
