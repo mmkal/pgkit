@@ -13,6 +13,10 @@ export type WriteFile = (filepath: string, content: string) => Promise<void>
 export const defaultWriteFile: WriteFile = async (filepath, content) => {
   await fs.promises.mkdir(path.dirname(filepath), {recursive: true})
   const pretty = await prettifyOne({filepath, content})
+  const existing = (await fs.promises.readFile(filepath).catch(() => null)) as string | null
+  if (existing === pretty) {
+    return
+  }
   await fs.promises.writeFile(filepath, pretty)
 }
 
@@ -39,7 +43,7 @@ export const defaultWriteTypes = ({
       .groupBy(q => q.file)
       .mapValues(addTags)
       .pickBy(Boolean)
-      .mapValues(q => q!) // help the type system figure out we threw out the nulls using `pickBy(Boolean)`
+      .mapValues(q => q) // help the type system figure out we threw out the nulls using `pickBy(Boolean)`
       .map(async (group, file) => {
         if (file.endsWith('.sql')) {
           const [query, ...rest] = group
