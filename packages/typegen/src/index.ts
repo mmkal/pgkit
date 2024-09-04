@@ -10,9 +10,9 @@ import * as path from 'path'
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
 import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
-import {AnalyseQueryError, getColumnInfo, getTypeability, removeSimpleComments} from './query'
+import {getColumnInfo, getTypeability, removeSimpleComments} from './query'
 import {getParameterTypes} from './query/parameters'
-import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
+import {ExtractedQuery, Options, QueryField, QueryParameter} from './types'
 import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotOneAtATime} from './util'
 
 export type {Options} from './types'
@@ -46,15 +46,13 @@ export const generate = async (params: Partial<Options>) => {
       .ok(inputSql)
       .map(sql => sql.trim().replace(/;$/, ''))
       .andThen(sql => (sql.includes(';') ? neverthrow.ok(removeSimpleComments(sql)) : neverthrow.ok(sql)))
-      .asyncAndThen(simplified =>
-        neverthrow.fromPromise(psql(`${simplified} \\gdesc`), err => {
-          let message = `Query failed with ${err}:\n---\n${simplified}\n---\n`
-          if (simplified !== inputSql) {
-            message += ` (original: ${inputSql})`
-          }
-          return new Error(message, {cause: err})
-        }),
-      )
+      .asyncAndThen(simplified => {
+        const simplifiedCommand = `${simplified} \\gdesc`
+        return neverthrow.fromPromise(
+          psql(simplifiedCommand), //
+          err => new Error(`psql failed`, {cause: err}),
+        )
+      })
   }
 
   const psql = memoizee(_psql, {max: 1000})
@@ -217,7 +215,7 @@ export const generate = async (params: Partial<Options>) => {
       const fieldsResult = await getFields(query)
       const res = await fieldsResult
         .mapErr(err => {
-          let message = `${getLogQueryReference(query)} [!] Extracting types from query failed:\n${err}\n`
+          let message = `${getLogQueryReference(query)} [!] Extracting types from query failed.`
           if (query.sql.includes('--')) {
             message += ' Try moving comments to dedicated lines.'
           }

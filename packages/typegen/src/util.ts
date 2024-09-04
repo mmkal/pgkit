@@ -22,7 +22,7 @@ export const relativeUnixPath = (filepath: string, relativeFrom: string) => {
 }
 
 export const truncate = (str: string, maxLength = 100, truncatedMessage = '... [truncated] ...') => {
-  if (str.length < 120) {
+  if (str.length <= maxLength + truncatedMessage.length) {
     return str
   }
 
@@ -38,18 +38,6 @@ export const dedent = (str: string) => {
   return lines.map(line => line.replace(margin, '')).join('\n')
 }
 
-export const attempt = <T>(context: string, action: () => T): T => {
-  try {
-    return action()
-  } catch (e) {
-    if (e instanceof Error) {
-      e.message = `Failure: ${context}: ${e}`
-    }
-
-    throw e
-  }
-}
-
 export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {
   try {
     return fn()
@@ -59,10 +47,13 @@ export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {
 }
 
 /** Makes sure there are no git changes before performing destructive actions. */
-export const checkClean = () =>
-  attempt('git status should be clean - stage or commit your changes before re-running.', () =>
-    child_process.execSync(`git diff --exit-code`),
-  )
+export const checkClean = () => {
+  try {
+    child_process.execSync(`git diff --exit-code`)
+  } catch (e) {
+    throw new Error(`git status should be clean - stage or commit your changes before re-running.`, {cause: e})
+  }
+}
 
 export const changedFiles = (params: {since: string; cwd: string}) =>
   child_process
