@@ -29,18 +29,19 @@ export const isUntypeable = (template: string[]) => {
   let untypeable = false
   try {
     const delimiter = `t${Math.random()}`.replace('0.', '')
-    pgsqlAST
-      .astVisitor(map => ({
-        tableRef(t) {
-          if (t.name === delimiter) {
-            untypeable = true // can only get type when delimiter is used as a parameter, not an identifier
-          }
+    const visitor = pgsqlAST.astVisitor(map => ({
+      tableRef(t) {
+        if (t.name === delimiter) {
+          untypeable = true // can only get type when delimiter is used as a parameter, not an identifier
+        }
 
-          map.super().tableRef(t)
-        },
-      }))
-      .statement(getHopefullyViewableAST(template.join(delimiter)))
-  } catch {}
+        map.super().tableRef(t)
+      },
+    }))
+    visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
+  } catch {
+    // never mind?
+  }
 
   // too many statements
   try {
@@ -54,13 +55,8 @@ export const isUntypeable = (template: string[]) => {
 
 // todo: return null if statement is not a select
 // and have test cases for when a view can't be created
-// export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
-//   const statements = parseWithWorkarounds(sql)
-//   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
-//   return astToSelect({modifications: [], ast: statements[0]}).ast
-// }
-
-const getModifiedAST = (sql: string): ModifiedAST => {
+/** parses a sql string and returns an AST which we've tried to modify to make it a nice easy to digest SELECT statement */
+export const getASTModifiedToSingleSelect = (sql: string): ModifiedAST => {
   const statements = parseWithWorkarounds(sql)
   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
   return astToSelect({modifications: [], ast: statements[0]})
@@ -152,7 +148,7 @@ const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
  * name that can be used to refer to queries.
  */
 export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: string[]} => {
-  const ast = getHopefullyViewableAST(sql)
+  const {ast} = getASTModifiedToSingleSelect(sql)
 
   if (ast.type === 'select') {
     return {
@@ -272,17 +268,9 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
     .filter(Boolean)
 }
 
-export const getHopefullyViewableAST = lodash.flow(getModifiedAST, m => m.ast)
-
-export const isCTE = lodash.flow(templateToValidSql, getModifiedAST, m => m.modifications.includes('cte'))
-
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
-export const templateToHopefullyViewableAST = lodash.flow(templateToValidSql, getHopefullyViewableAST)
-
-export const astToViewFriendlySql = pgsqlAST.toSql.statement
-
-export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappings)
+export const getAliasMappings = lodash.flow(getASTModifiedToSingleSelect, m => m.ast, aliasMappings)
 
 export const removeSimpleComments = (sql: string) =>
   sql

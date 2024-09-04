@@ -1,25 +1,15 @@
-import * as parse from './index'
-import {Client, sql} from '@pgkit/client'
+import {Client} from '@pgkit/client'
 import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
-import {SelectFromStatement, Statement} from 'pgsql-ast-parser'
+import {SelectFromStatement, toSql} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {tryOrDefault} from '../util'
 import {memoizeQueryFn} from '../utils/memoize'
-import {
-  AliasMapping,
-  aliasMappings,
-  astToViewFriendlySql,
-  getHopefullyViewableAST,
-  getSuggestedTags,
-  isCTE,
-  suggestedTags,
-  templateToHopefullyViewableAST,
-} from './parse'
+import {aliasMappings, getASTModifiedToSingleSelect, getSuggestedTags, suggestedTags, templateToValidSql} from './parse'
 import {ViewResult, getViewResult} from './view-result'
 
 export class AnalyseQueryError extends Error {
@@ -38,14 +28,15 @@ export class AnalyseQueryError extends Error {
 
 export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery): Promise<AnalysedQuery> => {
   const addColumnInfo = async (): Promise<AnalysedQuery> => {
-    const viewFriendlyAst = templateToHopefullyViewableAST(query.template)
+    const modifiedAST = getASTModifiedToSingleSelect(templateToValidSql(query.template))
 
-    if (viewFriendlyAst.type !== 'select') {
+    if (modifiedAST.ast.type !== 'select') {
       return getDefaultAnalysedQuery(query)
     }
 
-    const viewFriendlySql = astToViewFriendlySql(viewFriendlyAst)
-    const viewResult = isCTE(query.template)
+    const viewFriendlyAst = modifiedAST.ast
+    const viewFriendlySql = toSql.statement(viewFriendlyAst)
+    const viewResult = modifiedAST.modifications.includes('cte')
       ? [] // not smart enough to figure out what types are referenced via a CTE
       : await getViewResult(pool, viewFriendlySql)
 
@@ -64,7 +55,9 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
 
 const getFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement, field: QueryField) => {
   const viewableAst =
-    viewResult[0]?.formatted_query === undefined ? ast : getHopefullyViewableAST(viewResult[0].formatted_query) // TODO: explore why this fallback might be needed - can't we always use the original ast?
+    viewResult[0]?.formatted_query === undefined
+      ? ast //
+      : getASTModifiedToSingleSelect(viewResult[0].formatted_query).ast // TODO: explore why this fallback might be needed - can't we always use the original ast?
 
   const mappings = aliasMappings(viewableAst)
 
@@ -93,7 +86,7 @@ const getFieldInfo = (viewResult: ViewResult[], ast: SelectFromStatement, field:
   } else if (res?.hasNullableJoin) {
     nullability = 'nullable_via_join'
     // TODO: we're converting from sql to ast back and forth for `isNonNullableField`. this is probably unneded
-  } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(astToViewFriendlySql(viewableAst), field)) {
+  } else if (res?.is_underlying_nullable === 'NO' || isNonNullableField(toSql.statement(viewableAst), field)) {
     nullability = 'not_null'
   } else {
     nullability = 'unknown'
@@ -189,7 +182,7 @@ const nonNullableExpressionTypes = new Set([
   'values',
 ])
 export const isNonNullableField = (sql: string, field: QueryField) => {
-  const ast = getHopefullyViewableAST(sql)
+  const {ast} = getASTModifiedToSingleSelect(sql)
   if (ast.type !== 'select' || !Array.isArray(ast.columns)) {
     return false
   }
