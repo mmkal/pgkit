@@ -658,6 +658,9 @@ importers:
       typescript:
         specifier: '*'
         version: 5.3.3
+      zod:
+        specifier: ^3.23.8
+        version: 3.23.8
     devDependencies:
       '@types/glob':
         specifier: 7.2.0

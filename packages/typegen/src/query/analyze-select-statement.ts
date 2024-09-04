@@ -2,6 +2,7 @@ import {Client, Queryable, sql} from '@pgkit/client'
 import * as assert from 'assert'
 import * as lodash from 'lodash'
 import {toSql} from 'pgsql-ast-parser'
+import {z} from 'zod'
 import {ModifiedAST} from './parse'
 
 /**
@@ -14,6 +15,12 @@ export const analyzeSelectStatement = async (
   modifiedAST: ModifiedAST,
 ): Promise<SelectStatementAnalyzedColumn[]> => {
   if (modifiedAST.modifications.includes('cte')) {
+    const ast = modifiedAST.ast
+    if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
+
+    // todo: iterate through the bind queries and analyze them, so we can replace the final query with their types
+    // const previouses = await Promise.all(
+    // )
     return []
   }
 
@@ -25,6 +32,7 @@ export const analyzeSelectStatement = async (
       table_column_name,
       underlying_table_name,
       is_underlying_nullable,
+      underlying_data_type,
       comment,
       formatted_query
     from
@@ -46,33 +54,38 @@ export const analyzeSelectStatement = async (
 }
 
 // can't use typegen here because it relies on a function in a temp schema
-export type SelectStatementAnalyzedColumn = {
+export const SelectStatementAnalyzedColumnSchema = z.object({
   /** postgres type: `text` */
-  schema_name: string | null
+  schema_name: z.string().nullable(),
 
   /** postgres type: `text` */
-  table_column_name: string | null
+  table_column_name: z.string().nullable(),
 
   /** postgres type: `text` */
-  underlying_table_name: string | null
+  underlying_table_name: z.string().nullable(),
 
   /** postgres type: `text` */
-  is_underlying_nullable: string | null
+  is_underlying_nullable: z.string().nullable(),
+
+  /** looks like `integer`, `text`, `USER-DEFINED` etc., at time of writing can't remember if that means it's a pgtype or a regtype or what */
+  underlying_data_type: z.string().nullable(),
 
   /** postgres type: `text` */
-  comment: string | null
+  comment: z.string().nullable(),
 
   /** postgres type: `text` */
-  formatted_query: string | null
-}
+  formatted_query: z.string().nullable(),
+})
+
+export type SelectStatementAnalyzedColumn = z.infer<typeof SelectStatementAnalyzedColumnSchema>
 
 /**
  * A query, which creates a tmp table for the purpose of analysing types of another query
  */
 const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable) => {
-  await queryable.query(sql`
+  const query = sql.type(SelectStatementAnalyzedColumnSchema)`
     drop type if exists pg_temp.types_type cascade;
-  
+
     create type pg_temp.types_type as (
       schema_name text,
       view_name text,
@@ -81,13 +94,14 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
       comment text,
       underlying_table_name text,
       is_underlying_nullable text,
+      underlying_data_type text,
       formatted_query text
     );
-  
+
     -- taken from https://dataedo.com/kb/query/postgresql/list-views-columns
     -- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
     -- nullable: https://stackoverflow.com/a/63980243
-  
+
     create or replace function pg_temp.analyze_select_statement_columns(sql_query text)
     returns setof pg_temp.types_type as
     $$
@@ -98,7 +112,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
       v_tmp_name := 'temp_view_' || md5(sql_query);
       execute 'drop view if exists ' || v_tmp_name;
       execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
-  
+
       FOR returnrec in
       select
         vcu.table_schema as schema_name,
@@ -111,6 +125,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
         ),
         vcu.table_name as underlying_table_name,
         c.is_nullable as is_underlying_nullable,
+        c.data_type as underlying_data_type,
         pg_get_viewdef(v_tmp_name) as formatted_query
       from
         information_schema.columns c
@@ -125,11 +140,12 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable)
     loop
       return next returnrec;
     end loop;
-  
+
     execute 'drop view if exists ' || v_tmp_name;
-  
+
     end;
     $$
     LANGUAGE 'plpgsql';
-  `)
+  `
+  await queryable.query(query)
 }
