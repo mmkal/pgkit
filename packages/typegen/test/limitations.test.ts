@@ -380,28 +380,6 @@ test('queries with semicolons are rejected', async () => {
   expect(logger.warn).toMatchInlineSnapshot(`
     - - >-
         ./test/fixtures/limitations.test.ts/queries-with-semicolons-are-rejected/index.ts:4
-        [!] Extracting types from query failed:
-
-        Error: Query failed with Error: Error running psql query.
-
-        Query: "update semicolon_query_table2 set col=2 returning 1; -- I love
-        semicolons \\\\gdesc"
-
-        Result: "psql:<stdin>:1: ERROR:  relation \\"semicolon_query_table2\\" does
-        not exist\\nLINE 1: update semicolon_query_table2 set col=2 returning
-        1;\\n               ^"
-
-        Error: Empty output received
-
-        Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test:
-
-        ---
-
-        update semicolon_query_table2 set col=2 returning 1; -- I love semicolons
-
-        ---
-
-         Try moving comments to dedicated lines. Try removing trailing semicolons, separating multi-statement queries into separate queries, using a template variable for semicolons inside strings, or ignoring this query.
+        [!] Query is not typeable.
   `)
 })

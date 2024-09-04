@@ -6,12 +6,10 @@ import {glob} from 'glob'
 import * as lodash from 'lodash'
 import memoizee = require('memoizee')
 import * as path from 'path'
-
-import {parseFirst, toSql} from 'pgsql-ast-parser'
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
 import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
-import {AnalyseQueryError, getColumnInfo, isUntypeable, removeSimpleComments} from './query'
+import {AnalyseQueryError, getColumnInfo, getTypeability, removeSimpleComments} from './query'
 import {getParameterTypes} from './query/parameters'
 import {AnalysedQuery, DescribedQuery, ExtractedQuery, Options, QueryField, QueryParameter} from './types'
 import {changedFiles, checkClean, containsIgnoreComment, globList, maybeDo, tryOrDefault} from './util'
@@ -233,9 +231,10 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     // uses _gdesc or fallback to attain basic type information
-    const describeQuery = async (query: ExtractedQuery) => {//}: Promise<DescribedQuery | null> => {
-      if (isUntypeable(query.template)) {
-        return neverthrow.err(new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`))
+    const describeQuery = async (query: ExtractedQuery) => {
+      const typeability = getTypeability(query.template)
+      if (typeability.isErr()) {
+        return typeability.mapErr(err => new Error(`${getLogQueryReference(query)} [!] Query is not typeable.`, {cause: err}))
       }
 
       const fieldsResult = await getFields(query)

@@ -3,7 +3,7 @@ import * as assert from 'assert'
 import {match} from 'io-ts-extra'
 import * as lodash from 'lodash'
 import * as pgsqlAST from 'pgsql-ast-parser'
-import {QName} from 'pgsql-ast-parser'
+import * as neverthrow from 'neverthrow'
 import * as pluralize from 'pluralize'
 
 import {pascalCase} from '../util'
@@ -25,34 +25,32 @@ export const templateToValidSql = (template: string[]) => template.join('null')
  * - multi statements (that pgsql-ast-parser is able to process) e.g. `insert into foo(id) values (1); insert into foo(id) values (2);`
  * - statements that use identifiers (as opposed to param values) e.g. `select * from ${sql.identifier([tableFromVariableName])}`
  */
-// todo: change to `getTypeability` and return `neverthrow.Result<true, Error>` or something
-export const isUntypeable = (template: string[]) => {
-  let untypeable = false
-  try {
-    const delimiter = `t${Math.random()}`.replace('0.', '')
-    const visitor = pgsqlAST.astVisitor(map => ({
-      tableRef(t) {
-        if (t.name === delimiter) {
-          untypeable = true // can only get type when delimiter is used as a parameter, not an identifier
-        }
+export const getTypeability = (template: string[]): neverthrow.Result<true, Error> => {
+  const delimiter = `t${Math.random()}`.replace('0.', '')
+  const problems: string[] = []
+  const visitor = pgsqlAST.astVisitor(map => ({
+    tableRef(t) {
+      if (t.name === delimiter) {
+        problems.push('delimiter is used as identifier')
+      }
 
-        map.super().tableRef(t)
-      },
-    }))
+      map.super().tableRef(t)
+    },
+  }))
+  const safeWalk = neverthrow.fromThrowable(() => {
     visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
-  } catch {
-    
-    // never mind?
-  }
-
-  // too many statements
-  try {
-    untypeable ||= pgsqlAST.parse(templateToValidSql(template)).length !== 1
-  } catch {
-    untypeable ||= templateToValidSql(template).trim().replaceAll('\n', ' ').replace(/;$/, '').includes(';')
-  }
-
-  return untypeable
+    return problems
+  }, err => new Error(`Walking AST failed`, {cause: err}))
+  return safeWalk()
+    .andThen(problems => problems.length === 0 ? neverthrow.ok(true as const) : neverthrow.err(new Error('Problems found:\n' + problems.join('\n'), {cause: template})))
+    .andThen(ok  => {
+      const statements = pgsqlAST.parse(templateToValidSql(template))
+      return statements.length === 1 ? neverthrow.ok(ok) : neverthrow.err(new Error('Too many statements', {cause: template}))
+    })
+    .andThen(ok => {
+      const containsSemicolon = templateToValidSql(template).trim().replaceAll('\n', ' ').replace(/;$/, '').includes(';')
+      return containsSemicolon ? neverthrow.err(new Error('Contains semicolon', {cause: template})) : neverthrow.ok(ok) 
+    })
 }
 
 // todo: return null if statement is not a select
