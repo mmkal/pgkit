@@ -2,8 +2,8 @@ import * as assert from 'assert'
 
 import {match} from 'io-ts-extra'
 import * as lodash from 'lodash'
-import * as pgsqlAST from 'pgsql-ast-parser'
 import * as neverthrow from 'neverthrow'
+import * as pgsqlAST from 'pgsql-ast-parser'
 import * as pluralize from 'pluralize'
 
 import {pascalCase} from '../util'
@@ -27,29 +27,39 @@ export const templateToValidSql = (template: string[]) => template.join('null')
  */
 export const getTypeability = (template: string[]): neverthrow.Result<true, Error> => {
   const delimiter = `t${Math.random()}`.replace('0.', '')
-  const problems: string[] = []
-  const visitor = pgsqlAST.astVisitor(map => ({
-    tableRef(t) {
-      if (t.name === delimiter) {
-        problems.push('delimiter is used as identifier')
-      }
-
-      map.super().tableRef(t)
+  const safeWalk = neverthrow.fromThrowable(
+    () => {
+      const problems: string[] = []
+      const visitor = pgsqlAST.astVisitor(map => ({
+        tableRef(t) {
+          if (t.name === delimiter) problems.push('delimiter is used as identifier')
+          map.super().tableRef(t)
+        },
+      }))
+      visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
+      return problems
     },
-  }))
-  const safeWalk = neverthrow.fromThrowable(() => {
-    visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
-    return problems
-  }, err => new Error(`Walking AST failed`, {cause: err}))
+    err => new Error(`Walking AST failed`, {cause: err}),
+  )
   return safeWalk()
-    .andThen(problems => problems.length === 0 ? neverthrow.ok(true as const) : neverthrow.err(new Error('Problems found:\n' + problems.join('\n'), {cause: template})))
-    .andThen(ok  => {
+    .andThen(problems =>
+      problems.length === 0
+        ? neverthrow.ok(true as const)
+        : neverthrow.err(new Error('Problems found:\n' + problems.join('\n'), {cause: template})),
+    )
+    .andThen(ok => {
       const statements = pgsqlAST.parse(templateToValidSql(template))
-      return statements.length === 1 ? neverthrow.ok(ok) : neverthrow.err(new Error('Too many statements', {cause: template}))
+      return statements.length === 1
+        ? neverthrow.ok(ok)
+        : neverthrow.err(new Error('Too many statements', {cause: template}))
     })
     .andThen(ok => {
-      const containsSemicolon = templateToValidSql(template).trim().replaceAll('\n', ' ').replace(/;$/, '').includes(';')
-      return containsSemicolon ? neverthrow.err(new Error('Contains semicolon', {cause: template})) : neverthrow.ok(ok) 
+      const containsSemicolon = templateToValidSql(template)
+        .trim()
+        .replaceAll('\n', ' ')
+        .replace(/;$/, '')
+        .includes(';')
+      return containsSemicolon ? neverthrow.err(new Error('Contains semicolon', {cause: template})) : neverthrow.ok(ok)
     })
 }
 

@@ -184,26 +184,25 @@ export const generate = async (params: Partial<Options>) => {
         }),
       )
 
-      const successful = analysedQueryResults.filter(res => res.isOk()).length
+      const successfuls = analysedQueryResults.flatMap(res => {
+        if (res.isOk()) return [res.value]
+        logger.warn(res.error)
+        return []
+      })
 
       if (queries.length > 0) {
         const ignoreMsg = ignoreCount > 0 ? ` (${ignoreCount} ignored)` : ''
-        logger.info(`${getLogPath(file)} finished. Processed ${successful}/${queries.length} queries${ignoreMsg}.`)
+        logger.info(
+          `${getLogPath(file)} finished. Processed ${successfuls.length}/${queries.length} queries${ignoreMsg}.`,
+        )
       }
 
-      if (successful > 0) {
+      if (successfuls.length > 0) {
         await writeTypes(analysedQueryResults.flatMap(res => (res.isOk() ? [res.value] : [])))
-      }
-      if (successful < queriesToDescribe.length) {
-        analysedQueryResults.forEach(res => {
-          if (res.isErr()) {
-            logger.warn(res.error.message)
-          }
-        })
       }
       return {
         total: queries.length,
-        successful,
+        successful: successfuls.length,
         ignored: ignoreCount,
       }
     }

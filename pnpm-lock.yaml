@@ -671,6 +671,9 @@ importers:
       '@types/glob':
         specifier: 7.2.0
         version: 7.2.0
+      '@types/js-yaml':
+        specifier: ^4.0.9
+        version: 4.0.9
       '@types/lodash':
         specifier: ^4.14.202
         version: 4.14.202
@@ -17393,7 +17396,7 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       string-width: 4.2.3
-      strip-ansi: 6.0.1
+      strip-ansi: 6.0.0
 
   wrap-ansi@8.1.0:
     dependencies:

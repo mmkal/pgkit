@@ -67,11 +67,11 @@ export const analyzeSelectStatement = async (
         // todo: neverthrow with error messages?
         if (/column .* has pseudo-type/.test(message)) {
           // e.g. `select pg_advisory_lock(1)`
-          // return []
+          return []
         }
         if (/column .* specified more than once/.test(message)) {
           // e.g. `select 1 as a, 2 as a`
-          // return []
+          return []
         }
         throw e
       })

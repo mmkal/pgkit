@@ -26,7 +26,7 @@ export class AnalyseQueryError extends Error {
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery): Promise<AnalysedQuery> => {
+export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery) => {
   try {
     const modifiedAST = getASTModifiedToSingleSelect(templateToValidSql(query.template))
 
@@ -37,17 +37,14 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
     const singleSelectAst = modifiedAST.ast
     const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
 
-    if (analyzedSelectStatement.length === 0) {
-      // return getDefaultAnalysedQuery(query)
-    }
-
     return {
       ...query,
       suggestedTags: generateTags(query),
       fields: query.fields.map(field => getFieldInfo(analyzedSelectStatement, singleSelectAst, field)),
     }
   } catch (e) {
-    if (!String(e).includes('transaction is aborted')) console.error(e)
+    if (process.env.TYPEGEN_DEBUG_RECOVER && String(e).includes(process.env.TYPEGEN_DEBUG_RECOVER))
+      console.error('having to recover', query.template, e)
     const recover = getDefaultAnalysedQuery(query)
     throw new AnalyseQueryError(e, query, recover)
   }

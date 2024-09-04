@@ -85,7 +85,11 @@ test('variable table name', async () => {
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
-  expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/.*index.ts:\d+ \[!] Query is not typeable./))
+  expect(logger.warn).toHaveBeenCalledWith(
+    expect.objectContaining({
+      message: expect.stringMatching(/.*index.ts:\d+ \[!] Query is not typeable./),
+    }),
+  )
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -251,53 +255,110 @@ test('queries with comments are modified', async () => {
   })
 
   syncer.sync()
+  const before = syncer.read()
 
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.warn).toHaveBeenCalled()
   expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
-        ./test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
-        [!] Extracting types from query failed:
+    - - message: >-
+          ./test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
+          [!] Extracting types from query failed:
 
-        Error: Query failed with Error: Error running psql query.
+          Error: Query failed with Error: Error running psql query.
 
-        Query: "select 1 as a, -- comment -- comment 2 as b, '--' as c, -- comment
-        id from -- comment test_table -- comment \\\\gdesc"
+          Query: "select 1 as a, -- comment -- comment 2 as b, '--' as c, -- comment
+          id from -- comment test_table -- comment \\\\gdesc"
 
-        Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
-        select 1 as a, \\n                       ^"
+          Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+          select 1 as a, \\n                       ^"
 
-        Error: Empty output received
+          Error: Empty output received
 
-        Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test:
+          Connection string:
+          postgresql://postgres:postgres@localhost:5432/limitations_test:
 
-        ---
+          ---
 
-        select
-            1 as a, -- comment
-            -- comment
-            2 as b,
-            '--' as c, -- comment
-            id
-          from
-            -- comment
-            test_table -- comment
-        ---
-         (original: 
           select
-            1 as a, -- comment
-            -- comment
-            2 as b,
-            '--' as c, -- comment
-            id
-          from
-            -- comment
-            test_table -- comment
-        )
-         Try moving comments to dedicated lines.
+              1 as a, -- comment
+              -- comment
+              2 as b,
+              '--' as c, -- comment
+              id
+            from
+              -- comment
+              test_table -- comment
+          ---
+           (original: 
+            select
+              1 as a, -- comment
+              -- comment
+              2 as b,
+              '--' as c, -- comment
+              id
+            from
+              -- comment
+              test_table -- comment
+          )
+           Try moving comments to dedicated lines.
+        cause:
+          message: >-
+            Query failed with Error: Error running psql query.
+
+            Query: "select 1 as a, -- comment -- comment 2 as b, '--' as c, --
+            comment id from -- comment test_table -- comment \\\\gdesc"
+
+            Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+            select 1 as a, \\n                       ^"
+
+            Error: Empty output received
+
+            Connection string:
+            postgresql://postgres:postgres@localhost:5432/limitations_test:
+
+            ---
+
+            select
+                1 as a, -- comment
+                -- comment
+                2 as b,
+                '--' as c, -- comment
+                id
+              from
+                -- comment
+                test_table -- comment
+            ---
+             (original: 
+              select
+                1 as a, -- comment
+                -- comment
+                2 as b,
+                '--' as c, -- comment
+                id
+              from
+                -- comment
+                test_table -- comment
+            )
+          cause:
+            message: >-
+              Error running psql query.
+
+              Query: "select 1 as a, -- comment -- comment 2 as b, '--' as c, --
+              comment id from -- comment test_table -- comment \\\\gdesc"
+
+              Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+              select 1 as a, \\n                       ^"
+
+              Error: Empty output received
+
+              Connection string:
+              postgresql://postgres:postgres@localhost:5432/limitations_test
+            cause:
+              message: Empty output received
   `)
+
+  expect(syncer.read()).toEqual(before) // no update expected
 })
 
 test('queries with complex CTEs and comments fail with helpful warning', async () => {
@@ -328,48 +389,107 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
 
   expect(logger.warn).toHaveBeenCalled()
   expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
-        ./test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
-        [!] Extracting types from query failed:
+    - - message: >-
+          ./test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
+          [!] Extracting types from query failed:
 
-        Error: Query failed with Error: Error running psql query.
+          Error: Query failed with Error: Error running psql query.
 
-        Query: "with abc as ( select table_name -- comment from
-        information_schema.tables ), def as ( select table_schema from
-        information_schema.tables, abc ) select * from def \\\\gdesc"
+          Query: "with abc as ( select table_name -- comment from
+          information_schema.tables ), def as ( select table_schema from
+          information_schema.tables, abc ) select * from def \\\\gdesc"
 
-        Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: with
-        abc as ( select table_name \\n                                        ^"
+          Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+          with abc as ( select table_name \\n                                       
+          ^"
 
-        Error: Empty output received
+          Error: Empty output received
 
-        Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test:
+          Connection string:
+          postgresql://postgres:postgres@localhost:5432/limitations_test:
 
-        ---
+          ---
 
-        with abc as (
-            select table_name -- comment
-            from information_schema.tables
-          ),
-          def as (
-            select table_schema
-            from information_schema.tables, abc
-          )
-          select * from def
-        ---
-         (original: 
           with abc as (
-            select table_name -- comment
-            from information_schema.tables
-          ),
-          def as (
-            select table_schema
-            from information_schema.tables, abc
+              select table_name -- comment
+              from information_schema.tables
+            ),
+            def as (
+              select table_schema
+              from information_schema.tables, abc
+            )
+            select * from def
+          ---
+           (original: 
+            with abc as (
+              select table_name -- comment
+              from information_schema.tables
+            ),
+            def as (
+              select table_schema
+              from information_schema.tables, abc
+            )
+            select * from def
           )
-          select * from def
-        )
-         Try moving comments to dedicated lines.
+           Try moving comments to dedicated lines.
+        cause:
+          message: >-
+            Query failed with Error: Error running psql query.
+
+            Query: "with abc as ( select table_name -- comment from
+            information_schema.tables ), def as ( select table_schema from
+            information_schema.tables, abc ) select * from def \\\\gdesc"
+
+            Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+            with abc as ( select table_name
+            \\n                                        ^"
+
+            Error: Empty output received
+
+            Connection string:
+            postgresql://postgres:postgres@localhost:5432/limitations_test:
+
+            ---
+
+            with abc as (
+                select table_name -- comment
+                from information_schema.tables
+              ),
+              def as (
+                select table_schema
+                from information_schema.tables, abc
+              )
+              select * from def
+            ---
+             (original: 
+              with abc as (
+                select table_name -- comment
+                from information_schema.tables
+              ),
+              def as (
+                select table_schema
+                from information_schema.tables, abc
+              )
+              select * from def
+            )
+          cause:
+            message: >-
+              Error running psql query.
+
+              Query: "with abc as ( select table_name -- comment from
+              information_schema.tables ), def as ( select table_schema from
+              information_schema.tables, abc ) select * from def \\\\gdesc"
+
+              Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
+              with abc as ( select table_name
+              \\n                                        ^"
+
+              Error: Empty output received
+
+              Connection string:
+              postgresql://postgres:postgres@localhost:5432/limitations_test
+            cause:
+              message: Empty output received
   `)
 })
 
@@ -398,8 +518,14 @@ test('queries with semicolons are rejected', async () => {
   ).toEqual([])
 
   expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
-        ./test/fixtures/limitations.test.ts/queries-with-semicolons-are-rejected/index.ts:4
-        [!] Query is not typeable.
+    - - message: >-
+          ./test/fixtures/limitations.test.ts/queries-with-semicolons-are-rejected/index.ts:4
+          [!] Query is not typeable.
+        cause:
+          message: Contains semicolon
+          cause:
+            - >-
+              update semicolon_query_table2 set col=2 returning 1; -- I love
+              semicolons
   `)
 })
