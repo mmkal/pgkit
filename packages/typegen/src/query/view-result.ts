@@ -22,8 +22,8 @@ export const getViewResult = async (pool: Client, viewFriendlySql: string): Prom
   `
   return pool.transaction(async t => {
     await t.query(getTypesSql)
-    const results = await t.any(viewResultQuery)
-    const deduped = lodash.uniqBy(results, JSON.stringify)
+    const results = await t.any<ViewResult>(viewResultQuery)
+    const deduped = lodash.uniqBy<ViewResult>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
 
     assert.ok(
@@ -36,7 +36,7 @@ export const getViewResult = async (pool: Client, viewFriendlySql: string): Prom
 }
 
 // this query is for a type in a temp schema so this tool doesn't work with it
-export interface ViewResult {
+export type ViewResult = {
   /** postgres type: `text` */
   schema_name: string | null
 
