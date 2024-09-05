@@ -17,12 +17,10 @@ export const analyzeSelectStatement = async (
 ): Promise<SelectStatementAnalyzedColumn[]> => {
   const selectStatementSql = toSql.statement(modifiedAST.ast)
 
-  console.dir(modifiedAST.ast, {depth: null})
-
   const schemaName =
     'pgkit_typegen_temp_schema_' +
     createHash('md5')
-      .update(JSON.stringify([modifiedAST]))
+      .update(JSON.stringify([modifiedAST, 2]))
       .digest('hex')
       .slice(0, 6)
   const schemaIdentifier = sql.identifier([schemaName])
@@ -44,7 +42,7 @@ export const analyzeSelectStatement = async (
       },
     ) => {
       const aliasInfoList = getAliasInfo(statement)
-      const aliasList = analyzed[0].column_aliases
+      const aliasList = analyzed[0]?.column_aliases || []
 
       const tempTableColumns = aliasList.map(aliasName => {
         const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
@@ -79,10 +77,6 @@ export const analyzeSelectStatement = async (
     }
 
     if (modifiedAST.modifications.includes('cte')) {
-      if (!process.env.EXPERIMENTAL_CTE_TEMP_SCHEMA) {
-        return []
-      }
-
       const ast = parse(modifiedAST.originalSql)[0]
       if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
 
@@ -98,7 +92,9 @@ export const analyzeSelectStatement = async (
       return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
     }
 
-    if (modifiedAST.ast.type === 'select') {
+    if (modifiedAST.ast.type === 'select' && modifiedAST.ast.from) {
+      if (!modifiedAST.ast.from)
+        throw new Error(`Expected a FROM clause, got ${JSON.stringify(modifiedAST.ast, null, 2)}`)
       const swappableFunctionIndexes = modifiedAST.ast.from.flatMap((f, i) =>
         f.type === 'call' && f.function ? [i] : [],
       )
@@ -108,31 +104,46 @@ export const analyzeSelectStatement = async (
         if (f.type !== 'call') throw new Error(`Expected a call, got ${JSON.stringify(f)}`)
         const tableReplacement: (typeof modifiedAST.ast.from)[number] = {
           type: 'table',
-          name: f.function,
+          name: f.alias ? {name: f.function.name, alias: f.alias.name} : f.function,
         }
         swappedAst.from[i] = tableReplacement
-        const functionDefinition = await tx.one<{prosrc: string; proargnames: string[]; proargmodes: string[]}>(sql`
+        const functionDefinitions = await tx.any<{prosrc: string; proargnames: string[]; proargmodes: string[]}>(sql`
           select prosrc, proargnames, proargmodes::text[]
           from pg_proc
           join pg_language on pg_language.oid = pg_proc.prolang
           where pg_language.lanname = 'sql'
           and proname = ${f.function.name}
+          limit 2
         `)
+        const functionDefinition = functionDefinitions.length === 1 ? functionDefinitions[0] : null
+        if (!functionDefinition) {
+          // maybe not a sql function, or an overloaded one, we don't handle this for now. Some types may be nullable as a result.
+          continue
+        }
+
         let underlyingFunctionDefinition = functionDefinition.prosrc
+
         for (const [index, argname] of functionDefinition.proargnames.entries()) {
-          const argmode = functionDefinition.proargmodes[index]
-          if (argmode !== 'i') continue
+          const argmode = functionDefinition.proargmodes?.[index]
+          // maybe: we should allow argmode to be undefined here, functions that return primitives seem to have no proargmodes value
+          if (argmode !== 'i') {
+            continue
+          }
           const regexp = new RegExp(/\bargname\b/.source.replace('argname', argname), 'g')
           underlyingFunctionDefinition = underlyingFunctionDefinition.replaceAll(regexp, `null`)
         }
-        console.log(`before anaylzing I'll need to analyze function:${JSON.stringify(underlyingFunctionDefinition)}`)
         const statement = getASTModifiedToSingleSelect(underlyingFunctionDefinition)
         const analyzed = await analyzeSelectStatement(tx, statement)
-        console.log(`analyzed:`, analyzed)
-        await insertPrerequisites(analyzed, statement.ast, {
-          tableAlias: f.function.name,
-          source: 'Function',
-        })
+
+        if (analyzed.length > 0) {
+          await insertPrerequisites(analyzed, statement.ast, {
+            tableAlias: f.function.name,
+            source: 'function',
+          })
+        }
+      }
+      if (swappableFunctionIndexes.length > 0) {
+        return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(swappedAst)))
       }
     }
     // if (modifiedAST.ast.type === 'select' && modifiedAST.ast.from.some(f => f.type === 'call' && f.function)) {
@@ -148,14 +159,17 @@ export const analyzeSelectStatement = async (
 
     let results = await getResults()
 
+    for (const r of results) {
+      if (r.error_message) {
+        console.warn(`Error analyzing select statement: ${r.error_message}`)
+      }
+    }
+
     const viewsWeNeedToAnalyze = new Map(
       results.flatMap(r => (r.underlying_table_type === 'VIEW' ? [[r.underlying_table_name, r] as const] : [])),
     )
     if (viewsWeNeedToAnalyze.size > 0) {
       for (const [viewName, result] of viewsWeNeedToAnalyze) {
-        console.log(
-          `before anaylzing I'll need to analyze view.\nnow :${selectStatementSql}\nview:${result.underlying_view_definition}`,
-        )
         const statement = getASTModifiedToSingleSelect(result.underlying_view_definition)
         if (selectStatementSql === toSql.statement(statement.ast)) {
           throw new Error(
@@ -233,6 +247,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
 drop type if exists types_type cascade;
 
 create type types_type as (
+  error_message text,
   schema_name text,
   view_name text,
   table_column_name text,
@@ -244,8 +259,7 @@ create type types_type as (
   underlying_view_definition text,
   is_underlying_nullable text,
   underlying_data_type text,
-  formatted_query text,
-  error_message text
+  formatted_query text
 );
 
 create or replace function analyze_select_statement_columns (sql_query text)
@@ -267,7 +281,7 @@ begin
     get stacked diagnostics v_error_message = MESSAGE_TEXT;
     raise notice 'Error creating temporary view: %', v_error_message;
     -- Return an error record instead of raising an exception
-    returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+    returnrec := ('Error: ' || v_error_message || ' sql: ' || sql_query, null);
     return next returnrec;
     return;
   end;
@@ -275,6 +289,7 @@ begin
   -- If we've made it here, the view was created successfully
   for returnrec in
     select
+      null as error_message,
       view_column_usage.table_schema as schema_name,
       view_column_usage.view_name as view_name,
       c.column_name as table_column_name,
@@ -299,8 +314,7 @@ begin
       end as underlying_view_definition,
       c.is_nullable as is_underlying_nullable,
       c.data_type as underlying_data_type,
-      pg_get_viewdef(v_tmp_name) as formatted_query,
-      null as error_message
+      pg_get_viewdef(v_tmp_name) as formatted_query
     from
       information_schema.columns c
     join
@@ -327,7 +341,7 @@ exception when others then
   -- Ensure we attempt to drop the view even if an error occurred
   execute 'drop view if exists ' || quote_ident(v_tmp_name);
   -- Return an error record
-  returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+  returnrec := ('Error: ' || v_error_message || ' sql: ' || sql_query, null);
   return next returnrec;
 end;
 $$
