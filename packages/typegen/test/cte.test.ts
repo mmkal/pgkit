@@ -11,7 +11,7 @@ beforeEach(async () => {
   await helper.setupDb()
   await helper.pool.query(helper.sql`
     create table test_table1(a int not null);
-    create table test_table2(b int);
+    create table test_table2(b double precision);
   `)
 })
 
@@ -55,7 +55,7 @@ test('statement avoiding CTE', async () => {
           /** column: \`public.test_table1.a\`, not null: \`true\`, regtype: \`integer\` */
           a: number
 
-          /** column: \`public.test_table2.b\`, regtype: \`integer\` */
+          /** column: \`public.test_table2.b\`, regtype: \`double precision\` */
           b: number | null
         }
       }
@@ -63,7 +63,7 @@ test('statement avoiding CTE', async () => {
   `)
 })
 
-test.only(`statement with CTE`, async () => {
+test(`statement with CTE`, async () => {
   const syncer = fsSyncer.testFixture({
     expect,
     targetState: {
@@ -102,10 +102,10 @@ test.only(`statement with CTE`, async () => {
 
         /** - query: \`with abc as (select a as aaa from test_t... [truncated] ...b from abc join def on abc.aaa = def.bbb\` */
         export interface Abc_Def {
-          /** regtype: \`integer\` */
-          aaa: number | null
+          /** column: \`abc.aaa\`, not null: \`true\`, regtype: \`integer\` */
+          aaa: number
 
-          /** regtype: \`integer\` */
+          /** column: \`def.bbb\`, regtype: \`double precision\` */
           bbb: number | null
         }
       }
@@ -197,7 +197,7 @@ test(`statement with confusingly-named CTE`, async () => {
 
         /** - query: \`with test_table1 as (select b as a from test_table2) select a from test_table1\` */
         export interface TestTable1 {
-          /** regtype: \`integer\` */
+          /** column: \`test_table1.a\`, regtype: \`double precision\` */
           a: number | null
         }
       }

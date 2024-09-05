@@ -35,3 +35,9 @@
         font-size: 0.8em;
     }
 }
+
+#react-tiny-popover-container {
+    [role="listitem"    ] {
+        max-width: 50vw;
+    }
+}

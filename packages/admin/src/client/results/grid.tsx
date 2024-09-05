@@ -128,7 +128,13 @@ const JsonCell = ({data}: {data: unknown}) => {
     }
 
     setPopover(
-      <jsonView.JsonView data={data as {}} shouldExpandNode={jsonView.collapseAllNested} style={jsonView.darkStyles} />,
+      <jsonView.JsonView
+        data={data as {}}
+        shouldExpandNode={jsonView.collapseAllNested}
+        style={{
+          ...jsonView.darkStyles,
+        }}
+      />,
     )
   }, [popover, data])
 

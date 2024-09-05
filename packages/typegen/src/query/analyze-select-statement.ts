@@ -44,10 +44,12 @@ export const analyzeSelectStatement = async (
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
+        console.log('analyzed', {analyzed})
+
         const raw = sql.raw(`
           drop table if exists ${schemaName}.${alias.name};
           create table ${schemaName}.${alias.name}(
-            ${analyzed.map(a => `${a.table_column_name} ${a.underlying_data_type} ${a.is_underlying_nullable === 'NO' ? 'not null' : ''}`).join(',\n')}
+            ${analyzed.map((a, i) => `${a.column_aliases[i]} ${a.underlying_data_type} ${a.is_underlying_nullable === 'NO' ? 'not null' : ''}`).join(',\n')}
           )
         `)
         console.log('create table statement::::', raw)
@@ -63,6 +65,7 @@ export const analyzeSelectStatement = async (
           table_column_name,
           underlying_table_name,
           is_underlying_nullable,
+          column_aliases,
           underlying_data_type,
           comment,
           formatted_query,
@@ -107,6 +110,9 @@ export const SelectStatementAnalyzedColumnSchema = z.object({
   /** postgres type: `text` */
   is_underlying_nullable: z.enum(['YES', 'NO']).nullable(),
 
+  /** ordered array of the column aliases in the query. you'll have to match them up separately because view_column_usage doesn't order the columns */
+  column_aliases: z.array(z.string()).nullable(),
+
   /** looks like `integer`, `text`, `USER-DEFINED` etc., at time of writing can't remember if that means it's a pgtype or a regtype or what */
   underlying_data_type: z.string().nullable(),
 
@@ -135,6 +141,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
         view_name text,
         table_column_name text,
         query_column_name text,
+        column_aliases text[],
         comment text,
         underlying_table_name text,
         is_underlying_nullable text,
@@ -142,10 +149,6 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
         formatted_query text,
         error_message text
       );
-
-      -- taken from https://dataedo.com/kb/query/postgresql/list-views-columns
-      -- and https://www.cybertec-postgresql.com/en/abusing-postgresql-as-an-sql-beautifier
-      -- nullable: https://stackoverflow.com/a/63980243
 
       create or replace function analyze_select_statement_columns (sql_query text)
       returns setof types_type as
@@ -156,7 +159,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
         v_error_message text;
       begin
         v_tmp_name := 'temp_view_' || md5(sql_query);
-  
+
         -- Attempt to create the temporary view
         begin
           execute 'drop view if exists ' || v_tmp_name;
@@ -166,7 +169,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
           get stacked diagnostics v_error_message = MESSAGE_TEXT;
           raise notice 'Error creating temporary view: %', v_error_message;
           -- Return an error record instead of raising an exception
-          returnrec := (null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+          returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
           return next returnrec;
           return;
         end;
@@ -176,12 +179,15 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
           select
             view_column_usage.table_schema as schema_name,
             view_column_usage.view_name as view_name,
-            c.column_name,
-            view_column_usage.column_name,
-            col_description(
-              to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
-              c.ordinal_position
-            ),
+            c.column_name as table_column_name,
+            view_column_usage.column_name as query_column_name,
+            (
+              select array_agg(attname) from (
+                select attname from pg_attribute where attrelid = v_tmp_name::regclass order by attnum
+              ) t
+            ) as column_aliases,
+            --'originally from table: ' || view_column_usage.table_name as comment,
+            null as comment,
             view_column_usage.table_name as underlying_table_name,
             c.is_nullable as is_underlying_nullable,
             c.data_type as underlying_data_type,
@@ -196,7 +202,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
               and c.table_schema = view_column_usage.table_schema
           where
             c.table_name = v_tmp_name
-            or view_column_usage.view_name = v_tmp_name -- todo: this includes too much! columns  which are part of table queried but not selected
+            or view_column_usage.view_name = v_tmp_name
         loop
           return next returnrec;
         end loop;
@@ -210,7 +216,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
         -- Ensure we attempt to drop the view even if an error occurred
         execute 'drop view if exists ' || quote_ident(v_tmp_name);
         -- Return an error record
-        returnrec := (null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+        returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
         return next returnrec;
       end;
       $$
