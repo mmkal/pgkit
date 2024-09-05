@@ -17,6 +17,8 @@ export const analyzeSelectStatement = async (
 ): Promise<SelectStatementAnalyzedColumn[]> => {
   const selectStatementSql = toSql.statement(modifiedAST.ast)
 
+  console.dir(modifiedAST.ast, {depth: null})
+
   const schemaName =
     'pgkit_typegen_temp_schema_' +
     createHash('md5')
@@ -32,6 +34,50 @@ export const analyzeSelectStatement = async (
     `)
     await createAnalyzeSelectStatementColumnsFunction(tx, schemaName)
 
+    /** puts fake tables into the temporary schema so that our analyze_select_statement_columns function can find the right types/nullability */
+    const insertPrerequisites = async (
+      analyzed: SelectStatementAnalyzedColumn[],
+      statement: ModifiedAST['ast'],
+      options: {
+        tableAlias: string
+        source: string
+      },
+    ) => {
+      const aliasInfoList = getAliasInfo(statement)
+      const aliasList = analyzed[0].column_aliases
+
+      const tempTableColumns = aliasList.map(aliasName => {
+        const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
+        if (!aliasInfo) throw new Error(`Alias ${aliasName} not found in statement`)
+
+        const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
+        if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
+
+        const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
+
+        const comment = `From ${options.source} "${options.tableAlias}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
+        return {
+          name: aliasName,
+          def,
+          comment,
+        }
+      })
+
+      const raw = sql.raw(`
+        drop table if exists ${schemaName}.${options.tableAlias};
+        create table ${schemaName}.${options.tableAlias}(
+          ${tempTableColumns.map(c => c.def).join(',\n')}
+        );
+
+        ${tempTableColumns
+          .map(c => {
+            return `comment on column ${schemaName}.${options.tableAlias}.${c.name} is '${c.comment}';`
+          })
+          .join('\n')}
+      `)
+      await tx.query(raw)
+    }
+
     if (modifiedAST.modifications.includes('cte')) {
       if (!process.env.EXPERIMENTAL_CTE_TEMP_SCHEMA) {
         return []
@@ -44,61 +90,87 @@ export const analyzeSelectStatement = async (
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
-        const aliasInfoList = getAliasInfo(statement)
-        const aliasList = analyzed[0].column_aliases
-
-        const tempTableColumns = aliasList.map(aliasName => {
-          const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
-          if (!aliasInfo) throw new Error(`Alias ${aliasName} not found in statement`)
-
-          const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
-          if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
-
-          const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
-
-          const comment = `From CTE subquery "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
-          return {
-            name: aliasName,
-            def,
-            comment,
-          }
+        await insertPrerequisites(analyzed, statement, {
+          tableAlias: tableAlias.name,
+          source: 'CTE subquery',
         })
-
-        const raw = sql.raw(`
-          drop table if exists ${schemaName}.${tableAlias.name};
-          create table ${schemaName}.${tableAlias.name}(
-            ${tempTableColumns.map(c => c.def).join(',\n')}
-          );
-
-          ${tempTableColumns
-            .map(c => {
-              return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
-            })
-            .join('\n')}
-        `)
-        await tx.query(raw)
       }
       return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
     }
 
-    const rows = await tx.any(
-      sql`
-        select
-          schema_name,
-          table_column_name,
-          underlying_table_name,
-          is_underlying_nullable,
-          column_aliases,
-          underlying_data_type,
-          comment,
-          formatted_query,
-          error_message
-        from
-          ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${selectStatementSql})
-      `,
-    )
+    if (modifiedAST.ast.type === 'select') {
+      const swappableFunctionIndexes = modifiedAST.ast.from.flatMap((f, i) =>
+        f.type === 'call' && f.function ? [i] : [],
+      )
+      const swappedAst = {...modifiedAST.ast, from: modifiedAST.ast.from.slice()}
+      for (const i of swappableFunctionIndexes) {
+        const f = modifiedAST.ast.from[i]
+        if (f.type !== 'call') throw new Error(`Expected a call, got ${JSON.stringify(f)}`)
+        const tableReplacement: (typeof modifiedAST.ast.from)[number] = {
+          type: 'table',
+          name: f.function,
+        }
+        swappedAst.from[i] = tableReplacement
+        const functionDefinition = await tx.one<{prosrc: string; proargnames: string[]; proargmodes: string[]}>(sql`
+          select prosrc, proargnames, proargmodes::text[]
+          from pg_proc
+          join pg_language on pg_language.oid = pg_proc.prolang
+          where pg_language.lanname = 'sql'
+          and proname = ${f.function.name}
+        `)
+        let underlyingFunctionDefinition = functionDefinition.prosrc
+        for (const [index, argname] of functionDefinition.proargnames.entries()) {
+          const argmode = functionDefinition.proargmodes[index]
+          if (argmode !== 'i') continue
+          const regexp = new RegExp(/\bargname\b/.source.replace('argname', argname), 'g')
+          underlyingFunctionDefinition = underlyingFunctionDefinition.replaceAll(regexp, `null`)
+        }
+        console.log(`before anaylzing I'll need to analyze function:${JSON.stringify(underlyingFunctionDefinition)}`)
+        const statement = getASTModifiedToSingleSelect(underlyingFunctionDefinition)
+        const analyzed = await analyzeSelectStatement(tx, statement)
+        console.log(`analyzed:`, analyzed)
+        await insertPrerequisites(analyzed, statement.ast, {
+          tableAlias: f.function.name,
+          source: 'Function',
+        })
+      }
+    }
+    // if (modifiedAST.ast.type === 'select' && modifiedAST.ast.from.some(f => f.type === 'call' && f.function)) {
 
-    const results = SelectStatementAnalyzedColumnSchema.array().parse(rows)
+    // }
+
+    const getResults = async () => {
+      const rows = await tx.any(
+        sql`select * from ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${selectStatementSql})`,
+      )
+      return SelectStatementAnalyzedColumnSchema.array().parse(rows)
+    }
+
+    let results = await getResults()
+
+    const viewsWeNeedToAnalyze = new Map(
+      results.flatMap(r => (r.underlying_table_type === 'VIEW' ? [[r.underlying_table_name, r] as const] : [])),
+    )
+    if (viewsWeNeedToAnalyze.size > 0) {
+      for (const [viewName, result] of viewsWeNeedToAnalyze) {
+        console.log(
+          `before anaylzing I'll need to analyze view.\nnow :${selectStatementSql}\nview:${result.underlying_view_definition}`,
+        )
+        const statement = getASTModifiedToSingleSelect(result.underlying_view_definition)
+        if (selectStatementSql === toSql.statement(statement.ast)) {
+          throw new Error(
+            `Circular view dependency detected: ${selectStatementSql} depends on ${result.underlying_view_definition}`,
+          )
+        }
+        // console.log('first, going to analyze view', viewDefinition)
+        const analyzed = await analyzeSelectStatement(tx, statement)
+        await insertPrerequisites(analyzed, statement.ast, {
+          tableAlias: viewName,
+          source: 'view',
+        })
+      }
+      results = await getResults()
+    }
 
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
@@ -124,6 +196,11 @@ export const SelectStatementAnalyzedColumnSchema = z.object({
 
   /** postgres type: `text` */
   underlying_table_name: z.string().nullable(),
+
+  /** postgres type: `text` */
+  underlying_table_type: z.string().nullable(),
+
+  underlying_view_definition: z.string().nullable(),
 
   /** postgres type: `text` */
   is_underlying_nullable: z.enum(['YES', 'NO']).nullable(),
@@ -163,6 +240,8 @@ create type types_type as (
   column_aliases text[],
   comment text,
   underlying_table_name text,
+  underlying_table_type text,
+  underlying_view_definition text,
   is_underlying_nullable text,
   underlying_data_type text,
   formatted_query text,
@@ -211,6 +290,13 @@ begin
         c.ordinal_position
       ) as comment,
       view_column_usage.table_name as underlying_table_name,
+      underlying_table.table_type as underlying_table_type,
+      case
+        when underlying_table.table_type = 'VIEW' then
+          pg_get_viewdef(underlying_table.table_name)
+        else
+          null
+      end as underlying_view_definition,
       c.is_nullable as is_underlying_nullable,
       c.data_type as underlying_data_type,
       pg_get_viewdef(v_tmp_name) as formatted_query,
@@ -222,6 +308,9 @@ begin
         on c.table_name = view_column_usage.table_name
         and c.column_name = view_column_usage.column_name
         and c.table_schema = view_column_usage.table_schema
+      join information_schema.tables underlying_table
+        on c.table_name = underlying_table.table_name
+        and c.table_schema = underlying_table.table_schema
     where
       c.table_name = v_tmp_name
       or view_column_usage.view_name = v_tmp_name
