@@ -6,7 +6,7 @@ import {defaultTypeParsers} from './type-parsers'
 import {Options} from './types'
 import {defaultWriteTypes} from './write'
 
-// Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
+// Note: this provides 'default' helpers rather than the precise default values for `Options`
 // e.g. the default `writeTypes` implementation depends on the specific value of `rootDir`.
 
 export const typegenConfigFile = 'typegen.config.js'

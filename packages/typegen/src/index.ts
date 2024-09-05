@@ -17,29 +17,13 @@ import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotOne
 
 export type {Options} from './types'
 
-export const generate = async (params: Partial<Options>) => {
-  const {
-    psqlCommand,
-    connectionString,
-    pgTypeToTypeScript: gdescToTypeScript,
-    rootDir,
-    include,
-    exclude,
-    since,
-    defaultType,
-    extractQueries,
-    writeTypes,
-    poolConfig,
-    typeParsers,
-    logger,
-    migrate,
-    checkClean: checkCleanWhen,
-    lazy,
-  } = defaults.getParams(params)
+export const generate = async (inputOptions: Partial<Options>) => {
+  const options = defaults.getParams(inputOptions)
+  const logger = options.logger
 
-  const pool = createClient(connectionString, poolConfig)
+  const pool = createClient(options.connectionString, options.poolConfig)
 
-  const {psql: _psql} = psqlClient(`${psqlCommand} "${connectionString}"`, pool)
+  const {psql: _psql} = psqlClient(`${options.psqlCommand} "${options.connectionString}"`, pool)
 
   const _gdesc = (inputSql: string) => {
     return neverthrow
@@ -81,7 +65,7 @@ export const generate = async (params: Partial<Options>) => {
     return (
       defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
       enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-      defaultType
+      options.defaultType
     )
   }
 
@@ -119,31 +103,31 @@ export const generate = async (params: Partial<Options>) => {
 
     return (
       // console.log({pgtype, regtype, typeName}) ||
-      lodash.findLast(typeParsers, p => p.oid === pgtype.oid)?.typescript ||
-      gdescToTypeScript(regtype, typeName) ||
+      lodash.findLast(options.typeParsers, p => p.oid === pgtype.oid)?.typescript ||
+      options.pgTypeToTypeScript(regtype, typeName) ||
       regTypeToTypeScript(regtype)
     )
   }
 
   const findAll = async () => {
-    const cwd = path.resolve(process.cwd(), rootDir)
-    const logMsgInclude = `pattern${include.length > 1 ? 's' : ''} ${include.join(', ')}`
-    const logMsgExclude = exclude.length > 0 ? ` excluding ${exclude.join(', ')}` : ''
-    const logMsgSince = since ? ` since ${since}` : ''
+    const cwd = path.resolve(process.cwd(), options.rootDir)
+    const logMsgInclude = `pattern${options.include.length > 1 ? 's' : ''} ${options.include.join(', ')}`
+    const logMsgExclude = options.exclude.length > 0 ? ` excluding ${options.exclude.join(', ')}` : ''
+    const logMsgSince = options.since ? ` since ${options.since}` : ''
     logger.info(`Matching files in ${getLogPath(cwd)} with ${logMsgInclude}${logMsgExclude}${logMsgSince}`)
 
     const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
 
     const getFiles = async () => {
       logger.info(`Searching for files.`)
-      let files = glob.sync(globList(include), {
+      let files = glob.sync(globList(options.include), {
         cwd,
-        ignore: exclude,
+        ignore: options.exclude,
         absolute: true,
       })
-      if (since) {
+      if (options.since) {
         // filter matched files to only include changed files and convert to absolute paths
-        const changed = new Set(changedFiles({since, cwd}).map(file => path.join(cwd, file)))
+        const changed = new Set(changedFiles({since: options.since, cwd}).map(file => path.join(cwd, file)))
         files = files.filter(file => changed.has(file))
       }
 
@@ -151,10 +135,10 @@ export const generate = async (params: Partial<Options>) => {
       return files
     }
 
-    if (migrate) {
-      if (checkCleanWhen.includes('before-migrate')) checkClean()
-      await migrateLegacyCode(migrate)({files: await getFiles(), logger})
-      if (checkCleanWhen.includes('after-migrate')) checkClean()
+    if (options.migrate) {
+      if (options.checkClean.includes('before-migrate')) checkClean()
+      await migrateLegacyCode(options.migrate)({files: await getFiles(), logger})
+      if (options.checkClean.includes('after-migrate')) checkClean()
     }
 
     async function generateForFiles(files: string[]) {
@@ -170,7 +154,7 @@ export const generate = async (params: Partial<Options>) => {
     }
 
     async function generateForFile(file: string) {
-      const queries = extractQueries(file)
+      const queries = options.extractQueries(file)
 
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
@@ -194,7 +178,7 @@ export const generate = async (params: Partial<Options>) => {
       }
 
       if (successfuls.length > 0) {
-        await writeTypes(analysedQueryResults.flatMap(res => (res.isOk() ? [res.value] : [])))
+        await options.writeTypes(analysedQueryResults.flatMap(res => (res.isOk() ? [res.value] : [])))
       }
       return {
         total: queries.length,
@@ -235,7 +219,7 @@ export const generate = async (params: Partial<Options>) => {
       return res
     }
 
-    if (!lazy) {
+    if (!options.lazy) {
       logger.info('Starting initial codegen')
       await generateForFiles(await getFiles())
       logger.info('Initial codegen complete')
@@ -243,9 +227,9 @@ export const generate = async (params: Partial<Options>) => {
 
     const watch = () => {
       logger.info(`Watching for file changes.`)
-      const watcher = chokidar.watch(include, {
+      const watcher = chokidar.watch(options.include, {
         cwd,
-        ignored: [...exclude],
+        ignored: [...options.exclude],
         ignoreInitial: true,
       })
       const content = new Map<string, string>()
@@ -284,9 +268,9 @@ export const generate = async (params: Partial<Options>) => {
     return watch
   }
 
-  if (checkCleanWhen.includes('before')) checkClean()
+  if (options.checkClean.includes('before')) checkClean()
   const watch = await findAll()
-  if (checkCleanWhen.includes('after')) checkClean()
+  if (options.checkClean.includes('after')) checkClean()
 
   return {watch}
 }
