@@ -21,12 +21,16 @@ export const defaultTypeScriptType = 'unknown'
 
 export const defaultCheckClean: Options['checkClean'] = ['before-migrate', 'after']
 
+export const defaultIncludePatterns = ['**/*.{ts,sql}']
+
+export const defaultExcludePatterns = ['**/node_modules/**']
+
 const getWithWarning = <T>(logger: Options['logger'], message: string, value: T) => {
   logger.warn(message)
   return value
 }
 
-export const getParams = (partial: Partial<Options>): Options => {
+export const resolveOptions = (partial: Partial<Options>): Options => {
   const {
     logger = console,
     connectionString = getWithWarning(
@@ -37,8 +41,8 @@ export const getParams = (partial: Partial<Options>): Options => {
     psqlCommand = defaultPsqlCommand,
     pgTypeToTypeScript: gdescToTypeScript = () => undefined,
     rootDir = defaultRootDir,
-    include = ['**/*.{ts,sql}'],
-    exclude = ['**/node_modules/**'],
+    include = defaultIncludePatterns,
+    exclude = defaultExcludePatterns,
     since = undefined,
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
@@ -60,8 +64,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     `The 'glob' option is deprecated. Instead please use 'include', 'exclude' or 'since' respectively.`,
   )
 
-  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest)}`)
+  assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest).join(', ')}`)
 
   assert.ok(!connectionString.includes(' \'"'), `Connection URI should not contain spaces or quotes`)
 

@@ -1,6 +1,4 @@
 import * as assert from 'assert'
-
-import {match} from 'io-ts-extra'
 import * as lodash from 'lodash'
 import * as neverthrow from 'neverthrow'
 import * as pgsqlAST from 'pgsql-ast-parser'
@@ -175,13 +173,11 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
   if (ast.type === 'select') {
     return {
       tables: ast.from
-        ?.map(f =>
-          match(f)
-            .case({alias: {name: String}}, f => f.alias.name)
-            .case({type: 'table'} as const, t => t.name.name)
-            .default(() => '') // filtered out below
-            .get(),
-        )
+        ?.map(f => {
+          if ('alias' in f && typeof f.alias === 'object') return f.alias.name
+          if (f.type === 'table') return f.name.name
+          return ''
+        })
         .filter(Boolean),
       columns: lodash
         .chain(ast.columns)
@@ -195,12 +191,15 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
 }
 
 const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
-  return match(ex)
-    .case({type: 'ref' as const}, e => e.name)
-    .case({type: 'call', function: {name: String}} as const, e => e.function.name)
-    .case({type: 'cast'} as const, e => expressionName(e.operand))
-    .default(() => undefined)
-    .get()
+  if (ex.type === 'ref') {
+    return ex.name
+  } else if (ex.type === 'call' && ex.function.name) {
+    return ex.function.name
+  } else if (ex.type === 'cast') {
+    return expressionName(ex.operand)
+  }
+
+  return undefined
 }
 
 export interface AliasMapping {

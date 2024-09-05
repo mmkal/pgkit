@@ -18,7 +18,7 @@ import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotOne
 export type {Options} from './types'
 
 export const generate = async (inputOptions: Partial<Options>) => {
-  const options = defaults.getParams(inputOptions)
+  const options = defaults.resolveOptions(inputOptions)
   const logger = options.logger
 
   const pool = createClient(options.connectionString, options.poolConfig)

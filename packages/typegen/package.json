@@ -32,7 +32,6 @@
     "@pgkit/client": "workspace:^",
     "@rebundled/execa": "8.0.2-next.0",
     "@rebundled/p-memoize": "7.1.2-next.4",
-    "@rushstack/ts-command-line": "^4.11.0",
     "chokidar": "^3.5.3",
     "execa": "^5.1.1",
     "find-up": "^5.0.0",
@@ -43,6 +42,7 @@
     "neverthrow": "^7.1.0",
     "pgsql-ast-parser": "^11.1.0",
     "pluralize": "^8.0.0",
+    "trpc-cli": "https://pkg.pr.new/mmkal/trpc-cli@e57287f",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -58,6 +58,7 @@
     "js-yaml": "^4.1.0",
     "strip-ansi": "^7.1.0",
     "ts-morph": "^21.0.1",
+    "tsx": "^4.19.0",
     "vitest": "^1.2.2"
   }
 }
