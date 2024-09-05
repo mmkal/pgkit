@@ -25,8 +25,8 @@ export const analyzeSelectStatement = async (
       .slice(0, 6)
   const schemaIdentifier = sql.identifier([schemaName])
 
-  await client.query(sql`create schema if not exists ${schemaIdentifier}`)
   return client.transaction(async tx => {
+    await tx.query(sql`create schema if not exists ${schemaIdentifier}`)
     await tx.query(sql`
       set search_path to ${schemaIdentifier}, ${sql.raw(await tx.oneFirst<{search_path: string}>(sql`show search_path`))};
     `)
@@ -40,30 +40,38 @@ export const analyzeSelectStatement = async (
       const ast = parse(modifiedAST.originalSql)[0]
       if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
 
-      for (const {statement, alias} of ast.bind) {
+      for (const {statement, alias: tableAlias} of ast.bind) {
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
         const statementAliasInfo = aliasMappings(statement)
         const aliasList = analyzed[0].column_aliases
+
+        const tempTableColumns = aliasList.map(aliasName => {
+          const found = statementAliasInfo.find(info => info.queryColumn === aliasName)
+          if (!found) throw new Error(`Alias ${aliasName} not found in statement`)
+
+          const analyzedResult = analyzed.find(a => a.table_column_name === found.aliasFor)
+          if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
+
+          const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
+
+          const comment = `From CTE expression "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
+          return {
+            name: aliasName,
+            def,
+            comment,
+          }
+        })
+
         const raw = sql.raw(`
-          drop table if exists ${schemaName}.${alias.name};
-          create table ${schemaName}.${alias.name}(
-            ${aliasList
-              .map(aliasName => {
-                const found = statementAliasInfo.find(info => info.queryColumn === aliasName)
-                if (!found) throw new Error(`Alias ${aliasName} not found in statement`)
+          drop table if exists ${schemaName}.${tableAlias.name};
+          create table ${schemaName}.${tableAlias.name}(
+            ${tempTableColumns.map(c => c.def).join(',\n')}
+          );
 
-                const analyzedResult = analyzed.find(a => a.table_column_name === found.aliasFor)
-                if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
-
-                return `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
-              })
-              .join(',\n')}
-            )
+          ${tempTableColumns.map(c => `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`).join('\n')}
         `)
-        // ${analyzed.map((a, i) => `${a.table_column_name} ${a.underlying_data_type} ${a.is_underlying_nullable === 'NO' ? 'not null' : ''}`).join(',\n')}
-        console.log('create table statement::::', raw)
         await tx.query(raw)
       }
       return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
@@ -88,13 +96,6 @@ export const analyzeSelectStatement = async (
 
     const results = SelectStatementAnalyzedColumnSchema.array().parse(rows)
 
-    console.log(
-      `select * from ${[schemaName, 'analyze_select_statement_columns'].join('.')}('${selectStatementSql}')`,
-      {
-        results,
-      },
-    )
-
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
 
@@ -102,10 +103,10 @@ export const analyzeSelectStatement = async (
       formattedSqlStatements.length <= 1,
       `Expected exactly 1 formatted sql, got ${formattedSqlStatements.length}`,
     )
+    await tx.query(sql`drop schema if exists ${schemaIdentifier} cascade`)
 
     return deduped
   })
-  // await client.query(sql`drop schema if exists ${schemaIdentifier} cascade`)
 }
 
 // can't use typegen here because it relies on a function in a temp schema
@@ -200,7 +201,10 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
               ) t
             ) as column_aliases,
             --'originally from table: ' || view_column_usage.table_name as comment,
-            null as comment,
+            col_description(
+              to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
+              c.ordinal_position
+            ) as comment,
             view_column_usage.table_name as underlying_table_name,
             c.is_nullable as is_underlying_nullable,
             c.data_type as underlying_data_type,

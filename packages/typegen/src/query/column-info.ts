@@ -80,7 +80,6 @@ const getFieldInfo = (
 
   // determine nullability
   let nullability: AnalysedQueryField['nullability'] = 'unknown'
-  console.log('checking nullability', {res})
   if (res?.is_underlying_nullable === 'YES') {
     nullability = 'nullable'
   } else if (res?.hasNullableJoin) {

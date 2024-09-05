@@ -12,7 +12,8 @@ export const jsdocComment = (lines: Array<string | undefined | false>) => {
     .split('\n')
     .map(line => `* ${line}`)
     .join('\n')
-    .replace(/pgkit_typegen_temp_schema_\w+\./, '')
+    // todo: avoid dumping this in the first place
+    .replace(/pgkit_typegen_temp_schema_\w+\./, '✨.')
 
   return middle.includes('\n')
     ? `/**\n${middle}\n*/` // surround multiline comments with new lines
