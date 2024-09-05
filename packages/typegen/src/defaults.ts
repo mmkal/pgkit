@@ -4,6 +4,7 @@ import {defaultExtractQueries} from './extract'
 
 import {defaultTypeParsers} from './type-parsers'
 import {Options} from './types'
+import {deepErrorCause} from './utils/errors'
 import {defaultWriteTypes} from './write'
 
 // Note: this provides 'default' helpers rather than the precise default values for `Options`
@@ -56,8 +57,11 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     migrate = undefined,
     checkClean = defaultCheckClean,
     lazy = false,
+    formatError = deepErrorCause,
     ...rest
   } = partial
+
+  null as unknown as keyof typeof rest satisfies 'glob'
 
   assert.ok(
     !('glob' in partial),
@@ -85,6 +89,7 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     migrate,
     checkClean,
     lazy,
+    formatError,
   }
 }
 
@@ -92,3 +97,4 @@ export {defaultPGDataTypeToTypeScriptMappings} from './pg'
 export {defaultWriteFile, defaultWriteTypes} from './write'
 export {defaultExtractQueries} from './extract'
 export {defaultTypeParsers} from './type-parsers'
+export {deepErrorCause as defaultFormatError} from './utils/errors'

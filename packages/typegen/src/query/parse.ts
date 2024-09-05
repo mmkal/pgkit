@@ -66,7 +66,10 @@ export const getTypeability = (template: string[]): neverthrow.Result<true, Erro
 /** parses a sql string and returns an AST which we've tried to modify to make it a nice easy to digest SELECT statement */
 export const getASTModifiedToSingleSelect = (sql: string): ModifiedAST => {
   const statements = parseWithWorkarounds(sql)
-  assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
+  assert.ok(
+    statements.length === 1,
+    `Can't parse query\n---\n${sql}\n---\nbecause it has ${statements.length} statements.`,
+  )
   return astToSelect({modifications: [], ast: statements[0], originalSql: sql})
 }
 

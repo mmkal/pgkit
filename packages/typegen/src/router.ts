@@ -63,13 +63,14 @@ export const router = trpc.router({
       description: 'Scans source files for SQL queries and generates TypeScript interfaces for them.',
     })
     .input(Options)
-    .mutation(async ({input: {config, psql, watch, ...input}}) => {
+    .mutation(async ({input: {config, psql, watch, skipCheckClean, ...input}}) => {
       const configModule = config && existsSync(config) ? ((await import(config)) as Record<string, unknown>) : null
       const baseOptions = configModule ? Options.parse(configModule?.default ?? configModule) : {}
       const run = await generate({
         ...baseOptions,
-        ...(psql && {psql}),
+        ...(psql && {psqlCommand: psql}),
         ...input,
+        ...(skipCheckClean && {checkClean: []}),
       })
 
       if (watch || input.lazy) {

@@ -540,26 +540,22 @@ test(`queries with syntax errors don't affect others`, async () => {
 
   expect(logger.warn).toHaveBeenCalledTimes(1)
   expect(logger.warn).toMatchInlineSnapshot(`
-    - - message: >-
-          ./test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
-          [!] Query is not typeable.
-        cause:
-          message: Walking AST failed
-          cause:
-            message: >+
-              Syntax error at line 1 col 16:
+    - - >
+        Error:
+        ./test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
+        [!] Query is not typeable.
+          Caused by: Error: Walking AST failed
+            Caused by: Error: Syntax error at line 1 col 16:
 
+            1  select this is a nonsense query which will cause an error
+                              ^
+            Unexpected word token: "a". Instead, I was expecting to see one of the following:
 
-              1  select this is a nonsense query which will cause an error
-                                ^
-              Unexpected word token: "a". Instead, I was expecting to see one of the
-              following:
-
-                  - A "kw_null" token
-                  - A "kw_not" token
-                  - A "kw_not" token
-                  - A "kw_true" token
-                  - A "kw_false" token
+                - A "kw_null" token
+                - A "kw_not" token
+                - A "kw_not" token
+                - A "kw_true" token
+                - A "kw_false" token
   `)
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`

@@ -23,7 +23,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
 
   const pool = createClient(options.connectionString, options.poolConfig)
 
-  const {psql: _psql} = psqlClient(`${options.psqlCommand} "${options.connectionString}"`, pool)
+  const {psql: _psql} = psqlClient(`${options.psqlCommand} "${options.connectionString}"`)
 
   const _gdesc = (inputSql: string) => {
     return neverthrow
@@ -166,7 +166,8 @@ export const generate = async (inputOptions: Partial<Options>) => {
 
       const successfuls = analysedQueryResults.flatMap(res => {
         if (res.isOk()) return [res.value]
-        logger.warn(res.error)
+        const formattedError = options.formatError(res.error)
+        if (formattedError) logger.warn(formattedError)
         return []
       })
 

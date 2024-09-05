@@ -165,6 +165,10 @@ export interface Options {
    * Skip initial processing of input files. Only useful with `watch`.
    */
   lazy?: boolean
+  /**
+   * Format thrown errors before logging. By default, uses `deepErrorCause` from `.//utils/errors`.
+   */
+  formatError: (e: unknown) => unknown
 }
 
 export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>

@@ -5,6 +5,7 @@
     ],
     "target": "ES2022",
     "module": "NodeNext",
+    "jsx": "preserve",
     "strict": false,
     "noEmit": true,
     "noUncheckedIndexedAccess": true,
