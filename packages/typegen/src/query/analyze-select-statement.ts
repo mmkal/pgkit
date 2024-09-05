@@ -58,8 +58,8 @@ export const analyzeSelectStatement = async (
       return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
     }
 
-    const results = await tx.any(
-      sql<SelectStatementAnalyzedColumn>`
+    const rows = await tx.any(
+      sql<{}>`
         select
           schema_name,
           table_column_name,
@@ -74,6 +74,8 @@ export const analyzeSelectStatement = async (
           ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${selectStatementSql})
       `,
     )
+
+    const results = SelectStatementAnalyzedColumnSchema.array().parse(rows)
 
     console.log(
       `select * from ${[schemaName, 'analyze_select_statement_columns'].join('.')}('${selectStatementSql}')`,
