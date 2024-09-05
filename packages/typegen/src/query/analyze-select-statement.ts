@@ -4,7 +4,7 @@ import {createHash} from 'crypto'
 import * as lodash from 'lodash'
 import {parse, toSql} from 'pgsql-ast-parser'
 import {z} from 'zod'
-import {aliasMappings, getASTModifiedToSingleSelect, ModifiedAST} from './parse'
+import {getAliasInfo, getASTModifiedToSingleSelect, ModifiedAST} from './parse'
 
 /**
  * Returns a list of results that stem from a special query used to retrieve type information from the database.
@@ -44,19 +44,19 @@ export const analyzeSelectStatement = async (
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
-        const statementAliasInfo = aliasMappings(statement)
+        const aliasInfoList = getAliasInfo(statement)
         const aliasList = analyzed[0].column_aliases
 
         const tempTableColumns = aliasList.map(aliasName => {
-          const found = statementAliasInfo.find(info => info.queryColumn === aliasName)
-          if (!found) throw new Error(`Alias ${aliasName} not found in statement`)
+          const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
+          if (!aliasInfo) throw new Error(`Alias ${aliasName} not found in statement`)
 
-          const analyzedResult = analyzed.find(a => a.table_column_name === found.aliasFor)
+          const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
           if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
 
           const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
 
-          const comment = `From CTE expression "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
+          const comment = `From CTE subquery "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
           return {
             name: aliasName,
             def,
@@ -70,7 +70,11 @@ export const analyzeSelectStatement = async (
             ${tempTableColumns.map(c => c.def).join(',\n')}
           );
 
-          ${tempTableColumns.map(c => `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`).join('\n')}
+          ${tempTableColumns
+            .map(c => {
+              return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
+            })
+            .join('\n')}
         `)
         await tx.query(raw)
       }
@@ -78,7 +82,7 @@ export const analyzeSelectStatement = async (
     }
 
     const rows = await tx.any(
-      sql<{}>`
+      sql`
         select
           schema_name,
           table_column_name,

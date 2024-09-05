@@ -107,14 +107,14 @@ test(`statement with CTE`, async () => {
         /** - query: \`with abc as (select a as aaa from test_t... [truncated] ...b from abc join def on abc.aaa = def.bbb\` */
         export interface Abc_Def {
           /**
-           * From CTE expression "abc", column source: public.test_table1.a
+           * From CTE subquery "abc", column source: public.test_table1.a
            *
            * column: \`✨.abc.aaa\`, not null: \`true\`, regtype: \`integer\`
            */
           aaa: number
 
           /**
-           * From CTE expression "def", column source: public.test_table2.b
+           * From CTE subquery "def", column source: public.test_table2.b
            *
            * column: \`✨.def.bbb\`, regtype: \`double precision\`
            */
@@ -165,7 +165,7 @@ test(`statement with complex CTE`, async () => {
         /** - query: \`with abc as (select table_name from info... [truncated] ...on_schema.tables, abc) select * from def\` */
         export interface Def {
           /**
-           * From CTE expression "def", column source: information_schema.tables.table_schema
+           * From CTE subquery "def", column source: information_schema.tables.table_schema
            *
            * column: \`✨.def.table_schema\`, regtype: \`name\`
            */
@@ -214,7 +214,7 @@ test(`statement with confusingly-named CTE`, async () => {
         /** - query: \`with test_table1 as (select b as a from test_table2) select a from test_table1\` */
         export interface TestTable1 {
           /**
-           * From CTE expression "test_table1", column source: public.test_table2.b
+           * From CTE subquery "test_table1", column source: public.test_table2.b
            *
            * column: \`✨.test_table1.a\`, regtype: \`double precision\`
            */
@@ -287,49 +287,49 @@ test(`statement with CTE with crazy ordering`, async () => {
         /** - query: \`with x as ( select b as b1, a as a1, a a... [truncated] ...ble1.a = test_table2.b ) select * from x\` */
         export interface X {
           /**
-           * From CTE expression "x", column source: public.test_table2.b
+           * From CTE subquery "x", column source: public.test_table2.b
            *
            * column: \`✨.x.b1\`, regtype: \`double precision\`
            */
           b1: number | null
 
           /**
-           * From CTE expression "x", column source: public.test_table1.a
+           * From CTE subquery "x", column source: public.test_table1.a
            *
            * column: \`✨.x.a1\`, not null: \`true\`, regtype: \`integer\`
            */
           a1: number
 
           /**
-           * From CTE expression "x", column source: public.test_table1.a
+           * From CTE subquery "x", column source: public.test_table1.a
            *
            * column: \`✨.x.a2\`, not null: \`true\`, regtype: \`integer\`
            */
           a2: number
 
           /**
-           * From CTE expression "x", column source: public.test_table1.a
+           * From CTE subquery "x", column source: public.test_table1.a
            *
            * column: \`✨.x.a3\`, not null: \`true\`, regtype: \`integer\`
            */
           a3: number
 
           /**
-           * From CTE expression "x", column source: public.test_table2.b
+           * From CTE subquery "x", column source: public.test_table2.b
            *
            * column: \`✨.x.b2\`, regtype: \`double precision\`
            */
           b2: number | null
 
           /**
-           * From CTE expression "x", column source: public.test_table1.a
+           * From CTE subquery "x", column source: public.test_table1.a
            *
            * column: \`✨.x.a4\`, not null: \`true\`, regtype: \`integer\`
            */
           a4: number
 
           /**
-           * From CTE expression "x", column source: public.test_table2.b
+           * From CTE subquery "x", column source: public.test_table2.b
            *
            * column: \`✨.x.b3\`, regtype: \`double precision\`
            */

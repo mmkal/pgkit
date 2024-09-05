@@ -205,10 +205,29 @@ const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
   return undefined
 }
 
-export interface AliasMapping {
+export interface AliasInfo {
+  /**
+   * The column name in the query,
+   * - e.g. in `select a as x from foo` this would be x
+   * - e.g. in `select a from foo` this would be a
+   */
   queryColumn: string
+  /**
+   * The column name in the query,
+   * - e.g. in `select a as x from foo` this would be a
+   */
   aliasFor: string
+  /**
+   * The table name(s) the column could be from,
+   * - e.g. in `select a from foo` this would be foo
+   * - e.g. in `select a from foo join bar on foo.id = bar.id` this would be foo and bar
+   */
   tablesColumnCouldBeFrom: string[]
+  /**
+   * Whether the column could be nullable via a join,
+   * - e.g. in `select a from foo` this would be false
+   * - e.g. in `select a from foo left join bar on foo.id = bar.id` this would be true
+   */
   hasNullableJoin: boolean
 }
 /**
@@ -217,7 +236,7 @@ export interface AliasMapping {
  * list of `tablesColumnCouldBeFrom`. For simple queries like `select id from messages` it'll get sensible results, though, and those
  * results can be used to look for non-nullability of columns.
  */
-export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => {
+export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
   assert.strictEqual(statement.type, 'select' as const)
   assert.ok(statement.columns, `Can't get alias mappings from query with no columns`)
 
@@ -262,7 +281,7 @@ export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => 
     `Some aliases are duplicated, this is too confusing. ${JSON.stringify({aliasGroups})}`,
   )
 
-  return statement.columns.reduce<AliasMapping[]>((mappings, {expr, alias}) => {
+  return statement.columns.reduce<AliasInfo[]>((mappings, {expr, alias}) => {
     if (expr.type === 'ref') {
       return mappings.concat({
         queryColumn: alias?.name ?? expr.name,
@@ -294,7 +313,7 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
 
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
-export const getAliasMappings = lodash.flow(getASTModifiedToSingleSelect, m => m.ast, aliasMappings)
+export const getAliasMappings = lodash.flow(getASTModifiedToSingleSelect, m => m.ast, getAliasInfo)
 
 export const removeSimpleComments = (sql: string) =>
   sql

@@ -11,7 +11,7 @@ import {tryOrDefault} from '../util'
 import {memoizeQueryFn} from '../utils/memoize'
 import {SelectStatementAnalyzedColumn, analyzeSelectStatement} from './analyze-select-statement'
 import {
-  aliasMappings,
+  getAliasInfo,
   getASTModifiedToSingleSelect,
   getSuggestedTags,
   isParseable,
@@ -58,7 +58,7 @@ const getFieldInfo = (
     // console.warn('using originalAst', {formattedQuery, originalSql})
   }
 
-  const mappings = aliasMappings(ast)
+  const mappings = getAliasInfo(ast)
 
   const relatedResults = mappings.flatMap(c =>
     selectStatementColumns
