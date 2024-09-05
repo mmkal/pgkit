@@ -151,97 +151,98 @@ export type SelectStatementAnalyzedColumn = z.infer<typeof SelectStatementAnalyz
 const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable, schemaName: string) => {
   // todo: figure out why sql.identifier is giving syntax errors
   const query = sql.raw(
+    // eslint-disable-next-line unicorn/template-indent
     `
-      drop type if exists types_type cascade;
+drop type if exists types_type cascade;
 
-      create type types_type as (
-        schema_name text,
-        view_name text,
-        table_column_name text,
-        query_column_name text,
-        column_aliases text[],
-        comment text,
-        underlying_table_name text,
-        is_underlying_nullable text,
-        underlying_data_type text,
-        formatted_query text,
-        error_message text
-      );
+create type types_type as (
+  schema_name text,
+  view_name text,
+  table_column_name text,
+  query_column_name text,
+  column_aliases text[],
+  comment text,
+  underlying_table_name text,
+  is_underlying_nullable text,
+  underlying_data_type text,
+  formatted_query text,
+  error_message text
+);
 
-      create or replace function analyze_select_statement_columns (sql_query text)
-      returns setof types_type as
-      $$
-      declare
-        v_tmp_name text;
-        returnrec types_type;
-        v_error_message text;
-      begin
-        v_tmp_name := 'temp_view_' || md5(sql_query);
+create or replace function analyze_select_statement_columns (sql_query text)
+returns setof types_type as
+$$
+declare
+  v_tmp_name text;
+  returnrec types_type;
+  v_error_message text;
+begin
+  v_tmp_name := 'temp_view_' || md5(sql_query);
 
-        -- Attempt to create the temporary view
-        begin
-          execute 'drop view if exists ' || v_tmp_name;
-          execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
-        exception when others then
-          -- Capture the error message
-          get stacked diagnostics v_error_message = MESSAGE_TEXT;
-          raise notice 'Error creating temporary view: %', v_error_message;
-          -- Return an error record instead of raising an exception
-          returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
-          return next returnrec;
-          return;
-        end;
+  -- Attempt to create the temporary view
+  begin
+    execute 'drop view if exists ' || v_tmp_name;
+    execute 'create temporary view ' || v_tmp_name || ' as ' || sql_query;
+  exception when others then
+    -- Capture the error message
+    get stacked diagnostics v_error_message = MESSAGE_TEXT;
+    raise notice 'Error creating temporary view: %', v_error_message;
+    -- Return an error record instead of raising an exception
+    returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+    return next returnrec;
+    return;
+  end;
 
-        -- If we've made it here, the view was created successfully
-        for returnrec in
-          select
-            view_column_usage.table_schema as schema_name,
-            view_column_usage.view_name as view_name,
-            c.column_name as table_column_name,
-            view_column_usage.column_name as query_column_name,
-            (
-              select array_agg(attname) from (
-                select attname from pg_attribute where attrelid = v_tmp_name::regclass order by attnum
-              ) t
-            ) as column_aliases,
-            --'originally from table: ' || view_column_usage.table_name as comment,
-            col_description(
-              to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
-              c.ordinal_position
-            ) as comment,
-            view_column_usage.table_name as underlying_table_name,
-            c.is_nullable as is_underlying_nullable,
-            c.data_type as underlying_data_type,
-            pg_get_viewdef(v_tmp_name) as formatted_query,
-            null as error_message
-          from
-            information_schema.columns c
-          join
-            information_schema.view_column_usage
-              on c.table_name = view_column_usage.table_name
-              and c.column_name = view_column_usage.column_name
-              and c.table_schema = view_column_usage.table_schema
-          where
-            c.table_name = v_tmp_name
-            or view_column_usage.view_name = v_tmp_name
-        loop
-          return next returnrec;
-        end loop;
+  -- If we've made it here, the view was created successfully
+  for returnrec in
+    select
+      view_column_usage.table_schema as schema_name,
+      view_column_usage.view_name as view_name,
+      c.column_name as table_column_name,
+      view_column_usage.column_name as query_column_name,
+      (
+        select array_agg(attname) from (
+          select attname from pg_attribute where attrelid = v_tmp_name::regclass order by attnum
+        ) t
+      ) as column_aliases,
+      --'originally from table: ' || view_column_usage.table_name as comment,
+      col_description(
+        to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
+        c.ordinal_position
+      ) as comment,
+      view_column_usage.table_name as underlying_table_name,
+      c.is_nullable as is_underlying_nullable,
+      c.data_type as underlying_data_type,
+      pg_get_viewdef(v_tmp_name) as formatted_query,
+      null as error_message
+    from
+      information_schema.columns c
+    join
+      information_schema.view_column_usage
+        on c.table_name = view_column_usage.table_name
+        and c.column_name = view_column_usage.column_name
+        and c.table_schema = view_column_usage.table_schema
+    where
+      c.table_name = v_tmp_name
+      or view_column_usage.view_name = v_tmp_name
+  loop
+    return next returnrec;
+  end loop;
 
-        execute 'drop view if exists ' || v_tmp_name;
+  execute 'drop view if exists ' || v_tmp_name;
 
-      exception when others then
-        -- Capture any other errors that might occur
-        get stacked diagnostics v_error_message = MESSAGE_TEXT;
-        raise notice 'Error in analyze_select_statement_columns: %', v_error_message;
-        -- Ensure we attempt to drop the view even if an error occurred
-        execute 'drop view if exists ' || quote_ident(v_tmp_name);
-        -- Return an error record
-        returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
-        return next returnrec;
-      end;
-      $$
-      language plpgsql;
+exception when others then
+  -- Capture any other errors that might occur
+  get stacked diagnostics v_error_message = MESSAGE_TEXT;
+  raise notice 'Error in analyze_select_statement_columns: %', v_error_message;
+  -- Ensure we attempt to drop the view even if an error occurred
+  execute 'drop view if exists ' || quote_ident(v_tmp_name);
+  -- Return an error record
+  returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+  return next returnrec;
+end;
+$$
+language plpgsql;
     `
       .replaceAll('types_type', `${schemaName}.types_type`)
       .replaceAll('analyze_select_statement_columns', `${schemaName}.analyze_select_statement_columns`),
