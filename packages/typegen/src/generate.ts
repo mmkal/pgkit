@@ -102,7 +102,6 @@ export const generate = async (inputOptions: Partial<Options>) => {
     assert.ok(pgtype, `pgtype not found from regtype ${regtype}`)
 
     return (
-      // console.log({pgtype, regtype, typeName}) ||
       lodash.findLast(options.typeParsers, p => p.oid === pgtype.oid)?.typescript ||
       options.pgTypeToTypeScript(regtype, typeName) ||
       regTypeToTypeScript(regtype)

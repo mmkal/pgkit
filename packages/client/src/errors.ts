@@ -33,18 +33,27 @@ export function errorFromUnknown(err: unknown) {
   return err instanceof Error ? err : new Error(`Non error thrown: ${String(err)}`, {cause: err})
 }
 
+export class QueryErrorCause {
+  constructor(
+    readonly query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>,
+    readonly error: Error | undefined,
+    readonly result: {rows: unknown[]} | undefined,
+  ) {}
+}
+
 export class QueryError extends Error {
   cause!: {
+    name: string
     query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>
     error?: Error
     result?: {rows: unknown[]}
   }
 
-  constructor(message: string, {cause}: {cause: QueryError['cause']}) {
+  constructor(message: string, {cause}: {cause: Omit<QueryError['cause'], 'name'>}) {
     super(`[Query ${cause.query.name}]: ${message || cause?.error?.message || cause?.error?.constructor?.name}`, {
       cause,
     })
-    this.cause = cause
+    this.cause = {...cause, name: 'QueryErrorCause'}
   }
 
   /** Get the PostgreSQL error code, if this was caused by an underlying pg error. Docs: https://www.postgresql.org/docs/current/errcodes-appendix.html */

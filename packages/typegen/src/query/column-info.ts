@@ -32,7 +32,9 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
 
   const singleSelectAst = modifiedAST.ast
   const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
-  const filteredStatements = analyzedSelectStatement.filter(c => !c.error_message)
+  const filteredStatements = analyzedSelectStatement.filter(c => {
+    return !c.error_message
+  })
 
   return {
     ...query,
@@ -67,7 +69,8 @@ const getFieldInfo = (
         hasNullableJoin: c.hasNullableJoin,
       }))
       .filter(v => {
-        assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
+        if (!v.underlying_table_name)
+          throw new Error(`underlying_table_name not found for ${JSON.stringify(v, null, 2)}`)
         return (
           c.queryColumn === field.name &&
           c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
