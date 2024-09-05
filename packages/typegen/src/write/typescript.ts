@@ -1,7 +1,7 @@
 import * as assert from 'assert'
 import * as lodash from 'lodash'
 import {TaggedQuery, AnalysedQuery} from '../types'
-import {dedent, truncateQuery, simplifyWhitespace, truncate} from '../util'
+import {truncateQuery} from '../util'
 import {tsPrettify} from './prettify'
 
 export const jsdocComment = (lines: Array<string | undefined | false>) => {
@@ -12,6 +12,7 @@ export const jsdocComment = (lines: Array<string | undefined | false>) => {
     .split('\n')
     .map(line => `* ${line}`)
     .join('\n')
+    .replace(/pgkit_typegen_temp_schema_\w+\./, '')
 
   return middle.includes('\n')
     ? `/**\n${middle}\n*/` // surround multiline comments with new lines
