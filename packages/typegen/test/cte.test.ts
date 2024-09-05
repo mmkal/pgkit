@@ -270,25 +270,25 @@ test(`statement with CTE with crazy ordering`, async () => {
 
         /** - query: \`with x as ( select b as b1, a as a1, a a... [truncated] ...ble1.a = test_table2.b ) select * from x\` */
         export interface X {
-          /** column: \`x.b1\`, not null: \`true\`, regtype: \`double precision\` */
-          b1: number
+          /** column: \`x.b1\`, regtype: \`double precision\` */
+          b1: number | null
 
-          /** column: \`x.a1\`, regtype: \`integer\` */
-          a1: number | null
+          /** column: \`x.a1\`, not null: \`true\`, regtype: \`integer\` */
+          a1: number
 
-          /** regtype: \`integer\` */
-          a2: number | null
+          /** column: \`x.a2\`, not null: \`true\`, regtype: \`integer\` */
+          a2: number
 
-          /** regtype: \`integer\` */
-          a3: number | null
+          /** column: \`x.a3\`, not null: \`true\`, regtype: \`integer\` */
+          a3: number
 
-          /** regtype: \`double precision\` */
+          /** column: \`x.b2\`, regtype: \`double precision\` */
           b2: number | null
 
-          /** regtype: \`integer\` */
-          a4: number | null
+          /** column: \`x.a4\`, not null: \`true\`, regtype: \`integer\` */
+          a4: number
 
-          /** regtype: \`double precision\` */
+          /** column: \`x.b3\`, regtype: \`double precision\` */
           b3: number | null
         }
       }

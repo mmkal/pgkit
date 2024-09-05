@@ -4,7 +4,7 @@ import {createHash} from 'crypto'
 import * as lodash from 'lodash'
 import {parse, toSql} from 'pgsql-ast-parser'
 import {z} from 'zod'
-import {getASTModifiedToSingleSelect, ModifiedAST} from './parse'
+import {aliasMappings, getASTModifiedToSingleSelect, ModifiedAST} from './parse'
 
 /**
  * Returns a list of results that stem from a special query used to retrieve type information from the database.
@@ -44,14 +44,25 @@ export const analyzeSelectStatement = async (
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
-        console.log('analyzed', {analyzed})
-
+        const statementAliasInfo = aliasMappings(statement)
+        const aliasList = analyzed[0].column_aliases
         const raw = sql.raw(`
           drop table if exists ${schemaName}.${alias.name};
           create table ${schemaName}.${alias.name}(
-            ${analyzed.map((a, i) => `${a.column_aliases[i]} ${a.underlying_data_type} ${a.is_underlying_nullable === 'NO' ? 'not null' : ''}`).join(',\n')}
-          )
+            ${aliasList
+              .map(aliasName => {
+                const found = statementAliasInfo.find(info => info.queryColumn === aliasName)
+                if (!found) throw new Error(`Alias ${aliasName} not found in statement`)
+
+                const analyzedResult = analyzed.find(a => a.table_column_name === found.aliasFor)
+                if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
+
+                return `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
+              })
+              .join(',\n')}
+            )
         `)
+        // ${analyzed.map((a, i) => `${a.table_column_name} ${a.underlying_data_type} ${a.is_underlying_nullable === 'NO' ? 'not null' : ''}`).join(',\n')}
         console.log('create table statement::::', raw)
         await tx.query(raw)
       }
