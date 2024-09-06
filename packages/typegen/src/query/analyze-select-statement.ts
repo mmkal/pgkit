@@ -157,12 +157,20 @@ export const analyzeSelectStatement = async (
       await tx.any(AnalyzeSelectStatementColumnsQuery(selectStatementSql)),
     )
 
+    if (results.length === 1 && results[0].error_message) {
+      // try the original sql
+      // todo: more efficient way to do this?
+      results = SelectStatementAnalyzedColumnSchema.array().parse(
+        await tx.any(AnalyzeSelectStatementColumnsQuery(modifiedAST.originalSql)),
+      )
+    }
+
     for (const r of results) {
       if (r.error_message) {
         // todo: start warning or delete this. let's see what kind of warnings the tests yield first
         // or, maybe, make it logger.debug and show these with the `--debug` flag
         // and/or have a `--strict` flag that errors when there are any warnings - making this a kind of sql validator tool which is cool
-        // console.warn(`Error analyzing select statement: ${r.error_message}`)
+        // console.warn(`Error analyzing select statement: ${r.error_message}`, modifiedAST.originalSql)
       }
     }
 
