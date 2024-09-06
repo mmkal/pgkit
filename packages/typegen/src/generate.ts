@@ -13,7 +13,7 @@ import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
 import {getColumnInfo, getTypeability, removeSimpleComments} from './query'
 import {getParameterTypes} from './query/parameters'
 import {ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotOneAtATime} from './util'
+import {changedFiles, checkClean, containsIgnoreComment, globList} from './util'
 
 export type {Options} from './types'
 
@@ -34,7 +34,13 @@ export const generate = async (inputOptions: Partial<Options>) => {
         const simplifiedCommand = `${simplified} \\gdesc`
         return neverthrow.fromPromise(
           psql(simplifiedCommand), //
-          err => new Error(`psql failed`, {cause: err}),
+          err => {
+            let message = `psql failed.`
+            if ((err as Error).message.includes('psql: command not found')) {
+              message += ` If you're using docker, try using \`--psql 'docker-compose exec -T postgres psql'\`.`
+            }
+            return new Error(message, {cause: err})
+          },
         )
       })
   }

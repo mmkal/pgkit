@@ -184,7 +184,7 @@ const nonNullableExpressionTypes = new Set([
   'values',
 ])
 
-const aggregationFunctions = new Set([
+const nonNullableAggregationFunctions = new Set([
   'count',
   'exists', //
 ])
@@ -227,7 +227,7 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
           return false
         }
 
-        if (aggregationFunctions.has(expression.function.name)) {
+        if (nonNullableAggregationFunctions.has(expression.function.name)) {
           return true
         }
 

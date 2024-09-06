@@ -25,10 +25,10 @@ const CliOptions = z
       .default(defaults.defaultConnectionURI),
     psql: z
       .string()
+      .optional()
       .describe(
-        'psql command used to query postgres via CLI client. If using docker, you may want to use `docker-compose exec -T postgres psql`',
-      )
-      .default(defaults.defaultPsqlCommand),
+        'psql command used to query postgres via CLI client. Defaults to `pql`, but if using docker, you may want to use `docker-compose exec -T postgres psql`',
+      ),
     defaultType: z
       .string()
       .describe('TypeScript fallback type for when no type is found.')
@@ -70,11 +70,17 @@ const CliOptions = z
 
 export const router = trpc.router({
   generate: trpc.procedure
+    .use(async ({rawInput, ctx, next}) => {
+      const inputObject = typeof rawInput === 'object' ? Object.keys(rawInput || {}) : []
+      return next({
+        ctx: {...ctx, inputKeys: new Set(Object.keys(inputObject))},
+      })
+    })
     .meta({
       description: 'Scans source files for SQL queries and generates TypeScript interfaces for them.',
     })
     .input(CliOptions)
-    .mutation(async ({input: {config: configPath, psql, watch, ...input}}) => {
+    .mutation(async ({ctx, input: {config: configPath, psql, watch, ...input}}) => {
       let configModule: Partial<Options> | {default: Partial<Options>} | null = null
 
       if (!configPath && existsSync(defaults.typegenConfigFile)) {
@@ -93,9 +99,12 @@ export const router = trpc.router({
       }
 
       const run = await generate({
-        ...configModule,
         ...(psql && {psqlCommand: psql}),
         ...input,
+        ...(configModule &&
+          Object.fromEntries(
+            Object.entries(configModule).filter(([key]) => !ctx.inputKeys.has(key)), // don't override options explicitly passed, do override defaults
+          )),
       })
 
       if (watch) {
