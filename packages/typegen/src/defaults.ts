@@ -68,7 +68,9 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     `The 'glob' option is deprecated. Instead please use 'include', 'exclude' or 'since' respectively.`,
   )
 
-  assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest).join(', ')}`)
+  if (Object.keys(rest).length > 0) {
+    logger.warn(`Unexpected configuration keys: ${Object.keys(rest).join(', ')}`)
+  }
 
   assert.ok(!connectionString.includes(' \'"'), `Connection URI should not contain spaces or quotes`)
 
