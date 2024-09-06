@@ -202,8 +202,8 @@ importers:
         specifier: ^4.18.2
         version: 4.18.2
       fetchomatic:
-        specifier: ^0.0.2
-        version: 0.0.2
+        specifier: ^0.0.3
+        version: 0.0.3
       lucide-react:
         specifier: ^0.373.0
         version: 0.373.0(react@18.2.0)
@@ -4559,9 +4559,8 @@ packages:
     resolution: {integrity: sha512-7yAQpD2UMJzLi1Dqv7qFYnPbaPx7ZfFK6PiIxQ4PfkGPyNyl2Ugx+a/umUonmKqjhM4DnfbMvdX6otXq83soQQ==}
     engines: {node: ^12.20 || >= 14.13}
 
-  fetchomatic@0.0.2:
-    resolution: {integrity: sha512-Ymafqe8aOl3qaJsKXt9CVi+t/EOxzYrGeBQGZOIg3VTrjD7G1TPMLK44eW8XZaAcM2iPxhIkSOKA5h1A5t3L1w==}
-    hasBin: true
+  fetchomatic@0.0.3:
+    resolution: {integrity: sha512-hwvAL9+RFrjpNukO2iDil1sovFn6VrNthXpZ+lj2bF9SzmDY5/GUaKd7j4jwOPz85eVWTG/FomTp7IVwlp7M3g==}
 
   figures@1.7.0:
     resolution: {integrity: sha512-UxKlfCRuCBxSXU4C6t9scbDyWZ4VlaFFdojKtzJuSkuOBQ5CNFum+zZXFwHjo+CxBC1t6zlYPgHIgFjL8ggoEQ==}
@@ -12962,7 +12961,7 @@ snapshots:
       node-domexception: 1.0.0
       web-streams-polyfill: 3.3.3
 
-  fetchomatic@0.0.2: {}
+  fetchomatic@0.0.3: {}
 
   figures@1.7.0:
     dependencies:
