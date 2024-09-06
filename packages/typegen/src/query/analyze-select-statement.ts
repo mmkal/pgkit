@@ -151,21 +151,42 @@ export const analyzeSelectStatement = async (
     const rows = await tx.any(
       sql`
         select
-          schema_name,
-          table_column_name,
-          underlying_table_name,
-          is_underlying_nullable,
-          column_aliases,
-          underlying_data_type,
-          comment,
-          formatted_query,
-          error_message
+          *
         from
           ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${selectStatementSql})
       `,
     )
 
     const results = SelectStatementAnalyzedColumnSchema.array().parse(rows)
+
+    for (const r of results) {
+      if (r.error_message) {
+        // todo: start warning or delete this. let's see what kind of warnings the tests yield first
+        // console.warn(`Error analyzing select statement: ${r.error_message}`)
+      }
+    }
+
+    const viewsWeNeedToAnalyze = new Map(
+      results.flatMap(r => (r.underlying_table_type === 'VIEW' ? [[r.underlying_table_name, r] as const] : [])),
+    )
+
+    if (viewsWeNeedToAnalyze.size > 0) {
+      // for (const [viewName, result] of viewsWeNeedToAnalyze) {
+      //   const statement = getASTModifiedToSingleSelect(result.underlying_view_definition)
+      //   if (selectStatementSql === toSql.statement(statement.ast)) {
+      //     throw new Error(
+      //       `Circular view dependency detected: ${selectStatementSql} depends on ${result.underlying_view_definition}`,
+      //     )
+      //   }
+      //   // console.log('first, going to analyze view', viewDefinition)
+      //   const analyzed = await analyzeSelectStatement(tx, statement)
+      //   await insertPrerequisites(analyzed, statement.ast, {
+      //     tableAlias: viewName,
+      //     source: 'view',
+      //   })
+      // }
+      // results = await getResults()
+    }
 
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
     const formattedSqlStatements = lodash.uniqBy(deduped, r => r.formatted_query)
@@ -194,6 +215,11 @@ export const SelectStatementAnalyzedColumnSchema = z.object({
 
   /** postgres type: `text` */
   is_underlying_nullable: z.enum(['YES', 'NO']).nullable(),
+
+  /** postgres type: `text` */
+  underlying_table_type: z.string().nullable(),
+
+  underlying_view_definition: z.string().nullable(),
 
   /** ordered array of the column aliases in the query. you'll have to match them up separately because view_column_usage doesn't order the columns */
   column_aliases: z.array(z.string()).nullable(),
@@ -233,7 +259,9 @@ create type types_type as (
   underlying_table_name text,
   is_underlying_nullable text,
   underlying_data_type text,
-  formatted_query text
+  formatted_query text,
+  underlying_table_type text,
+  underlying_view_definition text
 );
 
 create or replace function analyze_select_statement_columns (sql_query text)
@@ -282,7 +310,17 @@ begin
       view_column_usage.table_name as underlying_table_name,
       c.is_nullable as is_underlying_nullable,
       c.data_type as underlying_data_type,
-      pg_get_viewdef(v_tmp_name) as formatted_query
+      pg_get_viewdef(v_tmp_name) as formatted_query,
+      underlying_table.table_type as underlying_table_type,
+      case
+        when
+          underlying_table.table_type = 'VIEW'
+          and underlying_table.table_schema != 'information_schema' -- important: information_schema views are weird and don't have non-nullable columns anyway, so don't try to analyze them
+        then
+          pg_get_viewdef(underlying_table.table_name)
+        else
+          null
+      end as underlying_view_definition
     from
       information_schema.columns c
     join
@@ -290,6 +328,10 @@ begin
         on c.table_name = view_column_usage.table_name
         and c.column_name = view_column_usage.column_name
         and c.table_schema = view_column_usage.table_schema
+      join
+        information_schema.tables underlying_table
+          on c.table_name = underlying_table.table_name
+          and c.table_schema = underlying_table.table_schema
     where
       c.table_name = v_tmp_name
       or view_column_usage.view_name = v_tmp_name
