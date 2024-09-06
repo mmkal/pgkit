@@ -223,6 +223,7 @@ const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable,
 drop type if exists types_type cascade;
 
 create type types_type as (
+  error_message text,
   schema_name text,
   view_name text,
   table_column_name text,
@@ -232,8 +233,7 @@ create type types_type as (
   underlying_table_name text,
   is_underlying_nullable text,
   underlying_data_type text,
-  formatted_query text,
-  error_message text
+  formatted_query text
 );
 
 create or replace function analyze_select_statement_columns (sql_query text)
@@ -255,7 +255,8 @@ begin
     get stacked diagnostics v_error_message = MESSAGE_TEXT;
     raise notice 'Error creating temporary view: %', v_error_message;
     -- Return an error record instead of raising an exception
-    returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+    -- Since error_message is the first field, we can skip *most* of the nulls, but we need one so postgres knows this is a setof
+    returnrec := ('Error creating temporary view: ' || v_error_message || ' sql: ' || sql_query, null);
     return next returnrec;
     return;
   end;
@@ -263,6 +264,7 @@ begin
   -- If we've made it here, the view was created successfully
   for returnrec in
     select
+      null as error_message,
       view_column_usage.table_schema as schema_name,
       view_column_usage.view_name as view_name,
       c.column_name as table_column_name,
@@ -280,8 +282,7 @@ begin
       view_column_usage.table_name as underlying_table_name,
       c.is_nullable as is_underlying_nullable,
       c.data_type as underlying_data_type,
-      pg_get_viewdef(v_tmp_name) as formatted_query,
-      null as error_message
+      pg_get_viewdef(v_tmp_name) as formatted_query
     from
       information_schema.columns c
     join
@@ -305,12 +306,13 @@ exception when others then
   -- Ensure we attempt to drop the view even if an error occurred
   execute 'drop view if exists ' || quote_ident(v_tmp_name);
   -- Return an error record
-  returnrec := (null, null, null, null, null, null, null, null, null, null, 'Error: ' || v_error_message);
+  returnrec := ('Error in analyze_select_statement_columns: ' || v_error_message || ' sql: ' || sql_query, null);
   return next returnrec;
 end;
 $$
 language plpgsql;
     `
+      // for ease of debugging/copy-paste, replace the type names with fully qualified names after defining a big valid SQL statement that can be copied into raw SQL runner tool
       .replaceAll('types_type', `${schemaName}.types_type`)
       .replaceAll('analyze_select_statement_columns', `${schemaName}.analyze_select_statement_columns`),
   )
