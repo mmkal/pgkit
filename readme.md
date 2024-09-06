@@ -1,6 +1,6 @@
 # pgkit
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
 
 <blockquote>
 🚧🚧🚧🚧 NOTE 🚧🚧🚧🚧

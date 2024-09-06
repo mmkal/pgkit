@@ -262,7 +262,7 @@ test('queries with comments are modified', async () => {
         ./test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
         [!] Extracting types from query failed. Try moving comments to dedicated
         lines.
-          Caused by: Error: psql failed
+          Caused by: Error: psql failed.
             Caused by: Error: Error running psql query "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: select 1 as a, \\n                       ^"
               Caused by: AssertionError [ERR_ASSERTION]: Empty output received
   `)
@@ -303,7 +303,7 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
         ./test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
         [!] Extracting types from query failed. Try moving comments to dedicated
         lines.
-          Caused by: Error: psql failed
+          Caused by: Error: psql failed.
             Caused by: Error: Error running psql query "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: with abc as ( select table_name \\n                                        ^"
               Caused by: AssertionError [ERR_ASSERTION]: Empty output received
   `)

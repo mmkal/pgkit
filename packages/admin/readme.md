@@ -1,6 +1,7 @@
 # @pgkit/admin
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
+
 
 A no-config admin UI for running queries against PostgreSQL database, with autocomplete for tables, columns, views, functions etc.
 

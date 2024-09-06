@@ -1,6 +1,6 @@
 # @pgkit/client
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
 
 A strongly-typed postgres client for node.js. Lets you execute SQL, without abstractions, safely.
 
@@ -753,7 +753,25 @@ await client.query(sql`
   )}
 `)
 
-expect(sqlProduced).toMatchInlineSnapshot(`{}`)
+expect(sqlProduced).toMatchInlineSnapshot(`
+  [
+    {
+      "sql": "\\n    insert into recipes_test(id, name)\\n    select *\\n    from unnest($1::int4[], $2::text[])\\n  ",
+      "values": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          "one",
+          "two",
+          "three"
+        ]
+      ]
+    }
+  ]
+`)
 ```
 
 ### Query logging
@@ -778,7 +796,65 @@ expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
     start: expect.any(Number),
     end: expect.any(Number),
     took: expect.any(Number),
-  }, `{}`)
+  },
+  `
+    {
+      "start": {
+        "inverse": false
+      },
+      "end": {
+        "inverse": false
+      },
+      "took": {
+        "inverse": false
+      },
+      "query": {
+        "name": "select-recipes_test_8d7ce25",
+        "sql": "select * from recipes_test",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [
+          {
+            "id": 1,
+            "name": "one"
+          },
+          {
+            "id": 2,
+            "name": "two"
+          },
+          {
+            "id": 3,
+            "name": "three"
+          }
+        ],
+        "command": "SELECT",
+        "rowCount": 3,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": 123456789,
+            "columnID": 1,
+            "dataTypeID": 123456789,
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": 123456789,
+            "columnID": 2,
+            "dataTypeID": 123456789,
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
+        ]
+      }
+    }
+  `,
+)
 ```
 
 ### query timeouts
@@ -803,23 +879,22 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
-  {
-    "message": "[Query select_9dcc021]: Query read timeout",
-    "cause": {
-      "query": {
-        "name": "select_9dcc021",
-        "sql": "select pg_sleep($1)",
-        "token": "sql",
-        "values": [
-          0.04
-        ]
-      },
-      "error": {
-        "query": "select pg_sleep(0.04)"
+    {
+      "cause": {
+        "query": {
+          "name": "select_9dcc021",
+          "sql": "select pg_sleep($1)",
+          "token": "sql",
+          "values": [
+            0.04
+          ]
+        },
+        "error": {
+          "query": "select pg_sleep(0.04)"
+        }
       }
     }
-  }
-`,
+  `,
 )
 await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
   pg_sleep: '',
@@ -876,7 +951,6 @@ await expect(
   `),
 ).rejects.toThrowErrorMatchingInlineSnapshot(`
   {
-    "message": "[Query select_6289211]: Query read timeout",
     "cause": {
       "query": {
         "name": "select_6289211",
