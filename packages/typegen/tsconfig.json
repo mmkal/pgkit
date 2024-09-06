@@ -6,10 +6,9 @@
     "target": "ES2022",
     "module": "NodeNext",
     "jsx": "preserve",
-    "strict": false,
-    "strictNullChecks": true,
+    "strict": true,
+    "strictFunctionTypes": false,
     "noEmit": true,
-    "noUncheckedIndexedAccess": false,
     "noErrorTruncation": true,
     "esModuleInterop": true
   },

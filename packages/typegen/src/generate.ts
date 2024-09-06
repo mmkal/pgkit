@@ -234,7 +234,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const content = new Map<string, string>()
       const promises: Array<Promise<void>> = []
       const getContentSync = (filepath: string) => fs.readFileSync(filepath).toString()
-      const handler = async (filepath: string, ...args) => {
+      const handler = async (filepath: string, ...args: unknown[]) => {
         const fullpath = path.join(cwd, filepath)
         // eslint-disable-next-line @typescript-eslint/no-var-requires
         logger.info(require('util').inspect({filepath, fullpath, args}))

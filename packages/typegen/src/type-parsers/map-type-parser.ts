@@ -1,4 +1,5 @@
 import {ParseFn, pgTypes, setRecommendedTypeParsers} from '@pgkit/client'
+import * as assert from 'assert'
 import {TypeParserInfo} from '../types'
 
 const jsValueMatchers: Array<[type: string, test: (value: unknown) => boolean]> = [
@@ -15,7 +16,7 @@ const jsValueMatchers: Array<[type: string, test: (value: unknown) => boolean]> 
 // todo: explicitly test to see how these all come back by default from pg
 // e.g. by doing sql`select ${sampleValue}::${sampleValueType}` somehow
 // but wait - should these all be strings?
-export const sampleTypeValues: Record<string, any> = {
+export const sampleTypeValues: Record<string, string | number> = {
   int8: 0,
   date: '2000-01-01',
   interval: '1 hour',
@@ -34,7 +35,7 @@ export const sampleTypeValues: Record<string, any> = {
 }
 
 export const inferTypeParserTypeScript = (tp: ParseFn, defaultSampleInput = ''): string => {
-  const sample = tp(sampleTypeValues[tp.name] || defaultSampleInput)
+  const sample: unknown = tp((sampleTypeValues[tp.name] as string) || defaultSampleInput)
   const match = jsValueMatchers.find(m => m[1](sample))
   return match?.[0] || `unknown`
 }
@@ -44,7 +45,8 @@ export const defaultTypeParsers = (setTypeParsers = setRecommendedTypeParsers): 
   setTypeParsers({
     builtins: pgTypes.builtins,
     setTypeParser(typeId, parse) {
-      list.push({oid: typeId, typescript: inferTypeParserTypeScript(parse)})
+      assert.ok(typeof parse === 'function', `Expected parse to be a function, got ${typeof parse}`)
+      list.push({oid: typeId, typescript: inferTypeParserTypeScript(ts => parse(ts))})
     },
   })
   return list
