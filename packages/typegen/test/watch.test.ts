@@ -14,8 +14,7 @@ beforeEach(async () => {
   await helper.setupDb()
 })
 
-// todo: make this not flaky
-test.skip('watch file system', async () => {
+test('watch file system', async () => {
   const syncer = fsSyncer.testFixture({
     expect,
     targetState: {
@@ -45,8 +44,8 @@ test.skip('watch file system', async () => {
 
         /** - query: \`select 123 as abc\` */
         export interface Abc {
-          /** regtype: \`integer\` */
-          abc: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          abc: number
         }
       }
 
@@ -59,8 +58,8 @@ test.skip('watch file system', async () => {
 
         /** - query: \`select 123 as xyz\` */
         export interface Xyz {
-          /** regtype: \`integer\` */
-          xyz: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          xyz: number
         }
       }
     "
@@ -90,8 +89,8 @@ test.skip('watch file system', async () => {
 
         /** - query: \`select 123 as def\` */
         export interface Def {
-          /** regtype: \`integer\` */
-          def: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          def: number
         }
       }
 
@@ -104,8 +103,8 @@ test.skip('watch file system', async () => {
 
         /** - query: \`select 123 as xyz\` */
         export interface Xyz {
-          /** regtype: \`integer\` */
-          xyz: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          xyz: number
         }
       }
     "
@@ -113,11 +112,10 @@ test.skip('watch file system', async () => {
 
   // below assertion fails - bug in chokidar?
   // const watchLogs = JSON.stringify(logger.info.mock.calls, null, 2)
-  // expect(watchLogs).not.toContain('file2.ts')
+  // expect(watchLogs, `logs: ${watchLogs}`).not.toContain('file2.ts')
 })
 
-// todo: make this not flaky
-test.skip('lazily watch file system', async () => {
+test('lazily watch file system', async () => {
   const syncer = fsSyncer.testFixture({
     expect,
     targetState: {
@@ -160,8 +158,8 @@ test.skip('lazily watch file system', async () => {
 
         /** - query: \`select 123 as def\` */
         export interface Def {
-          /** regtype: \`integer\` */
-          def: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          def: number
         }
       }
     "
