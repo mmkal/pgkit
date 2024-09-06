@@ -152,7 +152,7 @@ export const analyzeSelectStatement = async (
       select * from ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${statmentSql})
     `
     // todo: figure out why sql.type(MyZodType) isn't working here
-    const results = SelectStatementAnalyzedColumnSchema.array().parse(
+    let results = SelectStatementAnalyzedColumnSchema.array().parse(
       await tx.any(AnalyzeSelectStatementColumnsQuery(selectStatementSql)),
     )
 
@@ -164,25 +164,36 @@ export const analyzeSelectStatement = async (
     }
 
     const viewsWeNeedToAnalyze = new Map(
-      results.flatMap(r => (r.underlying_table_type === 'VIEW' ? [[r.underlying_table_name, r] as const] : [])),
+      results.flatMap(r => {
+        const analyzeableView = r.underlying_table_type === 'VIEW' && r.underlying_view_definition
+        return analyzeableView ? [[r.underlying_table_name, r] as const] : []
+      }),
     )
 
     if (viewsWeNeedToAnalyze.size > 0) {
-      // for (const [viewName, result] of viewsWeNeedToAnalyze) {
-      //   const statement = getASTModifiedToSingleSelect(result.underlying_view_definition)
-      //   if (selectStatementSql === toSql.statement(statement.ast)) {
-      //     throw new Error(
-      //       `Circular view dependency detected: ${selectStatementSql} depends on ${result.underlying_view_definition}`,
-      //     )
-      //   }
-      //   // console.log('first, going to analyze view', viewDefinition)
-      //   const analyzed = await analyzeSelectStatement(tx, statement)
-      //   await insertPrerequisites(analyzed, statement.ast, {
-      //     tableAlias: viewName,
-      //     source: 'view',
-      //   })
-      // }
-      // results = await getResults()
+      results = results.slice()
+      for (const [viewName, result] of viewsWeNeedToAnalyze) {
+        if (!result.underlying_view_definition) {
+          throw new Error(
+            `View ${viewName} has no underlying view definition: ${JSON.stringify({viewName, result}, null, 2)}`,
+          )
+        }
+        const statement = getASTModifiedToSingleSelect(result.underlying_view_definition)
+        if (selectStatementSql === toSql.statement(statement.ast)) {
+          throw new Error(
+            `Circular view dependency detected: ${selectStatementSql} depends on ${result.underlying_view_definition}`,
+          )
+        }
+        const analyzed = await analyzeSelectStatement(tx, statement)
+        await insertPrerequisites(analyzed, statement.ast, {
+          tableAlias: viewName,
+          source: 'view',
+        })
+      }
+      // get results again - we have now inserted the view's dependencies as temp tables, so we should get fuller results
+      results = SelectStatementAnalyzedColumnSchema.array().parse(
+        await tx.any(AnalyzeSelectStatementColumnsQuery(selectStatementSql)),
+      )
     }
 
     const deduped = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)

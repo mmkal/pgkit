@@ -79,10 +79,18 @@ test('use view', async () => {
 
         /** - query: \`select * from test_view\` */
         export interface TestView {
-          /** column: \`public.test_view.a_view\`, regtype: \`integer\` */
-          a_view: number | null
+          /**
+           * From view "test_view", column source: public.test_table1.a
+           *
+           * column: \`✨.test_view.a_view\`, not null: \`true\`, regtype: \`integer\`
+           */
+          a_view: number
 
-          /** column: \`public.test_view.b_view\`, regtype: \`double precision\` */
+          /**
+           * From view "test_view", column source: public.test_table2.b
+           *
+           * column: \`✨.test_view.b_view\`, regtype: \`double precision\`
+           */
           b_view: number | null
         }
       }

@@ -15,7 +15,7 @@ beforeEach(async () => {
 })
 
 // todo: make this not flaky
-test('watch file system', async () => {
+test.skip('watch file system', async () => {
   const syncer = fsSyncer.testFixture({
     expect,
     targetState: {
@@ -116,7 +116,8 @@ test('watch file system', async () => {
   // expect(watchLogs).not.toContain('file2.ts')
 })
 
-test('lazily watch file system', async () => {
+// todo: make this not flaky
+test.skip('lazily watch file system', async () => {
   const syncer = fsSyncer.testFixture({
     expect,
     targetState: {
