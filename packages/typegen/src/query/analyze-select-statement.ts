@@ -33,10 +33,6 @@ export const analyzeSelectStatement = async (
     await createAnalyzeSelectStatementColumnsFunction(tx, schemaName)
 
     if (modifiedAST.modifications.includes('cte')) {
-      if (!process.env.EXPERIMENTAL_CTE_TEMP_SCHEMA) {
-        return []
-      }
-
       const ast = parse(modifiedAST.originalSql)[0]
       if (ast.type !== 'with') throw new Error('Expected a WITH clause, got ' + toSql.statement(ast))
 
@@ -44,41 +40,57 @@ export const analyzeSelectStatement = async (
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
-        const aliasInfoList = getAliasInfo(statement)
-        const aliasList = analyzed[0].column_aliases
-
-        const tempTableColumns = aliasList.map(aliasName => {
-          const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
-          if (!aliasInfo) throw new Error(`Alias ${aliasName} not found in statement`)
-
-          const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
-          if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
-
-          const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
-
-          const comment = `From CTE subquery "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
-          return {
-            name: aliasName,
-            def,
-            comment,
-          }
+        await insertPrerequisites(analyzed, statement, {
+          tableAlias: tableAlias.name,
+          source: 'CTE subquery',
         })
-
-        const raw = sql.raw(`
-          drop table if exists ${schemaName}.${tableAlias.name};
-          create table ${schemaName}.${tableAlias.name}(
-            ${tempTableColumns.map(c => c.def).join(',\n')}
-          );
-
-          ${tempTableColumns
-            .map(c => {
-              return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
-            })
-            .join('\n')}
-        `)
-        await tx.query(raw)
       }
       return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
+    }
+
+    /** puts fake tables into the temporary schema so that our analyze_select_statement_columns function can find the right types/nullability */
+    async function insertPrerequisites(
+      analyzed: SelectStatementAnalyzedColumn[],
+      statement: ModifiedAST['ast'],
+      options: {
+        tableAlias: string
+        source: string
+      },
+    ) {
+      const tableAlias = {name: options.tableAlias}
+      const aliasInfoList = getAliasInfo(statement)
+      const aliasList = analyzed[0]?.column_aliases || []
+
+      const tempTableColumns = aliasList.map(aliasName => {
+        const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
+        if (!aliasInfo) throw new Error(`Alias ${aliasName} not found in statement`)
+
+        const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
+        if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
+
+        const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
+
+        const comment = `From ${options.source} "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
+        return {
+          name: aliasName,
+          def,
+          comment,
+        }
+      })
+
+      const raw = sql.raw(`
+        drop table if exists ${schemaName}.${tableAlias.name};
+        create table ${schemaName}.${tableAlias.name}(
+          ${tempTableColumns.map(c => c.def).join(',\n')}
+        );
+
+        ${tempTableColumns
+          .map(c => {
+            return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
+          })
+          .join('\n')}
+      `)
+      await tx.query(raw)
     }
 
     const rows = await tx.any(

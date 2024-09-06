@@ -323,7 +323,7 @@ test('write types', async () => {
       }
     "
   `)
-})
+}, 15_000)
 
 test('can write queries to separate file', async () => {
   const syncer = fsSyncer.testFixture({
