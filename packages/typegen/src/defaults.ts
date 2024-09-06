@@ -48,11 +48,7 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
-    poolConfig = getWithWarning<Options['poolConfig']>(
-      logger,
-      `Using default pool config - type parsers will not be respected.`,
-      {},
-    ),
+    poolConfig = getWithWarning<Options['poolConfig']>(logger, `Using default client config.`, {}),
     typeParsers = defaultTypeParsers(poolConfig.setTypeParsers),
     migrate = undefined,
     checkClean = defaultCheckClean,

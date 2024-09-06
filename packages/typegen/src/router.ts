@@ -1,4 +1,5 @@
 import {existsSync} from 'fs'
+import * as path from 'path'
 import {trpcServer, z, TrpcCliMeta} from 'trpc-cli'
 import * as defaults from './defaults'
 import {generate, Options} from './generate'
@@ -73,11 +74,12 @@ export const router = trpc.router({
       }
 
       if (configPath) {
+        if (!/\/\\/.test(configPath)) configPath = path.join(process.cwd(), configPath)
         if (!existsSync(configPath)) {
           throw new Error(`Config file not found at path ${configPath}`)
         }
         configModule = (await import(configPath)) as {}
-        if ('default' in configModule) {
+        while ('default' in configModule) {
           configModule = configModule.default as Partial<Options>
         }
       }
