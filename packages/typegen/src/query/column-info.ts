@@ -94,11 +94,14 @@ const getFieldInfo = (
   return {
     ...field,
     nullability,
-    column: res && {
-      schema: res.schema_name,
-      table: res.underlying_table_name,
-      name: res.table_column_name,
-    },
+    column:
+      res?.schema_name && res.underlying_table_name && res.table_column_name
+        ? {
+            schema: res.schema_name,
+            table: res.underlying_table_name,
+            name: res.table_column_name,
+          }
+        : undefined,
     comment: res?.comment || undefined,
   }
 }

@@ -34,8 +34,8 @@ export const truncateQuery = lodash.flow(simplifyWhitespace, truncate)
 
 export const dedent = (str: string) => {
   const lines = str.split('\n').slice(1)
-  const margin = /^\s+/.exec(lines[0])[0]
-  return lines.map(line => line.replace(margin, '')).join('\n')
+  const margin = /^\s+/.exec(lines[0])?.[0]
+  return lines.map(line => line.replace(margin ?? '', '')).join('\n')
 }
 
 export const tryOrDefault = <T>(fn: () => T, defaultValue: T) => {

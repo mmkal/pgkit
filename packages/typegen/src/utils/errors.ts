@@ -1,5 +1,5 @@
 export const deepErrorCause = (e: unknown) => {
-  const message = []
+  const message: string[] = []
   let error = e as Error | undefined
   while (error) {
     const indent = '  '.repeat(message.length)

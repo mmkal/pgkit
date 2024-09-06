@@ -7,8 +7,9 @@
     "module": "NodeNext",
     "jsx": "preserve",
     "strict": false,
+    "strictNullChecks": true,
     "noEmit": true,
-    "noUncheckedIndexedAccess": true,
+    "noUncheckedIndexedAccess": false,
     "noErrorTruncation": true,
     "esModuleInterop": true
   },

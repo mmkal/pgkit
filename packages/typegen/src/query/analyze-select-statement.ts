@@ -166,7 +166,7 @@ export const analyzeSelectStatement = async (
     const viewsWeNeedToAnalyze = new Map(
       results.flatMap(r => {
         const analyzeableView = r.underlying_table_type === 'VIEW' && r.underlying_view_definition
-        return analyzeableView ? [[r.underlying_table_name, r] as const] : []
+        return analyzeableView && r.underlying_table_name ? [[r.underlying_table_name, r] as const] : []
       }),
     )
 
