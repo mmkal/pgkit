@@ -160,6 +160,8 @@ export const analyzeSelectStatement = async (
     for (const r of results) {
       if (r.error_message) {
         // todo: start warning or delete this. let's see what kind of warnings the tests yield first
+        // or, maybe, make it logger.debug and show these with the `--debug` flag
+        // and/or have a `--strict` flag that errors when there are any warnings - making this a kind of sql validator tool which is cool
         // console.warn(`Error analyzing select statement: ${r.error_message}`)
       }
     }
@@ -325,6 +327,7 @@ begin
         when
           underlying_table.table_type = 'VIEW'
           and underlying_table.table_schema != 'information_schema' -- important: information_schema views are weird and don't have non-nullable columns anyway, so don't try to analyze them
+          and left(underlying_table.table_name, 3) != 'pg_' -- don't try to analyze pg_catalog views
         then
           pg_get_viewdef(underlying_table.table_name)
         else
