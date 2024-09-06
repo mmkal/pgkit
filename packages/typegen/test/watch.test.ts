@@ -14,6 +14,7 @@ beforeEach(async () => {
   await helper.setupDb()
 })
 
+// todo: make this not flaky
 test('watch file system', async () => {
   const syncer = fsSyncer.testFixture({
     expect,

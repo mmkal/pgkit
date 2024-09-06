@@ -148,16 +148,13 @@ export const analyzeSelectStatement = async (
       await tx.query(raw)
     }
 
-    const rows = await tx.any(
-      sql`
-        select
-          *
-        from
-          ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${selectStatementSql})
-      `,
+    const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
+      select * from ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${statmentSql})
+    `
+    // todo: figure out why sql.type(MyZodType) isn't working here
+    const results = SelectStatementAnalyzedColumnSchema.array().parse(
+      await tx.any(AnalyzeSelectStatementColumnsQuery(selectStatementSql)),
     )
-
-    const results = SelectStatementAnalyzedColumnSchema.array().parse(rows)
 
     for (const r of results) {
       if (r.error_message) {
