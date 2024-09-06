@@ -29,7 +29,7 @@ export function addTags(queries: AnalysedQuery[]): TaggedQuery[] {
       const matchesFirstTag = arr[firstWithTagIndex].identifier === q.identifier
       return {
         ...q,
-        tag: matchesFirstTag ? q.tag : `${q.tag}_${firstWithTagIndex}`,
+        tag: matchesFirstTag ? q.tag : `${q.tag}_${i}`,
         priority: q.tag.startsWith('Anonymous') ? 2 : matchesFirstTag ? 0 : 1,
       }
     })

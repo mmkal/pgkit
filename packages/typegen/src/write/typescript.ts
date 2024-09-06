@@ -39,9 +39,12 @@ export const interfaceBody = (query: AnalysedQuery) => {
           f.nullability === 'assumed_not_null' ||
           f.typescript === 'any' ||
           f.typescript === 'unknown' ||
+          f.typescript === 'never' ||
           f.typescript === 'void'
             ? `${f.typescript}`
-            : `(${f.typescript}) | null`,
+            : /^[\s\w|]+$/.test(f.typescript) // if it's a simply-formatted type, no need to wrap it in parens
+              ? `${f.typescript} | null`
+              : `(${f.typescript}) | null`,
         ),
       )
       const comments = lodash.flatMap(fields, f => {

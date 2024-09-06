@@ -68,7 +68,7 @@ test('prettier is optional', async () => {
               id: number;
 
               /** column: \`public.test_table.n\`, regtype: \`integer\` */
-              n: (number) | null;
+              n: number | null;
           }
       }
     "
@@ -121,7 +121,7 @@ test('prettier can fail', async () => {
               id: number;
 
               /** column: \`public.test_table.n\`, regtype: \`integer\` */
-              n: (number) | null;
+              n: number | null;
           }
       }
     "
@@ -181,7 +181,7 @@ test('no prettier warning for custom writeTypes', async () => {
               id: number
 
               /** column: \`public.test_table.n\`, regtype: \`integer\` */
-              n: (number) | null
+              n: number | null
           }
       }
     "

@@ -35,6 +35,7 @@ test('primitives are non-nullable', async () => {
           sql\`select 'foo' || 'bar'\`,
           sql\`select 'foo' || null\`,
           sql\`select a > 1 from test_table\`,
+          sql\`select 2 > 1 as a\`,
         ]
       `,
     },
@@ -54,15 +55,16 @@ test('primitives are non-nullable', async () => {
 
       export default [
         sql<queries.A>\`select 1 as a\`,
-        sql<queries.A_6>\`select 'a' as a\`,
+        sql<queries.A_9>\`select 'a' as a\`,
         sql<queries.B>\`select 'a' as b\`,
-        sql<queries.B_12>\`select null::integer as b\`,
+        sql<queries.B_15>\`select null::integer as b\`,
         sql<queries.TestTable_sum>\`select sum(a) from test_table\`,
         sql<queries.TestTable_sum>\`select sum(b) from test_table\`,
         sql<queries.CurrentDate>\`select current_date\`,
         sql<queries.Column>\`select 'foo' || 'bar'\`,
-        sql<queries.Column_2>\`select 'foo' || null\`,
+        sql<queries.Column_4>\`select 'foo' || null\`,
         sql<queries.TestTable>\`select a > 1 from test_table\`,
+        sql<queries.A_21>\`select 2 > 1 as a\`,
       ]
 
       export declare namespace queries {
@@ -75,7 +77,7 @@ test('primitives are non-nullable', async () => {
         }
 
         /** - query: \`select 'a' as a\` */
-        export interface A_6 {
+        export interface A_9 {
           /** not null: \`true\`, regtype: \`text\` */
           a: string
         }
@@ -87,7 +89,7 @@ test('primitives are non-nullable', async () => {
         }
 
         /** - query: \`select null::integer as b\` */
-        export interface B_12 {
+        export interface B_15 {
           /** regtype: \`integer\` */
           b: number | null
         }
@@ -115,7 +117,7 @@ test('primitives are non-nullable', async () => {
         }
 
         /** - query: \`select 'foo' || null\` */
-        export interface Column_2 {
+        export interface Column_4 {
           /** regtype: \`text\` */
           '?column?': string | null
         }
@@ -124,6 +126,12 @@ test('primitives are non-nullable', async () => {
         export interface TestTable {
           /** regtype: \`boolean\` */
           '?column?': boolean | null
+        }
+
+        /** - query: \`select 2 > 1 as a\` */
+        export interface A_21 {
+          /** not null: \`true\`, regtype: \`boolean\` */
+          a: boolean
         }
       }
     "
