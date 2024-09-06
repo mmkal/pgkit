@@ -16,15 +16,31 @@ beforeEach(async () => {
     create table test_table2(
       b double precision
     );
+    create table test_table3(
+      c int not null
+    );
     create view test_view as
-    select * from
+    select a as a_view, b as b_view from
     test_table1
     join test_table2 on test_table1.a = test_table2.b;
-
     create or replace function get_test_table1_by_a(input_a int)
-    returns table (a int) as $$
+    returns table (a int) as
+    $$
       select a from test_table1 where a = input_a;
-    $$ language sql;
+    $$
+    language sql;
+    create or replace function get_a_timestamp(input_a int)
+    returns timestamptz as
+    $$
+      select pg_catalog.now()
+    $$
+    language sql;
+    create or replace function get_one_field(input_a int)
+    returns int as
+    $$
+      select a from test_table1 where a >= input_a;
+    $$
+    language sql;
   `)
 })
 
@@ -63,11 +79,11 @@ test('use view', async () => {
 
         /** - query: \`select * from test_view\` */
         export interface TestView {
-          /** column: \`public.test_view.a\`, regtype: \`integer\` */
-          a: number | null
+          /** column: \`public.test_view.a_view\`, regtype: \`integer\` */
+          a_view: number | null
 
-          /** column: \`public.test_view.b\`, regtype: \`double precision\` */
-          b: number | null
+          /** column: \`public.test_view.b_view\`, regtype: \`double precision\` */
+          b_view: number | null
         }
       }
     "
@@ -80,9 +96,22 @@ test('use function', async () => {
     targetState: {
       'index.ts': `
         import {sql} from 'slonik'
-
-        export default sql\`
+        export const a = sql\`
           select * from get_test_table1_by_a(1)
+        \`
+        export const b = sql\`
+          select
+            x.*,
+            get_a_timestamp(1) as y,
+            get_one_field(1) as z
+          from get_test_table1_by_a(1) x
+        \`
+        export const c = sql\`
+          select *
+          from
+          get_test_table1_by_a(1) x,
+          get_a_timestamp(1) y,
+          get_one_field(1) z
         \`
       `,
     },
@@ -99,9 +128,22 @@ test('use function', async () => {
     "---
     index.ts: |-
       import {sql} from 'slonik'
-
-      export default sql<queries.A>\`
+      export const a = sql<queries.A>\`
         select * from get_test_table1_by_a(1)
+      \`
+      export const b = sql<queries.X>\`
+        select
+          x.*,
+          get_a_timestamp(1) as y,
+          get_one_field(1) as z
+        from get_test_table1_by_a(1) x
+      \`
+      export const c = sql<queries.C>\`
+        select *
+        from
+        get_test_table1_by_a(1) x,
+        get_a_timestamp(1) y,
+        get_one_field(1) z
       \`
 
       export declare namespace queries {
@@ -109,8 +151,44 @@ test('use function', async () => {
 
         /** - query: \`select * from get_test_table1_by_a(1)\` */
         export interface A {
+          /**
+           * From function "get_test_table1_by_a", column source: public.test_table1.a
+           *
+           * column: \`✨.get_test_table1_by_a.a\`, not null: \`true\`, regtype: \`integer\`
+           */
+          a: number
+        }
+
+        /** - query: \`select x.*, get_a_timestamp(1) as y, get_one_field(1) as z from get_test_table1_by_a(1) x\` */
+        export interface X {
+          /**
+           * From function "get_test_table1_by_a", column source: public.test_table1.a
+           *
+           * column: \`✨.get_test_table1_by_a.a\`, not null: \`true\`, regtype: \`integer\`
+           */
+          a: number
+
+          /** regtype: \`timestamp with time zone\` */
+          y: Date | null
+
           /** regtype: \`integer\` */
-          a: number | null
+          z: number | null
+        }
+
+        /** - query: \`select * from get_test_table1_by_a(1) x, get_a_timestamp(1) y, get_one_field(1) z\` */
+        export interface C {
+          /**
+           * From function "get_test_table1_by_a", column source: public.test_table1.a
+           *
+           * column: \`✨.get_test_table1_by_a.a\`, not null: \`true\`, regtype: \`integer\`
+           */
+          a: number
+
+          /** regtype: \`timestamp with time zone\` */
+          y: Date | null
+
+          /** regtype: \`integer\` */
+          z: number | null
         }
       }
     "

@@ -48,6 +48,61 @@ export const analyzeSelectStatement = async (
       return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(ast.in)))
     }
 
+    if (modifiedAST.ast.type === 'select' && modifiedAST.ast.from) {
+      if (!modifiedAST.ast.from)
+        throw new Error(`Expected a FROM clause, got ${JSON.stringify(modifiedAST.ast, null, 2)}`)
+      const swappableFunctionIndexes = modifiedAST.ast.from.flatMap((f, i) =>
+        f.type === 'call' && f.function ? [i] : [],
+      )
+      const swappedAst = {...modifiedAST.ast, from: modifiedAST.ast.from.slice()}
+      for (const i of swappableFunctionIndexes) {
+        const f = modifiedAST.ast.from[i]
+        if (f.type !== 'call') throw new Error(`Expected a call, got ${JSON.stringify(f)}`)
+        const tableReplacement: (typeof modifiedAST.ast.from)[number] = {
+          type: 'table',
+          name: f.alias ? {name: f.function.name, alias: f.alias.name} : f.function,
+        }
+        swappedAst.from[i] = tableReplacement
+        const functionDefinitions = await tx.any<{prosrc: string; proargnames: string[]; proargmodes: string[]}>(sql`
+          select prosrc, proargnames, proargmodes::text[]
+          from pg_proc
+          join pg_language on pg_language.oid = pg_proc.prolang
+          where pg_language.lanname = 'sql'
+          and proname = ${f.function.name}
+          limit 2
+        `)
+        const functionDefinition = functionDefinitions.length === 1 ? functionDefinitions[0] : null
+        if (!functionDefinition) {
+          // maybe not a sql function, or an overloaded one, we don't handle this for now. Some types may be nullable as a result.
+          continue
+        }
+
+        let underlyingFunctionDefinition = functionDefinition.prosrc
+
+        for (const [index, argname] of functionDefinition.proargnames.entries()) {
+          const argmode = functionDefinition.proargmodes?.[index]
+          // maybe: we should allow argmode to be undefined here, functions that return primitives seem to have no proargmodes value
+          if (argmode !== 'i') {
+            continue
+          }
+          const regexp = new RegExp(/\bargname\b/.source.replace('argname', argname), 'g')
+          underlyingFunctionDefinition = underlyingFunctionDefinition.replaceAll(regexp, `null`)
+        }
+        const statement = getASTModifiedToSingleSelect(underlyingFunctionDefinition)
+        const analyzed = await analyzeSelectStatement(tx, statement)
+
+        if (analyzed.length > 0) {
+          await insertPrerequisites(analyzed, statement.ast, {
+            tableAlias: f.function.name,
+            source: 'function',
+          })
+        }
+      }
+      if (swappableFunctionIndexes.length > 0) {
+        return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSql.statement(swappedAst)))
+      }
+    }
+
     /** puts fake tables into the temporary schema so that our analyze_select_statement_columns function can find the right types/nullability */
     async function insertPrerequisites(
       analyzed: SelectStatementAnalyzedColumn[],
