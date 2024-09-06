@@ -17,12 +17,12 @@ const CliOptions = z
       ),
     rootDir: z
       .string()
-      .describe('Path to the source directory containing SQL queries.')
-      .default(defaults.defaultRootDir),
+      .default(defaults.defaultRootDir)
+      .describe('Path to the source directory containing SQL queries.'),
     connectionString: z
       .string()
-      .describe('URL for connecting to postgres.') //
-      .default(defaults.defaultConnectionURI),
+      .optional()
+      .describe(`URI for connecting to postgres. Defaults to \`${defaults.defaultConnectionString}\``),
     psql: z
       .string()
       .optional()

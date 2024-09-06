@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/typegen#readme",
   "scripts": {
-    "_dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5432/postgres\"",
+    "dogfood": "tsx src/cli generate",
     "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"

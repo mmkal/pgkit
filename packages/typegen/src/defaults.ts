@@ -12,7 +12,7 @@ import {defaultWriteTypes} from './write'
 
 export const typegenConfigFile = 'typegen.config.js'
 
-export const defaultConnectionURI = 'postgresql://postgres:postgres@localhost:5432/postgres'
+export const defaultConnectionString = 'postgresql://postgres:postgres@localhost:5432/postgres'
 
 export const defaultPsqlCommand = 'psql'
 
@@ -36,8 +36,8 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     logger = console,
     connectionString = getWithWarning(
       logger,
-      `Using default connection URI of ${defaultConnectionURI}`,
-      defaultConnectionURI,
+      `Using default connection string of ${defaultConnectionString}`,
+      defaultConnectionString,
     ),
     psqlCommand = defaultPsqlCommand,
     pgTypeToTypeScript: gdescToTypeScript = () => undefined,
@@ -68,7 +68,7 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     logger.warn(`Unexpected configuration keys: ${Object.keys(rest).join(', ')}`)
   }
 
-  assert.ok(!connectionString.includes(' \'"'), `Connection URI should not contain spaces or quotes`)
+  assert.ok(!connectionString.includes(' \'"'), `Connection string should not contain spaces or quotes`)
 
   return {
     connectionString,
