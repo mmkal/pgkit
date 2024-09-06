@@ -17,6 +17,8 @@ import {pascalCase} from '../util'
  */
 export const templateToValidSql = (template: string[]) => template.join('null')
 
+export const safeParse = neverthrow.fromThrowable(pgsqlAST.parse, err => new Error(`Failed to parse SQL`, {cause: err}))
+
 /**
  * _Tries_ to return `true` when a query is definitely not going to work with \gdesc. Will miss some cases, and those cases will cause an error to be logged to the console.
  * It will catch:
@@ -45,10 +47,10 @@ export const getTypeability = (template: string[]): neverthrow.Result<true, Erro
         ? neverthrow.ok(true as const)
         : neverthrow.err(new Error('Problems found:\n' + problems.join('\n'), {cause: template})),
     )
-    .andThen(ok => {
-      const statements = pgsqlAST.parse(templateToValidSql(template))
+    .andThen(() => safeParse(templateToValidSql(template)))
+    .andThen(statements => {
       return statements.length === 1
-        ? neverthrow.ok(ok)
+        ? neverthrow.ok(true as const)
         : neverthrow.err(new Error('Too many statements', {cause: template}))
     })
     .andThen(ok => {

@@ -140,15 +140,23 @@ export const generate = async (inputOptions: Partial<Options>) => {
     }
 
     async function generateForFiles(files: string[]) {
-      const processedFiles = await promiseDotOneAtATime(files, generateForFile)
+      const processedFiles = await Promise.all(files.map(generateForFile))
 
-      // gather stats for log
-      const queriesTotal = processedFiles.reduce((sum, {total}) => sum + total, 0)
-      const queriesSuccessful = processedFiles.reduce((sum, {successful}) => sum + successful, 0)
-      const filesSuccessful = processedFiles.reduce((sum, {successful}) => sum + (successful > 0 ? 1 : 0), 0)
-      const queriesMsg = queriesSuccessful < queriesTotal ? `${queriesSuccessful}/${queriesTotal}` : queriesTotal
-      const filesMsg = filesSuccessful < files.length ? `${filesSuccessful}/${files.length}` : files.length
-      logger.info(`Finished processing ${queriesMsg} queries in ${filesMsg} files.`)
+      const stats = {
+        'Total files': processedFiles.length,
+        'Files containing queries': processedFiles.filter(({total}) => total > 0).length,
+        'Total queries': lodash.sumBy(processedFiles, f => f.total),
+        'Successful queries': lodash.sumBy(processedFiles, f => f.successful),
+        'Ignored queries': lodash.sumBy(processedFiles, f => f.ignored),
+      }
+      const padding = Object.keys(stats).sort((a, b) => b.length - a.length)[0].length
+
+      logger.info(
+        `Finished processing.\n` +
+          Object.entries(stats)
+            .map(([key, value]) => `${key}:${' '.repeat(padding - key.length + 1)}${value}`)
+            .join('\n'),
+      )
     }
 
     async function generateForFile(file: string) {
@@ -157,10 +165,12 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
 
-      const analysedQueryResults = await promiseDotOneAtATime(queriesToDescribe, async query => {
-        const describedQuery = await describeQuery(query)
-        return describedQuery.asyncMap(dq => getColumnInfo(pool, dq))
-      })
+      const analysedQueryResults = await Promise.all(
+        queriesToDescribe.map(async query => {
+          const describedQuery = await describeQuery(query)
+          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq))
+        }),
+      )
 
       const successfuls = analysedQueryResults.flatMap(res => {
         if (res.isOk()) return [res.value]

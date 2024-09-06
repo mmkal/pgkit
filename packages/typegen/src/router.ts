@@ -5,13 +5,14 @@ import {generate, Options} from './generate'
 
 const trpc = trpcServer.initTRPC.meta<TrpcCliMeta>().create()
 
-const Options = z.object({
+const CliOptions = z.object({
   config: z
     .string()
+    .optional()
+    .default(existsSync(defaults.typegenConfigFile) ? defaults.typegenConfigFile : (undefined as never))
     .describe(
       'Path to a module containing parameters to be passed to generate. Note: any options passed on the command line will override those in the config file.',
-    )
-    .default(defaults.typegenConfigFile),
+    ),
   rootDir: z.string().describe('Path to the source directory containing SQL queries.').default(defaults.defaultRootDir),
   connectionString: z
     .string()
@@ -57,17 +58,32 @@ const Options = z.object({
 } satisfies {
   [K in keyof Options & {config: unknown}]: unknown
 })
+
 export const router = trpc.router({
   generate: trpc.procedure
     .meta({
       description: 'Scans source files for SQL queries and generates TypeScript interfaces for them.',
     })
-    .input(Options)
-    .mutation(async ({input: {config, psql, watch, skipCheckClean, ...input}}) => {
-      const configModule = config && existsSync(config) ? ((await import(config)) as Record<string, unknown>) : null
-      const baseOptions = configModule ? Options.parse(configModule?.default ?? configModule) : {}
+    .input(CliOptions)
+    .mutation(async ({input: {config: configPath, psql, watch, skipCheckClean, ...input}}) => {
+      let configModule: Partial<Options> | {default: Partial<Options>} | null = null
+
+      if (!configPath && existsSync(defaults.typegenConfigFile)) {
+        configPath = defaults.typegenConfigFile
+      }
+
+      if (configPath) {
+        if (!existsSync(configPath)) {
+          throw new Error(`Config file not found at path ${configPath}`)
+        }
+        configModule = (await import(configPath)) as {}
+        if ('default' in configModule) {
+          configModule = configModule.default as Partial<Options>
+        }
+      }
+
       const run = await generate({
-        ...baseOptions,
+        ...configModule,
         ...(psql && {psqlCommand: psql}),
         ...input,
         ...(skipCheckClean && {checkClean: []}),
