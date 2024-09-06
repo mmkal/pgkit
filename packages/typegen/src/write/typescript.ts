@@ -26,54 +26,56 @@ export const quotePropKey = (key: string) => (/\W/.test(key) ? JSON.stringify(ke
 
 export const getterExpression = (key: string) => (isValidIdentifier(key) ? `.${key}` : `[${JSON.stringify(key)}]`)
 
-export const interfaceBody = (query: AnalysedQuery) =>
-  `
+export const interfaceBody = (query: AnalysedQuery) => {
+  const props: string[] = lodash
+    .chain(query.fields)
+    .groupBy(f => f.name)
+    .values()
+    .map(fields => {
+      const prop = quotePropKey(fields[0].name)
+      const types = lodash.uniq(
+        fields.map(f =>
+          f.nullability === 'not_null' ||
+          f.nullability === 'assumed_not_null' ||
+          f.typescript === 'any' ||
+          f.typescript === 'unknown' ||
+          f.typescript === 'void'
+            ? `${f.typescript}`
+            : `(${f.typescript}) | null`,
+        ),
+      )
+      const comments = lodash.flatMap(fields, f => {
+        const metaVals = {
+          column: f.column && Object.values(f.column).join('.'),
+          'not null': f.nullability === 'not_null',
+          regtype: f.regtype,
+        }
+        const meta = Object.entries(metaVals)
+          .filter(e => e[1])
+          .map(e => `${e[0]}: \`${e[1]}\``)
+          .join(', ')
+
+        return lodash.compact([f.comment, meta])
+      })
+
+      let type = types[0]
+      if (fields.length > 1) {
+        type = types.map(t => `(${t})`).join(' | ')
+        comments.unshift(`Warning: ${fields.length} columns detected for field ${prop}!`)
+      }
+
+      return `
+        ${jsdocComment(comments)}
+        ${prop}: ${type}
+      `
+    })
+    .value()
+  return `
     {
-        ${lodash
-          .chain(query.fields)
-          .groupBy(f => f.name)
-          .values()
-          .map(fields => {
-            const prop = quotePropKey(fields[0].name)
-            const types = lodash.uniq(
-              fields.map(f =>
-                f.nullability === 'not_null' ||
-                f.nullability === 'assumed_not_null' ||
-                f.typescript === 'any' ||
-                f.typescript === 'unknown' ||
-                f.typescript === 'void'
-                  ? `${f.typescript}`
-                  : `(${f.typescript}) | null`,
-              ),
-            )
-            const comments = lodash.flatMap(fields, f => {
-              const metaVals = {
-                column: f.column && Object.values(f.column).join('.'),
-                'not null': f.nullability === 'not_null',
-                regtype: f.regtype,
-              }
-              const meta = Object.entries(metaVals)
-                .filter(e => e[1])
-                .map(e => `${e[0]}: \`${e[1]}\``)
-                .join(', ')
-
-              return lodash.compact([f.comment, meta])
-            })
-
-            let type = types[0]
-            if (fields.length > 1) {
-              type = types.map(t => `(${t})`).join(' | ')
-              comments.unshift(`Warning: ${fields.length} columns detected for field ${prop}!`)
-            }
-
-            return `
-              ${jsdocComment(comments)}
-              ${prop}: ${type}
-            `
-          })
-          .join('\n')}
+        ${props.join('\n')}
     }
   `
+}
 
 // todo: make `comment?: string` into `comments: string[]` so that it can be tweaked, and this becomes a pure write-to-disk method.
 
@@ -89,7 +91,11 @@ export function renderQueryInterface(queryGroup: AnalysedQuery[], interfaceName:
   const bodies = queryGroup.map(interfaceBody)
 
   const numBodies = new Set(bodies).size
-  assert.strictEqual(numBodies, 1, `Query group ${interfaceName} produced inconsistent interface bodies: ${bodies}`)
+  assert.strictEqual(
+    numBodies,
+    1,
+    `Query group ${interfaceName} produced inconsistent interface bodies: ${bodies.join('\n')}`,
+  )
 
   // This relies on src/query/parse.ts returning '_void' when there are no columns.
   // Might be worth finding a better way to determine void-ness if there are cases of 0 fields but non-void responses possible.
