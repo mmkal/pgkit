@@ -398,8 +398,8 @@ test('can write queries to separate file', async () => {
 
         /** - query: \`select 1 as a\` */
         export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
 
       b.ts: |-
@@ -407,8 +407,8 @@ test('can write queries to separate file', async () => {
 
         /** - query: \`select 1 as a\` */
         export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
 
       c.ts: |-
@@ -416,8 +416,8 @@ test('can write queries to separate file', async () => {
 
         /** - query: \`select 1 as a\` */
         export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
     "
   `)
@@ -455,8 +455,8 @@ test('replaces existing queries module', async () => {
 
         /** - query: \`select 1 as a\` */
         export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
       }
     "
@@ -511,8 +511,8 @@ test('ignore irrelevant syntax', async () => {
 
         /** - query: \`select 1\` */
         export interface Column {
-          /** regtype: \`integer\` */
-          '?column?': number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          '?column?': number
         }
       }
     "
@@ -573,8 +573,8 @@ test(`queries with syntax errors don't affect others`, async () => {
 
         /** - query: \`select 1 as one\` */
         export interface One {
-          /** regtype: \`integer\` */
-          one: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          one: number
         }
       }
     "
@@ -627,8 +627,8 @@ test('custom include pattern', async () => {
 
         /** - query: \`select 1 as a\` */
         export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
       }
 
@@ -642,8 +642,8 @@ test('custom include pattern', async () => {
 
         /** - query: \`select 2 as a\` */
         export interface A {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
       }
     "

@@ -3,7 +3,7 @@ import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
-import {SelectFromStatement, toSql} from 'pgsql-ast-parser'
+import {Expr, SelectFromStatement, toSql} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
@@ -180,40 +180,70 @@ const nonNullableExpressionTypes = new Set([
   'value',
   'values',
 ])
+
+const aggregationFunctions = new Set([
+  'count',
+  'exists', //
+])
+
+const nonNullableKeywords = new Set([
+  'current_date', //
+  'current_timestamp',
+  'current_time',
+])
+
 export const isNonNullableField = (sql: string, field: QueryField) => {
+  // todo: figure out if we can help this function out by:
+  // 1. having it receive an AST rather than SQL
+  // 2. when passing it the AST, add helpful "where" clauses that say things like `where a is not null` - we are calling this after we've done most of the hard work of figuring out what columns not null already
+  // 3. let it check where clauses for nullability - if a value is checked as not null, we can be sure it's not null
   const {ast} = getASTModifiedToSingleSelect(sql)
   if (ast.type !== 'select' || !Array.isArray(ast.columns)) {
     return false
   }
 
   const nonNullableColumns = ast.columns.filter(c => {
-    if (c.expr.type !== 'call') {
+    return isNonNullableExpression(c.expr)
+
+    function isNonNullableExpression(expression: Expr): boolean {
+      if (nonNullableExpressionTypes.has(expression.type)) {
+        return true
+      }
+
+      if (expression.type === 'keyword') {
+        return nonNullableKeywords.has(expression.keyword)
+      }
+
+      if (expression.type === 'binary') {
+        return isNonNullableExpression(expression.left) && isNonNullableExpression(expression.right)
+      }
+
+      if (expression.type === 'call') {
+        const name = c.alias?.name ?? expression.function.name
+        if (field.name !== name) {
+          return false
+        }
+
+        if (aggregationFunctions.has(expression.function.name)) {
+          return true
+        }
+
+        if (expression.function.name === 'coalesce') {
+          // let's try to check the args for nullability - as soon as we encounter a definitive non-nullable one, the whole term becomes non-nullable.
+          return expression.args.some(arg => {
+            // for now we'll only check for static args, of which we're sure to be not null, and assume nullability for all others
+            // to work for other types (i.e. refs or functions) this function needs to become recursive, which requires the change below
+            // todo: centralise nullability checks in query parse routine
+            const type = arg.type === 'cast' ? arg.operand.type : arg.type
+            return nonNullableExpressionTypes.has(type)
+          })
+        }
+      }
+
       return false
     }
-
-    const name = c.alias?.name ?? c.expr.function.name
-    if (field.name !== name) {
-      return false
-    }
-
-    if (c.expr.function.name === 'count') {
-      // `count` is the only aggregation function, which never returns null.
-      return true
-    }
-
-    if (c.expr.function.name === 'coalesce') {
-      // let's try to check the args for nullability - as soon as we encounter a definitive non-nullable one, the whole term becomes non-nullable.
-      return c.expr.args.some(arg => {
-        // for now we'll only check for static args, of which we're sure to be not null, and assume nullability for all others
-        // to work for other types (i.e. refs or functions) this function needs to become recursive, which requires the change below
-        // todo: centralise nullability checks in query parse routine
-        const type = arg.type === 'cast' ? arg.operand.type : arg.type
-        return nonNullableExpressionTypes.has(type)
-      })
-    }
-
-    return false
   })
+
   // if there's exactly one column with the same name as the field and matching the conditions above, we can be confident it's not nullable.
   return nonNullableColumns.length === 1
 }
