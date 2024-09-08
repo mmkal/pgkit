@@ -2,7 +2,7 @@ import {Queryable, sql, Transactable} from '@pgkit/client'
 import * as assert from 'assert'
 import {createHash} from 'crypto'
 import * as lodash from 'lodash'
-import {parse, toSql} from 'pgsql-ast-parser'
+import {parse, toSql, WithStatement} from 'pgsql-ast-parser'
 import {z} from 'zod'
 import {getAliasInfo, getASTModifiedToSingleSelect, ModifiedAST} from './parse'
 
@@ -15,6 +15,58 @@ export const analyzeSelectStatement = async (
   client: Transactable,
   modifiedAST: ModifiedAST,
 ): Promise<SelectStatementAnalyzedColumn[]> => {
+  if (modifiedAST.ast.type === 'select' && modifiedAST.ast.columns) {
+    const columns = modifiedAST.ast.columns
+    const subqueryColumns = new Map(
+      columns.flatMap((c, i) => {
+        if (c.expr.type !== 'select') return []
+        if (!c.alias?.name) return [] // todo: log a warning that adding an alias is recommended for better types
+        const name = `subquery_${i}_for_column_${c.alias.name}`
+        return [[i, {index: i, c, expr: c.expr, name, alias: c.alias.name}] as const]
+      }),
+    )
+    if (subqueryColumns.size > 0) {
+      const subqueryColumnValues = Array.from(subqueryColumns.values())
+      const x: WithStatement = {
+        type: 'with',
+        bind: subqueryColumnValues.map((column): WithStatement['bind'][number] => ({
+          alias: {name: column.name},
+          statement: {
+            ...column.expr,
+            columns: column.expr.columns?.map(c => ({
+              ...c,
+              alias: {name: column.alias},
+            })),
+          },
+        })),
+        in: {
+          ...modifiedAST.ast,
+          columns: modifiedAST.ast.columns.map((c, i) => {
+            const subqueryCol = subqueryColumns.get(i)
+            if (!subqueryCol) return c
+            return {
+              expr: {
+                type: 'ref',
+                table: {name: subqueryCol.name},
+                name: subqueryCol.alias,
+              },
+            }
+          }),
+          from: [
+            ...(modifiedAST.ast.from || []),
+            ...subqueryColumnValues.map(({name}): NonNullable<typeof modifiedAST.ast.from>[number] => {
+              return {type: 'table', name: {name}}
+            }),
+          ],
+        },
+      }
+
+      console.log(toSql.statement(x))
+
+      return analyzeSelectStatement(client, getASTModifiedToSingleSelect(toSql.statement(x)))
+    }
+  }
+
   const selectStatementSql = toSql.statement(modifiedAST.ast)
 
   const schemaName =
@@ -112,13 +164,23 @@ export const analyzeSelectStatement = async (
         source: string
       },
     ) {
+      // if (analyzed.length === 0) throw new Error('Expected at least one analyzed column' + modifiedAST.originalSql)
       const tableAlias = {name: options.tableAlias}
       const aliasInfoList = getAliasInfo(statement)
       const aliasList = analyzed[0]?.column_aliases || []
 
-      const tempTableColumns = aliasList.map(aliasName => {
+      if (statement.type !== 'select') throw new Error(`Expected a select statement, got ${statement.type}`)
+      const tempTableColumns = (statement.columns || []).flatMap(col => {
+        // todo: helper to get a column name - need to follow postgres's rules like use table column name if no alias, use function name if no table column name, etc.
+        const aliasName =
+          col.alias?.name ||
+          (col.expr.type === 'ref' ? col.expr.name : col.expr.type === 'call' ? col.expr.function.name : null)
+
         const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
-        if (!aliasInfo) throw new Error(`Alias ${aliasName} not found in statement`)
+        if (!aliasInfo) {
+          console.dir({aliasName, statement, aliasInfoList}, {depth: null})
+          throw new Error(`Alias ${aliasName} not found in statement`, {})
+        }
 
         const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
         if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
@@ -145,6 +207,9 @@ export const analyzeSelectStatement = async (
           })
           .join('\n')}
       `)
+      if (analyzed.length === 0) {
+        console.warn('inserting empty table', raw, analyzed, JSON.stringify(statement, null, 2))
+      }
       await tx.query(raw)
     }
 
@@ -167,10 +232,14 @@ export const analyzeSelectStatement = async (
 
     for (const r of results) {
       if (r.error_message) {
-        // todo: start warning or delete this. let's see what kind of warnings the tests yield first
+        // todo: start warning users.
         // or, maybe, make it logger.debug and show these with the `--debug` flag
         // and/or have a `--strict` flag that errors when there are any warnings - making this a kind of sql validator tool which is cool
-        // console.warn(`Error analyzing select statement: ${r.error_message}`, modifiedAST.originalSql)
+        // eslint-disable-next-line unicorn/no-lonely-if
+        if (process.env.NODE_ENV === 'test') {
+          // eslint-disable-next-line no-console
+          console.warn(`Error analyzing select statement: ${r.error_message}`, modifiedAST.originalSql)
+        }
       }
     }
 
@@ -182,7 +251,6 @@ export const analyzeSelectStatement = async (
     )
 
     if (viewsWeNeedToAnalyze.size > 0) {
-      results = results.slice()
       for (const [viewName, result] of viewsWeNeedToAnalyze) {
         if (!result.underlying_view_definition) {
           throw new Error(

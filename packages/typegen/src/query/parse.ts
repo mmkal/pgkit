@@ -218,7 +218,7 @@ export interface AliasInfo {
    * The column name in the query,
    * - e.g. in `select a as x from foo` this would be a
    */
-  aliasFor: string
+  aliasFor: string | null
   /**
    * The table name(s) the column could be from,
    * - e.g. in `select a from foo` this would be foo
@@ -264,6 +264,10 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
           markNullable(t.on.right)
         }
 
+        if (t.type === 'RIGHT JOIN' && t.on && t.on.type === 'binary') {
+          markNullable(t.on.left)
+        }
+
         if (t.type === 'FULL JOIN' && t.on?.type === 'binary') {
           markNullable(t.on.left)
           markNullable(t.on.right)
@@ -292,6 +296,17 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
         hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
       })
     }
+
+    if (expr.type === 'call') {
+      return mappings.concat({
+        queryColumn: alias?.name ?? expr.function.name,
+        aliasFor: null,
+        tablesColumnCouldBeFrom: [],
+        hasNullableJoin: false,
+      } satisfies AliasInfo)
+    }
+
+    console.dir({expr}, {depth: null})
 
     return mappings
   }, [])
