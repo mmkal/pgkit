@@ -306,7 +306,7 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
       } satisfies AliasInfo)
     }
 
-    console.dir({expr}, {depth: null})
+    // console.dir({expr}, {depth: null})
 
     return mappings
   }, [])

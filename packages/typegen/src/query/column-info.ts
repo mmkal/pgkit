@@ -22,7 +22,7 @@ import {
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery) => {
+export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery): Promise<AnalysedQuery> => {
   const originalSql = templateToValidSql(query.template)
   const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 

@@ -61,7 +61,7 @@ export const analyzeSelectStatement = async (
         },
       }
 
-      console.log(toSql.statement(x))
+      // console.log(toSql.statement(x))
 
       return analyzeSelectStatement(client, getASTModifiedToSingleSelect(toSql.statement(x)))
     }
@@ -92,7 +92,7 @@ export const analyzeSelectStatement = async (
         const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeSelectStatement(tx, modifiedAst)
 
-        await insertPrerequisites(analyzed, statement, {
+        await insertPrerequisites(tx, schemaName, analyzed, statement, {
           tableAlias: tableAlias.name,
           source: 'CTE subquery',
         })
@@ -144,7 +144,7 @@ export const analyzeSelectStatement = async (
         const analyzed = await analyzeSelectStatement(tx, statement)
 
         if (analyzed.length > 0) {
-          await insertPrerequisites(analyzed, statement.ast, {
+          await insertPrerequisites(tx, schemaName, analyzed, statement.ast, {
             tableAlias: f.function.name,
             source: 'function',
           })
@@ -156,62 +156,6 @@ export const analyzeSelectStatement = async (
     }
 
     /** puts fake tables into the temporary schema so that our analyze_select_statement_columns function can find the right types/nullability */
-    async function insertPrerequisites(
-      analyzed: SelectStatementAnalyzedColumn[],
-      statement: ModifiedAST['ast'],
-      options: {
-        tableAlias: string
-        source: string
-      },
-    ) {
-      // if (analyzed.length === 0) throw new Error('Expected at least one analyzed column' + modifiedAST.originalSql)
-      const tableAlias = {name: options.tableAlias}
-      const aliasInfoList = getAliasInfo(statement)
-      const aliasList = analyzed[0]?.column_aliases || []
-
-      if (statement.type !== 'select') throw new Error(`Expected a select statement, got ${statement.type}`)
-      const tempTableColumns = (statement.columns || []).flatMap(col => {
-        // todo: helper to get a column name - need to follow postgres's rules like use table column name if no alias, use function name if no table column name, etc.
-        const aliasName =
-          col.alias?.name ||
-          (col.expr.type === 'ref' ? col.expr.name : col.expr.type === 'call' ? col.expr.function.name : null)
-
-        const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
-        if (!aliasInfo) {
-          console.dir({aliasName, statement, aliasInfoList}, {depth: null})
-          throw new Error(`Alias ${aliasName} not found in statement`, {})
-        }
-
-        const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
-        if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
-
-        const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
-
-        const comment = `From ${options.source} "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
-        return {
-          name: aliasName,
-          def,
-          comment,
-        }
-      })
-
-      const raw = sql.raw(`
-        drop table if exists ${schemaName}.${tableAlias.name};
-        create table ${schemaName}.${tableAlias.name}(
-          ${tempTableColumns.map(c => c.def).join(',\n')}
-        );
-
-        ${tempTableColumns
-          .map(c => {
-            return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
-          })
-          .join('\n')}
-      `)
-      if (analyzed.length === 0) {
-        console.warn('inserting empty table', raw, analyzed, JSON.stringify(statement, null, 2))
-      }
-      await tx.query(raw)
-    }
 
     const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
       --typegen-ignore
@@ -264,7 +208,7 @@ export const analyzeSelectStatement = async (
           )
         }
         const analyzed = await analyzeSelectStatement(tx, statement)
-        await insertPrerequisites(analyzed, statement.ast, {
+        await insertPrerequisites(tx, schemaName, analyzed, statement.ast, {
           tableAlias: viewName,
           source: 'view',
         })
@@ -463,4 +407,68 @@ export declare namespace queries {
     /** regtype: `text[]` */
     proargmodes: string[] | null
   }
+}
+
+async function insertPrerequisites(
+  tx: Transactable,
+  schemaName: string,
+  analyzed: SelectStatementAnalyzedColumn[],
+  statement: ModifiedAST['ast'],
+  options: {
+    tableAlias: string
+    source: string
+  },
+) {
+  // if (analyzed.length === 0) throw new Error('Expected at least one analyzed column' + modifiedAST.originalSql)
+  const tableAlias = {name: options.tableAlias}
+  const aliasInfoList = getAliasInfo(statement)
+  const aliasList = analyzed[0]?.column_aliases || []
+
+  if (statement.type !== 'select') throw new Error(`Expected a select statement, got ${statement.type}`)
+  const tempTableColumns = (statement.columns || []).flatMap(col => {
+    // todo: helper to get a column name - need to follow postgres's rules like use table column name if no alias, use function name if no table column name, etc.
+    const aliasName =
+      col.alias?.name ||
+      (col.expr.type === 'ref' ? col.expr.name : col.expr.type === 'call' ? col.expr.function.name : null)
+
+    const aliasInfo = aliasInfoList.find(info => info.queryColumn === aliasName)
+    if (!aliasInfo) {
+      console.dir({aliasName, statement, aliasInfoList}, {depth: null})
+      return []
+      throw new Error(`Alias ${aliasName} not found in statement`, {})
+    }
+
+    const analyzedResult = analyzed.find(a => a.table_column_name === aliasInfo.aliasFor)
+    if (!analyzedResult) {
+      console.warn(`Alias ${aliasName} not found in analyzed results`, {aliasInfo, analyzed})
+      return []
+    }
+    if (!analyzedResult) throw new Error(`Alias ${aliasName} not found in analyzed results`)
+
+    const def = `${aliasName} ${analyzedResult.underlying_data_type} ${analyzedResult.is_underlying_nullable === 'NO' ? 'not null' : ''}`
+
+    const comment = `From ${options.source} "${tableAlias.name}", column source: ${analyzedResult.schema_name}.${analyzedResult.underlying_table_name}.${analyzedResult.table_column_name}`
+    return {
+      name: aliasName,
+      def,
+      comment,
+    }
+  })
+
+  const raw = sql.raw(`
+    drop table if exists ${schemaName}.${tableAlias.name};
+    create table ${schemaName}.${tableAlias.name}(
+      ${tempTableColumns.map(c => c.def).join(',\n')}
+    );
+
+    ${tempTableColumns
+      .map(c => {
+        return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
+      })
+      .join('\n')}
+  `)
+  if (analyzed.length === 0) {
+    console.warn('inserting empty table', raw, analyzed, JSON.stringify(statement, null, 2))
+  }
+  await tx.query(raw)
 }
