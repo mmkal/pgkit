@@ -1,7 +1,7 @@
 version: '3'
 services:
   postgres:
-    image: postgres:13
+    image: postgres:16
     restart: always
     ports:
     - "5432:5432"
@@ -13,4 +13,6 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
 volumes:
+  # command to list volumes: docker volume ls
+  # command to delete volumes: docker volume rm <volume_name>
   postgres:

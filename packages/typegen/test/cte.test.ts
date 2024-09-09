@@ -209,11 +209,7 @@ test(`statement with complex CTE`, async () => {
 
         /** - query: \`with abc as (select table_name from info... [truncated] ...on_schema.tables, abc) select * from def\` */
         export interface Def {
-          /**
-           * From CTE subquery "def", column source: information_schema.tables.table_schema
-           *
-           * column: \`✨.def.table_schema\`, regtype: \`name\`
-           */
+          /** regtype: \`name\` */
           table_schema: string | null
         }
       }

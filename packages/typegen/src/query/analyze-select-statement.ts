@@ -15,6 +15,7 @@ export const analyzeSelectStatement = async (
   client: Transactable,
   modifiedAST: ModifiedAST,
 ): Promise<SelectStatementAnalyzedColumn[]> => {
+  console.log('analyzeSelectStatement', modifiedAST.originalSql)
   if (modifiedAST.ast.type === 'select' && modifiedAST.ast.columns) {
     const columns = modifiedAST.ast.columns
     const subqueryColumns = new Map(
@@ -103,6 +104,7 @@ export const analyzeSelectStatement = async (
     if (modifiedAST.ast.type === 'select' && modifiedAST.ast.from) {
       if (!modifiedAST.ast.from)
         throw new Error(`Expected a FROM clause, got ${JSON.stringify(modifiedAST.ast, null, 2)}`)
+      // this only gives us types for functions in the FROM clause, not the SELECT list
       const swappableFunctionIndexes = modifiedAST.ast.from.flatMap((f, i) =>
         f.type === 'call' && f.function ? [i] : [],
       )
@@ -228,6 +230,8 @@ export const analyzeSelectStatement = async (
     )
     await tx.query(sql`drop schema if exists ${schemaIdentifier} cascade`)
 
+    console.log('analyzeSelectStatement deduped', deduped)
+
     return deduped
   })
 }
@@ -265,6 +269,8 @@ export const SelectStatementAnalyzedColumnSchema = z.object({
   formatted_query: z.string().nullable(),
 
   error_message: z.string().nullable(),
+
+  formatted_data_type: z.string().nullable(),
 })
 
 export type SelectStatementAnalyzedColumn = z.infer<typeof SelectStatementAnalyzedColumnSchema>
@@ -292,7 +298,8 @@ create type types_type as (
   underlying_data_type text,
   formatted_query text,
   underlying_table_type text,
-  underlying_view_definition text
+  underlying_view_definition text,
+  formatted_data_type text
 );
 
 create or replace function analyze_select_statement_columns (sql_query text)
@@ -340,6 +347,7 @@ begin
       ) as comment,
       view_column_usage.table_name as underlying_table_name,
       underlying_column.is_nullable as is_underlying_nullable,
+      -- todo: probably remove in favour of formatted_data_type, I think this will just be "ARRAY" for boolean[] etc. The pg_attribute table gives a proper type.
       underlying_column.data_type as underlying_data_type,
       pg_get_viewdef(v_tmp_name) as formatted_query,
       underlying_table.table_type as underlying_table_type,
@@ -352,18 +360,27 @@ begin
           pg_get_viewdef(underlying_table.table_name)
         else
           null
-      end as underlying_view_definition
+      end as underlying_view_definition,
+      pg_catalog.format_type(pg_attribute.atttypid, pg_attribute.atttypmod) as formatted_data_type
     from
-      information_schema.columns underlying_column
-    join
       information_schema.view_column_usage
+    join
+      information_schema.columns underlying_column
         on underlying_column.table_name = view_column_usage.table_name
         and underlying_column.column_name = view_column_usage.column_name
         and underlying_column.table_schema = view_column_usage.table_schema
-      join
-        information_schema.tables underlying_table
-          on underlying_column.table_name = underlying_table.table_name
-          and underlying_column.table_schema = underlying_table.table_schema
+    join
+      information_schema.tables underlying_table
+        on underlying_column.table_name = underlying_table.table_name
+        and underlying_column.table_schema = underlying_table.table_schema
+    left join -- left join because we don't always have attributes for views
+      pg_attribute
+        on underlying_column.table_name = pg_attribute.attrelid::regclass::text
+        and underlying_column.column_name = pg_attribute.attname
+    left join -- left join because we don't always have attributes for views
+      pg_class
+        on pg_class.oid = pg_attribute.attrelid
+        and pg_class.relnamespace::regnamespace::text = underlying_column.table_schema
     where
       underlying_column.table_name = v_tmp_name
       or view_column_usage.view_name = v_tmp_name
@@ -468,7 +485,12 @@ async function insertPrerequisites(
       .join('\n')}
   `)
   if (analyzed.length === 0) {
-    console.warn('inserting empty table', raw, analyzed, JSON.stringify(statement, null, 2))
+    console.warn(
+      `inserting empty table ${options.source} \`${toSql.statement(statement)}\``,
+      raw,
+      analyzed,
+      JSON.stringify(statement, null, 2),
+    )
   }
   await tx.query(raw)
 }

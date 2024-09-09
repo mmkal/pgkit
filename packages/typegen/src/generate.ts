@@ -23,8 +23,6 @@ export const generate = async (inputOptions: Partial<Options>) => {
 
   const pool = createClient(options.connectionString, options.poolConfig)
 
-  console.log({options})
-
   const _gdesc = (inputSql: string, searchPath?: string) => {
     let connectionString = options.connectionString
     if (searchPath) {
@@ -79,8 +77,8 @@ export const generate = async (inputOptions: Partial<Options>) => {
     })
   }
 
-  const regTypeToTypeScript = async (regtype: string) => {
-    const enumTypes = await getEnumTypes(pool)
+  const enumTypes = await getEnumTypes(pool)
+  const regTypeToTypeScript = (regtype: string) => {
     return (
       defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
       enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
@@ -95,19 +93,18 @@ export const generate = async (inputOptions: Partial<Options>) => {
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
       // todo(one day): handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
-      typescript: await regTypeToTypeScript(regtype),
+      typescript: regTypeToTypeScript(regtype),
     }))
 
     return Promise.all(promises)
   }
 
-  const getTypeScriptType = async (regtype: string): Promise<string> => {
+  const regtypeToPGTypeDictionary = await getRegtypeToPgTypnameMapping(pool)
+  const getTypeScriptType = (regtype: string): string => {
     assert.ok(regtype, `No regtype found!`)
 
-    const regtypeToPGTypeDictionary = await getRegtypeToPgTypnameMapping(pool)
-
     if (regtype.endsWith('[]')) {
-      const itemType = await getTypeScriptType(regtype.slice(0, -2))
+      const itemType = getTypeScriptType(regtype.slice(0, -2))
       return /^\w+$/.test(itemType) ? `${itemType}[]` : `Array<${itemType}>`
     }
 
@@ -187,7 +184,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const analysedQueryResults = await Promise.all(
         queriesToDescribe.map(async query => {
           const describedQuery = await describeQuery(query)
-          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, getFields))
+          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, regTypeToTypeScript))
         }),
       )
 
@@ -225,7 +222,6 @@ export const generate = async (inputOptions: Partial<Options>) => {
       }
 
       const fieldsResult = await getFields(query)
-      console.dir({query, fieldsResult}, {depth: null})
       const res = await fieldsResult
         .mapErr(err => {
           let message = `${getLogQueryReference(query)} [!] Extracting types from query failed.`

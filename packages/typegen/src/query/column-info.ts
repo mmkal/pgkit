@@ -3,8 +3,7 @@ import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
-import * as neverthrow from 'neverthrow'
-import {Expr, SelectFromStatement, Statement, toSql, parse} from 'pgsql-ast-parser'
+import {Expr, Statement, toSql, parse} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
@@ -25,20 +24,20 @@ import {
   templateToValidSql,
 } from './parse'
 
-type GetFields = (query: {sql: string}, searchPath?: string) => Promise<neverthrow.Result<QueryField[], Error>>
+type RegTypeToTypeScript = (formattedRegType: string & {brand?: 'formatted regtype'}) => string & {brand?: 'typescript'}
 
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
 export const getColumnInfo = memoizeQueryFn(
-  async (pool: Client, query: DescribedQuery, getFields: GetFields): Promise<AnalysedQuery> => {
+  async (pool: Client, query: DescribedQuery, regTypeToTypeScript: RegTypeToTypeScript): Promise<AnalysedQuery> => {
     const originalSql = templateToValidSql(query.template)
     const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 
     if (process.env.NEW_AST_ANALYSIS) {
       return {
         ...query,
-        fields: await analyzeAST(pool, parse(originalSql)[0], getFields),
+        fields: await analyzeAST(query, pool, parse(originalSql)[0], regTypeToTypeScript),
         suggestedTags: generateTags(query),
       }
     }
@@ -60,9 +59,10 @@ export const getColumnInfo = memoizeQueryFn(
 )
 
 export const analyzeAST = async (
+  describedQuery: Pick<DescribedQuery, 'fields'>,
   transactable: Transactable,
   ast: Statement,
-  getFields: GetFields,
+  regTypeToTypeScript: RegTypeToTypeScript,
 ): Promise<AnalysedQueryField[]> => {
   const astSql = toSql.statement(ast)
   const schemaName =
@@ -79,7 +79,12 @@ export const analyzeAST = async (
     if (ast.type === 'with') {
       for (const {statement, alias: tableAlias} of ast.bind) {
         // const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
-        const analyzed = await analyzeAST(tx, statement, getFields)
+        const analyzed = await analyzeAST(
+          {fields: []}, // no benefit of \gdesc info here because this is a subquery
+          tx,
+          statement,
+          regTypeToTypeScript,
+        )
 
         await insertTempTable(tx, {
           tableAlias: tableAlias.name,
@@ -89,7 +94,7 @@ export const analyzeAST = async (
         })
       }
 
-      return analyzeAST(tx, ast.in, getFields)
+      return analyzeAST(describedQuery, tx, ast.in, regTypeToTypeScript)
     }
 
     const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
@@ -100,7 +105,12 @@ export const analyzeAST = async (
     let results = SelectStatementAnalyzedColumnSchema.array().parse(
       await tx.any(AnalyzeSelectStatementColumnsQuery(astSql)),
     )
+
     results = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
+
+    // it's better to use formatted_query even though it means re-parsing, because it's been processed by pg and all the inferred table sources are made explicit
+    const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
+    const aliasInfoList = getAliasInfo(formattedQueryAst)
 
     for (const r of results) {
       if (r.error_message) {
@@ -110,79 +120,71 @@ export const analyzeAST = async (
         // eslint-disable-next-line unicorn/no-lonely-if
         if (process.env.NODE_ENV === 'test') {
           // eslint-disable-next-line no-console
-          console.warn(`wError analyzing select statement: ${r.error_message}`, astSql)
+          console.warn(`wError analyzing select statement: ${r.error_message}`)
         }
       }
     }
 
-    // it's better to use formatted_query even though it means re-parsing, because it's been processed by pg and all the inferred table sources are made explicit
-    const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
-    const aliasInfoList = getAliasInfo(formattedQueryAst)
+    return aliasInfoList.flatMap(aliasInfo => {
+      const matchingQueryField = describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)
 
-    // const fieldsResult = await getFields({sql: astSql}, newSearchPath)
-    // console.dir({astSql, fieldsResult}, {depth: null})
-    // if (fieldsResult.isErr()) {
-    //   throw fieldsResult.error
-    // }
-    // const query = {fields: fieldsResult.value}
-    if (Math.random()) {
-      return aliasInfoList.map(aliasInfo => {
-        // const gdescField = query.fields.find(f => f.name === aliasInfo.queryColumn)
-        // if (!gdescField) {
-        //   console.dir({query, aliasInfo}, {depth: null})
-        //   throw new Error(`Field ${aliasInfo.queryColumn} not found in query`)
-        // }
-        const matchingResult = results.find(
-          r =>
-            r.table_column_name === aliasInfo.aliasFor &&
-            JSON.stringify(r.underlying_table_name) === JSON.stringify(aliasInfo.tablesColumnCouldBeFrom),
+      const matchingResult = results.find(
+        r =>
+          r.table_column_name === aliasInfo.aliasFor &&
+          JSON.stringify([r.underlying_table_name]) === JSON.stringify(aliasInfo.tablesColumnCouldBeFrom),
+      )
+
+      if (!matchingResult && matchingQueryField) {
+        // todo: see if we can do better than this. this is just falling back the output of `psql \gdesc`
+        // todo: watch out, we are matching the overall `describedQuery.fields` here, not necessarily this random CTE expression. there could be re-use of names and this would be wrong.
+        // todo: watch out also for `select count((a, b)) from foo`. that would be a view_column_usage and the data type would imply the wrong type
+        // for postgres 16+ we could use a pg_prepared_statement.result_types
+        return [
+          {
+            column: undefined,
+            name: aliasInfo.queryColumn,
+            regtype: matchingQueryField.regtype,
+            typescript: matchingQueryField.typescript,
+            nullability: 'unknown',
+            comment: undefined,
+          } satisfies AnalysedQueryField,
+        ]
+      }
+
+      if (!matchingResult) {
+        console.dir(
+          {
+            msg: 'no matchingResult',
+            describedQuery,
+            aliasInfo,
+            results,
+            formattedQuery: results?.[0]?.formatted_query || astSql,
+          },
+          {depth: null},
         )
+        return []
+        throw new Error(`Alias info not found for ${JSON.stringify(aliasInfo)}`)
+      }
 
-        if (!matchingResult) {
-          throw new Error(`Alias info not found for ${JSON.stringify(aliasInfo)}`)
-        }
-
-        return getFieldAnalysis(
+      return [
+        getFieldAnalysis(
           results,
           ast,
           {
             name: aliasInfo.queryColumn,
             regtype: matchingResult.underlying_data_type!,
-            typescript: matchingResult,
+            typescript: regTypeToTypeScript(matchingResult.formatted_data_type!),
           },
           astSql,
-        )
-      })
-    }
-    return results.map(r => {
-      if (r.error_message) throw new Error(`eError analyzing select statement: ${r.error_message}`)
-      const aliasInfo = aliasInfoList.find(a => {
-        return (
-          a.aliasFor === r.table_column_name &&
-          JSON.stringify(a.tablesColumnCouldBeFrom) === JSON.stringify([r.underlying_table_name])
-        )
-      })
-      if (!aliasInfo) throw new Error(`Alias info not found for ${JSON.stringify(r)}`)
-      const gdescField = query.fields.find(f => f.name === aliasInfo.queryColumn)
-      if (!gdescField) throw new Error(`Field ${aliasInfo.queryColumn} not found in query`)
-
-      return getFieldAnalysis(
-        results,
-        ast,
-        {
-          name: aliasInfo.queryColumn,
-          regtype: gdescField?.regtype,
-          typescript: gdescField?.typescript,
-        },
-        astSql,
-      )
+        ),
+      ]
     })
   })
 
   return columnAnalysis
 }
 
-async function insertTempTable(
+const insertTempTable = async (
   tx: Transactable,
   params: {
     tableAlias: string
@@ -190,7 +192,7 @@ async function insertTempTable(
     schemaName: string
     fields: AnalysedQueryField[]
   },
-) {
+) => {
   const {schemaName, fields} = params
   const tableAlias = {name: params.tableAlias}
 
@@ -227,7 +229,6 @@ async function insertTempTable(
   if (fields.length === 0) {
     console.warn('not inserting empty table', raw, fields, params)
   } else {
-    console.warn('inserting table', raw, fields)
     await tx.query(raw)
   }
 }
@@ -237,7 +238,7 @@ const getFieldAnalysis = (
   originalAst: Statement,
   field: QueryField,
   originalSql: string,
-) => {
+): AnalysedQueryField => {
   /** formatted_query is generated by the magic of pg and something about it is different somehow */
   const formattedQuery = selectStatementColumns[0]?.formatted_query
   const ast =
