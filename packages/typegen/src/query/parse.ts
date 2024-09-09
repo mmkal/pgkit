@@ -207,11 +207,12 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
 
   pgsqlAST
     .astVisitor(map => ({
-      tableRef: t =>
+      tableRef: t => {
         allTableReferences.push({
           table: t.name,
           referredToAs: t.alias || t.name,
-        }),
+        })
+      },
       join(t) {
         if (t.type === 'LEFT JOIN' && t.on && t.on.type === 'binary') {
           markNullable(t.on.right)
@@ -242,10 +243,12 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
 
   return statement.columns.reduce<AliasInfo[]>((mappings, {expr, alias}) => {
     if (expr.type === 'ref') {
+      const matchingTables = availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table)
       return mappings.concat({
         queryColumn: alias?.name ?? expr.name,
         aliasFor: expr.name,
-        tablesColumnCouldBeFrom: availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table),
+        tablesColumnCouldBeFrom:
+          matchingTables.length === 0 && availableTables.length === 1 ? [availableTables[0].table] : matchingTables,
         hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
       })
     }

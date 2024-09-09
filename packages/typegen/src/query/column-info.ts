@@ -112,6 +112,8 @@ export const analyzeAST = async (
     const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
     const aliasInfoList = getAliasInfo(formattedQueryAst)
 
+    console.dir({formattedQuerySql: toSql.statement(formattedQueryAst), results}, {depth: null})
+
     for (const r of results) {
       if (r.error_message) {
         // todo: start warning users.
@@ -134,7 +136,7 @@ export const analyzeAST = async (
           JSON.stringify([r.underlying_table_name]) === JSON.stringify(aliasInfo.tablesColumnCouldBeFrom),
       )
 
-      if (!matchingResult && matchingQueryField) {
+      if (matchingQueryField && !matchingResult) {
         // todo: see if we can do better than this. this is just falling back the output of `psql \gdesc`
         // todo: watch out, we are matching the overall `describedQuery.fields` here, not necessarily this random CTE expression. there could be re-use of names and this would be wrong.
         // todo: watch out also for `select count((a, b)) from foo`. that would be a view_column_usage and the data type would imply the wrong type
@@ -158,13 +160,16 @@ export const analyzeAST = async (
             describedQuery,
             aliasInfo,
             results,
-            formattedQuery: results?.[0]?.formatted_query || astSql,
+            formattedQuery: results?.[0]?.formatted_query,
           },
           {depth: null},
         )
         return []
+        // todo: delete throw. there will always be times we don't get results from view_column_usage like count(1)
         throw new Error(`Alias info not found for ${JSON.stringify(aliasInfo)}`)
       }
+
+      console.dir({matchingResult}, {depth: null})
 
       return [
         getFieldAnalysis(
@@ -282,6 +287,12 @@ const getFieldAnalysis = (
   } else {
     nullability = 'unknown'
   }
+
+  console.dir({
+    field,
+    nullability,
+    res,
+  })
 
   return {
     ...field,
