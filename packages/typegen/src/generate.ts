@@ -23,9 +23,19 @@ export const generate = async (inputOptions: Partial<Options>) => {
 
   const pool = createClient(options.connectionString, options.poolConfig)
 
-  const {psql: _psql} = psqlClient(`${options.psqlCommand} "${options.connectionString}"`)
+  console.log({options})
 
-  const _gdesc = (inputSql: string) => {
+  const _gdesc = (inputSql: string, searchPath?: string) => {
+    let connectionString = options.connectionString
+    if (searchPath) {
+      const url = new URL(connectionString)
+      const optionsString = url.searchParams.get('options')
+      const optionsParams = new URLSearchParams(optionsString || '')
+      optionsParams.set('--search_path', searchPath)
+      url.searchParams.set('options', optionsParams.toString())
+      connectionString = url.toString()
+    }
+    const {psql} = psqlClient(`${options.psqlCommand} "${connectionString}"`)
     return neverthrow
       .ok(inputSql)
       .map(sql => sql.trim().replace(/;$/, ''))
@@ -39,13 +49,16 @@ export const generate = async (inputOptions: Partial<Options>) => {
             if ((err as Error).message.includes('psql: command not found')) {
               message += ` If you're using docker, try using \`--psql 'docker-compose exec -T postgres psql'\`.`
             }
+            if (searchPath) {
+              message += `\n\nNote: search path was set to ${searchPath}. Connection string used: ${connectionString}`
+            }
             return new Error(message, {cause: err})
           },
         )
       })
   }
 
-  const psql = memoizee(_psql, {max: 1000})
+  // const psql = memoizee(_psql, {max: 1000})
   const gdesc = memoizee(_gdesc, {max: 1000})
 
   const getLogPath = (filepath: string) => {
@@ -53,8 +66,8 @@ export const generate = async (inputOptions: Partial<Options>) => {
     return relPath.startsWith('.') ? relPath : `./${relPath}`
   }
 
-  const getFields = async (query: ExtractedQuery) => {
-    const rowsResult = await gdesc(query.sql)
+  const getFields = async (query: {sql: string}, searchPath?: string) => {
+    const rowsResult = await gdesc(query.sql, searchPath)
     return rowsResult.asyncMap(async rows => {
       return Promise.all(
         rows.map<Promise<QueryField>>(async row => ({
@@ -174,7 +187,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const analysedQueryResults = await Promise.all(
         queriesToDescribe.map(async query => {
           const describedQuery = await describeQuery(query)
-          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq))
+          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, getFields))
         }),
       )
 
@@ -212,6 +225,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       }
 
       const fieldsResult = await getFields(query)
+      console.dir({query, fieldsResult}, {depth: null})
       const res = await fieldsResult
         .mapErr(err => {
           let message = `${getLogQueryReference(query)} [!] Extracting types from query failed.`

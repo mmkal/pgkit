@@ -40,7 +40,7 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
       defaultConnectionString,
     ),
     psqlCommand = defaultPsqlCommand,
-    pgTypeToTypeScript: gdescToTypeScript = () => undefined,
+    pgTypeToTypeScript: pgTypeToTypeScript = () => undefined,
     rootDir = defaultRootDir,
     include = defaultIncludePatterns,
     exclude = defaultExcludePatterns,
@@ -73,7 +73,7 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
   return {
     connectionString,
     psqlCommand,
-    pgTypeToTypeScript: gdescToTypeScript,
+    pgTypeToTypeScript,
     rootDir,
     include,
     exclude,

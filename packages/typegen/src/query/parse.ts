@@ -169,7 +169,7 @@ export interface AliasInfo {
   queryColumn: string
   /**
    * The column name in the query,
-   * - e.g. in `select a as x from foo` this would be a
+   * - e.g. in `select a as x from foo` this would be `a`
    */
   aliasFor: string | null
   /**

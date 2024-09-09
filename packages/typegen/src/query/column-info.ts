@@ -3,6 +3,7 @@ import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
+import * as neverthrow from 'neverthrow'
 import {Expr, SelectFromStatement, Statement, toSql, parse} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 
@@ -24,57 +25,61 @@ import {
   templateToValidSql,
 } from './parse'
 
+type GetFields = (query: {sql: string}, searchPath?: string) => Promise<neverthrow.Result<QueryField[], Error>>
+
 // todo: logging
 // todo: get table description from obj_description(oid) (like column)
 
-export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: DescribedQuery): Promise<AnalysedQuery> => {
-  const originalSql = templateToValidSql(query.template)
-  const modifiedAST = getASTModifiedToSingleSelect(originalSql)
+export const getColumnInfo = memoizeQueryFn(
+  async (pool: Client, query: DescribedQuery, getFields: GetFields): Promise<AnalysedQuery> => {
+    const originalSql = templateToValidSql(query.template)
+    const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 
-  if (process.env.NEW_AST_ANALYSIS) {
+    if (process.env.NEW_AST_ANALYSIS) {
+      return {
+        ...query,
+        fields: await analyzeAST(pool, parse(originalSql)[0], getFields),
+        suggestedTags: generateTags(query),
+      }
+    }
+
+    if (modifiedAST.ast.type !== 'select') {
+      return getDefaultAnalysedQuery(query)
+    }
+
+    const singleSelectAst = modifiedAST.ast
+    const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
+    const filteredStatements = analyzedSelectStatement.filter(c => !c.error_message)
+
     return {
       ...query,
-      fields: await analyzeAST(pool, parse(originalSql)[0], query),
       suggestedTags: generateTags(query),
+      fields: query.fields.map(field => getFieldAnalysis(filteredStatements, singleSelectAst, field, originalSql)),
     }
-  }
-
-  if (modifiedAST.ast.type !== 'select') {
-    return getDefaultAnalysedQuery(query)
-  }
-
-  const singleSelectAst = modifiedAST.ast
-  const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
-  const filteredStatements = analyzedSelectStatement.filter(c => !c.error_message)
-
-  return {
-    ...query,
-    suggestedTags: generateTags(query),
-    fields: query.fields.map(field => getFieldAnalysis(filteredStatements, singleSelectAst, field, originalSql)),
-  }
-})
+  },
+)
 
 export const analyzeAST = async (
   transactable: Transactable,
   ast: Statement,
-  query: DescribedQuery,
+  getFields: GetFields,
 ): Promise<AnalysedQueryField[]> => {
   const astSql = toSql.statement(ast)
   const schemaName =
     'pgkit_typegen_temp_schema_' + createHash('md5').update(JSON.stringify(ast)).digest('hex').slice(0, 6)
   const schemaIdentifier = sql.identifier([schemaName])
+  const oldSearchPath = await transactable.oneFirst<{search_path: string}>(sql`show search_path`)
+  const newSearchPath = `${schemaName}, ${oldSearchPath}`
 
   const columnAnalysis = await transactable.transaction(async tx => {
     await tx.query(sql`create schema if not exists ${schemaIdentifier}`)
-    await tx.query(sql`
-      set search_path to ${schemaIdentifier}, ${sql.raw(await tx.oneFirst<{search_path: string}>(sql`show search_path`))};
-    `)
+    await tx.query(sql.raw(`set search_path to ${newSearchPath}`))
     await createAnalyzeSelectStatementColumnsFunction(tx, schemaName)
 
     if (ast.type === 'with') {
       for (const {statement, alias: tableAlias} of ast.bind) {
         // const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
-        const analyzed = await analyzeAST(tx, statement, query)
+        const analyzed = await analyzeAST(tx, statement, getFields)
 
         await insertTempTable(tx, {
           tableAlias: tableAlias.name,
@@ -84,7 +89,7 @@ export const analyzeAST = async (
         })
       }
 
-      return analyzeAST(tx, ast.in, query)
+      return analyzeAST(tx, ast.in, getFields)
     }
 
     const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
@@ -114,18 +119,36 @@ export const analyzeAST = async (
     const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
     const aliasInfoList = getAliasInfo(formattedQueryAst)
 
+    // const fieldsResult = await getFields({sql: astSql}, newSearchPath)
+    // console.dir({astSql, fieldsResult}, {depth: null})
+    // if (fieldsResult.isErr()) {
+    //   throw fieldsResult.error
+    // }
+    // const query = {fields: fieldsResult.value}
     if (Math.random()) {
       return aliasInfoList.map(aliasInfo => {
-        const gdescField = query.fields.find(f => f.name === aliasInfo.queryColumn)
-        if (!gdescField) throw new Error(`Field ${aliasInfo.queryColumn} not found in query`)
+        // const gdescField = query.fields.find(f => f.name === aliasInfo.queryColumn)
+        // if (!gdescField) {
+        //   console.dir({query, aliasInfo}, {depth: null})
+        //   throw new Error(`Field ${aliasInfo.queryColumn} not found in query`)
+        // }
+        const matchingResult = results.find(
+          r =>
+            r.table_column_name === aliasInfo.aliasFor &&
+            JSON.stringify(r.underlying_table_name) === JSON.stringify(aliasInfo.tablesColumnCouldBeFrom),
+        )
+
+        if (!matchingResult) {
+          throw new Error(`Alias info not found for ${JSON.stringify(aliasInfo)}`)
+        }
 
         return getFieldAnalysis(
           results,
           ast,
           {
             name: aliasInfo.queryColumn,
-            regtype: gdescField?.regtype,
-            typescript: gdescField?.typescript,
+            regtype: matchingResult.underlying_data_type!,
+            typescript: matchingResult,
           },
           astSql,
         )
