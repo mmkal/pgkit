@@ -67,7 +67,7 @@ test('statement avoiding CTE', async () => {
   `)
 })
 
-test(`statement with CTE`, async () => {
+test(`statement with simple CTE`, async () => {
   const syncer = fsSyncer.testFixture({
     expect,
     targetState: {
@@ -162,8 +162,12 @@ test(`statement with CTE with aggregate function`, async () => {
 
         /** - query: \`with abc as (select count(*) from test_table1) select count from abc\` */
         export interface Abc {
-          /** regtype: \`bigint\` */
-          count: number | null
+          /**
+           * From CTE subquery "abc"
+           *
+           * column: \`✨.abc.count\`, not null: \`true\`, regtype: \`bigint\`
+           */
+          count: number
         }
       }
     "

@@ -1,15 +1,20 @@
-import {Client} from '@pgkit/client'
+import {Client, sql, Transactable} from '@pgkit/client'
 import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
-import {Expr, SelectFromStatement, toSql} from 'pgsql-ast-parser'
+import {Expr, SelectFromStatement, Statement, toSql, parse} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
 import {tryOrDefault} from '../util'
 import {memoizeQueryFn} from '../utils/memoize'
-import {SelectStatementAnalyzedColumn, analyzeSelectStatement} from './analyze-select-statement'
+import {
+  SelectStatementAnalyzedColumn,
+  SelectStatementAnalyzedColumnSchema,
+  analyzeSelectStatement,
+  createAnalyzeSelectStatementColumnsFunction,
+} from './analyze-select-statement'
 import {
   getAliasInfo,
   getASTModifiedToSingleSelect,
@@ -26,6 +31,14 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
   const originalSql = templateToValidSql(query.template)
   const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 
+  if (process.env.NEW_AST_ANALYSIS) {
+    return {
+      ...query,
+      fields: await analyzeAST(pool, parse(originalSql)[0], query),
+      suggestedTags: generateTags(query),
+    }
+  }
+
   if (modifiedAST.ast.type !== 'select') {
     return getDefaultAnalysedQuery(query)
   }
@@ -37,13 +50,168 @@ export const getColumnInfo = memoizeQueryFn(async (pool: Client, query: Describe
   return {
     ...query,
     suggestedTags: generateTags(query),
-    fields: query.fields.map(field => getFieldInfo(filteredStatements, singleSelectAst, field, originalSql)),
+    fields: query.fields.map(field => getFieldAnalysis(filteredStatements, singleSelectAst, field, originalSql)),
   }
 })
 
-const getFieldInfo = (
+export const analyzeAST = async (
+  transactable: Transactable,
+  ast: Statement,
+  query: DescribedQuery,
+): Promise<AnalysedQueryField[]> => {
+  const astSql = toSql.statement(ast)
+  const schemaName =
+    'pgkit_typegen_temp_schema_' + createHash('md5').update(JSON.stringify(ast)).digest('hex').slice(0, 6)
+  const schemaIdentifier = sql.identifier([schemaName])
+
+  const columnAnalysis = await transactable.transaction(async tx => {
+    await tx.query(sql`create schema if not exists ${schemaIdentifier}`)
+    await tx.query(sql`
+      set search_path to ${schemaIdentifier}, ${sql.raw(await tx.oneFirst<{search_path: string}>(sql`show search_path`))};
+    `)
+    await createAnalyzeSelectStatementColumnsFunction(tx, schemaName)
+
+    if (ast.type === 'with') {
+      for (const {statement, alias: tableAlias} of ast.bind) {
+        // const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
+        const analyzed = await analyzeAST(tx, statement, query)
+
+        await insertTempTable(tx, {
+          tableAlias: tableAlias.name,
+          fields: analyzed,
+          schemaName,
+          source: 'CTE subquery',
+        })
+      }
+
+      return analyzeAST(tx, ast.in, query)
+    }
+
+    const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
+      --typegen-ignore
+      select * from ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${statmentSql})
+    `
+    // todo: figure out why sql.type(MyZodType) isn't working here
+    let results = SelectStatementAnalyzedColumnSchema.array().parse(
+      await tx.any(AnalyzeSelectStatementColumnsQuery(astSql)),
+    )
+    results = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
+
+    for (const r of results) {
+      if (r.error_message) {
+        // todo: start warning users.
+        // or, maybe, make it logger.debug and show these with the `--debug` flag
+        // and/or have a `--strict` flag that errors when there are any warnings - making this a kind of sql validator tool which is cool
+        // eslint-disable-next-line unicorn/no-lonely-if
+        if (process.env.NODE_ENV === 'test') {
+          // eslint-disable-next-line no-console
+          console.warn(`wError analyzing select statement: ${r.error_message}`, astSql)
+        }
+      }
+    }
+
+    // it's better to use formatted_query even though it means re-parsing, because it's been processed by pg and all the inferred table sources are made explicit
+    const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
+    const aliasInfoList = getAliasInfo(formattedQueryAst)
+
+    if (Math.random()) {
+      return aliasInfoList.map(aliasInfo => {
+        const gdescField = query.fields.find(f => f.name === aliasInfo.queryColumn)
+        if (!gdescField) throw new Error(`Field ${aliasInfo.queryColumn} not found in query`)
+
+        return getFieldAnalysis(
+          results,
+          ast,
+          {
+            name: aliasInfo.queryColumn,
+            regtype: gdescField?.regtype,
+            typescript: gdescField?.typescript,
+          },
+          astSql,
+        )
+      })
+    }
+    return results.map(r => {
+      if (r.error_message) throw new Error(`eError analyzing select statement: ${r.error_message}`)
+      const aliasInfo = aliasInfoList.find(a => {
+        return (
+          a.aliasFor === r.table_column_name &&
+          JSON.stringify(a.tablesColumnCouldBeFrom) === JSON.stringify([r.underlying_table_name])
+        )
+      })
+      if (!aliasInfo) throw new Error(`Alias info not found for ${JSON.stringify(r)}`)
+      const gdescField = query.fields.find(f => f.name === aliasInfo.queryColumn)
+      if (!gdescField) throw new Error(`Field ${aliasInfo.queryColumn} not found in query`)
+
+      return getFieldAnalysis(
+        results,
+        ast,
+        {
+          name: aliasInfo.queryColumn,
+          regtype: gdescField?.regtype,
+          typescript: gdescField?.typescript,
+        },
+        astSql,
+      )
+    })
+  })
+
+  return columnAnalysis
+}
+
+async function insertTempTable(
+  tx: Transactable,
+  params: {
+    tableAlias: string
+    source: string
+    schemaName: string
+    fields: AnalysedQueryField[]
+  },
+) {
+  const {schemaName, fields} = params
+  const tableAlias = {name: params.tableAlias}
+
+  // if (statement.type !== 'select') throw new Error(`Expected a select statement, got ${statement.type}`)
+  const tempTableColumns = fields.flatMap(field => {
+    const aliasName = field.name
+
+    const def = `${aliasName} ${field.regtype} ${field.nullability === 'not_null' || field.nullability === 'assumed_not_null' ? 'not null' : ''}`
+
+    const comment = [
+      `From ${params.source} "${tableAlias.name}"`,
+      field.column && `column source: ${field.column?.schema}.${field.column?.table}.${field.column?.name}`,
+    ]
+
+    return {
+      name: aliasName,
+      def,
+      comment: comment.filter(Boolean).join(', '),
+    }
+  })
+
+  const raw = sql.raw(`
+    drop table if exists ${schemaName}.${tableAlias.name};
+    create table ${schemaName}.${tableAlias.name}(
+      ${tempTableColumns.map(c => c.def).join(',\n')}
+    );
+
+    ${tempTableColumns
+      .map(c => {
+        return `comment on column ${schemaName}.${tableAlias.name}.${c.name} is '${c.comment}';`
+      })
+      .join('\n')}
+  `)
+  if (fields.length === 0) {
+    console.warn('not inserting empty table', raw, fields, params)
+  } else {
+    console.warn('inserting table', raw, fields)
+    await tx.query(raw)
+  }
+}
+
+const getFieldAnalysis = (
   selectStatementColumns: SelectStatementAnalyzedColumn[],
-  originalAst: SelectFromStatement,
+  originalAst: Statement,
   field: QueryField,
   originalSql: string,
 ) => {
@@ -58,9 +226,9 @@ const getFieldInfo = (
     // console.warn('using originalAst', {formattedQuery, originalSql})
   }
 
-  const mappings = getAliasInfo(ast)
+  const aliasInfo = getAliasInfo(ast)
 
-  const relatedResults = mappings.flatMap(c =>
+  const relatedResults = aliasInfo.flatMap(c =>
     selectStatementColumns
       .map(v => ({
         ...v,

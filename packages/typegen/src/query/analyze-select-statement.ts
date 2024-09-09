@@ -272,7 +272,7 @@ export type SelectStatementAnalyzedColumn = z.infer<typeof SelectStatementAnalyz
 /**
  * A query, which creates a tmp table for the purpose of analysing types of another query
  */
-const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable, schemaName: string) => {
+export const createAnalyzeSelectStatementColumnsFunction = async (queryable: Queryable, schemaName: string) => {
   // todo: figure out why sql.identifier is giving syntax errors
   const query = sql.raw(
     // eslint-disable-next-line unicorn/template-indent

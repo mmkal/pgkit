@@ -67,7 +67,7 @@ export const getTypeability = (template: string[]): neverthrow.Result<true, Erro
 // and have test cases for when a view can't be created
 /** parses a sql string and returns an AST which we've tried to modify to make it a nice easy to digest SELECT statement */
 export const getASTModifiedToSingleSelect = (sql: string): ModifiedAST => {
-  const statements = parseWithWorkarounds(sql)
+  const statements = pgsqlAST.parse(sql)
   assert.ok(
     statements.length === 1,
     `Can't parse query\n---\n${sql}\n---\nbecause it has ${statements.length} statements.`,
@@ -81,53 +81,6 @@ export const isParseable = (sql: string): boolean => {
     return true
   } catch {
     return false
-  }
-}
-
-export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.Statement[] => {
-  try {
-    return pgsqlAST.parse(sql)
-  } catch (e) {
-    /* istanbul ignore if */
-    if (attemptsLeft <= 1) {
-      throw e
-    }
-
-    if (sql.trim().startsWith('with ')) {
-      // handle (some) CTEs. Can fail if comments trip up the parsing. You'll end up with queries called `Anonymous` if that happens
-      const state = {
-        parenLevel: 0,
-        cteStart: -1,
-      }
-      const replacements: Array<{start: number; end: number; text: string}> = []
-
-      for (let i = 0; i < sql.length; i++) {
-        const prev = sql.slice(0, i).replace(/\s+/, ' ').trim()
-        if (sql[i] === '(') {
-          state.parenLevel++
-          if (prev.endsWith(' as') && state.parenLevel === 1) {
-            state.cteStart = i
-          }
-        }
-
-        if (sql[i] === ')') {
-          state.parenLevel--
-          if (state.parenLevel === 0 && state.cteStart > -1) {
-            replacements.push({start: state.cteStart + 1, end: i, text: 'select 1'})
-            state.cteStart = -1
-          }
-        }
-      }
-
-      const newSql = replacements.reduceRight(
-        (acc, rep) => acc.slice(0, rep.start) + rep.text + acc.slice(rep.end),
-        sql,
-      )
-
-      return parseWithWorkarounds(newSql, attemptsLeft - 1)
-    }
-
-    throw e
   }
 }
 

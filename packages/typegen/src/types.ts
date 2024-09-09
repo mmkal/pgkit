@@ -205,8 +205,9 @@ export interface DescribedQuery extends ExtractedQuery {
   parameters: QueryParameter[]
 }
 
+/** Info for a field in a query, from `psql ... \gdesc` */
 export interface QueryField {
-  /** Field name. e.g. for `select foo, bar from baz` this will be `foo` or `bar` */
+  /** Field name. e.g. for `select f as foo, b as bar from baz` this will be `foo` or `bar`. Not the underlying column name like `f` or `b`. */
   name: string
   /** The description column returned by `psql ... \gdesc`. See https://www.postgresql.org/docs/11/app-psql.html  */
   regtype: string
