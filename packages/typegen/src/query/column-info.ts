@@ -112,8 +112,6 @@ export const analyzeAST = async (
     const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
     const aliasInfoList = getAliasInfo(formattedQueryAst)
 
-    console.dir({formattedQuerySql: toSql.statement(formattedQueryAst), results}, {depth: null})
-
     for (const r of results) {
       if (r.error_message) {
         // todo: start warning users.
@@ -168,8 +166,6 @@ export const analyzeAST = async (
         // todo: delete throw. there will always be times we don't get results from view_column_usage like count(1)
         throw new Error(`Alias info not found for ${JSON.stringify(aliasInfo)}`)
       }
-
-      console.dir({matchingResult}, {depth: null})
 
       return [
         getFieldAnalysis(
@@ -287,12 +283,6 @@ const getFieldAnalysis = (
   } else {
     nullability = 'unknown'
   }
-
-  console.dir({
-    field,
-    nullability,
-    res,
-  })
 
   return {
     ...field,
