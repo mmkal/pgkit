@@ -32,13 +32,15 @@ export const getEnumTypes = memoizeQueryFn(async pool => {
   return lodash.groupBy(types, t => t.searchable_type_name)
 })
 
-export const getRegtypeToPGType = memoizeQueryFn(async pool => {
+/** postgres stores types in a pg_type table, and uses its own custom names for types under the `typname` column. this maps from regtype to the `pg_type.typname` value which you might sometimes need. */
+export const getRegtypeToPgTypnameMapping = memoizeQueryFn(async pool => {
   const types = await pool.any(sql<queries.PgType>`
     select oid, typname, oid::regtype as regtype
     from pg_type
+    where oid is not null
   `)
 
-  return lodash.keyBy(types, t => t.regtype)
+  return lodash.keyBy(types, t => t.regtype!)
 })
 
 /**

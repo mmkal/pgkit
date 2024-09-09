@@ -326,7 +326,7 @@ begin
       null as error_message,
       view_column_usage.table_schema as schema_name,
       view_column_usage.view_name as view_name,
-      c.column_name as table_column_name,
+      underlying_column.column_name as table_column_name,
       view_column_usage.column_name as query_column_name,
       (
         select array_agg(attname) from (
@@ -335,12 +335,12 @@ begin
       ) as column_aliases,
       --'originally from table: ' || view_column_usage.table_name as comment,
       col_description(
-        to_regclass(quote_ident(c.table_schema) || '.' || quote_ident(c.table_name)),
-        c.ordinal_position
+        to_regclass(quote_ident(underlying_column.table_schema) || '.' || quote_ident(underlying_column.table_name)),
+        underlying_column.ordinal_position
       ) as comment,
       view_column_usage.table_name as underlying_table_name,
-      c.is_nullable as is_underlying_nullable,
-      c.data_type as underlying_data_type,
+      underlying_column.is_nullable as is_underlying_nullable,
+      underlying_column.data_type as underlying_data_type,
       pg_get_viewdef(v_tmp_name) as formatted_query,
       underlying_table.table_type as underlying_table_type,
       case
@@ -354,18 +354,18 @@ begin
           null
       end as underlying_view_definition
     from
-      information_schema.columns c
+      information_schema.columns underlying_column
     join
       information_schema.view_column_usage
-        on c.table_name = view_column_usage.table_name
-        and c.column_name = view_column_usage.column_name
-        and c.table_schema = view_column_usage.table_schema
+        on underlying_column.table_name = view_column_usage.table_name
+        and underlying_column.column_name = view_column_usage.column_name
+        and underlying_column.table_schema = view_column_usage.table_schema
       join
         information_schema.tables underlying_table
-          on c.table_name = underlying_table.table_name
-          and c.table_schema = underlying_table.table_schema
+          on underlying_column.table_name = underlying_table.table_name
+          and underlying_column.table_schema = underlying_table.table_schema
     where
-      c.table_name = v_tmp_name
+      underlying_column.table_name = v_tmp_name
       or view_column_usage.view_name = v_tmp_name
   loop
     return next returnrec;

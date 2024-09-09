@@ -114,7 +114,7 @@ export interface Options {
    * Return undefined to fall back on the default behaviour.
    * @default @see defaultPGDataTypeToTypeScriptMappings
    */
-  pgTypeToTypeScript: (regtype: string, typeName: string) => string | undefined
+  pgTypeToTypeScript: (regtype: string) => string | undefined
 
   /**
    * @experimental

@@ -9,7 +9,7 @@ import * as neverthrow from 'neverthrow'
 import * as path from 'path'
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
-import {getEnumTypes, getRegtypeToPGType, psqlClient} from './pg'
+import {getEnumTypes, getRegtypeToPgTypnameMapping, psqlClient} from './pg'
 import {getColumnInfo, getTypeability, removeSimpleComments} from './query'
 import {getParameterTypes} from './query/parameters'
 import {ExtractedQuery, Options, QueryField, QueryParameter} from './types'
@@ -73,7 +73,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
         rows.map<Promise<QueryField>>(async row => ({
           name: row.Column,
           regtype: row.Type,
-          typescript: await getTypeScriptType(row.Type, row.Column),
+          typescript: await getTypeScriptType(row.Type),
         })),
       )
     })
@@ -101,19 +101,19 @@ export const generate = async (inputOptions: Partial<Options>) => {
     return Promise.all(promises)
   }
 
-  const getTypeScriptType = async (regtype: string, typeName: string): Promise<string> => {
+  const getTypeScriptType = async (regtype: string): Promise<string> => {
     assert.ok(regtype, `No regtype found!`)
 
-    const regtypeToPGTypeDictionary = await getRegtypeToPGType(pool)
+    const regtypeToPGTypeDictionary = await getRegtypeToPgTypnameMapping(pool)
 
     if (regtype.endsWith('[]')) {
-      const itemType = await getTypeScriptType(regtype.slice(0, -2), typeName)
+      const itemType = await getTypeScriptType(regtype.slice(0, -2))
       return /^\w+$/.test(itemType) ? `${itemType}[]` : `Array<${itemType}>`
     }
 
     if (/\([\d ,]+\)/.test(regtype)) {
       // e.g. `character varying(10)`, which is the regtype from `create table t(s varchar(10))`
-      return getTypeScriptType(regtype.split('(')[0], typeName)
+      return getTypeScriptType(regtype.split('(')[0])
     }
 
     const pgtype = regtypeToPGTypeDictionary[regtype]
@@ -123,7 +123,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
     const lastWithOid = lodash.findLast(options.typeParsers, p => {
       return typeof pgtype === 'object' && 'oid' in pgtype && p.oid === pgtype.oid
     })
-    return lastWithOid?.typescript || options.pgTypeToTypeScript(regtype, typeName) || regTypeToTypeScript(regtype)
+    return lastWithOid?.typescript || options.pgTypeToTypeScript(regtype) || regTypeToTypeScript(regtype)
   }
 
   const findAll = async () => {
