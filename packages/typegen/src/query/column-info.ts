@@ -97,6 +97,72 @@ export const analyzeAST = async (
       return analyzeAST(describedQuery, tx, ast.in, regTypeToTypeScript)
     }
 
+    if (ast.type === 'select' && ast.from) {
+      const swappableFunctionIndexes = ast.from.flatMap((f, i) => (f.type === 'call' && f.function ? [i] : []))
+      const swappedAst = {...ast, from: ast.from.slice()}
+      for (const i of swappableFunctionIndexes) {
+        const f = ast.from[i]
+        if (f.type !== 'call') throw new Error(`Expected a call, got ${JSON.stringify(f)}`)
+        const tableReplacement: (typeof ast.from)[number] = {
+          type: 'table',
+          name: f.alias ? {name: f.function.name, alias: f.alias.name} : f.function,
+        }
+        swappedAst.from[i] = tableReplacement
+        const functionDefinitions = await tx.any(sql<{prosrc: string; proargnames?: string[]; proargmodes?: string[]}>`
+          select prosrc, proargnames, proargmodes::text[]
+          from pg_proc
+          join pg_language on pg_language.oid = pg_proc.prolang
+          where pg_language.lanname = 'sql'
+          and proname = ${f.function.name}
+          limit 2
+        `)
+        const functionDefinition = functionDefinitions.length === 1 ? functionDefinitions[0] : null
+        if (!functionDefinition?.prosrc) {
+          // maybe not a sql function, or an overloaded one, we don't handle this for now. Some types may be nullable as a result.
+          continue
+        }
+
+        let underlyingFunctionDefinition = functionDefinition.prosrc
+
+        for (const [index, argname] of (functionDefinition.proargnames || []).entries()) {
+          const argmode = functionDefinition.proargmodes?.[index]
+          // maybe: we should allow argmode to be undefined here, functions that return primitives seem to have no proargmodes value
+          if (functionDefinition.proargmodes && argmode !== 'i' && argmode !== 'b' && argmode !== 'v') {
+            // from pg docs: https://www.postgresql.org/docs/current/catalog-pg-proc.html
+            // If all the arguments are IN arguments, this field will be null
+            continue
+          }
+          const regexp = new RegExp(/\bargname\b/.source.replace('argname', argname), 'g')
+          underlyingFunctionDefinition = underlyingFunctionDefinition.replaceAll(regexp, `null`)
+        }
+        console.log({
+          before: functionDefinition.prosrc,
+          after: underlyingFunctionDefinition,
+          functionDefinition,
+        })
+        const statement = parse(underlyingFunctionDefinition)[0]
+        const analyzed = await analyzeAST({fields: []}, tx, statement, regTypeToTypeScript)
+
+        console.log({
+          after: underlyingFunctionDefinition,
+          functionanalyzed: analyzed,
+        })
+
+        if (analyzed.length > 0) {
+          await insertTempTable(tx, {
+            tableAlias: f.function.name,
+            fields: analyzed,
+            schemaName,
+            source: 'function',
+          })
+        }
+      }
+      if (swappableFunctionIndexes.length > 0) {
+        return analyzeAST({fields: []}, tx, swappedAst, regTypeToTypeScript)
+        // return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSqrl.statement(swappedAst)))
+      }
+    }
+
     const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
       --typegen-ignore
       select * from ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${statmentSql})
@@ -125,61 +191,208 @@ export const analyzeAST = async (
       }
     }
 
-    return aliasInfoList.flatMap(aliasInfo => {
-      const matchingQueryField = describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)
+    const viewsWeNeedToAnalyzeFirst = new Map(
+      results.flatMap(r => {
+        const analyzeableView = r.underlying_table_type === 'VIEW' && r.underlying_view_definition
+        return analyzeableView && r.underlying_table_name ? [[r.underlying_table_name, r] as const] : []
+      }),
+    )
 
-      const matchingResult = results.find(
-        r =>
-          r.table_column_name === aliasInfo.aliasFor &&
-          JSON.stringify([r.underlying_table_name]) === JSON.stringify(aliasInfo.tablesColumnCouldBeFrom),
+    if (viewsWeNeedToAnalyzeFirst.size > 0) {
+      for (const [viewName, result] of viewsWeNeedToAnalyzeFirst) {
+        if (!result.underlying_view_definition) {
+          throw new Error(
+            `View ${viewName} has no underlying view definition: ${JSON.stringify({viewName, result}, null, 2)}`,
+          )
+        }
+        const [statement, ...rest] = parse(result.underlying_view_definition)
+        // if (selectStatementSql === toSql.statement(statement.ast)) {
+        //   throw new Error(
+        //     `Circular view dependency detected: ${selectStatementSql} depends on ${result.underlying_view_definition}`,
+        //   )
+        // }
+        if (statement?.type !== 'select') {
+          throw new Error(`Expected a select statement, got ${statement?.type}`)
+        }
+        if (rest.length > 0) {
+          throw new Error(`Expected a single select statement, got ${result.underlying_view_definition}`)
+        }
+        const analyzed = await analyzeAST({fields: []}, tx, statement, regTypeToTypeScript)
+        // await insertPrerequisites(tx, schemaName, analyzed, statement.ast, {
+        //   tableAlias: viewName,
+        //   source: 'view',
+        // })
+        await insertTempTable(tx, {
+          tableAlias: viewName,
+          fields: analyzed,
+          schemaName,
+          source: 'view',
+        })
+      }
+      // get results again - we have now inserted the view's dependencies as temp tables, so we should get fuller results
+      results = SelectStatementAnalyzedColumnSchema.array().parse(
+        await tx.any(AnalyzeSelectStatementColumnsQuery(astSql)),
       )
+    }
 
-      if (matchingQueryField && !matchingResult) {
-        // todo: see if we can do better than this. this is just falling back the output of `psql \gdesc`
-        // todo: watch out, we are matching the overall `describedQuery.fields` here, not necessarily this random CTE expression. there could be re-use of names and this would be wrong.
-        // todo: watch out also for `select count((a, b)) from foo`. that would be a view_column_usage and the data type would imply the wrong type
-        // for postgres 16+ we could use a pg_prepared_statement.result_types
-        return [
-          {
-            column: undefined,
-            name: aliasInfo.queryColumn,
-            regtype: matchingQueryField.regtype,
-            typescript: matchingQueryField.typescript,
-            nullability: 'unknown',
-            comment: undefined,
-          } satisfies AnalysedQueryField,
-        ]
-      }
+    const analyzed = await Promise.all(
+      aliasInfoList.map(async aliasInfo => {
+        const matchingQueryField = describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)
 
-      if (!matchingResult) {
-        console.dir(
-          {
-            msg: 'no matchingResult',
-            describedQuery,
-            aliasInfo,
-            results,
-            formattedQuery: results?.[0]?.formatted_query,
-          },
-          {depth: null},
+        const matchingResult = results.find(
+          r =>
+            r.table_column_name === aliasInfo.aliasFor &&
+            JSON.stringify([r.underlying_table_name]) === JSON.stringify(aliasInfo.tablesColumnCouldBeFrom),
         )
-        return []
-        // todo: delete throw. there will always be times we don't get results from view_column_usage like count(1)
-        throw new Error(`Alias info not found for ${JSON.stringify(aliasInfo)}`)
-      }
 
-      return [
-        getFieldAnalysis(
-          results,
-          ast,
-          {
-            name: aliasInfo.queryColumn,
-            regtype: matchingResult.underlying_data_type!,
-            typescript: regTypeToTypeScript(matchingResult.formatted_data_type!),
-          },
-          astSql,
-        ),
-      ]
-    })
+        if (!matchingResult && formattedQueryAst.type === 'select') {
+          const columnNames = formattedQueryAst.columns?.map(({alias, expr}, i) => {
+            let name =
+              alias?.name || (expr.type === 'ref' ? expr.name : expr.type === 'call' ? expr.function.name : null)
+            if (name === null || name === '*') {
+              name = `column_${i}`
+            }
+            return {
+              name,
+            }
+          })
+
+          /** Create a new AST looking like
+           *
+           * ```sql
+           * with temp_view as (
+           *   select foo, bar from your_table
+           *   where false
+           * )
+           * select pg_typeof(temp_view.foo) as foo
+           * from temp_view
+           * right join (select true) as t on true
+           * ```
+           *
+           * This returns the regtype of the column, and the where false makes sure no results are actually returned. The right join with `true` makes sure we actually get a result.
+           */
+          const pgTypeOfAst: Statement = {
+            type: 'with',
+            bind: [
+              {
+                alias: {name: 'temp_view'},
+                statement: {
+                  ...formattedQueryAst,
+                  columns: formattedQueryAst.columns?.map((c, i) => ({
+                    ...c,
+                    alias: columnNames![i],
+                  })),
+                  where: {
+                    type: 'boolean',
+                    value: false,
+                  },
+                },
+              },
+            ],
+            in: {
+              type: 'select',
+
+              columns: formattedQueryAst.columns?.map((c, i) => ({
+                expr: {
+                  type: 'call',
+                  function: {name: 'pg_typeof'},
+                  args: [
+                    {
+                      type: 'ref',
+                      table: {name: 'temp_view'},
+                      name: columnNames![i].name,
+                    },
+                  ],
+                },
+                alias: {name: `${columnNames![i].name}`},
+              })),
+
+              from: [
+                {
+                  type: 'table',
+                  name: {name: 'temp_view'},
+                },
+                {
+                  type: 'statement',
+                  alias: 't',
+                  statement: {
+                    type: 'select',
+                    columns: [{expr: {type: 'boolean', value: true}}],
+                  },
+                  join: {type: 'RIGHT JOIN', on: {type: 'boolean', value: true}},
+                },
+              ],
+            },
+          }
+          const pgTypeOfResult = await tx
+            .maybeOne<Record<string, string>>(sql.raw(toSql.statement(pgTypeOfAst)))
+            .catch(e => {
+              console.warn(`Error getting regtype for ${aliasInfo.queryColumn}`, e)
+              return undefined
+            })
+
+          const regtype = pgTypeOfResult?.[aliasInfo.queryColumn]
+          if (regtype) {
+            return getFieldAnalysis(
+              results,
+              ast,
+              {
+                name: aliasInfo.queryColumn,
+                regtype: regtype,
+                typescript: regTypeToTypeScript(regtype),
+              },
+              astSql,
+            )
+          }
+        }
+
+        if (matchingQueryField && !matchingResult) {
+          // todo: see if we can do better than this. this is just falling back the output of `psql \gdesc`
+          // todo: watch out, we are matching the overall `describedQuery.fields` here, not necessarily this random CTE expression. there could be re-use of names and this would be wrong.
+          // todo: watch out also for `select count((a, b)) from foo`. that would be a view_column_usage and the data type would imply the wrong type
+          // for postgres 16+ we could use a pg_prepared_statement.result_types
+          return [
+            {
+              column: undefined,
+              name: aliasInfo.queryColumn,
+              regtype: matchingQueryField.regtype,
+              typescript: matchingQueryField.typescript,
+              nullability: 'unknown',
+              comment: undefined,
+            } satisfies AnalysedQueryField,
+          ]
+        }
+
+        if (!matchingResult) {
+          console.dir(
+            {
+              msg: 'no matchingResult',
+              describedQuery,
+              aliasInfo,
+              results,
+              formattedQuery: toSql.statement(formattedQueryAst),
+            },
+            {depth: null},
+          )
+          return []
+        }
+
+        return [
+          getFieldAnalysis(
+            results,
+            ast,
+            {
+              name: aliasInfo.queryColumn,
+              regtype: matchingResult.underlying_data_type!,
+              typescript: regTypeToTypeScript(matchingResult.formatted_data_type!),
+            },
+            astSql,
+          ),
+        ]
+      }),
+    )
+
+    return analyzed.flat()
   })
 
   return columnAnalysis

@@ -13,32 +13,38 @@ beforeEach(async () => {
     create table test_table1(
       a int not null
     );
+
     create table test_table2(
       b double precision
     );
+
     create table test_table3(
       c int not null
     );
+
     create view test_view as
     select a as a_view, b as b_view from
     test_table1
     join test_table2 on test_table1.a = test_table2.b;
+
     create or replace function get_test_table1_by_a(input_a int)
     returns table (a int) as
     $$
       select a from test_table1 where a = input_a;
     $$
     language sql;
+
     create or replace function get_a_timestamp(input_a int)
     returns timestamptz as
     $$
       select pg_catalog.now()
     $$
     language sql;
+
     create or replace function get_one_field(input_a int)
     returns int as
     $$
-      select a from test_table1 where a >= input_a;
+      select a as result from test_table1 where a >= input_a;
     $$
     language sql;
   `)
@@ -177,7 +183,7 @@ test('use function', async () => {
           a: number
 
           /** regtype: \`timestamp with time zone\` */
-          y: Date | null
+          y: string | null
 
           /** regtype: \`integer\` */
           z: number | null
@@ -192,11 +198,19 @@ test('use function', async () => {
            */
           a: number
 
-          /** regtype: \`timestamp with time zone\` */
-          y: Date | null
+          /**
+           * From function "get_a_timestamp"
+           *
+           * column: \`✨.get_a_timestamp.now\`, regtype: \`timestamp with time zone\`
+           */
+          now: string | null
 
-          /** regtype: \`integer\` */
-          z: number | null
+          /**
+           * From function "get_one_field", column source: public.test_table1.a
+           *
+           * column: \`✨.get_one_field.result\`, not null: \`true\`, regtype: \`integer\`
+           */
+          result: number
         }
       }
     "

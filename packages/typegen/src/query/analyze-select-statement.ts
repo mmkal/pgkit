@@ -319,7 +319,7 @@ begin
   exception when others then
     -- Capture the error message
     get stacked diagnostics v_error_message = MESSAGE_TEXT;
-    raise notice 'Error creating temporary view: %', v_error_message;
+    raise notice 'Error creating temporary view. Message: %', v_error_message;
     -- Return an error record instead of raising an exception
     -- Since error_message is the first field, we can skip *most* of the nulls, but we need one so postgres knows this is a setof
     returnrec := ('Error creating temporary view: ' || v_error_message || ' sql: ' || sql_query, null);
