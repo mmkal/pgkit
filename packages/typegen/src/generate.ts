@@ -71,20 +71,13 @@ export const generate = async (inputOptions: Partial<Options>) => {
         rows.map<Promise<QueryField>>(async row => ({
           name: row.Column,
           regtype: row.Type,
-          typescript: await getTypeScriptType(row.Type),
+          typescript: getTypeScriptType(row.Type),
         })),
       )
     })
   }
 
   const enumTypes = await getEnumTypes(pool)
-  const regTypeToTypeScript = (regtype: string) => {
-    return (
-      defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
-      enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
-      options.defaultType
-    )
-  }
 
   const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
     const regtypes = await getParameterTypes(pool, query.sql)
@@ -93,7 +86,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
       // todo(one day): handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
-      typescript: regTypeToTypeScript(regtype),
+      typescript: getTypeScriptType(regtype),
     }))
 
     return Promise.all(promises)
@@ -120,7 +113,13 @@ export const generate = async (inputOptions: Partial<Options>) => {
     const lastWithOid = lodash.findLast(options.typeParsers, p => {
       return typeof pgtype === 'object' && 'oid' in pgtype && p.oid === pgtype.oid
     })
-    return lastWithOid?.typescript || options.pgTypeToTypeScript(regtype) || regTypeToTypeScript(regtype)
+    return (
+      lastWithOid?.typescript ||
+      options.pgTypeToTypeScript(regtype) ||
+      defaults.defaultPGDataTypeToTypeScriptMappings[regtype] ||
+      enumTypes[regtype]?.map(t => JSON.stringify(t.enumlabel)).join(' | ') ||
+      options.defaultType
+    )
   }
 
   const findAll = async () => {
@@ -184,7 +183,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const analysedQueryResults = await Promise.all(
         queriesToDescribe.map(async query => {
           const describedQuery = await describeQuery(query)
-          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, regTypeToTypeScript))
+          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, getTypeScriptType))
         }),
       )
 

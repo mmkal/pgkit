@@ -183,7 +183,7 @@ test('use function', async () => {
           a: number
 
           /** regtype: \`timestamp with time zone\` */
-          y: string | null
+          y: Date | null
 
           /** regtype: \`integer\` */
           z: number | null
@@ -203,7 +203,7 @@ test('use function', async () => {
            *
            * column: \`✨.get_a_timestamp.now\`, regtype: \`timestamp with time zone\`
            */
-          now: string | null
+          now: Date | null
 
           /**
            * From function "get_one_field", column source: public.test_table1.a

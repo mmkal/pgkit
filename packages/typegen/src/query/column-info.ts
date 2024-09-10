@@ -135,18 +135,8 @@ export const analyzeAST = async (
           const regexp = new RegExp(/\bargname\b/.source.replace('argname', argname), 'g')
           underlyingFunctionDefinition = underlyingFunctionDefinition.replaceAll(regexp, `null`)
         }
-        console.log({
-          before: functionDefinition.prosrc,
-          after: underlyingFunctionDefinition,
-          functionDefinition,
-        })
         const statement = parse(underlyingFunctionDefinition)[0]
         const analyzed = await analyzeAST({fields: []}, tx, statement, regTypeToTypeScript)
-
-        console.log({
-          after: underlyingFunctionDefinition,
-          functionanalyzed: analyzed,
-        })
 
         if (analyzed.length > 0) {
           await insertTempTable(tx, {
