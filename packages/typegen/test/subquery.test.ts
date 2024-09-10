@@ -74,11 +74,15 @@ test('statement with subquery', async () => {
 
         /** - query: \`select test_table1.b, (select count(*) from test_table1) as num from test_table1\` */
         export interface TestTable1 {
-          /** regtype: \`double precision\` */
+          /** column: \`public.test_table1.b\`, regtype: \`double precision\` */
           b: number | null
 
-          /** regtype: \`bigint\` */
-          num: number | null
+          /**
+           * From CTE subquery "subquery_1_for_column_num"
+           *
+           * column: \`✨.subquery_1_for_column_num.num\`, not null: \`true\`, regtype: \`bigint\`
+           */
+          num: number
         }
       }
     "

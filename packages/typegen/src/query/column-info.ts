@@ -3,7 +3,7 @@ import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
-import {Expr, Statement, toSql, parse} from 'pgsql-ast-parser'
+import {Expr, Statement, toSql, parse, WithStatement} from 'pgsql-ast-parser'
 import {singular} from 'pluralize'
 
 import {AnalysedQuery, AnalysedQueryField, DescribedQuery, QueryField} from '../types'
@@ -64,6 +64,57 @@ export const analyzeAST = async (
   ast: Statement,
   regTypeToTypeScript: RegTypeToTypeScript,
 ): Promise<AnalysedQueryField[]> => {
+  if (ast.type === 'select' && ast.columns) {
+    const columns = ast.columns
+    const subqueryColumns = new Map(
+      columns.flatMap((c, i) => {
+        if (c.expr.type !== 'select') return []
+        if (!c.alias?.name) return [] // todo: log a warning that adding an alias is recommended for better types
+        const name = `subquery_${i}_for_column_${c.alias.name}`
+        return [[i, {index: i, c, expr: c.expr, name, alias: c.alias.name}] as const]
+      }),
+    )
+    if (subqueryColumns.size > 0) {
+      const subqueryColumnValues = Array.from(subqueryColumns.values())
+      const x: WithStatement = {
+        type: 'with',
+        bind: subqueryColumnValues.map((column): WithStatement['bind'][number] => ({
+          alias: {name: column.name},
+          statement: {
+            ...column.expr,
+            columns: column.expr.columns?.map(c => ({
+              ...c,
+              alias: {name: column.alias},
+            })),
+          },
+        })),
+        in: {
+          ...ast,
+          columns: ast.columns.map((c, i) => {
+            const subqueryCol = subqueryColumns.get(i)
+            if (!subqueryCol) return c
+            return {
+              expr: {
+                type: 'ref',
+                table: {name: subqueryCol.name},
+                name: subqueryCol.alias,
+              },
+            }
+          }),
+          from: [
+            ...(ast.from || []),
+            ...subqueryColumnValues.map(({name}): NonNullable<typeof ast.from>[number] => {
+              return {type: 'table', name: {name}}
+            }),
+          ],
+        },
+      }
+
+      // console.log(toSql.statement(x))
+
+      return analyzeAST(describedQuery, transactable, x, regTypeToTypeScript)
+    }
+  }
   const astSql = toSql.statement(ast)
   const schemaName =
     'pgkit_typegen_temp_schema_' + createHash('md5').update(JSON.stringify(ast)).digest('hex').slice(0, 6)
@@ -77,6 +128,7 @@ export const analyzeAST = async (
     await createAnalyzeSelectStatementColumnsFunction(tx, schemaName)
 
     if (ast.type === 'with') {
+      // it's a cte
       for (const {statement, alias: tableAlias} of ast.bind) {
         // const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
         const analyzed = await analyzeAST(
