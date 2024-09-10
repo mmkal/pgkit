@@ -154,13 +154,13 @@ test('write types', async () => {
           /** column: \`public.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
           t_nn: string
 
-          /** column: \`public.test_table.cv\`, regtype: \`character varying(1)\` */
+          /** column: \`public.test_table.cv\`, regtype: \`character varying\` */
           cv: string | null
 
-          /** column: \`public.test_table.arr\`, regtype: \`text[]\` */
+          /** column: \`public.test_table.arr\`, regtype: \`ARRAY\` */
           arr: string[] | null
 
-          /** column: \`public.test_table.e\`, regtype: \`test_enum\` */
+          /** column: \`public.test_table.e\`, regtype: \`USER-DEFINED\` */
           e: ('aa' | 'bb' | 'cc') | null
 
           /** column: \`public.test_table.tz\`, regtype: \`timestamp with time zone\` */
@@ -181,10 +181,10 @@ test('write types', async () => {
           /** column: \`public.test_table.jb_nn\`, not null: \`true\`, regtype: \`jsonb\` */
           jb_nn: unknown
 
-          /** column: \`public.test_table.d_p\`, regtype: \`numeric(8,0)\` */
+          /** column: \`public.test_table.d_p\`, regtype: \`numeric\` */
           d_p: number | null
 
-          /** column: \`public.test_table.d_ps\`, regtype: \`numeric(8,4)\` */
+          /** column: \`public.test_table.d_ps\`, regtype: \`numeric\` */
           d_ps: number | null
         }
 
@@ -298,26 +298,22 @@ test('write types', async () => {
 
         /** - query: \`select t as t_aliased1, t_nn as t_nn_ali... [truncated] ...ed2 from test_table as tt2 where n = 1 )\` */
         export interface TestTable_tAliased1_tNnAliased {
-          /**
-           * Some custom comment on "t"
-           *
-           * column: \`public.test_table.t\`, regtype: \`text\`
-           */
+          /** regtype: \`text\` */
           t_aliased1: string | null
 
-          /** column: \`public.test_table.t_nn\`, not null: \`true\`, regtype: \`text\` */
-          t_nn_aliased: string
+          /** regtype: \`text\` */
+          t_nn_aliased: string | null
         }
 
         /** - query: \`select d_p from test_table\` */
         export interface TestTable_dP {
-          /** column: \`public.test_table.d_p\`, regtype: \`numeric(8,0)\` */
+          /** column: \`public.test_table.d_p\`, regtype: \`numeric\` */
           d_p: number | null
         }
 
         /** - query: \`select d_ps from test_table\` */
         export interface TestTable_dPs {
-          /** column: \`public.test_table.d_ps\`, regtype: \`numeric(8,4)\` */
+          /** column: \`public.test_table.d_ps\`, regtype: \`numeric\` */
           d_ps: number | null
         }
       }

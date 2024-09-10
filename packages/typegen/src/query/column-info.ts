@@ -35,9 +35,19 @@ export const getColumnInfo = memoizeQueryFn(
     const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 
     if (process.env.NEW_AST_ANALYSIS) {
+      const fields = await analyzeAST(query, pool, parse(originalSql)[0], regTypeToTypeScript)
+      if (fields.length === 0) {
+        return {
+          ...query,
+          fields: query.fields.map(f => {
+            return getFieldAnalysis([], modifiedAST.ast, f, originalSql)
+          }),
+          suggestedTags: generateTags(query),
+        }
+      }
       return {
         ...query,
-        fields: await analyzeAST(query, pool, parse(originalSql)[0], regTypeToTypeScript),
+        fields,
         suggestedTags: generateTags(query),
       }
     }
@@ -64,6 +74,7 @@ export const analyzeAST = async (
   ast: Statement,
   regTypeToTypeScript: RegTypeToTypeScript,
 ): Promise<AnalysedQueryField[]> => {
+  const originalSql = toSql.statement(ast)
   if (ast.type === 'select' && ast.columns) {
     const columns = ast.columns
     const subqueryColumns = new Map(
@@ -115,39 +126,65 @@ export const analyzeAST = async (
       return analyzeAST(describedQuery, transactable, x, regTypeToTypeScript)
     }
   }
-  const astSql = toSql.statement(ast)
+
+  if (ast.type === 'update' || ast.type === 'insert' || ast.type === 'delete') {
+    if (!ast.returning) {
+      return []
+    }
+    const selectifiedAst: Statement = {
+      type: 'select',
+      from: [
+        {
+          type: 'table',
+          name: {
+            name: ast.type === 'update' ? ast.table.name : ast.type === 'insert' ? ast.into.name : ast.from.name,
+          },
+        },
+      ],
+      columns: ast.returning,
+    }
+    return analyzeAST(describedQuery, transactable, selectifiedAst, regTypeToTypeScript)
+  }
+
   const schemaName =
     'pgkit_typegen_temp_schema_' + createHash('md5').update(JSON.stringify(ast)).digest('hex').slice(0, 6)
   const schemaIdentifier = sql.identifier([schemaName])
   const oldSearchPath = await transactable.oneFirst<{search_path: string}>(sql`show search_path`)
-  const newSearchPath = `${schemaName}, ${oldSearchPath}`
+  const newSearchPath = `${schemaName}, ${oldSearchPath.replace(`${schemaName},`, '')}`
+
+  if (ast.type === 'with') {
+    // it's a cte
+    for (const {statement, alias: tableAlias} of ast.bind) {
+      const analyzed = await analyzeAST(
+        {fields: []}, // no benefit of \gdesc info here because this is a subquery
+        transactable,
+        statement,
+        regTypeToTypeScript,
+      )
+
+      await insertTempTable(transactable, {
+        tableAlias: tableAlias.name,
+        fields: analyzed,
+        schemaName,
+        source: 'CTE subquery',
+      })
+    }
+
+    return analyzeAST(describedQuery, transactable, ast.in, regTypeToTypeScript)
+  }
+
+  if (ast.type !== 'select') {
+    console.warn(`Unsupported ast type: ${ast.type}`)
+    return []
+  }
+
+  console.dir({originalSql}, {depth: null})
+  const astSql = toSql.statement({...ast, where: undefined})
 
   const columnAnalysis = await transactable.transaction(async tx => {
     await tx.query(sql`create schema if not exists ${schemaIdentifier}`)
     await tx.query(sql.raw(`set search_path to ${newSearchPath}`))
     await createAnalyzeSelectStatementColumnsFunction(tx, schemaName)
-
-    if (ast.type === 'with') {
-      // it's a cte
-      for (const {statement, alias: tableAlias} of ast.bind) {
-        // const modifiedAst = getASTModifiedToSingleSelect(toSql.statement(statement))
-        const analyzed = await analyzeAST(
-          {fields: []}, // no benefit of \gdesc info here because this is a subquery
-          tx,
-          statement,
-          regTypeToTypeScript,
-        )
-
-        await insertTempTable(tx, {
-          tableAlias: tableAlias.name,
-          fields: analyzed,
-          schemaName,
-          source: 'CTE subquery',
-        })
-      }
-
-      return analyzeAST(describedQuery, tx, ast.in, regTypeToTypeScript)
-    }
 
     if (ast.type === 'select' && ast.from) {
       const swappableFunctionIndexes = ast.from.flatMap((f, i) => (f.type === 'call' && f.function ? [i] : []))
@@ -201,7 +238,6 @@ export const analyzeAST = async (
       }
       if (swappableFunctionIndexes.length > 0) {
         return analyzeAST({fields: []}, tx, swappedAst, regTypeToTypeScript)
-        // return analyzeSelectStatement(tx, getASTModifiedToSingleSelect(toSqrl.statement(swappedAst)))
       }
     }
 
@@ -288,6 +324,7 @@ export const analyzeAST = async (
         )
 
         if (!matchingResult && formattedQueryAst.type === 'select') {
+          console.log('formattedQueryAst', toSql.statement(formattedQueryAst), aliasInfo, results)
           const columnNames = formattedQueryAst.columns?.map(({alias, expr}, i) => {
             let name =
               alias?.name || (expr.type === 'ref' ? expr.name : expr.type === 'call' ? expr.function.name : null)
@@ -298,93 +335,95 @@ export const analyzeAST = async (
               name,
             }
           })
-
-          /** Create a new AST looking like
-           *
-           * ```sql
-           * with temp_view as (
-           *   select foo, bar from your_table
-           *   where false
-           * )
-           * select pg_typeof(temp_view.foo) as foo
-           * from temp_view
-           * right join (select true) as t on true
-           * ```
-           *
-           * This returns the regtype of the column, and the where false makes sure no results are actually returned. The right join with `true` makes sure we actually get a result.
-           */
-          const pgTypeOfAst: Statement = {
-            type: 'with',
-            bind: [
-              {
-                alias: {name: 'temp_view'},
-                statement: {
-                  ...formattedQueryAst,
-                  columns: formattedQueryAst.columns?.map((c, i) => ({
-                    ...c,
-                    alias: columnNames![i],
-                  })),
-                  where: {
-                    type: 'boolean',
-                    value: false,
-                  },
-                },
-              },
-            ],
-            in: {
-              type: 'select',
-
-              columns: formattedQueryAst.columns?.map((c, i) => ({
-                expr: {
-                  type: 'call',
-                  function: {name: 'pg_typeof'},
-                  args: [
-                    {
-                      type: 'ref',
-                      table: {name: 'temp_view'},
-                      name: columnNames![i].name,
-                    },
-                  ],
-                },
-                alias: {name: `${columnNames![i].name}`},
-              })),
-
-              from: [
+          const usesSelectStar = formattedQueryAst.columns?.some(c => c.expr.type === 'ref' && c.expr.name === '*')
+          if (!usesSelectStar) {
+            /** Create a new AST looking like
+             *
+             * ```sql
+             * with temp_view as (
+             *   select foo, bar from your_table
+             *   where false
+             * )
+             * select pg_typeof(temp_view.foo) as foo
+             * from temp_view
+             * right join (select true) as t on true
+             * ```
+             *
+             * This returns the regtype of the column, and the where false makes sure no results are actually returned. The right join with `true` makes sure we actually get a result.
+             */
+            const pgTypeOfAst: Statement = {
+              type: 'with',
+              bind: [
                 {
-                  type: 'table',
-                  name: {name: 'temp_view'},
-                },
-                {
-                  type: 'statement',
-                  alias: 't',
+                  alias: {name: 'temp_view'},
                   statement: {
-                    type: 'select',
-                    columns: [{expr: {type: 'boolean', value: true}}],
+                    ...formattedQueryAst,
+                    columns: formattedQueryAst.columns?.map((c, i) => ({
+                      ...c,
+                      alias: columnNames![i],
+                    })),
+                    where: {
+                      type: 'boolean',
+                      value: false,
+                    },
                   },
-                  join: {type: 'RIGHT JOIN', on: {type: 'boolean', value: true}},
                 },
               ],
-            },
-          }
-          const pgTypeOfResult = await tx
-            .maybeOne<Record<string, string>>(sql.raw(toSql.statement(pgTypeOfAst)))
-            .catch(e => {
-              console.warn(`Error getting regtype for ${aliasInfo.queryColumn}`, e)
-              return undefined
-            })
+              in: {
+                type: 'select',
 
-          const regtype = pgTypeOfResult?.[aliasInfo.queryColumn]
-          if (regtype) {
-            return getFieldAnalysis(
-              results,
-              ast,
-              {
-                name: aliasInfo.queryColumn,
-                regtype: regtype,
-                typescript: regTypeToTypeScript(regtype),
+                columns: formattedQueryAst.columns?.map((c, i) => ({
+                  expr: {
+                    type: 'call',
+                    function: {name: 'pg_typeof'},
+                    args: [
+                      {
+                        type: 'ref',
+                        table: {name: 'temp_view'},
+                        name: columnNames![i].name,
+                      },
+                    ],
+                  },
+                  alias: {name: `${columnNames![i].name}`},
+                })),
+
+                from: [
+                  {
+                    type: 'table',
+                    name: {name: 'temp_view'},
+                  },
+                  {
+                    type: 'statement',
+                    alias: 't',
+                    statement: {
+                      type: 'select',
+                      columns: [{expr: {type: 'boolean', value: true}}],
+                    },
+                    join: {type: 'RIGHT JOIN', on: {type: 'boolean', value: true}},
+                  },
+                ],
               },
-              astSql,
-            )
+            }
+            const pgTypeOfResult = await tx
+              .maybeOne<Record<string, string>>(sql.raw(toSql.statement(pgTypeOfAst)))
+              .catch(e => {
+                console.warn(`Error getting regtype for ${aliasInfo.queryColumn}`, e)
+                return undefined
+              })
+
+            const regtype = pgTypeOfResult?.[aliasInfo.queryColumn]
+            if (regtype) {
+              return getFieldAnalysis(
+                results,
+                ast,
+                {
+                  name: aliasInfo.queryColumn,
+                  regtype: regtype,
+                  typescript: regTypeToTypeScript(regtype),
+                },
+                originalSql,
+              )
+            }
           }
         }
 
@@ -428,7 +467,7 @@ export const analyzeAST = async (
               regtype: matchingResult.underlying_data_type!,
               typescript: regTypeToTypeScript(matchingResult.formatted_data_type!),
             },
-            astSql,
+            originalSql,
           ),
         ]
       }),
@@ -491,7 +530,7 @@ const insertTempTable = async (
 
 const getFieldAnalysis = (
   selectStatementColumns: SelectStatementAnalyzedColumn[],
-  originalAst: Statement,
+  inputAst: Statement,
   field: QueryField,
   originalSql: string,
 ): AnalysedQueryField => {
@@ -500,9 +539,9 @@ const getFieldAnalysis = (
   const ast =
     formattedQuery && isParseable(formattedQuery)
       ? getASTModifiedToSingleSelect(formattedQuery).ast // not totally sure why formattedQuery is better than originalAst here but lots fails when we don't do this
-      : originalAst // this can happen for `select count(*) from foo` type queries I think
+      : inputAst // this can happen for `select count(*) from foo` type queries I think
 
-  if (ast === originalAst && originalSql) {
+  if (ast === inputAst && originalSql) {
     // console.warn('using originalAst', {formattedQuery, originalSql})
   }
 
@@ -515,8 +554,9 @@ const getFieldAnalysis = (
         hasNullableJoin: c.hasNullableJoin,
       }))
       .filter(v => {
-        assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
+        // assert.ok(v.underlying_table_name, `Table name for ${JSON.stringify(c)} not found`)
         return (
+          v.underlying_table_name &&
           c.queryColumn === field.name &&
           c.tablesColumnCouldBeFrom.includes(v.underlying_table_name) &&
           c.aliasFor === v.table_column_name
@@ -528,7 +568,9 @@ const getFieldAnalysis = (
 
   // determine nullability
   let nullability: AnalysedQueryField['nullability'] = 'unknown'
-  if (res?.is_underlying_nullable === 'YES') {
+  if (isNonNullableField(originalSql, field)) {
+    nullability = 'not_null'
+  } else if (res?.is_underlying_nullable === 'YES') {
     nullability = 'nullable'
   } else if (res?.hasNullableJoin) {
     nullability = 'nullable_via_join'
@@ -643,12 +685,12 @@ const nonNullableKeywords = new Set([
   'current_time',
 ])
 
-export const isNonNullableField = (sql: string, field: QueryField) => {
+export const isNonNullableField = (statementSql: string, field: QueryField) => {
   // todo: figure out if we can help this function out by:
   // 1. having it receive an AST rather than SQL
   // 2. when passing it the AST, add helpful "where" clauses that say things like `where a is not null` - we are calling this after we've done most of the hard work of figuring out what columns not null already
   // 3. let it check where clauses for nullability - if a value is checked as not null, we can be sure it's not null
-  const {ast} = getASTModifiedToSingleSelect(sql)
+  const {ast} = getASTModifiedToSingleSelect(statementSql)
   if (ast.type !== 'select' || !Array.isArray(ast.columns)) {
     return false
   }
@@ -657,6 +699,9 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
     return isNonNullableExpression(c.expr)
 
     function isNonNullableExpression(expression: Expr): boolean {
+      if (ast.type === 'select' && ast.where && whereExpressionMakesFieldNonNullable(field, ast.where)) {
+        return true
+      }
       if (nonNullableExpressionTypes.has(expression.type)) {
         return true
       }
@@ -697,4 +742,33 @@ export const isNonNullableField = (sql: string, field: QueryField) => {
 
   // if there's exactly one column with the same name as the field and matching the conditions above, we can be confident it's not nullable.
   return nonNullableColumns.length === 1
+}
+
+function isRefToCurrentField(field: QueryField, e: Expr): boolean {
+  return e.type === 'ref' && e.name === field.name
+}
+
+function whereExpressionMakesFieldNonNullable(field: QueryField, whereExpression: Expr): boolean {
+  const e = whereExpression
+  if (e.type === 'unary' && e.op === 'IS NOT NULL' && e.operand.type === 'ref' && e.operand.name === field.name) {
+    return true
+  }
+
+  if (
+    e.type === 'binary' &&
+    (e.op === '>' || e.op === '<' || e.op === '>=' || e.op === '<=') &&
+    (isRefToCurrentField(field, e.left) || isRefToCurrentField(field, e.right))
+  ) {
+    return true
+  }
+
+  if (e.type === 'binary' && e.op === 'AND') {
+    return whereExpressionMakesFieldNonNullable(field, e.left) || whereExpressionMakesFieldNonNullable(field, e.right)
+  }
+
+  if (e.type === 'binary' && e.op === 'OR') {
+    return whereExpressionMakesFieldNonNullable(field, e.left) && whereExpressionMakesFieldNonNullable(field, e.right)
+  }
+
+  return false
 }
