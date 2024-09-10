@@ -19,6 +19,7 @@ import {
   getAliasInfo,
   getASTModifiedToSingleSelect,
   getSuggestedTags,
+  getTypeability,
   isParseable,
   suggestedTags,
   templateToValidSql,
@@ -244,7 +245,12 @@ export const analyzeAST = async (
     results = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
 
     // it's better to use formatted_query even though it means re-parsing, because it's been processed by pg and all the inferred table sources are made explicit
-    const formattedQueryAst = results?.[0]?.formatted_query ? parse(results?.[0].formatted_query)?.[0] : ast
+    // but use getTypeability to make sure it's parseable, sometimes pgsql-ast-parser doesn't like the format of the query
+    // in those cases we'll just use the original ast - if we got this far, *some* form of the query is parseable. see locking.test.ts for an example of why we need this.
+    const formattedQueryAst =
+      results?.[0]?.formatted_query && getTypeability([results[0].formatted_query]).isOk()
+        ? parse(results[0].formatted_query)?.[0]
+        : ast
     const aliasInfoList = getAliasInfo(formattedQueryAst)
 
     for (const r of results) {
@@ -446,16 +452,25 @@ export const analyzeAST = async (
           return []
         }
 
+        const dataType = matchingResult.formatted_data_type || matchingResult.underlying_data_type!
+        if (dataType === 'USER-DEFINED') {
+          console.warn(`Skipping USER-DEFINED type ${aliasInfo.queryColumn}`, {matchingResult})
+          return []
+        }
         return [
           getFieldAnalysis(
             results,
             ast,
             {
               name: aliasInfo.queryColumn,
-              regtype: matchingResult.formatted_data_type || matchingResult.underlying_data_type!,
-              typescript: regTypeToTypeScript(
-                matchingResult.formatted_data_type || matchingResult.underlying_data_type!,
-              ),
+              regtype: dataType,
+              typescript:
+                dataType === 'USER-DEFINED'
+                  ? // todo: avoid needing to do this? problem in ambiguoust-tables.test.ts
+                    console.log({matchingResult}) ||
+                    describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)?.typescript ||
+                    'unknown'
+                  : regTypeToTypeScript(dataType),
             },
             originalSql, // was formerly astSql
           ),

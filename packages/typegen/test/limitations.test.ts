@@ -263,7 +263,7 @@ test('queries with comments are modified', async () => {
         [!] Extracting types from query failed. Try moving comments to dedicated
         lines.
           Caused by: Error: psql failed.
-            Caused by: Error: Error running psql query "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: select 1 as a, \\n                       ^"
+            Caused by: Error: Error running psql query "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: ..., -- comment id from -- comment test_table -- comment \\\\gdesc\\n                                                                       ^"
               Caused by: AssertionError [ERR_ASSERTION]: Empty output received
   `)
 
@@ -304,7 +304,7 @@ test('queries with complex CTEs and comments fail with helpful warning', async (
         [!] Extracting types from query failed. Try moving comments to dedicated
         lines.
           Caused by: Error: psql failed.
-            Caused by: Error: Error running psql query "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: with abc as ( select table_name \\n                                        ^"
+            Caused by: Error: Error running psql query "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: ...om information_schema.tables, abc ) select * from def \\\\gdesc\\n                                                                       ^"
               Caused by: AssertionError [ERR_ASSERTION]: Empty output received
   `)
 })
