@@ -466,7 +466,8 @@ export const analyzeAST = async (
               regtype: dataType,
               typescript:
                 dataType === 'USER-DEFINED'
-                  ? // todo: avoid needing to do this? problem in ambiguoust-tables.test.ts
+                  ? // @ts-expect-error
+                    // todo: avoid needing to do this? problem in ambiguoust-tables.test.ts
                     console.log({matchingResult}) ||
                     describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)?.typescript ||
                     'unknown'
