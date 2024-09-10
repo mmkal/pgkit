@@ -322,6 +322,9 @@ importers:
       pg-promise:
         specifier: ^11.5.4
         version: 11.5.4
+      pgsql-ast-parser:
+        specifier: 12.0.1
+        version: 12.0.1
     devDependencies:
       '@stylistic/eslint-plugin':
         specifier: ^1.6.0
@@ -365,9 +368,6 @@ importers:
       pg-mem:
         specifier: 3.0.2
         version: 3.0.2(pg-promise@11.5.4)(slonik@37.2.0(zod@3.22.4))
-      pgsql-ast-parser:
-        specifier: 12.0.1
-        version: 12.0.1
       quicktype-core:
         specifier: ^23.0.81
         version: 23.0.81
