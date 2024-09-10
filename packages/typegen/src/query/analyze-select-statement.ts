@@ -270,6 +270,7 @@ export const SelectStatementAnalyzedColumnSchema = z.object({
 
   error_message: z.string().nullable(),
 
+  // todo: consolidate this with underlying_data_type
   formatted_data_type: z.string().nullable(),
 })
 
