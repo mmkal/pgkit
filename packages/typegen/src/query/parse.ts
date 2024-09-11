@@ -242,6 +242,10 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
   )
 
   return statement.columns.reduce<AliasInfo[]>((mappings, {expr, alias}) => {
+    if (expr.type === 'cast') {
+      expr = expr.operand
+    }
+
     if (expr.type === 'ref') {
       const matchingTables = availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table)
       return mappings.concat({
