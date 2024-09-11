@@ -432,24 +432,23 @@ export const analyzeAST = async (
         }
 
         if (!matchingResult) {
-          console.dir(
-            {
-              msg: 'no matchingResult',
-              describedQuery,
-              aliasInfo,
-              results,
-              formattedQuery: toSql.statement(formattedQueryAst),
-            },
-            {depth: null},
-          )
+          if (process.env.PGKIT_TYPEGEN_DEBUG_TYPE_MATCHING) {
+            // eslint-disable-next-line no-console
+            console.dir(
+              {
+                msg: 'no matchingResult',
+                describedQuery,
+                aliasInfo,
+                results,
+                formattedQuery: toSql.statement(formattedQueryAst),
+              },
+              {depth: null},
+            )
+          }
           return []
         }
 
         const dataType = matchingResult.formatted_data_type || matchingResult.underlying_data_type!
-        if (dataType === 'USER-DEFINED') {
-          console.warn(`Skipping USER-DEFINED type ${aliasInfo.queryColumn}`, {matchingResult})
-          return []
-        }
         return [
           getFieldAnalysis(
             results,
@@ -457,14 +456,7 @@ export const analyzeAST = async (
             {
               name: aliasInfo.queryColumn,
               regtype: dataType,
-              typescript:
-                dataType === 'USER-DEFINED'
-                  ? // @ts-expect-error
-                    // todo: avoid needing to do this? problem in ambiguoust-tables.test.ts
-                    console.log({matchingResult}) ||
-                    describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)?.typescript ||
-                    'unknown'
-                  : regTypeToTypeScript(dataType),
+              typescript: regTypeToTypeScript(dataType),
             },
             originalSql, // was formerly astSql
           ),
