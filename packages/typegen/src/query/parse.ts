@@ -232,7 +232,7 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
     }))
     .statement(statement)
 
-  const availableTables = lodash.uniqBy(allTableReferences, JSON.stringify)
+  const availableTables = lodash.uniqBy(allTableReferences, t => JSON.stringify(t))
 
   const aliasGroups = lodash.groupBy(availableTables, t => t.referredToAs)
 
@@ -241,35 +241,38 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
     `Some aliases are duplicated, this is too confusing. ${JSON.stringify({aliasGroups})}`,
   )
 
-  return statement.columns.reduce<AliasInfo[]>((mappings, {expr, alias}) => {
+  return statement.columns.flatMap<AliasInfo>(columnAliasInfo)
+
+  function columnAliasInfo({expr, alias}: pgsqlAST.SelectedColumn): AliasInfo | [] {
     if (expr.type === 'cast') {
-      expr = expr.operand
+      const info = columnAliasInfo({expr: expr.operand, alias: alias})
+      return {...info, aliasFor: null}
     }
 
     if (expr.type === 'ref') {
       const matchingTables = availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table)
-      return mappings.concat({
+      return {
         queryColumn: alias?.name ?? expr.name,
         aliasFor: expr.name,
         tablesColumnCouldBeFrom:
           matchingTables.length === 0 && availableTables.length === 1 ? [availableTables[0].table] : matchingTables,
         hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
-      })
+      }
     }
 
     if (expr.type === 'call') {
-      return mappings.concat({
+      return {
         queryColumn: alias?.name ?? expr.function.name,
         aliasFor: null,
         tablesColumnCouldBeFrom: [],
         hasNullableJoin: false,
-      } satisfies AliasInfo)
+      }
     }
 
     // console.dir({expr}, {depth: null})
 
-    return mappings
-  }, [])
+    return []
+  }
 }
 
 export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
