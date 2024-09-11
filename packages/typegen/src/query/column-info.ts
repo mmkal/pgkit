@@ -1,5 +1,4 @@
 import {Client, sql, Transactable} from '@pgkit/client'
-import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
@@ -12,7 +11,6 @@ import {memoizeQueryFn} from '../utils/memoize'
 import {
   SelectStatementAnalyzedColumn,
   SelectStatementAnalyzedColumnSchema,
-  analyzeSelectStatement,
   createAnalyzeSelectStatementColumnsFunction,
 } from './analyze-select-statement'
 import {
@@ -35,36 +33,20 @@ export const getColumnInfo = memoizeQueryFn(
     const originalSql = templateToValidSql(query.template)
     const modifiedAST = getASTModifiedToSingleSelect(originalSql)
 
-    if (process.env.NEW_AST_ANALYSIS) {
-      const fields = await analyzeAST(query, pool, parse(originalSql)[0], regTypeToTypeScript)
-      if (fields.length === 0) {
-        return {
-          ...query,
-          fields: query.fields.map(f => {
-            return getFieldAnalysis([], modifiedAST.ast, f, originalSql)
-          }),
-          suggestedTags: generateTags(query),
-        }
-      }
+    const fields = await analyzeAST(query, pool, parse(originalSql)[0], regTypeToTypeScript)
+    if (fields.length === 0) {
       return {
         ...query,
-        fields,
+        fields: query.fields.map(f => {
+          return getFieldAnalysis([], modifiedAST.ast, f, originalSql)
+        }),
         suggestedTags: generateTags(query),
       }
     }
-
-    if (modifiedAST.ast.type !== 'select') {
-      return getDefaultAnalysedQuery(query)
-    }
-
-    const singleSelectAst = modifiedAST.ast
-    const analyzedSelectStatement = await analyzeSelectStatement(pool, modifiedAST)
-    const filteredStatements = analyzedSelectStatement.filter(c => !c.error_message)
-
     return {
       ...query,
+      fields,
       suggestedTags: generateTags(query),
-      fields: query.fields.map(field => getFieldAnalysis(filteredStatements, singleSelectAst, field, originalSql)),
     }
   },
 )
@@ -88,7 +70,7 @@ export const analyzeAST = async (
     )
     if (subqueryColumns.size > 0) {
       const subqueryColumnValues = Array.from(subqueryColumns.values())
-      const x: WithStatement = {
+      const cteStatement: WithStatement = {
         type: 'with',
         bind: subqueryColumnValues.map((column): WithStatement['bind'][number] => ({
           alias: {name: column.name},
@@ -122,7 +104,7 @@ export const analyzeAST = async (
         },
       }
 
-      return analyzeAST(describedQuery, transactable, x, regTypeToTypeScript)
+      return analyzeAST(describedQuery, transactable, cteStatement, regTypeToTypeScript)
     }
   }
 
