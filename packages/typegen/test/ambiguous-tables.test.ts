@@ -22,7 +22,7 @@ beforeEach(async () => {
     -- another specific schema
     create type test_schema_2.test_enum as enum('schema2_A', 'schema2_B', 'schema2_C');
 
-    create table test_schema_1.test_table(id int not null, e test_schema_1.test_enum, eee test_enum);
+    create table test_schema_1.test_table(id int not null, e test_schema_1.test_enum, eee test_enum not null);
     create table test_schema_2.test_table(id int, e test_schema_2.test_enum);
 
     comment on column test_schema_1.test_table.id is 'This is a comment for test_schema_1.test_table.id';
@@ -70,6 +70,12 @@ test('disambiguate between same-named tables', async () => {
          * column: \`test_schema_1.test_table.id\`, not null: \`true\`, regtype: \`integer\`
          */
         id: number
+
+        /** column: \`test_schema_1.test_table.e\`, regtype: \`test_schema_1.test_enum\` */
+        e: ('schema1_A' | 'schema1_B' | 'schema1_C') | null
+
+        /** column: \`test_schema_1.test_table.eee\`, not null: \`true\`, regtype: \`test_enum\` */
+        eee: 'default_schema_A' | 'default_schema_B' | 'default_schema_C'
       }
 
       /** - query: \`select * from test_schema_2.test_table\` */
@@ -80,6 +86,9 @@ test('disambiguate between same-named tables', async () => {
          * column: \`test_schema_2.test_table.id\`, regtype: \`integer\`
          */
         id: number | null
+
+        /** column: \`test_schema_2.test_table.e\`, regtype: \`test_schema_2.test_enum\` */
+        e: ('schema2_A' | 'schema2_B' | 'schema2_C') | null
       }
     }
     "
@@ -111,6 +120,12 @@ test('disambiguate between same-named tables', async () => {
            * column: \`test_schema_1.test_table.id\`, not null: \`true\`, regtype: \`integer\`
            */
           id: number
+
+          /** column: \`test_schema_1.test_table.e\`, regtype: \`test_schema_1.test_enum\` */
+          e: ('schema1_A' | 'schema1_B' | 'schema1_C') | null
+
+          /** column: \`test_schema_1.test_table.eee\`, not null: \`true\`, regtype: \`test_enum\` */
+          eee: 'default_schema_A' | 'default_schema_B' | 'default_schema_C'
         }
 
         /** - query: \`select * from test_schema_2.test_table\` */
@@ -121,6 +136,9 @@ test('disambiguate between same-named tables', async () => {
            * column: \`test_schema_2.test_table.id\`, regtype: \`integer\`
            */
           id: number | null
+
+          /** column: \`test_schema_2.test_table.e\`, regtype: \`test_schema_2.test_enum\` */
+          e: ('schema2_A' | 'schema2_B' | 'schema2_C') | null
         }
       }
     "

@@ -70,6 +70,7 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
   'timestamp without time zone': 'string',
   uuid: 'string',
   void: 'void',
+  'information_schema.sql_identifier': 'string',
 }
 
 // todo: map from alias and/or oid to "regtype" which is what the above are

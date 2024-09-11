@@ -222,7 +222,7 @@ test(`statement with complex CTE`, async () => {
           /**
            * From CTE subquery "def", column source: information_schema.tables.table_schema
            *
-           * column: \`✨.def.table_schema\`, regtype: \`name\`
+           * column: \`✨.def.table_schema\`, regtype: \`information_schema.sql_identifier\`
            */
           table_schema: string | null
         }
