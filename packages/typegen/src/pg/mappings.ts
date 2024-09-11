@@ -102,10 +102,10 @@ export declare namespace queries {
     searchable_type_name: string | null
   }
 
-  /** - query: `select oid, typname, oid::regtype as regtype from pg_type` */
+  /** - query: `select oid, typname, oid::regtype as regtype from pg_type where oid is not null` */
   export interface PgType {
-    /** regtype: `oid` */
-    oid: number | null
+    /** not null: `true`, regtype: `oid` */
+    oid: number
 
     /** regtype: `name` */
     typname: string | null
