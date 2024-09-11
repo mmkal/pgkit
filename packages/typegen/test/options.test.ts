@@ -68,6 +68,7 @@ test('write types', async () => {
           sql\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
           sql\`select jb->'foo'->>'bar' from test_table\`,
           sql\`select n::numeric from test_table\`,
+          sql\`select n::numeric::text from test_table\`,
           sql\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
           sql\`select t from (select id from test_table) t\`,
           sql\`
@@ -117,6 +118,7 @@ test('write types', async () => {
         sql<queries.TestTable_id>\`select t1.id from test_table t1 join test_table t2 on t1.id = t2.n\`,
         sql<queries.Column>\`select jb->'foo'->>'bar' from test_table\`,
         sql<queries.TestTable_n>\`select n::numeric from test_table\`,
+        sql<queries.TestTable_76>\`select n::numeric::text from test_table\`,
         sql<queries.Num_letter>\`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\`,
         sql<queries.T>\`select t from (select id from test_table) t\`,
         sql<queries.TestTable_tAliased1_tNnAliased>\`
@@ -277,8 +279,14 @@ test('write types', async () => {
 
         /** - query: \`select n::numeric from test_table\` */
         export interface TestTable_n {
-          /** regtype: \`numeric\` */
+          /** column: \`public.test_table.n\`, regtype: \`integer\` */
           n: number | null
+        }
+
+        /** - query: \`select n::numeric::text from test_table\` */
+        export interface TestTable_76 {
+          /** regtype: \`text\` */
+          n: string | null
         }
 
         /** - query: \`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)\` */
