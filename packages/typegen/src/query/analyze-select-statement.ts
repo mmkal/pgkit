@@ -15,7 +15,6 @@ export const analyzeSelectStatement = async (
   client: Transactable,
   modifiedAST: ModifiedAST,
 ): Promise<SelectStatementAnalyzedColumn[]> => {
-  console.log('analyzeSelectStatement', modifiedAST.originalSql)
   if (modifiedAST.ast.type === 'select' && modifiedAST.ast.columns) {
     const columns = modifiedAST.ast.columns
     const subqueryColumns = new Map(
@@ -229,8 +228,6 @@ export const analyzeSelectStatement = async (
       `Expected exactly 1 formatted sql, got ${formattedSqlStatements.length}`,
     )
     await tx.query(sql`drop schema if exists ${schemaIdentifier} cascade`)
-
-    console.log('analyzeSelectStatement deduped', deduped)
 
     return deduped
   })

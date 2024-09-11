@@ -32,6 +32,16 @@ test('explicitly check a column for nullability', async () => {
           sql\`
             select * from test_table1 t1
             where b < 2 or b > 4
+          \`,
+          sql\`
+            select prosrc, proargnames, proargmodes::text[]
+            from pg_proc
+            join pg_language on pg_language.oid = pg_proc.prolang
+            where
+            pg_language.lanname = 'sql'
+            and prosrc is not null
+            and proname = \${'foo'}
+            limit 2
           \`
         ]
       `,
@@ -59,6 +69,16 @@ test('explicitly check a column for nullability', async () => {
           select * from test_table1 t1
           where b < 2 or b > 4
         \`,
+        sql<queries.PgProc_PgLanguage>\`
+          select prosrc, proargnames, proargmodes::text[]
+          from pg_proc
+          join pg_language on pg_language.oid = pg_proc.prolang
+          where
+          pg_language.lanname = 'sql'
+          and prosrc is not null
+          and proname = \${'foo'}
+          limit 2
+        \`,
       ]
 
       export declare namespace queries {
@@ -75,6 +95,18 @@ test('explicitly check a column for nullability', async () => {
 
           /** column: \`public.test_table1.b\`, not null: \`true\`, regtype: \`integer\` */
           b: number
+        }
+
+        /** - query: \`select prosrc, proargnames, proargmodes:... [truncated] ...src is not null and proname = $1 limit 2\` */
+        export interface PgProc_PgLanguage {
+          /** not null: \`true\`, regtype: \`text\` */
+          prosrc: string
+
+          /** regtype: \`text[]\` */
+          proargnames: string[] | null
+
+          /** regtype: \`text[]\` */
+          proargmodes: string[] | null
         }
       }
     "
