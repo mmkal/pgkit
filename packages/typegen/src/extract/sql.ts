@@ -12,6 +12,7 @@ export const extractSQLFile: Options['extractQueries'] = file => {
   const sql = fs.readFileSync(file).toString()
   return [
     {
+      type: 'extracted',
       text: sql,
       file,
       line: 1,
@@ -28,6 +29,7 @@ export const extractSQLFile: Options['extractQueries'] = file => {
         assert.strictEqual(asts.length, 1, `Exactly one statement supported`)
 
         const ast = mapper.statement(asts[0])
+        assert.ok(ast, `AST should not be falsy`)
         const unparamifiedSql = pgSqlAstParser.toSql.statement(ast)
 
         // eslint-disable-next-line mmkal/@rushstack/security/no-unsafe-regexp

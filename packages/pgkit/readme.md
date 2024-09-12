@@ -1,6 +1,6 @@
 # pgkit
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
 
 Monopackage for the [pgkit](https://github.com/mmkal/pgkit) family.
 

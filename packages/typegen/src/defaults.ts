@@ -4,14 +4,15 @@ import {defaultExtractQueries} from './extract'
 
 import {defaultTypeParsers} from './type-parsers'
 import {Options} from './types'
+import {deepErrorCause} from './utils/errors'
 import {defaultWriteTypes} from './write'
 
-// Note: this provides 'default' helpers rather than the precise default values for `GdescriberParams`
+// Note: this provides 'default' helpers rather than the precise default values for `Options`
 // e.g. the default `writeTypes` implementation depends on the specific value of `rootDir`.
 
 export const typegenConfigFile = 'typegen.config.js'
 
-export const defaultConnectionURI = 'postgresql://postgres:postgres@localhost:5432/postgres'
+export const defaultConnectionString = 'postgresql://postgres:postgres@localhost:5432/postgres'
 
 export const defaultPsqlCommand = 'psql'
 
@@ -21,54 +22,58 @@ export const defaultTypeScriptType = 'unknown'
 
 export const defaultCheckClean: Options['checkClean'] = ['before-migrate', 'after']
 
+export const defaultIncludePatterns = ['**/*.{ts,sql}']
+
+export const defaultExcludePatterns = ['**/node_modules/**']
+
 const getWithWarning = <T>(logger: Options['logger'], message: string, value: T) => {
   logger.warn(message)
   return value
 }
 
-export const getParams = (partial: Partial<Options>): Options => {
+export const resolveOptions = (partial: Partial<Options>): Options => {
   const {
     logger = console,
     connectionString = getWithWarning(
       logger,
-      `Using default connection URI of ${defaultConnectionURI}`,
-      defaultConnectionURI,
+      `Using default connection string of ${defaultConnectionString}`,
+      defaultConnectionString,
     ),
     psqlCommand = defaultPsqlCommand,
-    pgTypeToTypeScript: gdescToTypeScript = () => undefined,
+    pgTypeToTypeScript: pgTypeToTypeScript = () => undefined,
     rootDir = defaultRootDir,
-    include = ['**/*.{ts,sql}'],
-    exclude = ['**/node_modules/**'],
+    include = defaultIncludePatterns,
+    exclude = defaultExcludePatterns,
     since = undefined,
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
-    poolConfig = getWithWarning<Options['poolConfig']>(
-      logger,
-      `Using default pool config - type parsers will not be respected.`,
-      {},
-    ),
+    poolConfig = getWithWarning<Options['poolConfig']>(logger, `Using default client config.`, {}),
     typeParsers = defaultTypeParsers(poolConfig.setTypeParsers),
     migrate = undefined,
     checkClean = defaultCheckClean,
     lazy = false,
+    formatError = deepErrorCause,
     ...rest
   } = partial
+
+  null as unknown as keyof typeof rest satisfies 'glob'
 
   assert.ok(
     !('glob' in partial),
     `The 'glob' option is deprecated. Instead please use 'include', 'exclude' or 'since' respectively.`,
   )
 
-  // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-  assert.strictEqual(Object.keys(rest).length, 0, `Unexpected configuration keys: ${Object.keys(rest)}`)
+  if (Object.keys(rest).length > 0) {
+    logger.warn(`Unexpected configuration keys: ${Object.keys(rest).join(', ')}`)
+  }
 
-  assert.ok(!connectionString.includes(' \'"'), `Connection URI should not contain spaces or quotes`)
+  assert.ok(!connectionString.includes(' \'"'), `Connection string should not contain spaces or quotes`)
 
   return {
     connectionString,
     psqlCommand,
-    pgTypeToTypeScript: gdescToTypeScript,
+    pgTypeToTypeScript,
     rootDir,
     include,
     exclude,
@@ -82,6 +87,7 @@ export const getParams = (partial: Partial<Options>): Options => {
     migrate,
     checkClean,
     lazy,
+    formatError,
   }
 }
 
@@ -89,3 +95,4 @@ export {defaultPGDataTypeToTypeScriptMappings} from './pg'
 export {defaultWriteFile, defaultWriteTypes} from './write'
 export {defaultExtractQueries} from './extract'
 export {defaultTypeParsers} from './type-parsers'
+export {deepErrorCause as defaultFormatError} from './utils/errors'

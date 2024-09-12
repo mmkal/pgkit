@@ -114,7 +114,7 @@ export interface Options {
    * Return undefined to fall back on the default behaviour.
    * @default @see defaultPGDataTypeToTypeScriptMappings
    */
-  pgTypeToTypeScript: (regtype: string, typeName: string) => string | undefined
+  pgTypeToTypeScript: (regtype: string) => string | undefined
 
   /**
    * @experimental
@@ -165,11 +165,16 @@ export interface Options {
    * Skip initial processing of input files. Only useful with `watch`.
    */
   lazy?: boolean
+  /**
+   * Format thrown errors before logging. By default, uses `deepErrorCause` from `.//utils/errors`.
+   */
+  formatError: (e: unknown) => unknown
 }
 
 export type Logger = Record<'error' | 'warn' | 'info' | 'debug', (msg: unknown) => void>
 
 export interface ExtractedQuery {
+  type: 'extracted'
   text: string
   /** Path to file containing the query, relative to cwd */
   file: string
@@ -200,8 +205,9 @@ export interface DescribedQuery extends ExtractedQuery {
   parameters: QueryParameter[]
 }
 
+/** Info for a field in a query, from `psql ... \gdesc` */
 export interface QueryField {
-  /** Field name. e.g. for `select foo, bar from baz` this will be `foo` or `bar` */
+  /** Field name. e.g. for `select f as foo, b as bar from baz` this will be `foo` or `bar`. Not the underlying column name like `f` or `b`. */
   name: string
   /** The description column returned by `psql ... \gdesc`. See https://www.postgresql.org/docs/11/app-psql.html  */
   regtype: string

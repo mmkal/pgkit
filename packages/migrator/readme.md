@@ -1,6 +1,6 @@
 # @pgkit/migrator
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
 
 A smart cli migration tool for postgres, using [pgkit](https://npmjs.com/package/@pgkit/client).
 

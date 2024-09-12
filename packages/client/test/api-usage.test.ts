@@ -282,6 +282,18 @@ test('sql.type', async () => {
         "message": "Expected string, received number"
       }
     ]],
+      "message": "[
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "id"
+        ],
+        "message": "Expected string, received number"
+      }
+    ]",
+      "name": "QueryErrorCause",
       "query": {
         "name": "select-usage_test_8729cac",
         "parse": [Function],
@@ -325,6 +337,18 @@ test('createSqlTag + sql.typeAlias', async () => {
         "message": "Expected string, received number"
       }
     ]],
+      "message": "[
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "name"
+        ],
+        "message": "Expected string, received number"
+      }
+    ]",
+      "name": "QueryErrorCause",
       "query": {
         "name": "select_245d49b",
         "parse": [Function],

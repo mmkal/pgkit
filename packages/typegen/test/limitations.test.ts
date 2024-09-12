@@ -1,5 +1,5 @@
 import * as fsSyncer from 'fs-syncer'
-import {test, beforeEach, expect, vi as jest} from 'vitest'
+import {test, beforeEach, expect, vi as jest, describe} from 'vitest'
 
 import * as typegen from '../src'
 import {getPureHelper as getHelper} from './helper'
@@ -85,7 +85,7 @@ test('variable table name', async () => {
   await typegen.generate(typegenOptions(syncer.baseDir))
 
   expect(logger.error).not.toHaveBeenCalled()
-  expect(logger.debug).toHaveBeenCalledWith(expect.stringMatching(/.*index.ts:\d+ \[!] Query is not typeable./))
+  expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/.*index.ts:\d+ \[!] Query is not typeable./))
 
   expect(syncer.yaml()).toMatchInlineSnapshot(`
     "---
@@ -228,99 +228,6 @@ test('simple', async () => {
   `)
 })
 
-test('queries with comments are modified', async () => {
-  const syncer = fsSyncer.testFixture({
-    expect,
-    targetState: {
-      'index.ts': `
-        import {sql} from '@pgkit/client'
-
-        export default sql\`
-          select
-            1 as a, -- comment
-            -- comment
-            2 as b,
-            '--' as c, -- comment
-            id
-          from
-            -- comment
-            test_table -- comment
-        \`
-      `,
-    },
-  })
-
-  syncer.sync()
-
-  await typegen.generate(typegenOptions(syncer.baseDir))
-
-  expect(logger.warn).toHaveBeenCalled()
-  expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
-        ./test/fixtures/limitations.test.ts/queries-with-comments-are-modified/index.ts:3
-        [!] Extracting types from query failed: Error: Error running psql query.
-
-        Query: "select 1 as a, -- comment 2 as b, '--' as c, -- comment id from
-        test_table -- comment \\\\gdesc"
-
-        Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1:
-        select 1 as a, \\n                       ^"
-
-        Error: Empty output received
-
-        Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test. Try moving
-        comments to dedicated lines.
-  `)
-})
-
-test('queries with complex CTEs and comments fail with helpful warning', async () => {
-  const syncer = fsSyncer.testFixture({
-    expect,
-    targetState: {
-      'index.ts': `
-        import {sql} from '@pgkit/client'
-
-        export default sql\`
-          with abc as (
-            select table_name -- comment
-            from information_schema.tables
-          ),
-          def as (
-            select table_schema
-            from information_schema.tables, abc
-          )
-          select * from def
-        \`
-      `,
-    },
-  })
-
-  syncer.sync()
-
-  await typegen.generate(typegenOptions(syncer.baseDir))
-
-  expect(logger.warn).toHaveBeenCalled()
-  expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
-        ./test/fixtures/limitations.test.ts/queries-with-complex-ctes-and-comments-fail-with-helpful-warning/index.ts:3
-        [!] Extracting types from query failed: Error: Error running psql query.
-
-        Query: "with abc as ( select table_name -- comment from
-        information_schema.tables ), def as ( select table_schema from
-        information_schema.tables, abc ) select * from def \\\\gdesc"
-
-        Result: "psql:<stdin>:1: ERROR:  syntax error at end of input\\nLINE 1: with
-        abc as ( select table_name \\n                                        ^"
-
-        Error: Empty output received
-
-        Connection string:
-        postgresql://postgres:postgres@localhost:5432/limitations_test. Try moving
-        comments to dedicated lines.
-  `)
-})
-
 test('queries with semicolons are rejected', async () => {
   const syncer = fsSyncer.testFixture({
     expect,
@@ -346,12 +253,133 @@ test('queries with semicolons are rejected', async () => {
   ).toEqual([])
 
   expect(logger.warn).toMatchInlineSnapshot(`
-    - - >-
+    - - >
+        Error:
         ./test/fixtures/limitations.test.ts/queries-with-semicolons-are-rejected/index.ts:4
-        [!] Extracting types from query failed: AssertionError [ERR_ASSERTION]:
-        Can't use \\gdesc on query containing a semicolon. Try moving comments to
-        dedicated lines. Try removing trailing semicolons, separating
-        multi-statement queries into separate queries, using a template variable for
-        semicolons inside strings, or ignoring this query.
+        [!] Query is not typeable.
+          Caused by: Error: Contains semicolon
+            Caused by: update semicolon_query_table2 set col=2 returning 1; -- I love semicolons
   `)
+})
+
+describe('no longer limitations', () => {
+  test('queries with inline comments work', async () => {
+    const syncer = fsSyncer.testFixture({
+      expect,
+      targetState: {
+        'index.ts': `
+          import {sql} from '@pgkit/client'
+
+          export default sql\`
+            select
+              1 as a, -- comment
+              -- comment
+              2 as b,
+              '--' as c, -- comment
+              id
+            from
+              -- comment
+              test_table -- comment
+          \`
+        `,
+      },
+    })
+
+    syncer.sync()
+
+    await typegen.generate(typegenOptions(syncer.baseDir))
+
+    expect(logger.warn).not.toHaveBeenCalled()
+
+    expect(syncer.read()).toMatchInlineSnapshot(`
+      {
+        "index.ts": "import {sql} from '@pgkit/client'
+
+      export default sql<queries.TestTable>\`
+        select
+          1 as a, -- comment
+          -- comment
+          2 as b,
+          '--' as c, -- comment
+          id
+        from
+          -- comment
+          test_table -- comment
+      \`
+
+      export declare namespace queries {
+        // Generated by @pgkit/typegen
+
+        /** - query: \`select 1 as a, -- comment -- comment 2 as b, '--' as c, -- comment id from -- comment test_table -- comment\` */
+        export interface TestTable {
+          /** column: \`public.test_table.id\`, not null: \`true\`, regtype: \`integer\` */
+          id: number
+        }
+      }
+      ",
+      }
+    `)
+  })
+
+  test('queries with complex CTEs and comments fail with helpful warning', async () => {
+    const syncer = fsSyncer.testFixture({
+      expect,
+      targetState: {
+        'index.ts': `
+          import {sql} from '@pgkit/client'
+
+          export default sql\`
+            with abc as (
+              select table_name -- comment
+              from information_schema.tables
+            ),
+            def as (
+              select table_schema
+              from information_schema.tables, abc
+            )
+            select * from def
+          \`
+        `,
+      },
+    })
+
+    syncer.sync()
+
+    await typegen.generate(typegenOptions(syncer.baseDir))
+
+    expect(logger.warn).not.toHaveBeenCalled()
+
+    expect(syncer.read()).toMatchInlineSnapshot(`
+      {
+        "index.ts": "import {sql} from '@pgkit/client'
+
+      export default sql<queries.Def>\`
+        with abc as (
+          select table_name -- comment
+          from information_schema.tables
+        ),
+        def as (
+          select table_schema
+          from information_schema.tables, abc
+        )
+        select * from def
+      \`
+
+      export declare namespace queries {
+        // Generated by @pgkit/typegen
+
+        /** - query: \`with abc as ( select table_name -- comme... [truncated] ...n_schema.tables, abc ) select * from def\` */
+        export interface Def {
+          /**
+           * From CTE subquery "def", column source: information_schema.tables.table_schema
+           *
+           * column: \`✨.def.table_schema\`, regtype: \`information_schema.sql_identifier\`
+           */
+          table_schema: string | null
+        }
+      }
+      ",
+      }
+    `)
+  })
 })

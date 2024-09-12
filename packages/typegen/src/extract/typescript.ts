@@ -7,8 +7,14 @@ import {ExtractedQuery, Options} from '../types'
 import {isReturningQuery, tsCustom} from '../util'
 
 const rawExtractWithTypeScript: Options['extractQueries'] = file => {
-  const ts: typeof import('typescript') = require('typescript')
-  const source = fs.readFileSync(file).toString()
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const ts = require('typescript') as typeof import('typescript')
+  let source: string
+  try {
+    source = fs.readFileSync(file).toString()
+  } catch (e) {
+    throw new Error(`Couldn't read file ${file}`, {cause: e})
+  }
   const sourceFile = ts.createSourceFile(file, source, ts.ScriptTarget.ES2015, /* setParentNodes */ true)
 
   // adapted from https://github.com/Microsoft/TypeScript/wiki/Using-the-Compiler-API#traversing-the-ast-with-a-little-linter
@@ -52,6 +58,7 @@ const rawExtractWithTypeScript: Options['extractQueries'] = file => {
       }
 
       queries.push({
+        type: 'extracted',
         text: node.getFullText(),
         source,
         file,

@@ -1,6 +1,6 @@
 # migra: Like diff but for Postgres schemas
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
 
 A schema diff tool for PostgreSQL, written in TypeScript. Generates SQL scripts to migrate a database to a target state.
 

@@ -1,9 +1,7 @@
 import * as assert from 'assert'
-
-import {match} from 'io-ts-extra'
 import * as lodash from 'lodash'
+import * as neverthrow from 'neverthrow'
 import * as pgsqlAST from 'pgsql-ast-parser'
-import {QName} from 'pgsql-ast-parser'
 import * as pluralize from 'pluralize'
 
 import {pascalCase} from '../util'
@@ -19,109 +17,84 @@ import {pascalCase} from '../util'
  */
 export const templateToValidSql = (template: string[]) => template.join('null')
 
+export const safeParse = neverthrow.fromThrowable(pgsqlAST.parse, err => new Error(`Failed to parse SQL`, {cause: err}))
+
 /**
  * _Tries_ to return `true` when a query is definitely not going to work with \gdesc. Will miss some cases, and those cases will cause an error to be logged to the console.
  * It will catch:
  * - multi statements (that pgsql-ast-parser is able to process) e.g. `insert into foo(id) values (1); insert into foo(id) values (2);`
  * - statements that use identifiers (as opposed to param values) e.g. `select * from ${sql.identifier([tableFromVariableName])}`
  */
-export const isUntypeable = (template: string[]) => {
-  let untypeable = false
-  try {
-    const delimiter = `t${Math.random()}`.replace('0.', '')
-    pgsqlAST
-      .astVisitor(map => ({
+export const getTypeability = (template: string[]): neverthrow.Result<true, Error> => {
+  const delimiter = `t${Math.random()}`.replace('0.', '')
+  const safeWalk = neverthrow.fromThrowable(
+    () => {
+      const problems: string[] = []
+      const visitor = pgsqlAST.astVisitor(map => ({
         tableRef(t) {
-          if (t.name === delimiter) {
-            untypeable = true // can only get type when delimiter is used as a parameter, not an identifier
-          }
-
+          if (t.name === delimiter) problems.push('delimiter is used as identifier')
           map.super().tableRef(t)
         },
       }))
-      .statement(getHopefullyViewableAST(template.join(delimiter)))
-  } catch {}
-
-  // too many statements
-  try {
-    untypeable ||= pgsqlAST.parse(templateToValidSql(template)).length !== 1
-  } catch {
-    untypeable ||= templateToValidSql(template).trim().replaceAll('\n', ' ').replace(/;$/, '').includes(';')
-  }
-
-  return untypeable
+      visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
+      return problems
+    },
+    err => new Error(`Walking AST failed`, {cause: err}),
+  )
+  return safeWalk()
+    .andThen(problems =>
+      problems.length === 0
+        ? neverthrow.ok(true as const)
+        : neverthrow.err(new Error('Problems found:\n' + problems.join('\n'), {cause: template})),
+    )
+    .andThen(() => safeParse(templateToValidSql(template)))
+    .andThen(statements => {
+      return statements.length === 1
+        ? neverthrow.ok(true as const)
+        : neverthrow.err(new Error('Too many statements', {cause: template}))
+    })
+    .andThen(ok => {
+      const containsSemicolon = templateToValidSql(template)
+        .trim()
+        .replaceAll('\n', ' ')
+        .replace(/;$/, '')
+        .includes(';')
+      return containsSemicolon ? neverthrow.err(new Error('Contains semicolon', {cause: template})) : neverthrow.ok(ok)
+    })
 }
 
 // todo: return null if statement is not a select
 // and have test cases for when a view can't be created
-// export const getHopefullyViewableAST = (sql: string): pgsqlAST.Statement => {
-//   const statements = parseWithWorkarounds(sql)
-//   assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
-//   return astToSelect({modifications: [], ast: statements[0]}).ast
-// }
-
-const getModifiedAST = (sql: string): ModifiedAST => {
-  const statements = parseWithWorkarounds(sql)
-  assert.ok(statements.length === 1, `Can't parse query ${sql}; it has ${statements.length} statements.`)
-  return astToSelect({modifications: [], ast: statements[0]})
+/** parses a sql string and returns an AST which we've tried to modify to make it a nice easy to digest SELECT statement */
+export const getASTModifiedToSingleSelect = (sql: string): ModifiedAST => {
+  const statements = pgsqlAST.parse(sql)
+  assert.ok(
+    statements.length === 1,
+    `Can't parse query\n---\n${sql}\n---\nbecause it has ${statements.length} statements.`,
+  )
+  return astToSelect({modifications: [], ast: statements[0], originalSql: sql})
 }
 
-export const parseWithWorkarounds = (sql: string, attemptsLeft = 2): pgsqlAST.Statement[] => {
+export const isParseable = (sql: string): boolean => {
   try {
-    return pgsqlAST.parse(sql)
-  } catch (e) {
-    /* istanbul ignore if */
-    if (attemptsLeft <= 1) {
-      throw e
-    }
-
-    if (sql.trim().startsWith('with ')) {
-      // handle (some) CTEs. Can fail if comments trip up the parsing. You'll end up with queries called `Anonymous` if that happens
-      const state = {
-        parenLevel: 0,
-        cteStart: -1,
-      }
-      const replacements: Array<{start: number; end: number; text: string}> = []
-
-      for (let i = 0; i < sql.length; i++) {
-        const prev = sql.slice(0, i).replace(/\s+/, ' ').trim()
-        if (sql[i] === '(') {
-          state.parenLevel++
-          if (prev.endsWith(' as') && state.parenLevel === 1) {
-            state.cteStart = i
-          }
-        }
-
-        if (sql[i] === ')') {
-          state.parenLevel--
-          if (state.parenLevel === 0 && state.cteStart > -1) {
-            replacements.push({start: state.cteStart + 1, end: i, text: 'select 1'})
-            state.cteStart = -1
-          }
-        }
-      }
-
-      const newSql = replacements.reduceRight(
-        (acc, rep) => acc.slice(0, rep.start) + rep.text + acc.slice(rep.end),
-        sql,
-      )
-
-      return parseWithWorkarounds(newSql, attemptsLeft - 1)
-    }
-
-    throw e
+    pgsqlAST.parse(sql)
+    return true
+  } catch {
+    return false
   }
 }
 
-interface ModifiedAST {
+export interface ModifiedAST {
   modifications: Array<'cte' | 'returning'>
   ast: pgsqlAST.Statement
+  originalSql: string
 }
 
-const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
+export const astToSelect = ({modifications, ast, originalSql}: ModifiedAST): ModifiedAST => {
   if ((ast.type === 'update' || ast.type === 'insert' || ast.type === 'delete') && ast.returning) {
     return {
       modifications: [...modifications, 'returning'],
+      originalSql,
       ast: {
         type: 'select',
         from: [
@@ -141,10 +114,11 @@ const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
     return astToSelect({
       modifications: [...modifications, 'cte'],
       ast: ast.in,
+      originalSql,
     })
   }
 
-  return {modifications, ast}
+  return {modifications, ast, originalSql}
 }
 
 /**
@@ -152,18 +126,16 @@ const astToSelect = ({modifications, ast}: ModifiedAST): ModifiedAST => {
  * name that can be used to refer to queries.
  */
 export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: string[]} => {
-  const ast = getHopefullyViewableAST(sql)
+  const {ast} = getASTModifiedToSingleSelect(sql)
 
   if (ast.type === 'select') {
     return {
       tables: ast.from
-        ?.map(f =>
-          match(f)
-            .case({alias: {name: String}}, f => f.alias.name)
-            .case({type: 'table'} as const, t => t.name.name)
-            .default(() => '') // filtered out below
-            .get(),
-        )
+        ?.map(f => {
+          if ('alias' in f && typeof f.alias === 'object') return f.alias.name
+          if (f.type === 'table') return f.name.name
+          return ''
+        })
         .filter(Boolean),
       columns: lodash
         .chain(ast.columns)
@@ -177,18 +149,40 @@ export const sqlTablesAndColumns = (sql: string): {tables?: string[]; columns?: 
 }
 
 const expressionName = (ex: pgsqlAST.Expr): string | undefined => {
-  return match(ex)
-    .case({type: 'ref' as const}, e => e.name)
-    .case({type: 'call', function: {name: String}} as const, e => e.function.name)
-    .case({type: 'cast'} as const, e => expressionName(e.operand))
-    .default(() => undefined)
-    .get()
+  if (ex.type === 'ref') {
+    return ex.name
+  } else if (ex.type === 'call' && ex.function.name) {
+    return ex.function.name
+  } else if (ex.type === 'cast') {
+    return expressionName(ex.operand)
+  }
+
+  return undefined
 }
 
-export interface AliasMapping {
+export interface AliasInfo {
+  /**
+   * The column name in the query,
+   * - e.g. in `select a as x from foo` this would be x
+   * - e.g. in `select a from foo` this would be a
+   */
   queryColumn: string
-  aliasFor: string
+  /**
+   * The column name in the query,
+   * - e.g. in `select a as x from foo` this would be `a`
+   */
+  aliasFor: string | null
+  /**
+   * The table name(s) the column could be from,
+   * - e.g. in `select a from foo` this would be foo
+   * - e.g. in `select a from foo join bar on foo.id = bar.id` this would be foo and bar
+   */
   tablesColumnCouldBeFrom: string[]
+  /**
+   * Whether the column could be nullable via a join,
+   * - e.g. in `select a from foo` this would be false
+   * - e.g. in `select a from foo left join bar on foo.id = bar.id` this would be true
+   */
   hasNullableJoin: boolean
 }
 /**
@@ -197,7 +191,7 @@ export interface AliasMapping {
  * list of `tablesColumnCouldBeFrom`. For simple queries like `select id from messages` it'll get sensible results, though, and those
  * results can be used to look for non-nullability of columns.
  */
-export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => {
+export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
   assert.strictEqual(statement.type, 'select' as const)
   assert.ok(statement.columns, `Can't get alias mappings from query with no columns`)
 
@@ -213,14 +207,19 @@ export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => 
 
   pgsqlAST
     .astVisitor(map => ({
-      tableRef: t =>
+      tableRef: t => {
         allTableReferences.push({
           table: t.name,
           referredToAs: t.alias || t.name,
-        }),
+        })
+      },
       join(t) {
         if (t.type === 'LEFT JOIN' && t.on && t.on.type === 'binary') {
           markNullable(t.on.right)
+        }
+
+        if (t.type === 'RIGHT JOIN' && t.on && t.on.type === 'binary') {
+          markNullable(t.on.left)
         }
 
         if (t.type === 'FULL JOIN' && t.on?.type === 'binary') {
@@ -233,7 +232,7 @@ export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => 
     }))
     .statement(statement)
 
-  const availableTables = lodash.uniqBy(allTableReferences, JSON.stringify)
+  const availableTables = lodash.uniqBy(allTableReferences, t => JSON.stringify(t))
 
   const aliasGroups = lodash.groupBy(availableTables, t => t.referredToAs)
 
@@ -242,18 +241,36 @@ export const aliasMappings = (statement: pgsqlAST.Statement): AliasMapping[] => 
     `Some aliases are duplicated, this is too confusing. ${JSON.stringify({aliasGroups})}`,
   )
 
-  return statement.columns.reduce<AliasMapping[]>((mappings, {expr, alias}) => {
-    if (expr.type === 'ref') {
-      return mappings.concat({
-        queryColumn: alias?.name ?? expr.name,
-        aliasFor: expr.name,
-        tablesColumnCouldBeFrom: availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table),
-        hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
-      })
+  return statement.columns.flatMap<AliasInfo>(columnAliasInfo)
+
+  function columnAliasInfo({expr, alias}: pgsqlAST.SelectedColumn): AliasInfo | [] {
+    if (expr.type === 'cast') {
+      const info = columnAliasInfo({expr: expr.operand, alias: alias})
+      return {...info, aliasFor: null}
     }
 
-    return mappings
-  }, [])
+    if (expr.type === 'ref') {
+      const matchingTables = availableTables.filter(t => expr.table?.name === t.referredToAs).map(t => t.table)
+      return {
+        queryColumn: alias?.name ?? expr.name,
+        aliasFor: expr.name,
+        tablesColumnCouldBeFrom:
+          matchingTables.length === 0 && availableTables.length === 1 ? [availableTables[0].table] : matchingTables,
+        hasNullableJoin: undefined !== expr.table && nullableJoins.includes(expr.table.name),
+      }
+    }
+
+    if (expr.type === 'call') {
+      return {
+        queryColumn: alias?.name ?? expr.function.name,
+        aliasFor: null,
+        tablesColumnCouldBeFrom: [],
+        hasNullableJoin: false,
+      }
+    }
+
+    return []
+  }
 }
 
 export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndColumns>): string[] => {
@@ -272,201 +289,12 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
     .filter(Boolean)
 }
 
-export const getHopefullyViewableAST = lodash.flow(getModifiedAST, m => m.ast)
-
-export const isCTE = lodash.flow(templateToValidSql, getModifiedAST, m => m.modifications.includes('cte'))
-
 export const getSuggestedTags = lodash.flow(templateToValidSql, sqlTablesAndColumns, suggestedTags)
 
-export const templateToHopefullyViewableAST = lodash.flow(templateToValidSql, getHopefullyViewableAST)
-
-export const astToViewFriendlySql = pgsqlAST.toSql.statement
-
-export const getAliasMappings = lodash.flow(getHopefullyViewableAST, aliasMappings)
+export const getAliasMappings = lodash.flow(getASTModifiedToSingleSelect, m => m.ast, getAliasInfo)
 
 export const removeSimpleComments = (sql: string) =>
   sql
     .split('\n')
     .map(line => (line.trim().startsWith('--') ? '' : line))
     .join('\n')
-
-export const simplifySql = lodash.flow(pgsqlAST.parseFirst, pgsqlAST.toSql.statement)
-
-/* eslint-disable */
-if (require.main === module) {
-  console.log = (...x: any[]) => console.dir(x.length === 1 ? x[0] : x, {depth: null})
-
-  console.log(getHopefullyViewableAST('select other.content as id from messages join other on shit = id where id = 1'))
-  // console.log(isUntypable([`select * from `, ` where b = hi`]))
-  // console.log(isUntypable([`select * from a where b = `, ``]))
-  // console.log(
-  //   isUntypeable([
-  //     '\n' + '  insert into test_table(id, n) values (1, 2);\n' + '  insert into test_table(id, n) values (3, 4);\n',
-  //   ]),
-  // )
-  const exprName = (e: pgsqlAST.Expr) => {
-    if ('name' in e && typeof e.name === 'string') {
-      return e.name
-    }
-
-    return null
-  }
-
-  const opNames: Record<pgsqlAST.BinaryOperator, string | null> = {
-    '!=': 'ne',
-    '#-': null,
-    '%': 'modulo',
-    '&&': null,
-    '*': 'times',
-    '+': 'plus',
-    '-': 'minus',
-    '/': 'divided_by',
-    '<': 'less_than',
-    '<=': 'lte',
-    '<@': null,
-    '=': 'equals',
-    '>': 'greater_than',
-    '>=': 'gte',
-    '?': null,
-    '?&': null,
-    '?|': null,
-    '@>': null,
-    'NOT ILIKE': 'not_ilike',
-    'NOT IN': 'not_in',
-    'NOT LIKE': 'not_like',
-    '^': 'to_the_power_of',
-    '||': 'concat',
-    AND: 'and',
-    ILIKE: 'ilike',
-    IN: 'in',
-    LIKE: 'like',
-    OR: 'or',
-    '#>>': 'json_obj_from_path_text',
-    '&': 'binary_and',
-    '|': 'binary_or',
-    '~': 'binary_ones_complement',
-    '<<': 'binary_left_shift',
-    '>>': 'binary_right_shift',
-    '#': 'bitwise_xor',
-    'AT TIME ZONE': 'at_time_zone',
-    '~*': null,
-    '!~': null,
-    '!~*': null,
-    '@@': null,
-  }
-  // console.log(`
-  //   select *
-  //   from a
-  //   join top_x(1, 2) as p on b = c
-  // `)
-  // throw 'end'
-  console.log(
-    lodash.flow(
-      //
-      getSuggestedTags,
-    )([require('./testquery.ignoreme').default]),
-  )
-  throw 'end'
-  // eslint-disable-next-line no-unreachable
-  pgsqlAST
-    .astVisitor(map => ({
-      expr(e) {
-        const grandChildren =
-          // Object.values(e) ||
-          Object.values(e).flatMap(child =>
-            // [child] || //
-            child && typeof child === 'object' ? Object.values(child) : [],
-          )
-        console.log({e, grandChildren})
-        if (grandChildren.some(e => JSON.stringify(e).startsWith('{"type":"parameter'))) {}
-
-        console.log(
-          pgsqlAST.toSql.statement(getHopefullyViewableAST('select id from messages where id <= $1')),
-          444_555,
-        )
-        // console.log({e})
-
-        // if (Object.values(e).some(v => JSON.stringify(v).startsWith(`{"type":"parameter"`))) {
-        //   console.log(112)
-
-        //   if (e.type === 'binary') {
-        //     const params = [e.left, e.right].filter(
-        //       (side): side is pgsqlAST.ExprParameter => side.type === 'parameter',
-        //     )
-        //     params.forEach(p => {
-        //       const names = [e.left, e.right].map(exprName)
-        //       console.log(112, {names})
-        //       if (names.every(Boolean) && opNames[e.op]) {
-        //         console.log({
-        //           param: p.name,
-        //           readable: names.join(`_${opNames[e.op]}_`),
-        //           orig: pgsqlAST.toSql.expr(e),
-        //         })
-        //       }
-        //     })
-        // }
-        // }
-        return map.super().expr(e)
-      },
-      // parameter: e => ({type: 'ref', name: 'SPLITTABLE'}),
-    }))
-    .statement(getHopefullyViewableAST('select id from messages where id <= $1'))!
-  console.log(getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`))
-  pgsqlAST
-    .astVisitor(map => ({
-      constant(t) {
-        console.log({t}, map.super())
-        return map.super().constant(t)
-      },
-    }))
-    .statement(
-      getHopefullyViewableAST(`select * from test_table where id = 'placeholder_parameter_$1' or id = 'other'`),
-    )
-  console.log(
-    getHopefullyViewableAST(
-      'SELECT "t1"."id"  FROM "test_table" AS "t1" INNER JOIN "test_table" AS "t2" ON ("t1"."id" = "t2"."n")',
-    ),
-  )
-  console.log(getHopefullyViewableAST('select t1.id from test_table t1 join test_table t2 on t1.id = t2.n'))
-  console.log(aliasMappings(getHopefullyViewableAST(`select a.a, b.b from atable a join btable b on a.i = b.j`)))
-  console.log(getHopefullyViewableAST(`select * from (select id from test) d`))
-  console.log(getHopefullyViewableAST(`select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)`))
-  console.log(
-    pgsqlAST
-      .astVisitor(map => ({
-        tableRef: t => console.log({table: t.name, referredToAs: t.alias || t.name}),
-        join: t => map.super().join(t),
-      }))
-      .statement(getHopefullyViewableAST('select 1 from (select * from t)')),
-  )
-  console.log(
-    getHopefullyViewableAST(
-      `select * from (values (1, 'one'), (2, 'two')) as vals (num, letter)` ||
-        `drop table test` ||
-        `
-          BEGIN
-            SELECT * INTO STRICT myrec FROM emp WHERE empname = myname;
-            EXCEPTION
-                WHEN NO_DATA_FOUND THEN
-                    RAISE EXCEPTION 'employee % not found', myname;
-                WHEN TOO_MANY_ROWS THEN
-                    RAISE EXCEPTION 'employee % not unique', myname;
-          END
-        `,
-    ),
-  )
-  console.log(lodash.flow(getHopefullyViewableAST, aliasMappings)('select * from messages where id = 1'))
-  // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
-  // console.dir(suggestedTags(parse('insert into foo(id) values (1) returning id, date')), {depth: null})
-  console.log(
-    sqlTablesAndColumns('select pt.typname, foo.bar::regtype from pg_type as pt join foo on pg_type.id = foo.oid'),
-  )
-  // console.dir(suggestedTags(parse('select foo::regtype from foo')), {depth: null})
-  // console.dir(suggestedTags(parse('select i, j from a join b on 1=1')), {depth: null})
-  console.dir(suggestedTags(sqlTablesAndColumns(`select count(*), * from foo where y = null`)), {depth: null})
-  console.dir(suggestedTags(sqlTablesAndColumns(`select pg_advisory_lock(123), x, y from foo`)), {depth: null})
-  console.dir(suggestedTags(sqlTablesAndColumns(`insert into foo(id) values (1) returning *`)), {depth: null})
-  console.dir(suggestedTags(sqlTablesAndColumns(`insert into foo(id) values (1)`)), {depth: null})
-  console.dir(suggestedTags(sqlTablesAndColumns(`update foo set bar = 'baz' returning *`)), {depth: null})
-  console.dir(suggestedTags(sqlTablesAndColumns(`select foo.x from foo where y = null`)), {depth: null})
-}

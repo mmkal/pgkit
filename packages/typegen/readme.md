@@ -1,6 +1,6 @@
 # @pgkit/typegen
 
-![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)
+[![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/mmkal)](https://x.com/mmkalmmkal)
 
 A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql queries.
 
@@ -134,7 +134,7 @@ CLI arguments will always have precedence over config options.
 |`include`|`--include`|`string[]`|`['**/*.{ts,sql}']`|Glob patterns for files to include in processing. Repeatable in CLI.|
 |`exclude`|`--exclude`|`string[]`|`['**/node_modules/**']`|Glob patterns for files to exclude from processing. Repeatable in CLI.|
 |`since`|`--since`|`string \| undefined`|`undefined`|Limit matched files to those which have been changed since the given git ref. Use `"HEAD"` for files changed since the last commit, `"main"` for files changed in a branch, etc.|
-|`connectionURI`|`--connection-uri`|`string`|`'postgresql://`&thinsp;`postgres:postgres`&thinsp;`@localhost:5432/`&thinsp;`postgres'`|URI for connecting to psql. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and pgkit to connect to the database.|
+|`connectionURI`|`--connection-string`|`string`|`'postgresql://`&thinsp;`postgres:postgres`&thinsp;`@localhost:5432/`&thinsp;`postgres'`|URI for connecting to psql. Note that if you are using `psql` inside docker, you should make sure that the container and host port match, since this will be used both by `psql` and pgkit to connect to the database.|
 |`psqlCommand`|`--psql`|`string`|`'psql'`|The CLI command for running the official postgres `psql` CLI client.<br/>Note that right now this can't contain single quotes. This should also be configured to talk to the same database as the `pool` variable (and it should be a development database - don't run this tool in production!). If you are using docker compose, you can use a command like `docker-compose exec -T postgres psql`|
 |`defaultType`|`--default-type`|`string`|`'unknown'`|TypeScript type when no mapping is found. This should usually be `unknown` (or `any` if you like to live dangerously).|
 |`poolConfig`||`PoolConfig \| undefined`<br/>(see [below](#complex-config-types))|`undefined`|Pgkit database pool configuration. Will be used to create a pool which issues queries to the database as the tool is running, and will have its type parsers inspected to ensure the generated types are correct. It's important to pass in a pool confguration which is the same as the one used in your application.|

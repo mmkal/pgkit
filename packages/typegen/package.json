@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/typegen#readme",
   "scripts": {
-    "_dogfood": "node dist/cli generate --psql \"docker-compose exec -T postgres psql\" --connection-uri \"postgresql://postgres:postgres@localhost:5432/postgres\"",
+    "dogfood": "tsx src/cli generate",
     "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
@@ -31,29 +31,34 @@
   "dependencies": {
     "@pgkit/client": "workspace:^",
     "@rebundled/execa": "8.0.2-next.0",
-    "@rushstack/ts-command-line": "^4.11.0",
+    "@rebundled/p-memoize": "7.1.2-next.4",
     "chokidar": "^3.5.3",
+    "execa": "^5.1.1",
     "find-up": "^5.0.0",
     "glob": "^8.0.3",
     "io-ts-extra": "^0.11.6",
     "lodash": "^4.17.21",
     "memoizee": "^0.4.15",
+    "neverthrow": "^7.1.0",
     "pgsql-ast-parser": "^11.1.0",
-    "pluralize": "^8.0.0"
+    "pluralize": "^8.0.0",
+    "trpc-cli": "https://pkg.pr.new/mmkal/trpc-cli@e57287f",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/glob": "7.2.0",
+    "@types/js-yaml": "^4.0.9",
     "@types/lodash": "^4.14.202",
     "@types/memoizee": "0.4.8",
     "@types/pluralize": "0.0.29",
     "eslint": "^8.57.0",
     "eslint-plugin-mmkal": "0.7.0",
-    "execa": "^5.1.1",
     "expect-type": "^0.17.3",
     "fs-syncer": "^0.5.2",
     "js-yaml": "^4.1.0",
     "strip-ansi": "^7.1.0",
     "ts-morph": "^21.0.1",
+    "tsx": "^4.19.0",
     "vitest": "^1.2.2"
   }
 }

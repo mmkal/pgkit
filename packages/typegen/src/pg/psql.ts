@@ -1,15 +1,10 @@
-import {Client} from '@pgkit/client'
 import * as assert from 'assert'
-import {simplifyWhitespace} from '../util'
-import {enumTypesGetter, regTypeToPGTypeGetter} from './mappings'
-
-export type PSQLClient = ReturnType<typeof psqlClient>
 
 /**
  * Get a basic postgres client. which can execute simple queries and return row results.
  * This parses `psql` output and no type parsing is done. Everything is a string.
  */
-export const psqlClient = (psqlCommand: string, pool: Client) => {
+export const psqlClient = (psqlCommand: string) => {
   assert.ok(
     !psqlCommand.includes(`'`),
     `Can't run psql command "${psqlCommand}"; with single quotes in it. Try using double quotes or a bash alias.`,
@@ -17,30 +12,17 @@ export const psqlClient = (psqlCommand: string, pool: Client) => {
 
   const psql = async (query: string) => {
     const {default: execa} = await import('execa')
-    query = simplifyWhitespace(query)
-    // eslint-disable-next-line no-template-curly-in-string
-    const echoQuery = 'echo "${TYPEGEN_QUERY}"'
-    const command = `${echoQuery} | ${psqlCommand} -f -`
+    const command = `echo "$TYPEGEN_QUERY" | ${psqlCommand} -f -`
     const result = await execa('sh', ['-c', command], {env: {TYPEGEN_QUERY: query}})
     try {
       return psqlRows(result.stdout)
-    } catch (e: any) {
-      const stdout = result.stdout || result.stderr
-      const message =
-        `Error running psql query.\n` +
-        `Query: ${JSON.stringify(query)}\n` +
-        `Result: ${JSON.stringify(stdout)}\n` +
-        `Error: ${e.message}\n` +
-        `Connection string: ${pool.connectionString()}`
-      throw new Error(message, {cause: e})
+    } catch (e: unknown) {
+      const stdout = result.stdout + result.stderr
+      throw new Error(`Error running psql query. Output:\n${JSON.stringify(stdout)}`, {cause: e})
     }
   }
 
-  const getEnumTypes = enumTypesGetter(pool)
-
-  const getRegtypeToPGType = regTypeToPGTypeGetter(pool)
-
-  return {psql, getEnumTypes, getRegtypeToPGType}
+  return {psql}
 }
 
 /** Parse a psql output into a list of rows (string tuples) */
@@ -71,7 +53,7 @@ export const psqlRows = (output: string): Array<Record<string, string>> => {
 
   const headers = parseRow(lines[start - 1])
 
-  assert.ok(headers.length === new Set(headers).size, `Headers must not contain duplicates! ${headers}`)
+  assert.ok(headers.length === new Set(headers).size, `Headers must not contain duplicates! ${headers.join(', ')}`)
 
   const headerMap = Object.fromEntries(headers.map((h, i) => [i, h]))
 

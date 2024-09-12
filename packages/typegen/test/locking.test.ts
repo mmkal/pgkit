@@ -55,8 +55,8 @@ test('locks selected rows', async () => {
          * - \`select a from table1 where a=2 for update nowait;\`
          */
         export interface Table1 {
-          /** regtype: \`integer\` */
-          a: number | null
+          /** column: \`public.table1.a\`, not null: \`true\`, regtype: \`integer\` */
+          a: number
         }
       }
     "

@@ -13,4 +13,8 @@ services:
     volumes:
       - postgres:/var/lib/postgresql/data
 volumes:
+  # command to list volumes: docker volume ls
+  # command to delete volumes: docker volume rm <volume_name>
+  # but usually you'll need to do docker compose down first.
+  # so `docker compose down && docker volume rm pgkit_postgres` should do the trick.
   postgres:

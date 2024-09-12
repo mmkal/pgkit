@@ -1,47 +1,47 @@
-import {Client, sql} from '@pgkit/client'
+import {sql} from '@pgkit/client'
 import * as lodash from 'lodash'
+import {memoizeQueryFn} from '../utils/memoize'
 
-export function enumTypesGetter(pool: Client) {
-  return lodash.once(async () => {
-    const types = await pool.any(sql<queries.Type>`
-      select distinct
-        e.enumtypid,
-        t.typname,
-        e.enumlabel,
-        t.typnamespace::regnamespace::text as schema_name,
-        e.enumsortorder,
-        t.typnamespace::regnamespace::text = any(current_schemas(true)) as in_search_path,
-        case
-          when t.typnamespace::regnamespace::text = any(current_schemas(false))
-            then quote_ident(t.typname)
-          else
-            quote_ident(t.typnamespace::regnamespace::text) || '.' || quote_ident(t.typname)
-        end as searchable_type_name
-      from
-        pg_enum as e
-      join
-        pg_type as t
-      on
-        t.oid = e.enumtypid
-      order by
-        t.typnamespace::regnamespace::text,
-        t.typname,
-        e.enumsortorder
-    `)
-    return lodash.groupBy(types, t => t.searchable_type_name)
-  })
-}
+// todo: use schemainspect
+export const getEnumTypes = memoizeQueryFn(async pool => {
+  const types = await pool.any(sql<queries.Type>`
+    select distinct
+      e.enumtypid,
+      t.typname,
+      e.enumlabel,
+      t.typnamespace::regnamespace::text as schema_name,
+      e.enumsortorder,
+      t.typnamespace::regnamespace::text = any(current_schemas(true)) as in_search_path,
+      case
+        when t.typnamespace::regnamespace::text = any(current_schemas(false))
+          then quote_ident(t.typname)
+        else
+          quote_ident(t.typnamespace::regnamespace::text) || '.' || quote_ident(t.typname)
+      end as searchable_type_name
+    from
+      pg_enum as e
+    join
+      pg_type as t
+    on
+      t.oid = e.enumtypid
+    order by
+      t.typnamespace::regnamespace::text,
+      t.typname,
+      e.enumsortorder
+  `)
+  return lodash.groupBy(types, t => t.searchable_type_name)
+})
 
-export function regTypeToPGTypeGetter(pool: Client) {
-  return lodash.once(async () => {
-    const types = await pool.any(sql<queries.PgType>`
-      select oid, typname, oid::regtype as regtype
-      from pg_type
-    `)
+/** postgres stores types in a pg_type table, and uses its own custom names for types under the `typname` column. this maps from regtype to the `pg_type.typname` value which you might sometimes need. */
+export const getRegtypeToPgTypnameMapping = memoizeQueryFn(async pool => {
+  const types = await pool.any(sql<queries.PgType>`
+    select oid, typname, oid::regtype as regtype
+    from pg_type
+    where oid is not null
+  `)
 
-    return lodash.keyBy(types, t => t.regtype)
-  })
-}
+  return lodash.keyBy(types, t => t.regtype!)
+})
 
 /**
  * Global mappings from postgres type => typescript, in the absence of any field transformers.
@@ -70,6 +70,7 @@ export const defaultPGDataTypeToTypeScriptMappings: Record<string, string> = {
   'timestamp without time zone': 'string',
   uuid: 'string',
   void: 'void',
+  'information_schema.sql_identifier': 'string',
 }
 
 // todo: map from alias and/or oid to "regtype" which is what the above are
@@ -102,10 +103,10 @@ export declare namespace queries {
     searchable_type_name: string | null
   }
 
-  /** - query: `select oid, typname, oid::regtype as regtype from pg_type` */
+  /** - query: `select oid, typname, oid::regtype as regtype from pg_type where oid is not null` */
   export interface PgType {
-    /** regtype: `oid` */
-    oid: number | null
+    /** not null: `true`, regtype: `oid` */
+    oid: number
 
     /** regtype: `name` */
     typname: string | null

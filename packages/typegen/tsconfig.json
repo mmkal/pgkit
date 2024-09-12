@@ -5,9 +5,10 @@
     ],
     "target": "ES2022",
     "module": "NodeNext",
-    "strict": false,
+    "jsx": "preserve",
+    "strict": true,
+    "strictFunctionTypes": false,
     "noEmit": true,
-    "noUncheckedIndexedAccess": true,
     "noErrorTruncation": true,
     "esModuleInterop": true
   },

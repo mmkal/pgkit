@@ -45,8 +45,8 @@ test('joins which introduce nullable rows', async () => {
       export default [
         sql<queries.Table1_Table2>\`select a, b from table1 left join table2 on table1.a = table2.b\`,
         sql<queries.Table1_Table2>\`select a, b from table1 t1 left join table2 t2 on t1.a = t2.b\`,
-        sql<queries.Table1_Table2_0>\`select a, b from table1 full outer join table2 on table1.a = table2.b\`,
-        sql<queries.Table1_Table2_0>\`select a, b from table1 t1 full outer join table2 t2 on t1.a = t2.b\`,
+        sql<queries.Table1_Table2_8>\`select a, b from table1 full outer join table2 on table1.a = table2.b\`,
+        sql<queries.Table1_Table2_8>\`select a, b from table1 t1 full outer join table2 t2 on t1.a = t2.b\`,
       ]
 
       export declare namespace queries {
@@ -70,7 +70,7 @@ test('joins which introduce nullable rows', async () => {
          * - \`select a, b from table1 full outer join table2 on table1.a = table2.b\`
          * - \`select a, b from table1 t1 full outer join table2 t2 on t1.a = t2.b\`
          */
-        export interface Table1_Table2_0 {
+        export interface Table1_Table2_8 {
           /** column: \`public.table1.a\`, regtype: \`integer\` */
           a: number | null
 

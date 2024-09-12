@@ -29,6 +29,7 @@ test('types are correct', async () => {
   // To be sure it's verifying the right thing, it ensures that the modification has already been done. - i.e. running
   // codegen has no effect. This means it necesssarily has to fail the very first time it's run.
 
+  logger.warn.mockReset()
   await typegen.generate({
     ...typegenOptions(__dirname),
     include: [path.basename(modifyableFile)], // match only the copied file
@@ -38,10 +39,10 @@ test('types are correct', async () => {
   try {
     expect(modifyableFileAfterRunning).toEqual(fs.readFileSync(__filename).toString())
   } catch (e) {
-    if (process.env.UPDATE_TEST_FILE) {
+    if (process.env.TYPEGEN_UPDATE_TEST_FILE) {
       fs.writeFileSync(__filename, modifyableFileAfterRunning)
     }
-    e.message += `\n\nIf you want to update the test file, run this test with:\n\nUPDATE_TEST_FILE=1`
+    e.message += `\n\nIf you want to update the test file, run this test with:\nTYPEGEN_UPDATE_TEST_FILE=1`
     throw e
   }
 
@@ -51,6 +52,23 @@ test('types are correct', async () => {
   expect(results.rows).toEqual([{foo: 1, bar: 'a'}])
 
   expectTypeOf(results.rows).items.toEqualTypeOf<{foo: number; bar: string | null}>()
+
+  expect(logger.warn).toHaveBeenCalledTimes(1)
+  // todo: fix this. I don't think we should be logging an error for a valid query that can't be typegen'd.
+  expect(logger.warn.mock.calls[0][0]).toMatchInlineSnapshot(`
+    "Error: ./test/types.test.ts.ignoreme.copy.ts:16 [!] Query is not typeable.
+      Caused by: Error: Walking AST failed
+        Caused by: AssertionError [ERR_ASSERTION]: Can't parse query
+        ---
+
+            create table types_test_table(foo int primary key, bar text);
+
+            insert into types_test_table(foo, bar) values (1, 'a')
+
+        ---
+        because it has 2 statements.
+    "
+  `)
 })
 
 export declare namespace queries {
