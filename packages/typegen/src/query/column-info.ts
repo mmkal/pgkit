@@ -332,13 +332,10 @@ export const analyzeAST = async (
         )
 
         if (!matchingResult && formattedQueryAst.type === 'select') {
-          const columnNames = formattedQueryAst.columns?.map(({alias, expr}, i) => {
-            let name =
+          const columnNames = formattedQueryAst.columns?.map(({alias, expr}) => {
+            const name =
               alias?.name || (expr.type === 'ref' ? expr.name : expr.type === 'call' ? expr.function.name : null)
-            if (name === null || name === '*') {
-              name = `column_${i}`
-            }
-            return name
+            return name && name !== '*' ? {name} : undefined
           })
 
           /** Create a new AST looking like
@@ -364,7 +361,7 @@ export const analyzeAST = async (
                   ...formattedQueryAst,
                   columns: formattedQueryAst.columns?.map((c, i) => ({
                     ...c,
-                    alias: {name: columnNames![i]},
+                    alias: columnNames![i],
                   })),
                   where: {type: 'boolean', value: false},
                 },
@@ -381,11 +378,11 @@ export const analyzeAST = async (
                     {
                       type: 'ref',
                       table: {name: 'temp_view'},
-                      name: columnNames![i],
+                      name: columnNames![i]?.name || '*',
                     },
                   ],
                 },
-                alias: {name: columnNames![i]},
+                alias: columnNames![i],
               })),
 
               from: [
