@@ -414,7 +414,6 @@ export const analyzeAST = async (
 
         if (matchingQueryField && !matchingResult) {
           // todo: see if we can do better than this. this is just falling back the output of `psql \gdesc`
-          // todo: watch out, we are matching the overall `describedQuery.fields` here, not necessarily this random CTE expression. there could be re-use of names and this would be wrong.
           // todo: watch out also for `select count((a, b)) from foo`. that would be a view_column_usage and the data type would imply the wrong type
           // for postgres 16+ we could use a pg_prepared_statement.result_types
           return [

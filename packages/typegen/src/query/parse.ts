@@ -269,8 +269,6 @@ export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
       }
     }
 
-    // console.dir({expr}, {depth: null})
-
     return []
   }
 }
