@@ -14,5 +14,8 @@ expect.addSnapshotSerializer({
         },
       })
       .replaceAll(process.cwd(), '[cwd]')
-      .replaceAll(process.cwd().replaceAll('\\', '/'), '[cwd]'),
+      .replaceAll(process.cwd().replaceAll('\\', '/'), '[cwd]')
+      .split('\n')
+      .map(line => (line.trim() ? line : ''))
+      .join('\n'),
 })
