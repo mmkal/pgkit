@@ -49,7 +49,7 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
     poolConfig = getWithWarning<Options['poolConfig']>(logger, `Using default client config.`, {}),
-    typeParsers = defaultTypeParsers(poolConfig.setTypeParsers),
+    typeParsers = defaultTypeParsers(poolConfig.applyTypeParsers),
     migrate = undefined,
     checkClean = defaultCheckClean,
     lazy = false,

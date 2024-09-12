@@ -155,15 +155,15 @@ test('query timeouts', async () => {
   const shortTimeoutMs = 20
   const impatient = createClient(client.connectionString() + '?shortTimeout', {
     pgpOptions: {
-      connect: ({client}) => {
-        client.connectionParameters.query_timeout = shortTimeoutMs
+      connect: {
+        query_timeout: shortTimeoutMs,
       },
     },
   })
   const patient = createClient(client.connectionString() + '?longTimeout', {
     pgpOptions: {
-      connect: ({client}) => {
-        client.connectionParameters.query_timeout = shortTimeoutMs * 3
+      connect: {
+        query_timeout: shortTimeoutMs * 3,
       },
     },
   })
@@ -171,24 +171,25 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-    {
-      "cause": {
-        "query": {
-          "name": "select_9dcc021",
-          "sql": "select pg_sleep($1)",
-          "token": "sql",
-          "values": [
-            0.04
-          ]
-        },
-        "error": {
-          "query": "select pg_sleep(0.04)"
-        },
-        "message": "Query read timeout",
-        "name": "QueryErrorCause"
+      [[Query select_9dcc021]: Query read timeout]
+      {
+        "cause": {
+          "query": {
+            "name": "select_9dcc021",
+            "sql": "select pg_sleep($1)",
+            "token": "sql",
+            "values": [
+              0.04
+            ]
+          },
+          "error": {
+            "query": "select pg_sleep(0.04)"
+          },
+          "message": "Query read timeout",
+          "name": "QueryErrorCause"
+        }
       }
-    }
-  `,
+    `,
   )
   await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
     pg_sleep: '',
@@ -200,15 +201,15 @@ test('switchable clients', async () => {
   const shortTimeoutMs = 20
   const impatientClient = createClient(client.connectionString() + '?shortTimeout', {
     pgpOptions: {
-      connect: ({client}) => {
-        client.connectionParameters.query_timeout = shortTimeoutMs
+      connect: {
+        query_timeout: shortTimeoutMs,
       },
     },
   })
   const patientClient = createClient(client.connectionString() + '?longTimeout', {
     pgpOptions: {
-      connect: ({client}) => {
-        client.connectionParameters.query_timeout = shortTimeoutMs * 3
+      connect: {
+        query_timeout: shortTimeoutMs * 3,
       },
     },
   })
@@ -241,6 +242,7 @@ test('switchable clients', async () => {
       select pg_sleep(${sleepSeconds})
     `),
   ).rejects.toThrowErrorMatchingInlineSnapshot(`
+    [[Query select_6289211]: Query read timeout]
     {
       "cause": {
         "query": {

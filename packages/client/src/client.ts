@@ -1,8 +1,19 @@
 import * as crypto from 'node:crypto'
+import TypeOverrides from 'pg/lib/type-overrides'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
-import {setRecommendedTypeParsers} from './type-parsers'
-import {Client, First, Queryable, SQLQueryRowType, ClientOptions, Connection, Transaction, Result} from './types'
+import {applyRecommendedTypeParsers} from './type-parsers'
+import {
+  Client,
+  First,
+  Queryable,
+  SQLQueryRowType,
+  ClientOptions,
+  Connection,
+  Transaction,
+  Result,
+  PGTypes,
+} from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
 
@@ -103,17 +114,30 @@ export const createClient = (connectionString: string, options: ClientOptions = 
   if (typeof connectionString !== 'string') throw new Error(`Expected connectionString, got ${typeof connectionString}`)
   if (!connectionString) throw new Error(`Expected a valid connectionString, got "${connectionString}"`)
 
-  const {pgpOptions = {}, setTypeParsers = setRecommendedTypeParsers, wrapQueryFn} = options
-  const pgp = pgPromise(pgpOptions)
+  options = {
+    applyTypeParsers: applyRecommendedTypeParsers,
+    pgpOptions: {},
+    ...options,
+  }
 
-  setTypeParsers(pgp.pg.types)
+  const types = new TypeOverrides()
+  const pgp = pgPromise(options.pgpOptions?.initialize)
+
+  options.applyTypeParsers?.({
+    setTypeParser: (id, parseFn) => types.setTypeParser(id, parseFn as (input: unknown) => unknown),
+    builtins: pgp.pg.types.builtins,
+  } as PGTypes)
 
   const createWrappedQueryFn: typeof createQueryFn = queryable => {
     const queryFn = createQueryFn(queryable)
-    return wrapQueryFn ? wrapQueryFn(queryFn) : queryFn
+    return options.wrapQueryFn ? options.wrapQueryFn(queryFn) : queryFn
   }
 
-  const client = pgp(connectionString)
+  const client = pgp({
+    connectionString,
+    types,
+    ...options.pgpOptions?.connect,
+  })
 
   const transactionFnFromTask =
     <U>(task: pgPromise.ITask<U> | pgPromise.IDatabase<U>): Connection['transaction'] =>
@@ -145,10 +169,14 @@ export const createClient = (connectionString: string, options: ClientOptions = 
   return {
     options,
     pgp: client,
-    pgpOptions,
+    pgpOptions: options.pgpOptions || {},
     ...createQueryable(createWrappedQueryFn(client)),
-    // eslint-disable-next-line @typescript-eslint/no-base-to-string
-    connectionString: () => client.$cn.toString(),
+    connectionString: () => {
+      const cn = client.$cn
+      const result = typeof cn === 'string' ? cn : cn.connectionString
+      if (!result) throw new Error('Expected connection string')
+      return result
+    },
     end: async () => client.$pool.end(),
     connect,
     transaction: transactionFnFromTask(client),

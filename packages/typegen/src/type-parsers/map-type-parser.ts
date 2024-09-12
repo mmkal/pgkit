@@ -1,4 +1,4 @@
-import {ParseFn, pgTypes, setRecommendedTypeParsers} from '@pgkit/client'
+import {ParseFn, pgTypes, applyRecommendedTypeParsers} from '@pgkit/client'
 import * as assert from 'assert'
 import {TypeParserInfo} from '../types'
 
@@ -40,9 +40,9 @@ export const inferTypeParserTypeScript = (tp: ParseFn, defaultSampleInput = ''):
   return match?.[0] || `unknown`
 }
 
-export const defaultTypeParsers = (setTypeParsers = setRecommendedTypeParsers): TypeParserInfo[] => {
+export const defaultTypeParsers = (applyTypeParsers = applyRecommendedTypeParsers): TypeParserInfo[] => {
   const list = [] as TypeParserInfo[]
-  setTypeParsers({
+  applyTypeParsers({
     builtins: pgTypes.builtins,
     setTypeParser(typeId, parse) {
       assert.ok(typeof parse === 'function', `Expected parse to be a function, got ${typeof parse}`)

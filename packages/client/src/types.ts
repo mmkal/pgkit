@@ -65,7 +65,7 @@ export interface Transaction extends Connection {
 export interface Client extends Queryable {
   options: ClientOptions
   pgp: ReturnType<ReturnType<typeof pgPromise>>
-  pgpOptions: Parameters<typeof pgPromise>[0]
+  pgpOptions: PGPOptions
   connectionString(): string
   end(): Promise<void>
   connect<T>(callback: (connection: Connection) => Promise<T>): Promise<T>
@@ -158,15 +158,32 @@ export type SQLMethodHelpers = {
   ) => SQLQuery<Row>
 }
 
+/** Called `pgp` in pg-promise docs  */
+export type PGPromiseInitializer = typeof pgPromise
+/** Called `IMain` in pg-promise */
+export type PGPromiseDBConnector = ReturnType<PGPromiseInitializer>
+/** Looks like `[cn: string | pg.IConnectionParameters<pg.IClient>, dc?: any]` in pg-promise */
+export type PGPromiseDBConnectorParameters = Parameters<PGPromiseDBConnector>
+/** Looks like `pg.IConnectionParameters<pg.IClient>` in pg-promise */
+export type PGPromiseDBConnectionOptions = Exclude<PGPromiseDBConnectorParameters[0], string>
+
 export type PGTypes = ReturnType<typeof import('pg-promise')>['pg']['types']
 export type ParseFn = Extract<Parameters<PGTypes['setTypeParser']>[number], Function>
 export type PGTypesBuiltins = PGTypes['builtins']
 export type PGTypesBuiltinOid = PGTypesBuiltins[keyof PGTypesBuiltins]
 
-export type SetTypeParsers = (types: Pick<PGTypes, 'builtins' | 'setTypeParser'>) => void
+export type ApplyTypeParsers = (params: {
+  setTypeParser: (oid: PGTypesBuiltinOid, parseFn: ParseFn) => void
+  builtins: PGTypes['builtins']
+}) => void
+
+export type PGPOptions = {
+  initialize?: pgPromise.IInitOptions
+  connect?: PGPromiseDBConnectionOptions
+}
 
 export interface ClientOptions {
-  pgpOptions?: Parameters<typeof pgPromise>[0]
-  setTypeParsers?: (types: PGTypes) => void
+  pgpOptions?: PGPOptions
+  applyTypeParsers?: ApplyTypeParsers
   wrapQueryFn?: (queryFn: Queryable['query']) => Queryable['query']
 }

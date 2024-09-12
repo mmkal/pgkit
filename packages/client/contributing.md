@@ -1,0 +1,1 @@
+Important that any *library* using this can accept an instantiated client, not just a connection string. https://stackoverflow.com/questions/64238590/pg-promise-recommended-pattern-for-passing-connections-to-different-libraries

@@ -59,8 +59,13 @@ export const getPoolHelper = (params: {__filename: string; baseConnectionURI: st
     ...params.config,
     pgpOptions: {
       // schema: schemaName,
-      noWarnings: true,
+      // noWarnings: true,
+      // ...params.config?.pgpOptions,
       ...params.config?.pgpOptions,
+      initialize: {
+        ...params.config?.pgpOptions?.initialize,
+        noWarnings: true, // todo: remove
+      },
       // connect: async ({client, useCount}) => {
       //   if (useCount === 0) {
       //     if (statementTimeout) await client.query(`set statement_timeout to '${statementTimeout}'`)

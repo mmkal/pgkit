@@ -20,14 +20,15 @@ export const getPoolHelper2 = (dbName: string, {lockTimeout = '', statementTimeo
 
   const pool = createClient(connectionString(dbName), {
     pgpOptions: {
-      // schema: schemaName,
-      noWarnings: true,
-      // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      connect: async ({client, useCount}) => {
-        if (useCount === 0) {
-          if (statementTimeout) await client.query(`set statement_timeout to '${statementTimeout}'`)
-          if (lockTimeout) await client.query(`set lock_timeout = '${lockTimeout}'`)
-        }
+      initialize: {
+        noWarnings: true,
+        // eslint-disable-next-line @typescript-eslint/no-misused-promises
+        connect: async ({client, useCount}) => {
+          if (useCount === 0) {
+            if (statementTimeout) await client.query(`set statement_timeout to '${statementTimeout}'`)
+            if (lockTimeout) await client.query(`set lock_timeout = '${lockTimeout}'`)
+          }
+        },
       },
     },
     // idleTimeout: 1,

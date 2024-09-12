@@ -66,6 +66,7 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.literalValue](#sqlliteralvalue)
    - [transaction savepoints](#transaction-savepoints)
    - [sql.type](#sqltype)
+   - [sql.type with custom error message](#sqltype-with-custom-error-message)
    - [createSqlTag + sql.typeAlias](#createsqltag--sqltypealias)
 - [Types](#types)
 - [Automatic type generation](#automatic-type-generation)
@@ -470,7 +471,7 @@ expect(newRecords).toEqual([{id: 10, name: 'ten'}])
 
 ```typescript
 const StringId = z.object({id: z.string()})
-await expect(client.any(sql.type(StringId)`select text(id) id from usage_test`)).resolves.toMatchObject([
+await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).resolves.toMatchObject([
   {id: '1'},
   {id: '2'},
   {id: '3'},
@@ -491,6 +492,63 @@ expect(error.cause).toMatchInlineSnapshot(`
       "message": "Expected string, received number"
     }
   ]],
+    "message": "[
+    {
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "number",
+      "path": [
+        "id"
+      ],
+      "message": "Expected string, received number"
+    }
+  ]",
+    "name": "QueryErrorCause",
+    "query": {
+      "name": "select-usage_test_8729cac",
+      "parse": [Function],
+      "sql": "select id from usage_test",
+      "templateArgs": [Function],
+      "token": "sql",
+      "values": [],
+    },
+  }
+`)
+```
+
+### sql.type with custom error message
+
+Wrap the query function to customize the error message
+
+```typescript
+client = createClient(client.connectionString(), {
+  ...client.options,
+  wrapQueryFn: query => {
+    const parentWrapper = client.options.wrapQueryFn || (x => x)
+    return async (...args) => {
+      const parentQueryFn = parentWrapper(query)
+      try {
+        return await parentQueryFn(...args)
+      } catch (e) {
+        if (e instanceof QueryError && e.message.endsWith('Parsing rows failed')) {
+          throw new QueryError(e.message, {
+            cause: {query: e.cause.query, error: fromError(e.cause.error)},
+          })
+        }
+        throw e
+      }
+    }
+  },
+})
+const StringId = z.object({id: z.string()})
+
+const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+expect(error.cause).toMatchInlineSnapshot(`
+  {
+    "error": [ZodValidationError: Validation error: Expected string, received number at "id"],
+    "message": "Validation error: Expected string, received number at "id"",
+    "name": "QueryErrorCause",
     "query": {
       "name": "select-usage_test_8729cac",
       "parse": [Function],
@@ -523,17 +581,9 @@ expect(result).toEqual({name: 'Bob'})
 const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
 expect(err.cause).toMatchInlineSnapshot(`
   {
-    "error": [ZodError: [
-    {
-      "code": "invalid_type",
-      "expected": "string",
-      "received": "number",
-      "path": [
-        "name"
-      ],
-      "message": "Expected string, received number"
-    }
-  ]],
+    "error": [ZodValidationError: Validation error: Expected string, received number at "name"],
+    "message": "Validation error: Expected string, received number at "name"",
+    "name": "QueryErrorCause",
     "query": {
       "name": "select_245d49b",
       "parse": [Function],
@@ -652,6 +702,7 @@ Transform rows:
 ```typescript
 const Row = z.object({
   id: z.number(),
+  label: z.string().nullable(),
   location: z
     .string()
     .regex(/^-?\d+,-?\d+$/)
@@ -665,10 +716,19 @@ const result = await client.any(sql.type(Row)`
   select * from zod_test
 `)
 
+expectTypeOf(result).toEqualTypeOf<{id: number; label: string | null; location: {lat: number; lon: number}}[]>()
+
+const result2 = await client.any(sql.type(Row)`
+  select * from ${sql.identifier(['zod_test'])}
+`)
+
+expect(result2).toEqual(result)
+
 expect(result).toMatchInlineSnapshot(`
   [
     {
       "id": 1,
+      "label": "a",
       "location": {
         "lat": 70,
         "lon": -108
@@ -676,6 +736,7 @@ expect(result).toMatchInlineSnapshot(`
     },
     {
       "id": 2,
+      "label": "b",
       "location": {
         "lat": 71,
         "lon": -102
@@ -683,6 +744,7 @@ expect(result).toMatchInlineSnapshot(`
     },
     {
       "id": 3,
+      "label": null,
       "location": {
         "lat": 66,
         "lon": -90
@@ -702,20 +764,29 @@ const Row = z.object({
 
 const getResult = () =>
   client.any(sql.type(Row)`
-    select * from recipes_test
+    select * from zod_test
   `)
 
 await expect(getResult()).rejects.toMatchInlineSnapshot(`
   {
     "cause": {
       "query": {
-        "name": "select-recipes_test_6e1b6e6",
-        "sql": "\\n      select * from recipes_test\\n    ",
+        "name": "select-zod_test_83bbed1",
+        "sql": "\\n      select * from zod_test\\n    ",
         "token": "sql",
         "values": []
       },
       "error": {
         "issues": [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "undefined",
+            "path": [
+              "name"
+            ],
+            "message": "Required"
+          },
           {
             "code": "custom",
             "message": "id must be even",
@@ -725,7 +796,9 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
           }
         ],
         "name": "ZodError"
-      }
+      },
+      "message": "[\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
+      "name": "QueryErrorCause"
     }
   }
 `)
@@ -863,15 +936,15 @@ expect(log.mock.calls[0][0]).toMatchInlineSnapshot(
 const shortTimeoutMs = 20
 const impatient = createClient(client.connectionString() + '?shortTimeout', {
   pgpOptions: {
-    connect: ({client}) => {
-      client.connectionParameters.query_timeout = shortTimeoutMs
+    connect: {
+      query_timeout: shortTimeoutMs,
     },
   },
 })
 const patient = createClient(client.connectionString() + '?longTimeout', {
   pgpOptions: {
-    connect: ({client}) => {
-      client.connectionParameters.query_timeout = shortTimeoutMs * 3
+    connect: {
+      query_timeout: shortTimeoutMs * 3,
     },
   },
 })
@@ -879,6 +952,7 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
+    [[Query select_9dcc021]: Query read timeout]
     {
       "cause": {
         "query": {
@@ -891,7 +965,9 @@ await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThr
         },
         "error": {
           "query": "select pg_sleep(0.04)"
-        }
+        },
+        "message": "Query read timeout",
+        "name": "QueryErrorCause"
       }
     }
   `,
@@ -909,15 +985,15 @@ You can use `wrapQueryFn` to dynamically choose different clients depending on t
 const shortTimeoutMs = 20
 const impatientClient = createClient(client.connectionString() + '?shortTimeout', {
   pgpOptions: {
-    connect: ({client}) => {
-      client.connectionParameters.query_timeout = shortTimeoutMs
+    connect: {
+      query_timeout: shortTimeoutMs,
     },
   },
 })
 const patientClient = createClient(client.connectionString() + '?longTimeout', {
   pgpOptions: {
-    connect: ({client}) => {
-      client.connectionParameters.query_timeout = shortTimeoutMs * 3
+    connect: {
+      query_timeout: shortTimeoutMs * 3,
     },
   },
 })
@@ -950,6 +1026,7 @@ await expect(
     select pg_sleep(${sleepSeconds})
   `),
 ).rejects.toThrowErrorMatchingInlineSnapshot(`
+  [[Query select_6289211]: Query read timeout]
   {
     "cause": {
       "query": {
@@ -962,7 +1039,9 @@ await expect(
       },
       "error": {
         "query": "\\n      select pg_sleep(0.04)\\n    "
-      }
+      },
+      "message": "Query read timeout",
+      "name": "QueryErrorCause"
     }
   }
 `)
@@ -1099,52 +1178,55 @@ For errors based on the number of rows returned (for `one`, `oneFirst`, `many`, 
 ```typescript
 await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
   `
-    {
-      "message": "[Query select-test_errors_36f5f64]: Expected one row",
-      "cause": {
-        "query": {
-          "name": "select-test_errors_36f5f64",
-          "sql": "select * from test_errors where id > 1",
-          "token": "sql",
-          "values": []
-        },
-        "result": {
-          "rows": [
-            {
-              "id": 2,
-              "name": "two"
-            },
-            {
-              "id": 3,
-              "name": "three"
-            }
-          ],
-          "command": "SELECT",
-          "rowCount": 2,
-          "fields": [
-            {
-              "name": "id",
-              "tableID": 123456789,
-              "columnID": 1,
-              "dataTypeID": 123456789,
-              "dataTypeSize": 4,
-              "dataTypeModifier": -1,
-              "format": "text"
-            },
-            {
-              "name": "name",
-              "tableID": 123456789,
-              "columnID": 2,
-              "dataTypeID": 123456789,
-              "dataTypeSize": -1,
-              "dataTypeModifier": -1,
-              "format": "text"
-            }
-          ]
-        }
-      }
+  [[Query select-test_errors_36f5f64]: Expected one row]
+  {
+    "message": "[Query select-test_errors_36f5f64]: Expected one row",
+    "cause": {
+      "query": {
+        "name": "select-test_errors_36f5f64",
+        "sql": "select * from test_errors where id > 1",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [
+          {
+            "id": 2,
+            "name": "two"
+          },
+          {
+            "id": 3,
+            "name": "three"
+          }
+        ],
+        "command": "SELECT",
+        "rowCount": 2,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": 123456789,
+            "columnID": 1,
+            "dataTypeID": 123456789,
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": 123456789,
+            "columnID": 2,
+            "dataTypeID": 123456789,
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
+        ]
+      },
+      "message": "",
+      "name": "QueryErrorCause"
     }
-  `,
+  }
+`,
 )
 ```
 
@@ -1152,6 +1234,7 @@ await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMa
 
 ```typescript
 await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(`
+  [[Query select-test_errors_36f5f64]: Expected at most one row]
   {
     "message": "[Query select-test_errors_36f5f64]: Expected at most one row",
     "cause": {
@@ -1194,7 +1277,9 @@ await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects
             "format": "text"
           }
         ]
-      }
+      },
+      "message": "",
+      "name": "QueryErrorCause"
     }
   }
 `)
@@ -1204,6 +1289,7 @@ await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects
 
 ```typescript
 await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.toMatchInlineSnapshot(`
+  [[Query select-test_errors_34cad85]: Expected at least one row]
   {
     "message": "[Query select-test_errors_34cad85]: Expected at least one row",
     "cause": {
@@ -1237,7 +1323,9 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
             "format": "text"
           }
         ]
-      }
+      },
+      "message": "",
+      "name": "QueryErrorCause"
     }
   }
 `)
@@ -1247,10 +1335,9 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
 
 ```typescript
 await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(`
+  [[Query select_fb83277]: syntax error at or near "frooom"]
   {
     "message": "[Query select_fb83277]: syntax error at or near \\"frooom\\"",
-    "pg_code": "42601",
-    "pg_code_name": "syntax_error",
     "cause": {
       "query": {
         "name": "select_fb83277",
@@ -1268,7 +1355,9 @@ await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInline
         "line": "123456789",
         "routine": "scanner_yyerror",
         "query": "select * frooom test_errors"
-      }
+      },
+      "message": "syntax error at or near \\"frooom\\"",
+      "name": "QueryErrorCause"
     }
   }
 `)

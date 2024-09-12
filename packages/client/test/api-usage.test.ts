@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import {z} from 'zod'
-import {createClient, createSqlTag, sql} from '../src'
+import {fromError} from 'zod-validation-error'
+import {createClient, createSqlTag, QueryError, sql} from '../src'
 
 export let client: Awaited<ReturnType<typeof createClient>>
 
@@ -261,7 +262,7 @@ test('transaction savepoints', async () => {
  */
 test('sql.type', async () => {
   const StringId = z.object({id: z.string()})
-  await expect(client.any(sql.type(StringId)`select text(id) id from usage_test`)).resolves.toMatchObject([
+  await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).resolves.toMatchObject([
     {id: '1'},
     {id: '2'},
     {id: '3'},
@@ -307,6 +308,50 @@ test('sql.type', async () => {
 })
 
 /**
+ * Wrap the query function to customize the error message
+ */
+test('sql.type with custom error message', async () => {
+  client = createClient(client.connectionString(), {
+    ...client.options,
+    wrapQueryFn: query => {
+      const parentWrapper = client.options.wrapQueryFn || (x => x)
+      return async (...args) => {
+        const parentQueryFn = parentWrapper(query)
+        try {
+          return await parentQueryFn(...args)
+        } catch (e) {
+          if (e instanceof QueryError && e.message.endsWith('Parsing rows failed')) {
+            throw new QueryError(e.message, {
+              cause: {query: e.cause.query, error: fromError(e.cause.error)},
+            })
+          }
+          throw e
+        }
+      }
+    },
+  })
+  const StringId = z.object({id: z.string()})
+
+  const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+  expect(error.cause).toMatchInlineSnapshot(`
+    {
+      "error": [ZodValidationError: Validation error: Expected string, received number at "id"],
+      "message": "Validation error: Expected string, received number at "id"",
+      "name": "QueryErrorCause",
+      "query": {
+        "name": "select-usage_test_8729cac",
+        "parse": [Function],
+        "sql": "select id from usage_test",
+        "templateArgs": [Function],
+        "token": "sql",
+        "values": [],
+      },
+    }
+  `)
+})
+
+/**
  * `createSqlTag` lets you create your own `sql` tag, which you can export and use instead of the deafult one,
  * to add commonly-used schemas, which can be referred to by their key in the `createSqlTag` definition.
  */
@@ -326,28 +371,8 @@ test('createSqlTag + sql.typeAlias', async () => {
   const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
   expect(err.cause).toMatchInlineSnapshot(`
     {
-      "error": [ZodError: [
-      {
-        "code": "invalid_type",
-        "expected": "string",
-        "received": "number",
-        "path": [
-          "name"
-        ],
-        "message": "Expected string, received number"
-      }
-    ]],
-      "message": "[
-      {
-        "code": "invalid_type",
-        "expected": "string",
-        "received": "number",
-        "path": [
-          "name"
-        ],
-        "message": "Expected string, received number"
-      }
-    ]",
+      "error": [ZodValidationError: Validation error: Expected string, received number at "name"],
+      "message": "Validation error: Expected string, received number at "name"",
       "name": "QueryErrorCause",
       "query": {
         "name": "select_245d49b",
