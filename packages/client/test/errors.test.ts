@@ -80,7 +80,9 @@ test('one error', async () => {
                 "format": "text"
               }
             ]
-          }
+          },
+          "message": "",
+          "name": "QueryErrorCause"
         }
       }
     `,
@@ -131,7 +133,9 @@ test('maybeOne error', async () => {
               "format": "text"
             }
           ]
-        }
+        },
+        "message": "",
+        "name": "QueryErrorCause"
       }
     }
   `)
@@ -172,7 +176,9 @@ test('many error', async () => {
               "format": "text"
             }
           ]
-        }
+        },
+        "message": "",
+        "name": "QueryErrorCause"
       }
     }
   `)
@@ -182,8 +188,6 @@ test('syntax error', async () => {
   await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(`
     {
       "message": "[Query select_fb83277]: syntax error at or near \\"frooom\\"",
-      "pg_code": "42601",
-      "pg_code_name": "syntax_error",
       "cause": {
         "query": {
           "name": "select_fb83277",
@@ -201,7 +205,9 @@ test('syntax error', async () => {
           "line": "123456789",
           "routine": "scanner_yyerror",
           "query": "select * frooom test_errors"
-        }
+        },
+        "message": "syntax error at or near \\"frooom\\"",
+        "name": "QueryErrorCause"
       }
     }
   `)

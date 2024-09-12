@@ -171,22 +171,24 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-      {
-        "cause": {
-          "query": {
-            "name": "select_9dcc021",
-            "sql": "select pg_sleep($1)",
-            "token": "sql",
-            "values": [
-              0.04
-            ]
-          },
-          "error": {
-            "query": "select pg_sleep(0.04)"
-          }
-        }
+    {
+      "cause": {
+        "query": {
+          "name": "select_9dcc021",
+          "sql": "select pg_sleep($1)",
+          "token": "sql",
+          "values": [
+            0.04
+          ]
+        },
+        "error": {
+          "query": "select pg_sleep(0.04)"
+        },
+        "message": "Query read timeout",
+        "name": "QueryErrorCause"
       }
-    `,
+    }
+  `,
   )
   await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
     pg_sleep: '',
@@ -251,7 +253,9 @@ test('switchable clients', async () => {
         },
         "error": {
           "query": "\\n      select pg_sleep(0.04)\\n    "
-        }
+        },
+        "message": "Query read timeout",
+        "name": "QueryErrorCause"
       }
     }
   `)

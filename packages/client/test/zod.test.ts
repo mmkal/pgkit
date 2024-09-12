@@ -37,6 +37,12 @@ test('Transform rows', async () => {
     select * from zod_test
   `)
 
+  // const result2 = await client.any(sql.type(Row)`
+  //   select * from ${sql.identifier(['zod_test'])}
+  // `)
+
+  // expect(result2).toEqual(result)
+
   expect(result).toMatchInlineSnapshot(`
     [
       {
@@ -72,20 +78,29 @@ test('Refine schemas', async () => {
 
   const getResult = () =>
     client.any(sql.type(Row)`
-      select * from recipes_test
+      select * from zod_test
     `)
 
   await expect(getResult()).rejects.toMatchInlineSnapshot(`
     {
       "cause": {
         "query": {
-          "name": "select-recipes_test_6e1b6e6",
-          "sql": "\\n      select * from recipes_test\\n    ",
+          "name": "select-zod_test_83bbed1",
+          "sql": "\\n      select * from zod_test\\n    ",
           "token": "sql",
           "values": []
         },
         "error": {
           "issues": [
+            {
+              "code": "invalid_type",
+              "expected": "string",
+              "received": "undefined",
+              "path": [
+                "name"
+              ],
+              "message": "Required"
+            },
             {
               "code": "custom",
               "message": "id must be even",
@@ -95,7 +110,9 @@ test('Refine schemas', async () => {
             }
           ],
           "name": "ZodError"
-        }
+        },
+        "message": "[\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
+        "name": "QueryErrorCause"
       }
     }
   `)

@@ -44,16 +44,17 @@ export class QueryErrorCause {
 export class QueryError extends Error {
   cause!: {
     name: string
+    message: string
     query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>
     error?: Error
     result?: {rows: unknown[]}
   }
 
-  constructor(message: string, {cause}: {cause: Omit<QueryError['cause'], 'name'>}) {
+  constructor(message: string, {cause}: {cause: Omit<QueryError['cause'], 'name' | 'message'>}) {
     super(`[Query ${cause.query.name}]: ${message || cause?.error?.message || cause?.error?.constructor?.name}`, {
       cause,
     })
-    this.cause = {...cause, name: 'QueryErrorCause'}
+    this.cause = {...cause, message: cause?.error?.message || '', name: 'QueryErrorCause'}
   }
 }
 
