@@ -212,7 +212,7 @@
       "name": "numeric",
       "schema": "public",
       "provider": "icu",
-      "lc_collate": "en-u-kn-true"
+      "lc_collate": null
     }
   },
   "rlspolicies": {}
