@@ -323,9 +323,7 @@ export const analyzeAST = async (
             if (name === null || name === '*') {
               name = `column_${i}`
             }
-            return {
-              name,
-            }
+            return name
           })
 
           /** Create a new AST looking like
@@ -351,7 +349,7 @@ export const analyzeAST = async (
                   ...formattedQueryAst,
                   columns: formattedQueryAst.columns?.map((c, i) => ({
                     ...c,
-                    alias: columnNames![i],
+                    alias: {name: columnNames![i]},
                   })),
                   where: {type: 'boolean', value: false},
                 },
@@ -368,11 +366,11 @@ export const analyzeAST = async (
                     {
                       type: 'ref',
                       table: {name: 'temp_view'},
-                      name: columnNames![i].name,
+                      name: columnNames![i],
                     },
                   ],
                 },
-                alias: {name: `${columnNames![i].name}`},
+                alias: {name: columnNames![i]},
               })),
 
               from: [
