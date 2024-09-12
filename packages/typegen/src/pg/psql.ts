@@ -1,8 +1,6 @@
 import * as assert from 'assert'
 import {simplifyWhitespace} from '../util'
 
-export type PSQLClient = ReturnType<typeof psqlClient>
-
 /**
  * Get a basic postgres client. which can execute simple queries and return row results.
  * This parses `psql` output and no type parsing is done. Everything is a string.
