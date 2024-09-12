@@ -25,8 +25,15 @@ import {
 
 type RegTypeToTypeScript = (formattedRegType: string & {brand?: 'formatted regtype'}) => string & {brand?: 'typescript'}
 
-// todo: logging
+// todo: more logging
 // todo: get table description from obj_description(oid) (like column)
+
+const logTestWarning = (...args: unknown[]) => {
+  if (process.env.NODE_ENV === 'test' || process.env.PGKIT_TYPEGEN_DEBUG) {
+    // eslint-disable-next-line no-console
+    console.warn(...args)
+  }
+}
 
 export const getColumnInfo = memoizeQueryFn(
   async (pool: Client, query: DescribedQuery, regTypeToTypeScript: RegTypeToTypeScript): Promise<AnalysedQuery> => {
@@ -251,13 +258,15 @@ export const analyzeAST = async (
 
     for (const r of results) {
       if (r.error_message) {
-        // todo: start warning users.
-        // or, maybe, make it logger.debug and show these with the `--debug` flag
-        // and/or have a `--strict` flag that errors when there are any warnings - making this a kind of sql validator tool which is cool
-        // eslint-disable-next-line unicorn/no-lonely-if
-        if (process.env.NODE_ENV === 'test') {
-          // eslint-disable-next-line no-console
-          console.warn(`wError analyzing select statement: ${r.error_message}`)
+        const isKnownIssue =
+          r.error_message.match(/column ".*" has pseudo-type (void|record)\b/) || // e.g. pg_advisory_lock(0) - not a good thing to be shoving into a view...
+          r.error_message.match(/column ".*" specified more than once/) // hard to statically predict when it's `select * from foo join bar on foo.id = bar.id`
+        if (!isKnownIssue) {
+          // todo: start warning users.
+          // or, maybe, make it logger.debug and show these with the `--debug` flag
+          // and/or have a `--strict` flag that errors when there are any warnings - making this a kind of sql validator tool which is cool
+          // and/or use or write a logger library that does this
+          logTestWarning(`Error analyzing select statement: ${r.error_message}`)
         }
       }
     }
@@ -308,6 +317,12 @@ export const analyzeAST = async (
 
     const analyzed = await Promise.all(
       aliasInfoList.map(async aliasInfo => {
+        if (!aliasInfo?.queryColumn) {
+          // const detail = {describedQuery, aliasInfo, results, formattedQuery: toSql.statement(formattedQueryAst)}
+          // logTestWarning(`no aliasInfo.queryColumn`, detail)
+          return []
+        }
+
         const matchingQueryField = describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)
 
         const matchingResult = results.find(
@@ -393,8 +408,7 @@ export const analyzeAST = async (
           const pgTypeOfResult = await tx
             .maybeOne<Record<string, string>>(sql.raw(toSql.statement(pgTypeOfAst)))
             .catch(e => {
-              console.warn(`Error getting regtype for ${aliasInfo.queryColumn}`, e)
-              return undefined
+              logTestWarning(`Error getting regtype for`, aliasInfo, e)
             })
 
           const regtype = pgTypeOfResult?.[aliasInfo.queryColumn]
@@ -430,19 +444,8 @@ export const analyzeAST = async (
         }
 
         if (!matchingResult) {
-          if (process.env.PGKIT_TYPEGEN_DEBUG_TYPE_MATCHING) {
-            // eslint-disable-next-line no-console
-            console.dir(
-              {
-                msg: 'no matchingResult',
-                describedQuery,
-                aliasInfo,
-                results,
-                formattedQuery: toSql.statement(formattedQueryAst),
-              },
-              {depth: null},
-            )
-          }
+          // const detail = {describedQuery, aliasInfo, results, formattedQuery: toSql.statement(formattedQueryAst)}
+          // logTestWarning(`no matchingResult`, detail)
           return []
         }
 
@@ -511,7 +514,7 @@ const insertTempTable = async (
       .join('\n')}
   `)
   if (fields.length === 0) {
-    console.warn('not inserting empty table', raw, fields, params)
+    logTestWarning('not inserting empty table', raw, fields, params)
   } else {
     await tx.query(raw)
   }
