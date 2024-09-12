@@ -1,5 +1,4 @@
 import * as assert from 'assert'
-import {simplifyWhitespace} from '../util'
 
 /**
  * Get a basic postgres client. which can execute simple queries and return row results.
@@ -13,16 +12,13 @@ export const psqlClient = (psqlCommand: string) => {
 
   const psql = async (query: string) => {
     const {default: execa} = await import('execa')
-    query = simplifyWhitespace(query)
-    // eslint-disable-next-line no-template-curly-in-string
-    const echoQuery = 'echo "${TYPEGEN_QUERY}"'
-    const command = `${echoQuery} | ${psqlCommand} -f -`
+    const command = `echo "$TYPEGEN_QUERY" | ${psqlCommand} -f -`
     const result = await execa('sh', ['-c', command], {env: {TYPEGEN_QUERY: query}})
     try {
       return psqlRows(result.stdout)
     } catch (e: unknown) {
       const stdout = result.stdout + result.stderr
-      throw new Error(`Error running psql query ${JSON.stringify(stdout)}`, {cause: e})
+      throw new Error(`Error running psql query. Output:\n${JSON.stringify(stdout)}`, {cause: e})
     }
   }
 

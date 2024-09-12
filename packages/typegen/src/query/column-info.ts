@@ -1,4 +1,5 @@
 import {Client, sql, Transactable} from '@pgkit/client'
+import * as assert from 'assert'
 import {createHash} from 'crypto'
 
 import * as lodash from 'lodash'
@@ -280,28 +281,18 @@ export const analyzeAST = async (
 
     if (viewsWeNeedToAnalyzeFirst.size > 0) {
       for (const [viewName, result] of viewsWeNeedToAnalyzeFirst) {
-        if (!result.underlying_view_definition) {
-          throw new Error(
-            `View ${viewName} has no underlying view definition: ${JSON.stringify({viewName, result}, null, 2)}`,
-          )
-        }
+        assert.ok(
+          result.underlying_view_definition,
+          `View ${viewName} has no underlying view definition: ${JSON.stringify({viewName, result}, null, 2)}`,
+        )
         const [statement, ...rest] = parse(result.underlying_view_definition)
-        // if (selectStatementSql === toSql.statement(statement.ast)) {
-        //   throw new Error(
-        //     `Circular view dependency detected: ${selectStatementSql} depends on ${result.underlying_view_definition}`,
-        //   )
-        // }
-        if (statement?.type !== 'select') {
-          throw new Error(`Expected a select statement, got ${statement?.type}`)
-        }
-        if (rest.length > 0) {
-          throw new Error(`Expected a single select statement, got ${result.underlying_view_definition}`)
-        }
+        assert.ok(statement?.type === 'select', `Expected a select statement, got ${statement?.type}`)
+        assert.ok(
+          rest.length === 0,
+
+          `Expected a single select statement, got ${result.underlying_view_definition}`,
+        )
         const analyzed = await analyzeAST({fields: []}, tx, statement, regTypeToTypeScript)
-        // await insertPrerequisites(tx, schemaName, analyzed, statement.ast, {
-        //   tableAlias: viewName,
-        //   source: 'view',
-        // })
         await insertTempTable(tx, {
           tableAlias: viewName,
           fields: analyzed,
@@ -606,7 +597,7 @@ const generateTagOptions = (query: DescribedQuery) => {
         .filter(part => !['query', 'result'].includes(part))
         .join('-'),
     )
-    .map(lodash.flow(lodash.camelCase, lodash.upperFirst))
+    .map(s => lodash.upperFirst(lodash.camelCase(s)))
     .map((_, i, arr) => arr.slice(0, i + 1).join('_'))
     .filter(Boolean)
 
@@ -634,20 +625,6 @@ const generateTags = (query: DescribedQuery) => {
 
   return tags
 }
-
-/**
- * Create a fallback, in case we fail to analyse the query
- */
-const getDefaultAnalysedQuery = (query: DescribedQuery): AnalysedQuery => ({
-  ...query,
-  suggestedTags: generateTags(query),
-  fields: query.fields.map(f => ({
-    ...f,
-    nullability: 'unknown',
-    comment: undefined,
-    column: undefined,
-  })),
-})
 
 const nonNullableExpressionTypes = new Set([
   'integer',

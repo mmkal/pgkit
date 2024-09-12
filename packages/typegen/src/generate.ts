@@ -33,29 +33,27 @@ export const generate = async (inputOptions: Partial<Options>) => {
       url.searchParams.set('options', optionsParams.toString())
       connectionString = url.toString()
     }
+    assert.ok(!/"/.test(connectionString), `Connection strings with quotes must be escaped: ${connectionString}`)
     const {psql} = psqlClient(`${options.psqlCommand} "${connectionString}"`)
-    return (
-      neverthrow
-        .ok(inputSql)
-        .map(sql => sql.trim().replace(/;$/, ''))
-        // .andThen(sql => (sql.includes(';') ? neverthrow.ok(removeSimpleComments(sql)) : neverthrow.ok(sql)))
-        .asyncAndThen(simplified => {
-          const simplifiedCommand = `${simplified} \\gdesc`
-          return neverthrow.fromPromise(
-            psql(simplifiedCommand), //
-            err => {
-              let message = `psql failed.`
-              if ((err as Error).message.includes('psql: command not found')) {
-                message += ` If you're using docker, try using \`--psql 'docker-compose exec -T postgres psql'\`.`
-              }
-              if (searchPath) {
-                message += `\n\nNote: search path was set to ${searchPath}. Connection string used: ${connectionString}`
-              }
-              return new Error(message, {cause: err})
-            },
-          )
-        })
-    )
+    return neverthrow
+      .ok(inputSql)
+      .map(sql => sql.trim().replace(/;$/, ''))
+      .asyncAndThen(simplified => {
+        const simplifiedCommand = `${simplified} \\gdesc`
+        return neverthrow.fromPromise(
+          psql(simplifiedCommand), //
+          err => {
+            let message = `psql failed.`
+            if ((err as Error).message.includes('psql: command not found')) {
+              message += ` If you're using docker, try using \`--psql 'docker-compose exec -T postgres psql'\`.`
+            }
+            if (searchPath) {
+              message += `\n\nNote: search path was set to ${searchPath}. Connection string used: ${connectionString}`
+            }
+            return new Error(message, {cause: err})
+          },
+        )
+      })
   }
 
   // const psql = memoizee(_psql, {max: 1000})
