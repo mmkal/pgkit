@@ -237,14 +237,12 @@ export const analyzeAST = async (
       }
     }
 
-    const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql`
+    const AnalyzeSelectStatementColumnsQuery = (statmentSql: string) => sql.type(SelectStatementAnalyzedColumnSchema)`
       --typegen-ignore
       select * from ${sql.identifier([schemaName, 'analyze_select_statement_columns'])}(${statmentSql})
     `
     // todo: figure out why sql.type(MyZodType) isn't working here
-    let results = SelectStatementAnalyzedColumnSchema.array().parse(
-      await tx.any(AnalyzeSelectStatementColumnsQuery(astSql)),
-    )
+    let results = await tx.any(AnalyzeSelectStatementColumnsQuery(astSql))
 
     results = lodash.uniqBy<SelectStatementAnalyzedColumn>(results, JSON.stringify)
 

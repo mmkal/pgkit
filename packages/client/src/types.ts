@@ -104,17 +104,15 @@ export type TypeNameIdentifier =
 /* eslint-enable @typescript-eslint/no-redundant-type-constituents */
 
 export type ZodesqueType<T> =
-  | ZodesqueTypeUnsafe<T>
   | ZodesqueTypeSafe<T>
-  | ZodesqueTypeAsyncUnsafe<T>
   | ZodesqueTypeAsyncSafe<T>
+  | ZodesqueTypeAsyncUnsafe<T>
+  | ZodesqueTypeUnsafe<T>
 export type ZodesqueTypeUnsafe<T> = {parse: (input: unknown) => T}
 export type ZodesqueTypeSafe<T> = {safeParse: (input: unknown) => ZodesqueResult<T>}
 export type ZodesqueTypeAsyncUnsafe<T> = {parseAsync: (input: unknown) => Promise<T>}
 export type ZodesqueTypeAsyncSafe<T> = {safeParseAsync: (input: unknown) => Promise<ZodesqueResult<T>>}
-export type ZodesqueResult<T> =
-  | {success: true; data: T; error: undefined}
-  | {success: false; error: Error; data: undefined}
+export type ZodesqueResult<T> = {success: true; data: T} | {success: false; error: Error}
 
 export type SQLTagHelperParameters = {
   array: [values: readonly PrimitiveValueExpression[], memberType: MemberType]
@@ -152,7 +150,7 @@ export type SQLTagFunction = <Row = Record<string, unknown>, Parameters extends 
 
 export type SQLMethodHelpers = {
   raw: <T>(query: string) => SQLQuery<T, []>
-  type: <Row extends Record<string, unknown>>(
+  type: <Row>(
     parser: ZodesqueType<Row>,
   ) => <Parameters extends SQLParameter[] = SQLParameter[]>(
     strings: TemplateStringsArray,

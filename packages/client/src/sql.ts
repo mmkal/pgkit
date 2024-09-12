@@ -41,19 +41,16 @@ const sqlMethodHelpers: SQLMethodHelpers = {
         cause: type,
       })
     }
-    return (strings, ...parameters) => {
-      return {
-        parse: parseAsync,
-        name: nameQuery(strings),
-        sql: strings.join(''),
-        token: 'sql',
-        values: parameters,
-        templateArgs: () => [strings, ...parameters],
-      }
-    }
+    return (strings, ...parameters) => ({
+      ...sqlFn(strings, ...parameters),
+      parse: parseAsync,
+    })
   },
 }
 
+/**
+ * Template tag function. Walks through each string segment and parameter, and concatenates them into a valid SQL query.
+ */
 const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
   let sql = ''
   const values: unknown[] = []

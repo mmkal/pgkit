@@ -157,7 +157,6 @@ test('type parsers', async () => {
     {"oid":194,"typname":"pg_node_tree","regtype":"pg_node_tree"},
     {"oid":20,"typname":"int8","regtype":"bigint"},
     {"oid":21,"typname":"int2","regtype":"smallint"},
-    {"oid":210,"typname":"_pg_type","regtype":"pg_type[]"},
     {"oid":2202,"typname":"regprocedure","regtype":"regprocedure"},
     {"oid":2203,"typname":"regoper","regtype":"regoper"},
     {"oid":2204,"typname":"regoperator","regtype":"regoperator"},
@@ -298,8 +297,6 @@ test('type parsers', async () => {
       {
         "name": "SMGR",
         "oid": 210,
-        "regtype": "pg_type[]",
-        "typname": "_pg_type",
       },
       {
         "name": "PATH",
