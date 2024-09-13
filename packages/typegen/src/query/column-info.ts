@@ -304,6 +304,22 @@ export const analyzeAST = async (
       )
     }
 
+    const aliases = Object.fromEntries(aliasInfoList.map(a => [a.queryColumn, a]))
+    for (const field of describedQuery.fields) {
+      // fallback: our alias parsing isn't perfect, but \gdesc can reliably get all the field names.
+      // so if there are any missing from aliasInfoList, we'll add them here. They'll all be considered nullable unfortuantely.
+      const aliasInfo = aliases[field.name]
+      if (!aliasInfo) {
+        logTestWarning(`no aliasInfo for ${field.name}, inserting dummy`, {describedQuery, aliases, field})
+        aliasInfoList.push({
+          queryColumn: field.name,
+          aliasFor: null,
+          hasNullableJoin: false,
+          tablesColumnCouldBeFrom: [],
+        })
+      }
+    }
+
     const analyzed = await Promise.all(
       aliasInfoList.map(async aliasInfo => {
         if (!aliasInfo?.queryColumn) {
@@ -394,6 +410,10 @@ export const analyzeAST = async (
           const pgTypeOfResult = await tx
             .maybeOne<Record<string, string>>(sql.raw(toSql.statement(pgTypeOfAst)))
             .catch(e => {
+              const regtypeFromGdesc = describedQuery.fields.find(f => f.name === aliasInfo.queryColumn)?.regtype
+              if (regtypeFromGdesc) {
+                return {[aliasInfo.queryColumn]: regtypeFromGdesc}
+              }
               logTestWarning(`Error getting regtype for`, aliasInfo, e)
             })
 
