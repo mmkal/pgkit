@@ -52,7 +52,7 @@ beforeAll(async () => {
   })
 })
 
-// codegen:start {preset: custom, source: ./generate.cjs, export: generate, dev: true, removeTests: []}
+// codegen:start {preset: custom, source: ./generate.cjs, export: generate, dev: true, removeTests: ['sql.type with custom error message']}
 beforeEach(async () => {
   await client.query(sql`
     drop table if exists test_slonik37;
@@ -305,7 +305,7 @@ test('transaction savepoints', async () => {
  */
 test('sql.type', async () => {
   const StringId = z.object({id: z.string()})
-  await expect(client.any(sql.type(StringId)`select text(id) id from test_slonik37`)).resolves.toMatchObject([
+  await expect(client.any(sql.type(StringId)`select id::text from test_slonik37`)).resolves.toMatchObject([
     {id: '1'},
     {id: '2'},
     {id: '3'},
@@ -317,9 +317,9 @@ test('sql.type', async () => {
 })
 
 /**
- * `createSqlTag` lets you create your own `sql` tag, which you can export and use instead of the deafult one,
- * to add commonly-used schemas, which can be referred to by their key in the `createSqlTag` definition.
+ * Wrap the query function to customize the error message
  */
+
 test('createSqlTag + sql.typeAlias', async () => {
   const sql = createSqlTag({
     typeAliases: {

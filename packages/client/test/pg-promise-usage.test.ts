@@ -1,4 +1,4 @@
-import {test, expect, vi} from 'vitest'
+import {test, expect} from 'vitest'
 import {createClient, sql} from '../src'
 
 test("type parsers don't override each other", async () => {

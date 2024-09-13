@@ -164,9 +164,7 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
         const unexpected = param satisfies never as (typeof inputParameters)[number]
         throw new QueryError(
           `Unknown type ${unexpected && typeof unexpected === 'object' ? unexpected.token : typeof unexpected}`,
-          {
-            cause: {query: {name: nameQuery(strings), sql, values: inputParameters}},
-          },
+          {query: {name: nameQuery(strings), sql, values: inputParameters}},
         )
       }
     }

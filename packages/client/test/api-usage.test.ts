@@ -322,7 +322,8 @@ test('sql.type with custom error message', async () => {
         } catch (e) {
           if (e instanceof QueryError && e.message.endsWith('Parsing rows failed')) {
             throw new QueryError(e.message, {
-              cause: {query: e.cause.query, error: fromError(e.cause.error)},
+              query: e.cause.query,
+              error: fromError(e.cause.error),
             })
           }
           throw e

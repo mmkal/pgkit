@@ -532,7 +532,8 @@ client = createClient(client.connectionString(), {
       } catch (e) {
         if (e instanceof QueryError && e.message.endsWith('Parsing rows failed')) {
           throw new QueryError(e.message, {
-            cause: {query: e.cause.query, error: fromError(e.cause.error)},
+            query: e.cause.query,
+            error: fromError(e.cause.error),
           })
         }
         throw e
@@ -1178,55 +1179,55 @@ For errors based on the number of rows returned (for `one`, `oneFirst`, `many`, 
 ```typescript
 await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
   `
-  [[Query select-test_errors_36f5f64]: Expected one row]
-  {
-    "message": "[Query select-test_errors_36f5f64]: Expected one row",
-    "cause": {
-      "query": {
-        "name": "select-test_errors_36f5f64",
-        "sql": "select * from test_errors where id > 1",
-        "token": "sql",
-        "values": []
-      },
-      "result": {
-        "rows": [
-          {
-            "id": 2,
-            "name": "two"
-          },
-          {
-            "id": 3,
-            "name": "three"
-          }
-        ],
-        "command": "SELECT",
-        "rowCount": 2,
-        "fields": [
-          {
-            "name": "id",
-            "tableID": 123456789,
-            "columnID": 1,
-            "dataTypeID": 123456789,
-            "dataTypeSize": 4,
-            "dataTypeModifier": -1,
-            "format": "text"
-          },
-          {
-            "name": "name",
-            "tableID": 123456789,
-            "columnID": 2,
-            "dataTypeID": 123456789,
-            "dataTypeSize": -1,
-            "dataTypeModifier": -1,
-            "format": "text"
-          }
-        ]
-      },
-      "message": "",
-      "name": "QueryErrorCause"
+    [[Query select-test_errors_36f5f64]: Expected one row]
+    {
+      "message": "[Query select-test_errors_36f5f64]: Expected one row",
+      "cause": {
+        "query": {
+          "name": "select-test_errors_36f5f64",
+          "sql": "select * from test_errors where id > 1",
+          "token": "sql",
+          "values": []
+        },
+        "result": {
+          "rows": [
+            {
+              "id": 2,
+              "name": "two"
+            },
+            {
+              "id": 3,
+              "name": "three"
+            }
+          ],
+          "command": "SELECT",
+          "rowCount": 2,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": 123456789,
+              "columnID": 1,
+              "dataTypeID": 123456789,
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": 123456789,
+              "columnID": 2,
+              "dataTypeID": 123456789,
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
+          ]
+        },
+        "message": "",
+        "name": "QueryErrorCause"
+      }
     }
-  }
-`,
+  `,
 )
 ```
 

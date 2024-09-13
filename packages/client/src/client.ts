@@ -28,15 +28,12 @@ const createQueryable = (query: Queryable['query']): Queryable => {
     query,
     async one(input) {
       const result = await query(input)
-      if (result.rows.length !== 1) throw new QueryError('Expected one row', {cause: {query: input, result}})
+      if (result.rows.length !== 1) throw new QueryError('Expected one row', {query: input, result})
       return result.rows[0]
     },
     async maybeOne(input) {
       const result = await query(input)
-      if (result.rows.length > 1)
-        throw new QueryError('Expected at most one row', {
-          cause: {query: input, result},
-        })
+      if (result.rows.length > 1) throw new QueryError('Expected at most one row', {query: input, result})
       return result.rows[0] ?? null
     },
     async any(input) {
@@ -49,31 +46,22 @@ const createQueryable = (query: Queryable['query']): Queryable => {
     },
     async many(input) {
       const result = await query(input)
-      if (result.rows.length === 0)
-        throw new QueryError('Expected at least one row', {
-          cause: {query: input, result},
-        })
+      if (result.rows.length === 0) throw new QueryError('Expected at least one row', {query: input, result})
       return result.rows
     },
     async manyFirst(input) {
       const result = await query(input)
-      if (result.rows.length === 0)
-        throw new QueryError('Expected at least one row', {
-          cause: {query: input, result},
-        })
+      if (result.rows.length === 0) throw new QueryError('Expected at least one row', {query: input, result})
       return result.rows.map(first)
     },
     async maybeOneFirst(input) {
       const result = await query(input)
-      if (result.rows.length > 1)
-        throw new QueryError('Expected at most one row', {
-          cause: {query: input, result},
-        })
+      if (result.rows.length > 1) throw new QueryError('Expected at most one row', {query: input, result})
       return result.rows.length === 1 ? first(result.rows[0]) : null
     },
     async oneFirst(input) {
       const result = await query(input)
-      if (result.rows.length !== 1) throw new QueryError('Expected one row', {cause: {query: input, result}})
+      if (result.rows.length !== 1) throw new QueryError('Expected one row', {query: input, result})
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
       return Object.values(result.rows[0] as any)[0] as any
     },
@@ -94,18 +82,14 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
       result = {rows, command, rowCount, fields}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError(error.message, {
-        cause: {query, error},
-      })
+      throw new QueryError(error.message, {query, error})
     }
 
     try {
       return {...result, rows: await Promise.all(result.rows.map(query.parse))}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError(`Parsing rows failed`, {
-        cause: {query, error},
-      })
+      throw new QueryError(`Parsing rows failed`, {query, error})
     }
   }
 }
