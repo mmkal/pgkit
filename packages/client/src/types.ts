@@ -143,10 +143,10 @@ export type SQLParameterNonPrimitive = ReturnType<SQLTagHelpers[keyof SQLTagHelp
 export type SQLParameter = SQLParameterNonPrimitive | Primitive
 export type SQLParameterToken = SQLParameterNonPrimitive['token']
 
-export type SQLTagFunction = <Row = Record<string, unknown>, Parameters extends SQLParameter[] = SQLParameter[]>(
+export type SQLTagFunction = <Row = Record<string, unknown>>(
   strings: TemplateStringsArray,
-  ...parameters: Parameters
-) => SQLQuery<Row>
+  ...parameters: Row extends {'~parameters': SQLParameter[]} ? Row['~parameters'] : SQLParameter[]
+) => SQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
 
 export type SQLMethodHelpers = {
   raw: <T>(query: string) => SQLQuery<T, []>

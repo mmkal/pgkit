@@ -42,7 +42,7 @@ const sqlMethodHelpers: SQLMethodHelpers = {
       })
     }
     return (strings, ...parameters) => ({
-      ...sqlFn(strings, ...parameters),
+      ...sqlFn(strings, ...(parameters as never)),
       parse: parseAsync,
     })
   },
@@ -51,21 +51,24 @@ const sqlMethodHelpers: SQLMethodHelpers = {
 /**
  * Template tag function. Walks through each string segment and parameter, and concatenates them into a valid SQL query.
  */
-const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
-  let sql = ''
+const sqlFn: SQLTagFunction = (
+  strings: TemplateStringsArray,
+  ...templateParameters: SQLParameter[]
+): SQLQuery<never> => {
+  const segments: string[] = []
   const values: unknown[] = []
 
   // eslint-disable-next-line complexity
   strings.forEach((string, i) => {
-    sql += string
-    if (!(i in inputParameters)) {
+    segments.push(string)
+    if (!(i in templateParameters)) {
       return
     }
 
-    const param = inputParameters[i]
+    const param = templateParameters[i]
     if (!param || typeof param !== 'object') {
       values.push(param ?? null)
-      sql += '$' + values.length
+      segments.push('$' + values.length)
       return
     }
 
@@ -77,39 +80,39 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
       case 'jsonb':
       case 'timestamp': {
         values.push(param.args[0])
-        sql += '$' + values.length
+        segments.push('$' + values.length)
         break
       }
 
       case 'literalValue': {
-        sql += pgPromise.as.value(param.args[0])
+        segments.push(pgPromise.as.value(param.args[0]))
         break
       }
 
       case 'interval': {
-        sql += 'make_interval('
+        segments.push('make_interval(')
         Object.entries(param.args[0]).forEach(([unit, value], j, {length}) => {
           values.push(unit)
-          sql += '$' + values.length + ':name'
+          segments.push('$' + values.length + ':name')
           values.push(value)
-          sql += ` => $${values.length}`
-          if (j < length - 1) sql += ', '
+          segments.push(` => $${values.length}`)
+          if (j < length - 1) segments.push(', ')
         })
-        sql += ')'
+        segments.push(')')
         break
       }
 
       case 'join': {
         param.args[0].forEach((value, j, {length}) => {
           if (value && typeof value === 'object' && value?.token === 'sql') {
-            sql += value.sql
-            if (j < length - 1) sql += param.args[1].sql
+            segments.push(value.sql)
+            if (j < length - 1) segments.push(param.args[1].sql)
             return
           }
 
           values.push(value)
-          sql += '$' + values.length
-          if (j < length - 1) sql += param.args[1].sql
+          segments.push('$' + values.length)
+          if (j < length - 1) segments.push(param.args[1].sql)
         })
         break
       }
@@ -117,31 +120,31 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
       case 'identifier': {
         param.args[0].forEach((name, j, {length}) => {
           values.push(name)
-          sql += '$' + values.length + ':name'
-          if (j < length - 1) sql += '.'
+          segments.push('$' + values.length + ':name')
+          if (j < length - 1) segments.push('.')
         })
         break
       }
 
       case 'unnest': {
-        sql += 'unnest('
+        segments.push('unnest(')
         param.args[1].forEach((typename, j, {length}) => {
           const valueArray = param.args[0].map(tuple => tuple[j])
           values.push(valueArray)
-          sql += '$' + values.length + '::' + typename + '[]'
-          if (j < length - 1) sql += ', '
+          segments.push('$' + values.length + '::' + typename + '[]')
+          if (j < length - 1) segments.push(', ')
         })
-        sql += ')'
+        segments.push(')')
         break
       }
 
       case 'fragment': {
         const [parts, ...fragmentValues] = param.args
         for (const [j, part] of parts.entries()) {
-          sql += part
+          segments.push(part)
           if (j < fragmentValues.length) {
             values.push(fragmentValues[j])
-            sql += '$' + String(values.length + j)
+            segments.push('$' + String(values.length + j))
           }
         }
         break
@@ -150,10 +153,10 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
       case 'sql': {
         const [parts, ...fragmentValues] = param.templateArgs()
         for (const [j, part] of parts.entries()) {
-          sql += part
+          segments.push(part)
           if (j < fragmentValues.length) {
             values.push(fragmentValues[j])
-            sql += '$' + String(values.length + j)
+            segments.push('$' + String(values.length + j))
           }
         }
         break
@@ -161,10 +164,10 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
 
       default: {
         // satisfies never ensures exhaustive
-        const unexpected = param satisfies never as (typeof inputParameters)[number]
+        const unexpected = param satisfies never as (typeof templateParameters)[number]
         throw new QueryError(
           `Unknown type ${unexpected && typeof unexpected === 'object' ? unexpected.token : typeof unexpected}`,
-          {query: {name: nameQuery(strings), sql, values: inputParameters}},
+          {query: {name: nameQuery(strings), sql: segments.join(''), values: templateParameters}},
         )
       }
     }
@@ -173,10 +176,10 @@ const sqlFn: SQLTagFunction = (strings, ...inputParameters) => {
   return {
     parse: input => input as never,
     name: nameQuery(strings),
-    sql,
+    sql: segments.join(''),
     token: 'sql',
     values,
-    templateArgs: () => [strings, ...inputParameters],
+    templateArgs: () => [strings, ...templateParameters],
   }
 }
 
@@ -204,9 +207,9 @@ export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any
   typeAliases: TypeAliases
 }) => {
   // eslint-disable-next-line func-name-matching, func-names, @typescript-eslint/no-shadow
-  const fn: SQLTagFunction = function sql(...args: Parameters<SQLTagFunction>) {
-    return sqlFn(...args)
-  }
+  const fn = function sql(...args: Parameters<SQLTagFunction>) {
+    return sqlFn<{}>(...args)
+  } as SQLTagFunction
 
   return Object.assign(fn, allSqlHelpers, {
     typeAlias<K extends keyof TypeAliases>(name: K) {
