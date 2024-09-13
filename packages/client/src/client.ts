@@ -105,6 +105,7 @@ export const createClient = (connectionString: string, options: ClientOptions = 
   }
 
   const types = new TypeOverrides()
+  // note: this should be done "high up" in the app: https://stackoverflow.com/questions/34382796/where-should-i-initialize-pg-promise
   const pgp = pgPromise(options.pgpOptions?.initialize)
 
   options.applyTypeParsers?.({
@@ -155,12 +156,7 @@ export const createClient = (connectionString: string, options: ClientOptions = 
     pgp: client,
     pgpOptions: options.pgpOptions || {},
     ...createQueryable(createWrappedQueryFn(client)),
-    connectionString: () => {
-      const cn = client.$cn
-      const result = typeof cn === 'string' ? cn : cn.connectionString
-      if (!result) throw new Error('Expected connection string')
-      return result
-    },
+    connectionString: () => connectionString,
     end: async () => client.$pool.end(),
     connect,
     transaction: transactionFnFromTask(client),
