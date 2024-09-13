@@ -3,17 +3,7 @@ import TypeOverrides from 'pg/lib/type-overrides'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
 import {applyRecommendedTypeParsers} from './type-parsers'
-import {
-  Client,
-  First,
-  Queryable,
-  SQLQueryRowType,
-  ClientOptions,
-  Connection,
-  Transaction,
-  Result,
-  PGTypes,
-} from './types'
+import {Client, First, Queryable, SQLQueryRowType, ClientOptions, Connection, Transaction, Result} from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
 
@@ -106,19 +96,19 @@ export const createClient = (connectionString: string, options: ClientOptions = 
 
   const types = new TypeOverrides()
   // note: this should be done "high up" in the app: https://stackoverflow.com/questions/34382796/where-should-i-initialize-pg-promise
-  const pgp = pgPromise(options.pgpOptions?.initialize)
+  const initializedPgPromise = pgPromise(options.pgpOptions?.initialize)
 
   options.applyTypeParsers?.({
     setTypeParser: (id, parseFn) => types.setTypeParser(id, parseFn as (input: unknown) => unknown),
-    builtins: pgp.pg.types.builtins,
-  } as PGTypes)
+    builtins: initializedPgPromise.pg.types.builtins,
+  })
 
   const createWrappedQueryFn: typeof createQueryFn = queryable => {
     const queryFn = createQueryFn(queryable)
     return options.wrapQueryFn ? options.wrapQueryFn(queryFn) : queryFn
   }
 
-  const client = pgp({
+  const pgPromiseClient = initializedPgPromise({
     connectionString,
     types,
     ...options.pgpOptions?.connect,
@@ -139,7 +129,7 @@ export const createClient = (connectionString: string, options: ClientOptions = 
     }
 
   const connect: Client['connect'] = async callback => {
-    return client.task({tag: crypto.randomUUID()}, async task => {
+    return pgPromiseClient.task({tag: crypto.randomUUID()}, async task => {
       const connectionInfo: Connection['connectionInfo'] = {pgp: task}
       const pgSuiteConnection: Connection = {
         connectionInfo,
@@ -153,12 +143,12 @@ export const createClient = (connectionString: string, options: ClientOptions = 
 
   return {
     options,
-    pgp: client,
+    pgp: pgPromiseClient,
     pgpOptions: options.pgpOptions || {},
-    ...createQueryable(createWrappedQueryFn(client)),
+    ...createQueryable(createWrappedQueryFn(pgPromiseClient)),
     connectionString: () => connectionString,
-    end: async () => client.$pool.end(),
+    end: async () => pgPromiseClient.$pool.end(),
     connect,
-    transaction: transactionFnFromTask(client),
+    transaction: transactionFnFromTask(pgPromiseClient),
   }
 }
