@@ -443,7 +443,10 @@ const main = async () => {
     const {stdout: uncommitedChanges} = await execa('git', ['status', '--porcelain', '--', '.'], {
       cwd: pkg.path,
     })
-    const commitBullets = stdout.split('\n').filter(Boolean).map(line => `- ${line}`)
+    const commitBullets = stdout
+      .split('\n')
+      .filter(Boolean)
+      .map(line => `- ${line}`)
     const sections = [
       commitBullets.length && '<h3>Commits</h3>\n',
       ...commitBullets,
@@ -496,8 +499,7 @@ const main = async () => {
             .split('\n')
             .filter(line => !line.match(/^<!-- data-change-type=".*" -->$/))
             .map(line => (line.trim() ? `${line}` : line))
-            .join('\n')
-              || `${bumpedDeps.updated[dep]} (Version bump)`,
+            .join('\n') || `${bumpedDeps.updated[dep]} (Version bump)`,
           '</blockquote>',
           '</details>',
         ].join('\n')
