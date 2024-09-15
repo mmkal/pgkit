@@ -236,7 +236,7 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
         .query(async ({ctx}) => {
           return {
             path: ctx.migrator.definitionsFile,
-            content: await readFile(ctx.migrator.definitionsFile, 'utf8'),
+            content: await readFile(ctx.migrator.definitionsFile, 'utf8').catch(() => null),
           }
         }),
       updateDb: trpc.procedure

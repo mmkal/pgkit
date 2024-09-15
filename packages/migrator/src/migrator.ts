@@ -551,6 +551,7 @@ export class Migrator {
     const doUpdate = changed && (await params.confirm(diff))
 
     if (doUpdate) {
+      await fs.mkdir(path.dirname(this.definitionsFile), {recursive: true})
       await fs.writeFile(this.definitionsFile, diff)
     }
     return {
