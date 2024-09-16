@@ -52,7 +52,7 @@
     "@types/memoizee": "0.4.8",
     "@types/pluralize": "0.0.29",
     "eslint": "^8.57.0",
-    "eslint-plugin-mmkal": "0.10.0",
+    "eslint-plugin-mmkal": "0.10.1",
     "expect-type": "^0.17.3",
     "fs-syncer": "^0.5.2",
     "js-yaml": "^4.1.0",

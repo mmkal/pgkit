@@ -30,12 +30,12 @@ The API design is based on [slonik](https://npmjs.com/package/slonik) - which re
 
 @pgkit/client is the basis for these libraries:
 
-<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(client|^pgkit$))", sort: topological} -->
+<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(formatter|docs|npmono|client|^pgkit$))", sort: topological} -->
 - [@pgkit/typegen](https://github.com/mmkal/pgkit/tree/pgkit/packages/typegen#readme) - Automatically generates typescript types from SQL queries
 - [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
 - [@pgkit/migra](https://github.com/mmkal/pgkit/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
-- [@pgkit/admin](https://github.com/mmkal/pgkit/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
 - [@pgkit/migrator](https://github.com/mmkal/pgkit/tree/pgkit/packages/migrator#readme) - PostgeSQL migration tool
+- [@pgkit/admin](https://github.com/mmkal/pgkit/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
 <!-- codegen:end -->
 
 Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python equivalents. They are fantastically useful, and hopefully more and more can be built on top of them in the future.

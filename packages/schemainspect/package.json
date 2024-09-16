@@ -22,7 +22,7 @@
   "devDependencies": {
     "@types/node": "^20.11.20",
     "eslint": "^8.57.0",
-    "eslint-plugin-mmkal": "0.10.0",
+    "eslint-plugin-mmkal": "0.10.1",
     "quicktype-core": "^23.0.81",
     "ts-node": "^10.9.2",
     "vitest": "^1.2.2"

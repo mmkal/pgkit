@@ -69,7 +69,7 @@
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "csv-stringify": "^6.4.6",
-    "eslint-plugin-mmkal": "0.10.0",
+    "eslint-plugin-mmkal": "0.10.1",
     "express": "^4.18.2",
     "fetchomatic": "^0.0.3",
     "lucide-react": "^0.373.0",

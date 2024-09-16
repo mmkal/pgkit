@@ -168,6 +168,7 @@ export type PGPromiseDBConnectorParameters = Parameters<PGPromiseDBConnector>
 export type PGPromiseDBConnectionOptions = Exclude<PGPromiseDBConnectorParameters[0], string>
 
 export type PGTypes = ReturnType<typeof import('pg-promise')>['pg']['types']
+// eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type ParseFn = Extract<Parameters<PGTypes['setTypeParser']>[number], Function>
 export type PGTypesBuiltins = PGTypes['builtins']
 export type PGTypesBuiltinOid = PGTypesBuiltins[keyof PGTypesBuiltins]

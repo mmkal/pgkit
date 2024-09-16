@@ -27,7 +27,7 @@
     "@types/node": "^20.11.10",
     "dedent": "^1.5.1",
     "eslint": "^8.57.0",
-    "eslint-plugin-mmkal": "0.10.0",
+    "eslint-plugin-mmkal": "0.10.1",
     "execa": "^8.0.1",
     "fs-syncer": "^0.4.0",
     "js-yaml": "^4.1.0",
