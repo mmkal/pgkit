@@ -8,7 +8,15 @@ import * as semver from 'semver'
 import {inspect} from 'util'
 import {sortPackageJson} from 'sort-package-json'
 
-export const publish = async () => {
+import {z} from 'trpc-cli'
+
+export const PublishInput = z.object({
+  publish: z.boolean().optional(),
+  otp: z.string().optional(),
+})
+export type PublishInput = z.infer<typeof PublishInput>
+
+export const publish = async (input: PublishInput) => {
   const monorepoRoot = path.dirname(findUpOrThrow('pnpm-workspace.yaml'))
   process.chdir(monorepoRoot)
   const tasks = new Listr(
@@ -305,21 +313,18 @@ export const publish = async () => {
         task: diffPackagesTask,
       },
       {
-        title: 'Publish packages',
+        title: ['Publish packages', !input.publish && '(dry run)'].filter(Boolean).join(' '),
         rendererOptions: {persistentOutput: true},
         task: async (ctx, task) => {
-          const shouldActuallyPublish = process.argv.includes('--publish')
-          const otpArgs = process.argv.filter((a, i, arr) => a.startsWith('--otp') || arr[i - 1] === '--otp')
-          if (shouldActuallyPublish && otpArgs.length === 0) {
-            const otp = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+          const shouldActuallyPublish = input.publish
+          let otp = input.otp
+          if (shouldActuallyPublish) {
+            otp ||= await task.prompt(ListrEnquirerPromptAdapter).run<string>({
               message: 'Enter npm OTP (press enter to try publishing without MFA)',
               type: 'Input',
               validate: input => input === '' || /^[0-9]{6}$/.test(input),
             })
-            if (otp) {
-              otpArgs.push('--otp', otp)
-            }
-            if (otpArgs.length === 0) {
+            if (otp.length === 0) {
               task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
             }
           }
@@ -328,7 +333,7 @@ export const publish = async () => {
               title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
               skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRegistryPackageJson(pkg)?.version,
               task: async (ctx, task) => {
-                await pipeExeca(task, 'pnpm', ['publish', '--access', 'public', ...otpArgs], {
+                await pipeExeca(task, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
                   cwd: path.dirname(packageJsonFilepath(pkg, 'local')),
                 })
               },
@@ -567,11 +572,6 @@ export const publish = async () => {
   }
 
   await tasks.run()
-}
-
-const toBullets = (s: string) => {
-  const lines = s.split('\n')
-  return lines.map(s => (s.trim() ? `- ${s}` : s)).join('\n')
 }
 
 const allReleaseTypes: readonly semver.ReleaseType[] = [
