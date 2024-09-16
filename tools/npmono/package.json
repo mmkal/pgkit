@@ -8,6 +8,7 @@
     "dependencies": {
         "@listr2/prompt-adapter-enquirer": "^2.0.2",
         "@rebundled/execa": "8.0.2-next.2",
+        "find-up": "^5.0.0",
         "listr2": "^8.0.2",
         "semver": "^7.6.0",
         "sort-package-json": "^2.8.0",

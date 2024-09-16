@@ -1,3 +1,4 @@
+import findUp from 'find-up'
 import {Options, execa} from '@rebundled/execa'
 import {Listr, ListrTaskWrapper} from 'listr2'
 import * as fs from 'fs'
@@ -8,7 +9,8 @@ import {inspect} from 'util'
 import {sortPackageJson} from 'sort-package-json'
 
 export const publish = async () => {
-  process.chdir('../..')
+  const monorepoRoot = path.dirname(findUpOrThrow('pnpm-workspace.yaml'))
+  process.chdir(monorepoRoot)
   const tasks = new Listr(
     [
       {
@@ -626,4 +628,12 @@ const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, ar
   const cmd = execa(file, args, options)
   cmd.stdout.pipe(task.stdout())
   return cmd
+}
+
+const findUpOrThrow = (file: string, options?: Parameters<typeof findUp.sync>[1]) => {
+  const result = findUp.sync(file, options)
+  if (!result) {
+    throw new Error(`Could not find ${file}`)
+  }
+  return result
 }
