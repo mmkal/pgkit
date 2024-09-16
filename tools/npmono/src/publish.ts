@@ -2,7 +2,7 @@ import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer'
 import {Options, execa} from '@rebundled/execa'
 import findUp from 'find-up'
 import * as fs from 'fs'
-import {Listr, ListrTaskWrapper} from 'listr2'
+import {Listr, ListrTask, ListrTaskWrapper} from 'listr2'
 import * as path from 'path'
 import * as semver from 'semver'
 import {z} from 'trpc-cli'
@@ -18,116 +18,9 @@ export type PublishInput = z.infer<typeof PublishInput>
 
 export const publish = async (input: PublishInput) => {
   const {sortPackageJson} = await import('sort-package-json')
-  const monorepoRoot = path.dirname(findUpOrThrow('pnpm-workspace.yaml'))
-  process.chdir(monorepoRoot)
   const tasks = new Listr(
     [
-      {
-        title: 'Building',
-        task: async (_ctx, task) => pipeExeca(task, 'pnpm', ['-w', 'build']),
-      },
-      {
-        title: 'Get temp directory',
-        rendererOptions: {persistentOutput: true},
-        task: async (ctx, task) => {
-          const list = await execa('pnpm', ['list', '--json', '--depth', '0', '--filter', '.'])
-          const pkgName = JSON.parse(list.stdout)?.[0]?.name as string | undefined
-          if (!pkgName) throw new Error(`Couldn't get package name from pnpm list output: ${list.stdout}`)
-          ctx.tempDir = path.join('/tmp/npmono', pkgName, Date.now().toString())
-          task.output = ctx.tempDir
-          fs.mkdirSync(ctx.tempDir, {recursive: true})
-        },
-      },
-      {
-        title: 'Collecting packages',
-        rendererOptions: {persistentOutput: true},
-        task: async (ctx, task) => {
-          const list = await execa('pnpm', [
-            'list',
-            '--json',
-            '--recursive',
-            '--only-projects',
-            '--prod',
-            '--filter',
-            './packages/*',
-          ])
-
-          ctx.packages = JSON.parse(list.stdout) as never
-          ctx.packages = ctx.packages.filter(pkg => !pkg.private)
-
-          const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd']) // use `pnpm recursive exec` to get the correct topological sort order // https://github.com/pnpm/pnpm/issues/7716
-          const pwds = pwdsCommand.stdout
-            .split('\n')
-            .map(s => s.trim())
-            .filter(Boolean)
-
-          ctx.packages
-            .sort((a, b) => a.name.localeCompare(b.name)) // sort alphabetically first, as a tiebreaker (`.sort` is stable)
-            .sort((a, b) => pwds.indexOf(a.path) - pwds.indexOf(b.path)) // then topologically
-
-          ctx.packages.forEach((pkg, i, {length}) => {
-            const number = Number(`1${'0'.repeat(length.toString().length + 1)}`) + i
-            pkg.folder = path.join(ctx.tempDir, `${number}.${pkg.name.replace('/', '__')}`)
-          })
-          task.output = ctx.packages.map(pkg => `${pkg.name}`).join('\n')
-          return `Found ${ctx.packages.length} packages to publish`
-        },
-      },
-      {
-        title: `Writing local packages`,
-        task: (ctx, task) => {
-          return task.newListr(
-            ctx.packages.map(pkg => ({
-              title: `Packing ${pkg.name}`,
-              task: async (_ctx, subtask) => {
-                const localFolder = path.join(pkg.folder, 'local')
-                await pipeExeca(subtask, 'pnpm', ['pack', '--pack-destination', localFolder], {cwd: pkg.path})
-
-                const tgzFileName = fs.readdirSync(localFolder).at(0)!
-                await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: localFolder})
-              },
-            })),
-            {concurrent: true},
-          )
-        },
-      },
-      {
-        title: `Writing registry packages`,
-        task: (ctx, task) => {
-          return task.newListr(
-            ctx.packages.map(pkg => ({
-              title: `Pulling ${pkg.name}`,
-              task: async (_ctx, subtask) => {
-                const registryFolder = path.join(pkg.folder, 'registry')
-                fs.mkdirSync(registryFolder, {recursive: true})
-                // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
-                await pipeExeca(subtask, 'npm', ['pack', pkg.name], {
-                  reject: false,
-                  cwd: registryFolder,
-                })
-
-                const tgzFileName = fs.readdirSync(registryFolder).at(0)
-                if (!tgzFileName) {
-                  return
-                }
-
-                await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: registryFolder})
-
-                const registryPackageJson = loadRegistryPackageJson(pkg)
-                if (registryPackageJson) {
-                  const registryPackageJsonPath = packageJsonFilepath(pkg, 'registry')
-                  // avoid churn on package.json field ordering, which npm seems to mess with
-                  fs.writeFileSync(
-                    registryPackageJsonPath,
-                    sortPackageJson(JSON.stringify(registryPackageJson, null, 2)),
-                  )
-                }
-              },
-            })),
-            {concurrent: true},
-          )
-        },
-      },
+      ...setupContextTasks,
       {
         title: 'Get version strategy',
         rendererOptions: {persistentOutput: true},
@@ -351,6 +244,159 @@ export const publish = async (input: PublishInput) => {
   await tasks.run()
 }
 
+export const ReleaseNotesInput = z.object({
+  baseComparisonSha: z.string().optional(),
+})
+export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
+
+// this doesn't work yet
+export const releaseNotes = async (input: ReleaseNotesInput) => {
+  const tasks = new Listr(
+    [
+      ...setupContextTasks,
+      {
+        title: 'Generate release notes',
+        task: async (ctx, task) => {
+          for (const pkg of ctx.packages) {
+            pkg.baseComparisonSha = input.baseComparisonSha
+            const body = await getOrCreateChangelog(ctx, pkg)
+            const title = `${pkg.name}@${pkg.version}`
+            const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
+            const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
+              type: 'confirm',
+              message: message + '\n\nDraft relesae?',
+              initial: false,
+            })
+            if (doRelease) {
+              const releaseParams = {title, body}
+              await execa('open', [
+                `https://github.com/mmkal/pgkit/releases/new?${new URLSearchParams(releaseParams).toString()}`,
+              ])
+            }
+          }
+        },
+      },
+    ],
+    {ctx: {} as Ctx},
+  )
+
+  await tasks.run()
+}
+
+export const setupContextTasks: ListrTask<Ctx>[] = [
+  {
+    title: 'Set working directory',
+    task: async () => {
+      const monorepoRoot = path.dirname(findUpOrThrow('pnpm-workspace.yaml'))
+      process.chdir(monorepoRoot)
+    },
+  },
+  {
+    title: 'Building',
+    task: async (_ctx, task) => pipeExeca(task, 'pnpm', ['-w', 'build']),
+  },
+  {
+    title: 'Get temp directory',
+    rendererOptions: {persistentOutput: true},
+    task: async (ctx, task) => {
+      const list = await execa('pnpm', ['list', '--json', '--depth', '0', '--filter', '.'])
+      const pkgName = JSON.parse(list.stdout)?.[0]?.name as string | undefined
+      if (!pkgName) throw new Error(`Couldn't get package name from pnpm list output: ${list.stdout}`)
+      ctx.tempDir = path.join('/tmp/npmono', pkgName, Date.now().toString())
+      task.output = ctx.tempDir
+      fs.mkdirSync(ctx.tempDir, {recursive: true})
+    },
+  },
+  {
+    title: 'Collecting packages',
+    rendererOptions: {persistentOutput: true},
+    task: async (ctx, task) => {
+      const list = await execa('pnpm', [
+        'list',
+        '--json',
+        '--recursive',
+        '--only-projects',
+        '--prod',
+        '--filter',
+        './packages/*',
+      ])
+
+      ctx.packages = JSON.parse(list.stdout) as never
+      ctx.packages = ctx.packages.filter(pkg => !pkg.private)
+
+      const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd']) // use `pnpm recursive exec` to get the correct topological sort order // https://github.com/pnpm/pnpm/issues/7716
+      const pwds = pwdsCommand.stdout
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean)
+
+      ctx.packages
+        .sort((a, b) => a.name.localeCompare(b.name)) // sort alphabetically first, as a tiebreaker (`.sort` is stable)
+        .sort((a, b) => pwds.indexOf(a.path) - pwds.indexOf(b.path)) // then topologically
+
+      ctx.packages.forEach((pkg, i, {length}) => {
+        const number = Number(`1${'0'.repeat(length.toString().length + 1)}`) + i
+        pkg.folder = path.join(ctx.tempDir, `${number}.${pkg.name.replace('/', '__')}`)
+      })
+      task.output = ctx.packages.map(pkg => `${pkg.name}`).join('\n')
+      return `Found ${ctx.packages.length} packages to publish`
+    },
+  },
+  {
+    title: `Writing local packages`,
+    task: (ctx, task) => {
+      return task.newListr(
+        ctx.packages.map(pkg => ({
+          title: `Packing ${pkg.name}`,
+          task: async (_ctx, subtask) => {
+            const localFolder = path.join(pkg.folder, 'local')
+            await pipeExeca(subtask, 'pnpm', ['pack', '--pack-destination', localFolder], {cwd: pkg.path})
+
+            const tgzFileName = fs.readdirSync(localFolder).at(0)!
+            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: localFolder})
+          },
+        })),
+        {concurrent: true},
+      )
+    },
+  },
+  {
+    title: `Writing registry packages`,
+    task: (ctx, task) => {
+      return task.newListr(
+        ctx.packages.map(pkg => ({
+          title: `Pulling ${pkg.name}`,
+          task: async (_ctx, subtask) => {
+            const {sortPackageJson} = await import('sort-package-json')
+            const registryFolder = path.join(pkg.folder, 'registry')
+            fs.mkdirSync(registryFolder, {recursive: true})
+            // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
+            await pipeExeca(subtask, 'npm', ['pack', pkg.name], {
+              reject: false,
+              cwd: registryFolder,
+            })
+
+            const tgzFileName = fs.readdirSync(registryFolder).at(0)
+            if (!tgzFileName) {
+              return
+            }
+
+            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: registryFolder})
+
+            const registryPackageJson = loadRegistryPackageJson(pkg)
+            if (registryPackageJson) {
+              const registryPackageJsonPath = packageJsonFilepath(pkg, 'registry')
+              // avoid churn on package.json field ordering, which npm seems to mess with
+              fs.writeFileSync(registryPackageJsonPath, sortPackageJson(JSON.stringify(registryPackageJson, null, 2)))
+            }
+          },
+        })),
+        {concurrent: true},
+      )
+    },
+  },
+]
+
 const packageJsonFilepath = (pkg: PkgMeta, type: 'local' | 'registry') =>
   path.join(pkg.folder, type, 'package', 'package.json')
 
@@ -392,7 +438,7 @@ const bumpChoices = (oldVersion: string) => {
 
 /** Pessimistic comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
-  const registryRef = loadRegistryPackageJson(pkg)?.git?.sha
+  const registryRef = pkg.baseComparisonSha || loadRegistryPackageJson(pkg)?.git?.sha
   if (registryRef) return registryRef
 
   const {stdout: firstRef} = await execa('git', ['log', '--reverse', '-n', '1', '--pretty=format:%h', '--', '.'], {
@@ -633,6 +679,7 @@ type PkgMeta = {
   folder: string
   lastPublished: PackageJson | null
   targetVersion: string | null
+  baseComparisonSha: string | undefined
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
