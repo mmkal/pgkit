@@ -1,1 +1,3 @@
-module.exports.defualt = require('eslint-plugin-mmkal').recommendedFlatConfigs
+const mmkal = require('eslint-plugin-mmkal')
+
+module.exports = mmkal.recommendedFlatConfigs
