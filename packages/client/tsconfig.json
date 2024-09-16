@@ -3,6 +3,7 @@
     "lib": [
       "ES2023"
     ],
+    "skipLibCheck": true,
     "target": "ES2022",
     "module": "NodeNext",
     "strict": true,

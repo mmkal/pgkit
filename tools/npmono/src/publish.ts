@@ -6,9 +6,10 @@ import * as path from 'path'
 import {ListrEnquirerPromptAdapter} from '@listr2/prompt-adapter-enquirer'
 import * as semver from 'semver'
 import {inspect} from 'util'
-import {sortPackageJson} from 'sort-package-json'
 
 import {z} from 'trpc-cli'
+
+const VERSION_ZERO = "0.0.0"
 
 export const PublishInput = z.object({
   publish: z.boolean().optional(),
@@ -17,6 +18,7 @@ export const PublishInput = z.object({
 export type PublishInput = z.infer<typeof PublishInput>
 
 export const publish = async (input: PublishInput) => {
+  const {sortPackageJson} = await import('sort-package-json')
   const monorepoRoot = path.dirname(findUpOrThrow('pnpm-workspace.yaml'))
   process.chdir(monorepoRoot)
   const tasks = new Listr(
@@ -134,7 +136,7 @@ export const publish = async (input: PublishInput) => {
             ...ctx.packages.map(pkg => pkg.version),
             ...(ctx.packages.map(pkg => loadRegistryPackageJson(pkg)?.version).filter(Boolean) as string[]),
           ]
-          const maxVersion = allVersions.sort(semver.compare).at(-1) || '0.0.0'
+          const maxVersion = allVersions.sort(semver.compare).at(-1) || VERSION_ZERO
           if (!maxVersion) throw new Error(`No versions found`)
 
           let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
@@ -171,7 +173,7 @@ export const publish = async (input: PublishInput) => {
             bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
               type: 'Input',
               message: `Enter a custom version (must be greater than ${maxVersion})`,
-              validate: input => Boolean(semver.valid(input)) && semver.gt(input, maxVersion || '0.0.0'),
+              validate: input => Boolean(semver.valid(input)) && semver.gt(input, maxVersion || VERSION_ZERO),
             })
           } else {
             ctx.versionStrategy = {
@@ -192,14 +194,14 @@ export const publish = async (input: PublishInput) => {
               continue
             }
 
-            const currentVersion = [loadRegistryPackageJson(pkg)?.version, pkg.version].sort(semver.compare).at(-1)
+            const currentVersion = [loadRegistryPackageJson(pkg)?.version, pkg.version].sort((a, b) => semver.compare(a || VERSION_ZERO, b || VERSION_ZERO)).at(-1)
 
             if (ctx.versionStrategy.bump) {
-              pkg.targetVersion = semver.inc(currentVersion, ctx.versionStrategy.bump)
+              pkg.targetVersion = semver.inc(currentVersion || VERSION_ZERO, ctx.versionStrategy.bump)
               continue
             }
 
-            const choices = bumpChoices(currentVersion)
+            const choices = bumpChoices(currentVersion || VERSION_ZERO)
             if (changelog) {
               choices.push({message: `Do not publish (note: package is changed)`, value: 'none'})
             } else {
@@ -218,7 +220,7 @@ export const publish = async (input: PublishInput) => {
               newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
                 type: 'Input',
                 message: `Enter a custom version (must be greater than ${currentVersion})`,
-                validate: input => Boolean(semver.valid(input)) && semver.gt(input, currentVersion),
+                validate: input => Boolean(semver.valid(input)) && semver.gt(input, currentVersion || VERSION_ZERO),
               })
             }
 
@@ -250,13 +252,17 @@ export const publish = async (input: PublishInput) => {
               const problems: string[] = []
               for (const name of names) {
                 const pkg = ctx.packages.find(p => p.name === name)
+                if (!pkg) {
+                  problems.push(`Package ${name} not found`)
+                  continue
+                }
                 const dependencies = workspaceDependencies(pkg, ctx)
                 const missing = dependencies.filter(d => !names.includes(d.name))
 
                 problems.push(...missing.map(m => `Package ${name} depends on ${m.name}`))
               }
 
-              if (problems.length) return problems.join('\n')
+              if (problems.length) return `Can't publish that selection of packages:\n` + problems.join('\n')
 
               return true
             },
@@ -274,7 +280,7 @@ export const publish = async (input: PublishInput) => {
             ctx.packages.map(pkg => ({
               title: `Modify ${pkg.name}`,
               task: async (ctx, task) => {
-                if (!semver.valid(pkg.targetVersion)) {
+                if (!pkg.targetVersion || !semver.valid(pkg.targetVersion)) {
                   throw new Error(`Invalid version for ${pkg.name}: ${pkg.targetVersion}`)
                 }
 
@@ -289,15 +295,7 @@ export const publish = async (input: PublishInput) => {
                   sha: sha.stdout,
                 }
 
-                packageJson.dependencies = await getBumpedDependencies(ctx, {
-                  pkg,
-                  expectedVersion: async dep => {
-                    if (!dep.pkg.targetVersion) {
-                      throw new Error(`Can't set ${dep.pkg.name} dependency for ${pkg.name} - no target version set`)
-                    }
-                    return dep.pkg.targetVersion
-                  },
-                }).then(r => r.dependencies)
+                packageJson.dependencies = await getBumpedDependencies(ctx, {pkg}).then(r => r.dependencies)
 
                 fs.writeFileSync(
                   packageJsonFilepath(pkg, 'local'),
@@ -396,16 +394,19 @@ export const publish = async (input: PublishInput) => {
     return firstRef
   }
 
-  type GetExpectedVersion = (params: {pkg: Pkg; packageJson: PackageJson}) => Promise<string>
-
-  async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg; expectedVersion: GetExpectedVersion}) {
+  /**
+   * For a particular package, get the `dependencies` object with any necessary version bumps.
+   * Requires a `pkg`, and an `expectVersion` function
+   */
+  async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
     const packageJson = loadLocalPackageJson(params.pkg)
     const newDependencies = {...packageJson.dependencies}
     const updated: Record<string, string> = {}
     for (const [name, version] of Object.entries(packageJson.dependencies || {})) {
       const found = ctx.packages
+        .filter(other => other.name === name)
         .flatMap(other => {
-          const prefix = ['', '^', '~'].find(prefix => other.name === name && version === prefix + other.version)
+          const prefix = ['', '^', '~'].find(prefix => version === prefix + other.version)
           return prefix ? [{pkg: other, prefix}] : []
         })
         .find(Boolean)
@@ -414,9 +415,16 @@ export const publish = async (input: PublishInput) => {
         continue
       }
 
-      const registryPackageJson = loadRegistryPackageJson(params.pkg)
-      const registryPackageDependencyVersion = registryPackageJson.dependencies?.[name]
-      const expected = await params.expectedVersion({pkg: found.pkg, packageJson: registryPackageJson})
+      const registryPackageJson = loadRegistryPackageJson(found.pkg)
+      const registryPackageDependencyVersion = registryPackageJson?.dependencies?.[name]
+      let expected = found.pkg.targetVersion
+      if (!expected) {
+        // ok, looks like we're not publishing the dependency. That's fine, as long as there's an existing published version.
+        expected = registryPackageJson?.version || null
+      }
+      if (!expected) {
+        throw new Error(`Package ${params.pkg.name} depends on ${found.pkg.name} but ${found.pkg.name} is not published, and no target version was set for publishing now. Did you opt to skip publishing ${found.pkg.name}? If so, please re-run and make sure to publish ${found.pkg.name}. You can't publish ${params.pkg.name} until you do that.`)
+      }
 
       // todo: figure out if this shortcut can be actually safe - it isn't right now because the local version doesn't necessarily match the registry version
       // and we should probably be solving this by just filtering out packages that don't need to be published rather than trying to shortcut here
@@ -491,10 +499,7 @@ export const publish = async (input: PublishInput) => {
       ? [`<!-- data-change-type="source" -->\n${sourceChanges}`] // break
       : []
 
-    const bumpedDeps = await getBumpedDependencies(ctx, {
-      pkg,
-      expectedVersion: async dep => dep.pkg.targetVersion || dep.packageJson.version,
-    })
+    const bumpedDeps = await getBumpedDependencies(ctx, {pkg})
 
     for (const depPkg of workspaceDependencies(pkg, ctx)) {
       const dep = depPkg.name

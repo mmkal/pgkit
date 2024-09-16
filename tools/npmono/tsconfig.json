@@ -1,14 +1,16 @@
 {
   "compilerOptions": {
+    "outDir": "dist",
     "lib": [
       "ES2023"
     ],
     "skipLibCheck": true,
     "target": "ES2022",
     "module": "NodeNext",
-    "strict": false,
+    "jsx": "preserve",
+    "strict": true,
+    "strictFunctionTypes": false,
     "noEmit": true,
-    "noUncheckedIndexedAccess": true,
     "noErrorTruncation": true,
     "esModuleInterop": true
   },
@@ -16,8 +18,5 @@
     "src",
     "test",
     "scripts"
-  ],
-  "ts-node": {
-    "transpileOnly": true
-  }
+  ]
 }
