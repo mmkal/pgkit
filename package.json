@@ -3,7 +3,7 @@
     "version": "0.0.0",
     "packageManager": "pnpm@9.4.0",
     "scripts": {
-        "mopub": "tsx scripts/publish",
+        "npmono": "cd tools/npmono && pnpm dogfood",
         "build": "turbo build",
         "test": "pnpm --recursive --workspace-concurrency 1 test"
     },

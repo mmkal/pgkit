@@ -1,0 +1,22 @@
+{
+    "name": "npmono",
+    "version": "0.0.1",
+    "private": true,
+    "scripts": {
+        "dogfood": "tsx src/cli"
+    },
+    "dependencies": {
+        "@listr2/prompt-adapter-enquirer": "^2.0.2",
+        "@rebundled/execa": "8.0.2-next.2",
+        "listr2": "^8.0.2",
+        "semver": "^7.6.0",
+        "sort-package-json": "^2.8.0",
+        "trpc-cli": "https://pkg.pr.new/mmkal/trpc-cli@38"
+    },
+    "devDependencies": {
+        "@types/semver": "^7.5.8",
+        "eslint": "^8.57.0",
+        "eslint-plugin-mmkal": "0.7.0",
+        "tsx": "^4.19.0"
+    }
+}

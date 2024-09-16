@@ -7,12 +7,13 @@ import * as semver from 'semver'
 import {inspect} from 'util'
 import {sortPackageJson} from 'sort-package-json'
 
-const main = async () => {
+export const publish = async () => {
+  process.chdir('../..')
   const tasks = new Listr(
     [
       {
         title: 'Building',
-        task: async (_ctx, task) => pipeExeca(task, 'pnpm', ['--workspace', 'build']),
+        task: async (_ctx, task) => pipeExeca(task, 'pnpm', ['-w', 'build']),
       },
       {
         title: 'Get temp directory',
@@ -452,7 +453,10 @@ const main = async () => {
       ...commitBullets,
       uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
     ]
-    return sections.filter(Boolean).join('\n')
+    return (
+      sections.filter(Boolean).join('\n').trim() ||
+      `No ${pkg.name} changes since last publish (${fromRef}..${localRef})`
+    )
   }
 
   const changelogFilepath = (pkg: Pkg) => path.join(pkg.folder, 'changes/changelog.md')
@@ -622,8 +626,4 @@ const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, ar
   const cmd = execa(file, args, options)
   cmd.stdout.pipe(task.stdout())
   return cmd
-}
-
-if (require.main === module) {
-  main()
 }
