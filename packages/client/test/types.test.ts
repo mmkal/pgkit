@@ -54,7 +54,7 @@ test('row type with parameters', async () => {
     label: string | null
   }>()
 
-  sql<Row2>`
+  const _unused = sql<Row2>`
     select * from test_table
     where id <= ${2}
     and label = ${

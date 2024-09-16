@@ -440,9 +440,7 @@ export class Migrator {
 
     const template = this.templates[path.extname(nameSuffix)]
     if (typeof template !== 'string') {
-      // mmkal
-      // eslint-disable-next-line unicorn/prefer-type-error
-      throw new Error(
+      throw new TypeError(
         `Unsupported file extension ${JSON.stringify(path.extname(nameSuffix))} for name ${nameSuffix}. Supported extensions: ${Object.keys(this.templates).join(', ')}`,
       )
     }
