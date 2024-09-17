@@ -1,5 +1,5 @@
 import {sql, Client, Queryable} from '@pgkit/client'
-import {type Flags as MigraFlags} from '@pgkit/migra'
+import {type MigraOptions} from '@pgkit/migra'
 import * as umzug from 'umzug'
 
 export interface MigratorContext {
@@ -84,7 +84,7 @@ export interface MigratorConfig {
   logger: Logger
 
   /** flags passed to [migra](https://npmjs.com/package/@pgkit/migra) - which is called for various introspection tasks */
-  defaultMigraOptions?: MigraFlags
+  defaultMigraOptions?: MigraOptions
 }
 
 export interface MigratorConstructorParams extends Omit<MigratorConfig, 'client' | 'task' | 'logger'> {
