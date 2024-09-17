@@ -39,6 +39,7 @@ const applyEdits = (input: string, edits: Edit[]) =>
 
 export function getFileWriter({getQueriesModulePath = defaultGetQueriesModule, writeFile}: WriteTSFileOptions) {
   return async (group: TaggedQuery[], file: string) => {
+    // eslint-disable-next-line
     const ts: typeof import('typescript') = require('typescript')
     const originalSource = group[0].source
     const sourceFile = ts.createSourceFile(file, originalSource, ts.ScriptTarget.ES2015, /* setParentNodes */ true)

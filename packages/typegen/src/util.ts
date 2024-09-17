@@ -95,11 +95,20 @@ export const containsIgnoreComment = (() => {
   return (query: string) => ignoreKeywords.test(query)
 })()
 
-export const promiseDotOneAtATime = async <T, U>(list: T[], fn: (item: T) => Promise<U>) => {
+/**
+ * Like `Promise.all`, but processes items in chunks to avoid parallelism issues, or more likely to avoid me worrying about parallelism issues.
+ * My worry should be resolved one way or another, but changing the default chunk size is easy vs huntin down all `Promise.all` usage.
+ */
+export const promiseDotEventuallyAll = async <T, U>(
+  list: T[],
+  fn: (item: T, index: number) => Promise<U>,
+  {chunkSize = 1} = {},
+) => {
   const results: U[] = []
-  for (const item of list) {
-    const result = await fn(item)
-    results.push(result)
+  for (let i = 0; i < list.length; i += chunkSize) {
+    const chunk = list.slice(i, i + chunkSize)
+    const chunkResults = await Promise.all(chunk.map((item, chunkIndex) => fn(item, i + chunkIndex)))
+    results.push(...chunkResults)
   }
   return results
 }
