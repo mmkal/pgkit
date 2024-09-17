@@ -43,6 +43,14 @@ export class Migrator {
   protected initialConfig: MigratorConfig
 
   constructor(params: MigratorConstructorParams) {
+    // todo: sensible defaults somewhere? Either way, these should always be defined
+    if (!params.migrationsPath) {
+      throw new Error('migrationsPath is required')
+    }
+    if (!params.migrationTableName) {
+      throw new Error('migrationTableName is required')
+    }
+
     this.initialConfig = {
       task: async (name, fn) => {
         this.logger.info('Starting', name)
@@ -778,7 +786,11 @@ export class Migrator {
    * }
    */
   async wrapMigra(...args: Parameters<typeof migra.run>) {
-    const result = await migra.run(args[0], args[1], {unsafe: true, ...args[2]})
+    const result = await migra.run(args[0], args[1], {
+      unsafe: true,
+      ...this.initialConfig.defaultMigraOptions,
+      ...args[2],
+    })
     const formatted = formatSql(result.sql)
     return {
       result,

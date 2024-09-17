@@ -19,7 +19,7 @@ export type Config = {
 export const defineConfig = (config: Config) => config
 
 export const loadConfig = async (): Promise<Config> => {
-  const importx = await import('importx')
+  const importx = await import('importx') // todo: consider c12 instead
   const configLocations = ['pgkit.config.ts', 'pgkit.config.js']
   let config: Config | undefined
   let cwd = process.cwd()
@@ -30,7 +30,7 @@ export const loadConfig = async (): Promise<Config> => {
         config = await importx.import(filepath, {
           parentURL: new URL(`file://${cwd}`),
         })
-        if ((config as {default?: Config}).default) {
+        while ((config as {default?: Config}).default) {
           config = (config as {default?: Config}).default
         }
         if (!config) {

@@ -1,4 +1,5 @@
 import {sql, Client, Queryable} from '@pgkit/client'
+import {type Flags as MigraFlags} from '@pgkit/migra'
 import * as umzug from 'umzug'
 
 export interface MigratorContext {
@@ -81,6 +82,8 @@ export interface MigratorConfig {
    */
   task: Task
   logger: Logger
+
+  defaultMigraOptions?: MigraFlags
 }
 
 export interface MigratorConstructorParams extends Omit<MigratorConfig, 'client' | 'task' | 'logger'> {
