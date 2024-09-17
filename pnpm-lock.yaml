@@ -578,13 +578,31 @@ importers:
 
   packages/pgkit:
     dependencies:
+      '@pgkit/admin':
+        specifier: workspace:^
+        version: link:../admin
       '@pgkit/client':
         specifier: workspace:^
         version: link:../client
+      '@pgkit/migrator':
+        specifier: workspace:^
+        version: link:../migrator
+      '@pgkit/typegen':
+        specifier: workspace:^
+        version: link:../typegen
+      express:
+        specifier: ^4.18.2
+        version: 4.18.2
       importx:
         specifier: ^0.4.4
         version: 0.4.4
+      trpc-cli:
+        specifier: https://pkg.pr.new/mmkal/trpc-cli@38
+        version: https://pkg.pr.new/mmkal/trpc-cli@38(@trpc/server@10.45.2)(zod@3.23.8)
     devDependencies:
+      '@types/express':
+        specifier: ^4.17.21
+        version: 4.17.21
       '@types/node':
         specifier: ^20.11.20
         version: 20.11.21

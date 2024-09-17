@@ -1,3 +1,4 @@
+import {Transactable} from '@pgkit/client'
 import express from 'express'
 import * as path from 'path'
 import {fileURLToPath} from 'url'
@@ -13,10 +14,10 @@ const __dirname = fileURLToPath(new URL('.', import.meta.url))
  * If you need to add more functionality, such as auth, or CORS, create your own express application
  * and add the router before (or after) your middleware.
  */
-export const getExpressRouter = (): express.RequestHandler => {
+export const getExpressRouter = (client?: Transactable | string): express.RequestHandler => {
   const router = express.Router()
   router.use(clientMiddleware)
-  router.use(apiMiddleware)
+  router.use(apiMiddleware(client))
   return router
 }
 

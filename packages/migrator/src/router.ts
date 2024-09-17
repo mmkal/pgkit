@@ -271,27 +271,28 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
           'Query the database. Not strictly related to migrations, but can be used for debugging. Use with caution!',
       })
       .input(
-        z.object({
-          query: z.string(),
-          singlequote: z
-            .string()
-            .describe("Character to use in place of ' - use to avoid having to do bash quote-escaping")
-            .optional(),
-          doublequote: z
-            .string()
-            .describe('Character to use in place of " - use to avoid having to do bash quote-escaping')
-            .optional(),
-          method: z
-            .enum(['any', 'many', 'one', 'maybeOne', 'query', 'anyFirst', 'oneFirst', 'maybeOneFirst'])
-            .default('any'),
-        }),
+        z.tuple([
+          z.string(),
+          z.object({
+            singlequote: z
+              .string()
+              .describe("Character to use in place of ' - use to avoid having to do bash quote-escaping")
+              .optional(),
+            doublequote: z
+              .string()
+              .describe('Character to use in place of " - use to avoid having to do bash quote-escaping')
+              .optional(),
+            method: z
+              .enum(['any', 'many', 'one', 'maybeOne', 'query', 'anyFirst', 'oneFirst', 'maybeOneFirst'])
+              .default('any'),
+          }),
+        ]),
       )
-      .mutation(async ({input, ctx}) => {
-        let query = input.query
-        if (input.singlequote) query = query.replaceAll(input.singlequote, `'`)
-        if (input.doublequote) query = query.replaceAll(input.doublequote, `"`)
+      .mutation(async ({input: [query, options], ctx}) => {
+        if (options.singlequote) query = query.replaceAll(options.singlequote, `'`)
+        if (options.doublequote) query = query.replaceAll(options.doublequote, `"`)
 
-        return ctx.migrator.client[input.method](sql.raw(query))
+        return ctx.migrator.client[options.method](sql.raw(query))
       }),
   })
 

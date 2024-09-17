@@ -11,7 +11,7 @@ export type Config = {
   migrator?: {
     connectionString?: string
     /** @default '${cwd}/migrations' */
-    migrationsTableName?: string
+    migrationTableName?: string
     /** @default 'migrations' */
     migrationsPath?: string
   }
