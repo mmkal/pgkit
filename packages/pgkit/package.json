@@ -7,16 +7,16 @@
   ],
   "exports": {
     "./client": {
-      "default": "./dist/client.js",
-      "types": "./dist/client.d.ts"
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
     },
     "./migrator": {
-      "default": "./dist/migrator.js",
-      "types": "./dist/migrator.d.ts"
+      "types": "./dist/migrator.d.ts",
+      "default": "./dist/migrator.js"
     },
     "./config": {
-      "default": "./dist/config.js",
-      "types": "./dist/config.d.ts"
+      "types": "./dist/config.d.ts",
+      "default": "./dist/config.js"
     }
   },
   "bin": {
