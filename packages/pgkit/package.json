@@ -1,17 +1,22 @@
 {
   "name": "pgkit",
   "version": "0.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "description": "Bundled package of all the pgkit libraries",
   "files": [
     "dist"
   ],
   "exports": {
-    "client": {
-      "import": "./dist/client.js",
-      "require": "./dist/client.js",
+    "./client": {
+      "default": "./dist/client.js",
       "types": "./dist/client.d.ts"
+    },
+    "./migrator": {
+      "default": "./dist/migrator.js",
+      "types": "./dist/migrator.d.ts"
+    },
+    "./config": {
+      "default": "./dist/config.js",
+      "types": "./dist/config.d.ts"
     }
   },
   "bin": {

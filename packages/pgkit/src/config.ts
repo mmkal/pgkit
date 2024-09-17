@@ -19,7 +19,7 @@ export type Config = {
 
 export const defineConfig = (config: Config) => config
 
-export const loadConfig = async () => {
+export const loadConfig = async (): Promise<Config> => {
   const importx = await import('importx')
   const configLocations = ['pgkit.config.ts', 'pgkit.config.js']
   let config: Config | undefined
