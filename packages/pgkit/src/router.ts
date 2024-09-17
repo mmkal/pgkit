@@ -12,11 +12,7 @@ const t = trpcCli.trpcServer.initTRPC.meta<trpcCli.TrpcCliMeta>().create()
 const procedureWithClient = t.procedure.use(async ({ctx, next}) => {
   const config = await loadConfig()
   const client = (clientSingleton.client ||= createClient(config.client.connectionString))
-  const migrator = (clientSingleton.migrator ||= new Migrator({
-    client,
-    migrationsPath: config.migrator?.migrationsPath,
-    migrationTableName: config.migrator?.migrationTableName,
-  }))
+  const migrator = (clientSingleton.migrator ||= new Migrator({client, ...config.migrator}))
   return next({
     ctx: {...ctx, client, migrator, config},
   })
