@@ -83,6 +83,7 @@ export interface MigratorConfig {
   task: Task
   logger: Logger
 
+  /** flags passed to [migra](https://npmjs.com/package/@pgkit/migra) - which is called for various introspection tasks */
   defaultMigraOptions?: MigraFlags
 }
 

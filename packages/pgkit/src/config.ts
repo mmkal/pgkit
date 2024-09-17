@@ -1,3 +1,4 @@
+import {type MigratorConstructorParams} from '@pgkit/migrator/dist/types'
 import {type Options as TypegenOptions} from '@pgkit/typegen'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -7,13 +8,7 @@ export type Config = {
     connectionString: string
   }
   typegen?: Partial<TypegenOptions>
-  migrator?: {
-    connectionString?: string
-    /** @default '${cwd}/migrations' */
-    migrationTableName?: string
-    /** @default 'migrations' */
-    migrationsPath?: string
-  }
+  migrator?: Omit<MigratorConstructorParams, 'client'>
 }
 
 export const defineConfig = (config: Config) => config
