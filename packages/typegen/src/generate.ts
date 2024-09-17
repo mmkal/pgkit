@@ -10,7 +10,7 @@ import * as path from 'path'
 import * as defaults from './defaults'
 import {migrateLegacyCode} from './migrate'
 import {getEnumTypes, getRegtypeToPgTypnameMapping, psqlClient} from './pg'
-import {getColumnInfo, getTypeability, removeSimpleComments} from './query'
+import {getColumnInfo, getTypeability} from './query'
 import {getParameterTypes} from './query/parameters'
 import {ExtractedQuery, Options, QueryField, QueryParameter} from './types'
 import {changedFiles, checkClean, containsIgnoreComment, globList} from './util'
@@ -21,10 +21,13 @@ export const generate = async (inputOptions: Partial<Options>) => {
   const options = defaults.resolveOptions(inputOptions)
   const logger = options.logger
 
-  const pool = createClient(options.connectionString, options.poolConfig)
+  const pool =
+    typeof options.connectionString === 'string'
+      ? createClient(options.connectionString, options.poolConfig)
+      : options.connectionString
 
   const _gdesc = (inputSql: string, searchPath?: string) => {
-    let connectionString = options.connectionString
+    let connectionString = pool.connectionString()
     if (searchPath) {
       const url = new URL(connectionString)
       const optionsString = url.searchParams.get('options')
@@ -127,7 +130,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
     const logMsgInclude = `pattern${options.include.length > 1 ? 's' : ''} ${options.include.join(', ')}`
     const logMsgExclude = options.exclude.length > 0 ? ` excluding ${options.exclude.join(', ')}` : ''
     const logMsgSince = options.since ? ` since ${options.since}` : ''
-    logger.info(`Matching files in ${getLogPath(cwd)} with ${logMsgInclude}${logMsgExclude}${logMsgSince}`)
+    logger.info(`Matching files in ${cwd} with ${logMsgInclude}${logMsgExclude}${logMsgSince}`)
 
     const getLogQueryReference = (query: {file: string; line: number}) => `${getLogPath(query.file)}:${query.line}`
 

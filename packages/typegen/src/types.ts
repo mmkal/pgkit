@@ -1,4 +1,4 @@
-import {ClientOptions} from '@pgkit/client'
+import {Client, ClientOptions} from '@pgkit/client'
 
 /**
  * Options that can be specified in `typegen.config.js`. Each is optional (has a default value).
@@ -11,7 +11,7 @@ export interface Options {
    *
    * Note: It's not recommended to run this tool against a production database, even though it doesn't perform any dynamic queries.
    */
-  connectionString: string
+  connectionString: string | Client
   /**
    * How to execute `psql` from the machine running this tool.
    *

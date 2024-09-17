@@ -1,3 +1,4 @@
+import {type Options as TypegenOptions} from '@pgkit/typegen'
 import * as fs from 'fs'
 import * as path from 'path'
 
@@ -5,9 +6,7 @@ export type Config = {
   client: {
     connectionString: string
   }
-  typegen?: {
-    connectionString?: string
-  }
+  typegen?: Partial<TypegenOptions>
   migrator?: {
     connectionString?: string
     /** @default '${cwd}/migrations' */

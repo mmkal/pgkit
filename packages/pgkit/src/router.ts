@@ -1,7 +1,7 @@
 import {Client, createClient} from '@pgkit/client'
 import {Migrator, createMigratorRouter} from '@pgkit/migrator'
 import {confirm} from '@pgkit/migrator/dist/cli'
-import {router as typegenRouter} from '@pgkit/typegen'
+import {generate} from '@pgkit/typegen'
 import express from 'express'
 import * as trpcCli from 'trpc-cli'
 import {z} from 'trpc-cli'
@@ -18,7 +18,7 @@ const procedureWithClient = t.procedure.use(async ({ctx, next}) => {
     migrationTableName: config.migrator?.migrationTableName,
   }))
   return next({
-    ctx: {...ctx, client, migrator},
+    ctx: {...ctx, client, migrator, config},
   })
 })
 
@@ -33,7 +33,41 @@ export const router = t.router({
       return next({ctx: {...ctx, confirm}})
     }),
   ),
-  ...typegenRouter._def.procedures,
+  generate: procedureWithClient
+    .use(async ({rawInput, ctx, next}) => {
+      const inputObject = typeof rawInput === 'object' ? Object.keys(rawInput || {}) : []
+      return next({
+        ctx: {...ctx, inputKeys: new Set(Object.keys(inputObject))},
+      })
+    })
+    .input(
+      z.object({
+        watch: z
+          .boolean()
+          .optional()
+          .describe(
+            'Run the type checker in watch mode. Files will be run through the code generator when changed or added.',
+          ),
+        lazy: z.boolean().optional().describe('Skip initial processing of input files. Implies --watch.'),
+      }),
+    )
+    .mutation(async ({ctx, input: {watch, ...input}}) => {
+      watch = watch ?? input.lazy
+      if (input.lazy && !watch) throw new Error('Cannot specify --watch=false and --lazy')
+
+      const run = await generate({
+        connectionString: ctx.client,
+        ...input,
+        ...(ctx.config.typegen &&
+          Object.fromEntries(
+            Object.entries(ctx.config.typegen).filter(([key]) => !ctx.inputKeys.has(key)), // don't override options explicitly passed, do override defaults
+          )),
+      })
+
+      if (watch) {
+        await run.watch()
+      }
+    }),
   admin: procedureWithClient
     .input(
       z.object({

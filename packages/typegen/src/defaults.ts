@@ -48,7 +48,9 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     defaultType = defaultTypeScriptType,
     extractQueries = defaultExtractQueries,
     writeTypes = defaultWriteTypes(),
-    poolConfig = getWithWarning<Options['poolConfig']>(logger, `Using default client config.`, {}),
+    poolConfig = typeof connectionString === 'string'
+      ? getWithWarning<Options['poolConfig']>(logger, `Using default client config`, {})
+      : connectionString.options,
     typeParsers = defaultTypeParsers(poolConfig.applyTypeParsers),
     migrate = undefined,
     checkClean = defaultCheckClean,
@@ -68,7 +70,9 @@ export const resolveOptions = (partial: Partial<Options>): Options => {
     logger.warn(`Unexpected configuration keys: ${Object.keys(rest).join(', ')}`)
   }
 
-  assert.ok(!connectionString.includes(' \'"'), `Connection string should not contain spaces or quotes`)
+  if (typeof connectionString === 'string') {
+    assert.ok(!connectionString.includes(' \'"'), `Connection string should not contain spaces or quotes`)
+  }
 
   return {
     connectionString,

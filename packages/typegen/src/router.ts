@@ -6,7 +6,8 @@ import {generate, Options} from './generate'
 
 const trpc = trpcServer.initTRPC.meta<TrpcCliMeta>().create()
 
-const CliOptions = z
+// todo: deprecate in favour of inputs more like the ones in pgkit
+export const CliOptions = z
   .object({
     config: z
       .string()
