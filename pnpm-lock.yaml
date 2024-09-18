@@ -442,8 +442,8 @@ importers:
         specifier: ^10.45.2
         version: 10.45.2
       trpc-cli:
-        specifier: ^0.2.1
-        version: 0.2.1(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.5.0
+        version: 0.5.0(@trpc/server@10.45.2)(zod@3.23.8)
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -512,8 +512,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       trpc-cli:
-        specifier: ^0.3.0
-        version: 0.3.0(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.5.0
+        version: 0.5.0(@trpc/server@10.45.2)(zod@3.23.8)
       umzug:
         specifier: ^3.7.0
         version: 3.7.0
@@ -597,8 +597,8 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4
       trpc-cli:
-        specifier: https://pkg.pr.new/mmkal/trpc-cli@38
-        version: https://pkg.pr.new/mmkal/trpc-cli@38(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.5.0
+        version: 0.5.0(@trpc/server@10.45.2)(zod@3.23.8)
     devDependencies:
       '@types/express':
         specifier: ^4.17.21
@@ -683,8 +683,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       trpc-cli:
-        specifier: https://pkg.pr.new/mmkal/trpc-cli@38
-        version: https://pkg.pr.new/mmkal/trpc-cli@38(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.5.0
+        version: 0.5.0(@trpc/server@10.45.2)(zod@3.23.8)
       typescript:
         specifier: '*'
         version: 5.3.3
@@ -756,8 +756,8 @@ importers:
         specifier: ^2.8.0
         version: 2.8.0
       trpc-cli:
-        specifier: https://pkg.pr.new/mmkal/trpc-cli@38
-        version: https://pkg.pr.new/mmkal/trpc-cli@38(@trpc/server@10.45.2)(zod@3.23.8)
+        specifier: ^0.5.0
+        version: 0.5.0(@trpc/server@10.45.2)(zod@3.23.8)
     devDependencies:
       '@types/semver':
         specifier: ^7.5.8
@@ -7842,23 +7842,8 @@ packages:
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
-  trpc-cli@0.2.1:
-    resolution: {integrity: sha512-HJzmLbdbj2CcdP7XCj+TAWvVNSbnhiLIaRUI67v4qmpHJoXgHisseih4Kap6WvC/CVYvuAieB0TNV0etEIf44Q==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@trpc/server': '>=10'
-      zod: '>=3'
-
-  trpc-cli@0.3.0:
-    resolution: {integrity: sha512-FahEW3lt9L3eMVbDD3tpCkmxkDGnarfpC4vmJJWoIBy8sreAwbWY7meAhtKM4UrTbEk2Qq4Pg9hkySsu0Cio7w==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@trpc/server': '>=10'
-      zod: '>=3'
-
-  trpc-cli@https://pkg.pr.new/mmkal/trpc-cli@38:
-    resolution: {tarball: https://pkg.pr.new/mmkal/trpc-cli@38}
-    version: 0.4.1
+  trpc-cli@0.5.0:
+    resolution: {integrity: sha512-/P0P+K/CANI5F2pOkP2rTekY+oRC1vs+6MUTq0uMPtnGJ3gKpsp4aYuDh+6+pGbGYYQU3JuExFirAzTFsQR4Lw==}
     engines: {node: '>=18'}
     peerDependencies:
       '@trpc/server': '>=10'
@@ -17993,25 +17978,7 @@ snapshots:
 
   trough@2.2.0: {}
 
-  trpc-cli@0.2.1(@trpc/server@10.45.2)(zod@3.23.8):
-    dependencies:
-      '@trpc/server': 10.45.2
-      cleye: 1.3.2
-      picocolors: 1.0.1
-      zod: 3.23.8
-      zod-to-json-schema: 3.23.0(zod@3.23.8)
-      zod-validation-error: 3.3.0(zod@3.23.8)
-
-  trpc-cli@0.3.0(@trpc/server@10.45.2)(zod@3.23.8):
-    dependencies:
-      '@trpc/server': 10.45.2
-      cleye: 1.3.2
-      picocolors: 1.0.1
-      zod: 3.23.8
-      zod-to-json-schema: 3.23.0(zod@3.23.8)
-      zod-validation-error: 3.3.0(zod@3.23.8)
-
-  trpc-cli@https://pkg.pr.new/mmkal/trpc-cli@38(@trpc/server@10.45.2)(zod@3.23.8):
+  trpc-cli@0.5.0(@trpc/server@10.45.2)(zod@3.23.8):
     dependencies:
       '@trpc/server': 10.45.2
       cleye: 1.3.2
