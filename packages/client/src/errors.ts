@@ -50,11 +50,15 @@ export class QueryError extends Error {
     result?: {rows: unknown[]}
   }
 
-  constructor(message: string, cause: Omit<QueryError['cause'], 'name' | 'message'>) {
-    super(`[Query ${cause.query.name}]: ${message || cause?.error?.message || cause?.error?.constructor?.name}`, {
-      cause,
+  constructor(message: string, params: Omit<QueryError['cause'], 'name' | 'message'>) {
+    super(`[Query ${params.query.name}]: ${message}`, {
+      cause: params,
     })
-    this.cause = {...cause, message: cause?.error?.message || '', name: 'QueryErrorCause'}
+    this.cause = {
+      name: 'QueryErrorCause',
+      message: params?.error?.message || params.error?.constructor?.name || 'Query error',
+      ...params,
+    }
   }
 }
 
