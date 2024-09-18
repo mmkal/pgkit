@@ -1,3 +1,4 @@
+import {Client} from '@pgkit/client'
 import {type MigratorConstructorParams} from '@pgkit/migrator/dist/types'
 import {type Options as TypegenOptions} from '@pgkit/typegen'
 import * as fs from 'fs'
@@ -7,8 +8,16 @@ export type Config = {
   client: {
     connectionString: string
   }
-  typegen?: Partial<TypegenOptions>
-  migrator?: Omit<MigratorConstructorParams, 'client'>
+  typegen?:
+    | Partial<TypegenOptions>
+    | ((params: {client: Client; defaults: typeof import('@pgkit/typegen').defaults}) => Partial<TypegenOptions>)
+  migrator?:
+    | Omit<MigratorConstructorParams, 'client'>
+    | ((params: {client: Client}) => Omit<MigratorConstructorParams, 'client'>)
+}
+
+export type ResolvedConfig = {
+  [K in keyof Config]: Exclude<Config[K], (...args: never) => unknown>
 }
 
 export const defineConfig = (config: Config) => config

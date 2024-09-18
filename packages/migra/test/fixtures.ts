@@ -23,7 +23,7 @@ const argsMap: Record<string, Flags> = {
   extversions: {ignoreExtensionVersions: false},
 }
 
-export const setup = async (url: string, admin: Client, prefix: string) => {
+export const createDB = async (url: string, admin: Client, prefix: string) => {
   const db = url.split('/').at(-1)
   const variant = db.split('_').at(-1)
   const name = db.replace(prefix + '_', '').slice(0, -1 - variant.length)
@@ -38,6 +38,11 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
   await admin.query(sql`create database ${sql.identifier([db])}`)
 
   const pool = createClient(connectionString)
+  return {connectionString, pool, name, variant}
+}
+
+export const setup = async (url: string, admin: Client, prefix: string) => {
+  const {connectionString, pool, name, variant} = await createDB(url, admin, prefix)
   const filepath = path.join(fixturesDir, name, `${variant}.sql`)
   const query = fs.readFileSync(filepath, 'utf8')
 
