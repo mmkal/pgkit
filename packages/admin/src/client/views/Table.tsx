@@ -35,6 +35,7 @@ export const Table = ({identifier}: {identifier: string}) => {
   const nextEnabled = Boolean(limit) && values.length >= limit
 
   const tableInfo = inspected?.tables[identifier]
+  // todo: dedupe columns
   const columnNames = Object.values(tableInfo?.columns || {}).map(c => c.name)
   const [whereClause, setWhereClause] = React.useState('')
   const [columns, setColumns] = React.useState<string[]>(['*'])

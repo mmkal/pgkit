@@ -17,6 +17,7 @@ const migratorProcedure = trpc.procedure
   .use(async ({next, input}) => {
     return next({
       ctx: {
+        // todo: get from ctx
         migrator: migrator,
         confirm: async (checkSql: string) => {
           checkSql = checkSql.trim()
