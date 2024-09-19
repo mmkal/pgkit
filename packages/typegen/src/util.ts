@@ -112,3 +112,10 @@ export const promiseDotAllChunked = async <T, U>(
   }
   return results
 }
+
+export const test = () => {
+  const arr = ['a', 'b']
+  return promiseDotAllChunked(arr, async item => {
+    return item satisfies string
+  })
+}
