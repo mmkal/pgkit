@@ -99,7 +99,7 @@ export const containsIgnoreComment = (() => {
  * Like `Promise.all`, but processes items in chunks to avoid parallelism issues, or more likely to avoid me worrying about parallelism issues.
  * My worry should be resolved one way or another, but changing the default chunk size is easy vs huntin down all `Promise.all` usage.
  */
-export const promiseDotEventuallyAll = async <T, U>(
+export const promiseDotAllChunked = async <T, U>(
   list: T[],
   fn: (item: T, index: number) => Promise<U>,
   {chunkSize = 1} = {},

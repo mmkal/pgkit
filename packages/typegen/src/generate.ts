@@ -13,7 +13,7 @@ import {getEnumTypes, getRegtypeToPgTypnameMapping, psqlClient} from './pg'
 import {getColumnInfo, getTypeability} from './query'
 import {getParameterTypes} from './query/parameters'
 import {ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotEventuallyAll} from './util'
+import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotAllChunked} from './util'
 
 export type {Options} from './types'
 
@@ -69,7 +69,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
   const getFields = async (query: {sql: string}, searchPath?: string) => {
     const rowsResult = await gdesc(query.sql, searchPath)
     return rowsResult.asyncMap(async rows => {
-      return promiseDotEventuallyAll(
+      return promiseDotAllChunked(
         rows,
         async (row): Promise<QueryField> => ({
           name: row.Column,
@@ -85,7 +85,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
   const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
     const regtypes = await getParameterTypes(pool, query.sql)
 
-    return promiseDotEventuallyAll(regtypes, async (regtype, i) => ({
+    return promiseDotAllChunked(regtypes, async (regtype, i) => ({
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
       // todo(one day): handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
@@ -160,7 +160,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       // That's on a codebase with only 2 files with queries, and 1 query in each, so likely the race condition is not hard to repro. It would probably be far worse on a larger codebase.
       // So, in the spirit of make it work, make it right, make it fast, start with the default chunk size of 1.
       // Ways it got mixed up: sometimes, "unnamed prepared statement does not exist", sometimes, result types were applied to the wrong queries.
-      const processedFiles = await promiseDotEventuallyAll(files, generateForFile)
+      const processedFiles = await promiseDotAllChunked(files, generateForFile)
 
       const stats = {
         'Total files': processedFiles.length,
@@ -185,7 +185,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
 
-      const analysedQueryResults = await promiseDotEventuallyAll(queriesToDescribe, async query => {
+      const analysedQueryResults = await promiseDotAllChunked(queriesToDescribe, async query => {
         const describedQuery = await describeQuery(query)
         return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, getTypeScriptType))
       })
