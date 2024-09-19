@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import pgPromise from 'pg-promise'
 
 export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[] = unknown[]> {
@@ -32,6 +33,10 @@ export interface Result<Row> {
   fields: FieldInfo[]
   command: string
   rowCount: number | null
+}
+
+export type DriverQueryable = {
+  result: <T>(query: string, values?: unknown[]) => Promise<Result<T>>
 }
 
 export interface Queryable {
@@ -69,6 +74,7 @@ export interface Client extends Queryable {
   connectionString(): string
   end(): Promise<void>
   connect<T>(callback: (connection: Connection) => Promise<T>): Promise<T>
+  task<T>(callback: (connection: Connection) => Promise<T>): Promise<T>
   transaction<T>(callback: (connection: Transaction) => Promise<T>): Promise<T>
 }
 
