@@ -7,9 +7,11 @@ export interface MigratorContext {
   sql: typeof sql
 }
 
+export type Awaitable<T> = T | Promise<T>
+
 export type Migration = (params: umzug.MigrationParams<MigratorContext>) => Promise<void>
 
-export type Confirm = (sql: string) => boolean | Promise<boolean>
+export type Confirm = (sql: string, options?: {readonly?: boolean}) => Awaitable<string | null>
 
 export interface BaseListedMigration {
   name: string
