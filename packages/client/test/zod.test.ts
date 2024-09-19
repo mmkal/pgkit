@@ -90,6 +90,8 @@ test('Refine schemas', async () => {
   await expect(getResult()).rejects.toMatchInlineSnapshot(`
     {
       "cause": {
+        "name": "QueryErrorCause",
+        "message": "[\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
         "query": {
           "name": "select-zod_test_83bbed1",
           "sql": "\\n      select * from zod_test\\n    ",
@@ -116,9 +118,7 @@ test('Refine schemas', async () => {
             }
           ],
           "name": "ZodError"
-        },
-        "message": "[\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
-        "name": "QueryErrorCause"
+        }
       }
     }
   `)

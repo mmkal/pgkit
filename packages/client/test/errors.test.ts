@@ -38,64 +38,12 @@ beforeAll(async () => {
 test('one error', async () => {
   await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
     `
-      [[Query select-test_errors_36f5f64]: Expected one row]
-      {
-        "message": "[Query select-test_errors_36f5f64]: Expected one row",
-        "cause": {
-          "query": {
-            "name": "select-test_errors_36f5f64",
-            "sql": "select * from test_errors where id > 1",
-            "token": "sql",
-            "values": []
-          },
-          "result": {
-            "rows": [
-              {
-                "id": 2,
-                "name": "two"
-              },
-              {
-                "id": 3,
-                "name": "three"
-              }
-            ],
-            "command": "SELECT",
-            "rowCount": 2,
-            "fields": [
-              {
-                "name": "id",
-                "tableID": 123456789,
-                "columnID": 1,
-                "dataTypeID": 123456789,
-                "dataTypeSize": 4,
-                "dataTypeModifier": -1,
-                "format": "text"
-              },
-              {
-                "name": "name",
-                "tableID": 123456789,
-                "columnID": 2,
-                "dataTypeID": 123456789,
-                "dataTypeSize": -1,
-                "dataTypeModifier": -1,
-                "format": "text"
-              }
-            ]
-          },
-          "message": "",
-          "name": "QueryErrorCause"
-        }
-      }
-    `,
-  )
-})
-
-test('maybeOne error', async () => {
-  await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(`
-    [[Query select-test_errors_36f5f64]: Expected at most one row]
+    [[Query select-test_errors_36f5f64]: Expected one row]
     {
-      "message": "[Query select-test_errors_36f5f64]: Expected at most one row",
+      "message": "[Query select-test_errors_36f5f64]: Expected one row",
       "cause": {
+        "name": "QueryErrorCause",
+        "message": "Query error",
         "query": {
           "name": "select-test_errors_36f5f64",
           "sql": "select * from test_errors where id > 1",
@@ -135,9 +83,61 @@ test('maybeOne error', async () => {
               "format": "text"
             }
           ]
+        }
+      }
+    }
+  `,
+  )
+})
+
+test('maybeOne error', async () => {
+  await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(`
+    [[Query select-test_errors_36f5f64]: Expected at most one row]
+    {
+      "message": "[Query select-test_errors_36f5f64]: Expected at most one row",
+      "cause": {
+        "name": "QueryErrorCause",
+        "message": "Query error",
+        "query": {
+          "name": "select-test_errors_36f5f64",
+          "sql": "select * from test_errors where id > 1",
+          "token": "sql",
+          "values": []
         },
-        "message": "",
-        "name": "QueryErrorCause"
+        "result": {
+          "rows": [
+            {
+              "id": 2,
+              "name": "two"
+            },
+            {
+              "id": 3,
+              "name": "three"
+            }
+          ],
+          "command": "SELECT",
+          "rowCount": 2,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": 123456789,
+              "columnID": 1,
+              "dataTypeID": 123456789,
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": 123456789,
+              "columnID": 2,
+              "dataTypeID": 123456789,
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
+          ]
+        }
       }
     }
   `)
@@ -149,6 +149,8 @@ test('many error', async () => {
     {
       "message": "[Query select-test_errors_34cad85]: Expected at least one row",
       "cause": {
+        "name": "QueryErrorCause",
+        "message": "Query error",
         "query": {
           "name": "select-test_errors_34cad85",
           "sql": "select * from test_errors where id > 100",
@@ -179,9 +181,7 @@ test('many error', async () => {
               "format": "text"
             }
           ]
-        },
-        "message": "",
-        "name": "QueryErrorCause"
+        }
       }
     }
   `)
@@ -193,6 +193,8 @@ test('syntax error', async () => {
     {
       "message": "[Query select_fb83277]: syntax error at or near \\"frooom\\"",
       "cause": {
+        "name": "QueryErrorCause",
+        "message": "syntax error at or near \\"frooom\\"",
         "query": {
           "name": "select_fb83277",
           "sql": "select * frooom test_errors",
@@ -209,9 +211,7 @@ test('syntax error', async () => {
           "line": "123456789",
           "routine": "scanner_yyerror",
           "query": "select * frooom test_errors"
-        },
-        "message": "syntax error at or near \\"frooom\\"",
-        "name": "QueryErrorCause"
+        }
       }
     }
   `)
