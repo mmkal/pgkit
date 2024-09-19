@@ -31,7 +31,7 @@
   "dependencies": {
     "@pgkit/client": "workspace:^",
     "@rebundled/execa": "8.0.2-next.0",
-    "@rebundled/p-memoize": "7.1.2-next.4",
+    "@rebundled/p-memoize": "7.1.2-next.6",
     "chokidar": "^3.5.3",
     "execa": "^5.1.1",
     "find-up": "^5.0.0",
