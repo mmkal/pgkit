@@ -3,18 +3,11 @@ import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import {z} from 'zod'
 import {fromError} from 'zod-validation-error'
 import {createClient, createSqlTag, QueryError, sql} from '../src'
+import {printError} from './snapshots'
 
 expect.addSnapshotSerializer({
-  test: val => val instanceof Error,
-  print: val =>
-    JSON.stringify(
-      val,
-      (k, v) => {
-        if (k instanceof Error) return Object.fromEntries(Object.getOwnPropertyNames(v).map(k => [k, v[k]]))
-        return v
-      },
-      2,
-    ),
+  test: Boolean,
+  print: printError,
 })
 
 export let client: Awaited<ReturnType<typeof createClient>>
@@ -165,7 +158,7 @@ test('sql.interval', async () => {
     select '2000-01-01T12:00:00Z'::timestamptz + ${sql.interval({days: 1, hours: 1})} as ts
   `)
   expect(result).toBeInstanceOf(Date)
-  expect(result).toMatchInlineSnapshot(`2000-01-02T13:00:00.000Z`)
+  expect(result).toMatchInlineSnapshot(`"2000-01-02T13:00:00.000Z"`)
 
   const interval = await client.oneFirst(sql`select ${sql.interval({days: 1})}`)
   expect(interval).toMatchInlineSnapshot(`"1 day"`)
@@ -178,7 +171,7 @@ test('sql.binary', async () => {
   const result = await client.oneFirst(sql`
     select ${sql.binary(Buffer.from('hello'))} as b
   `)
-  expect(result).toMatchInlineSnapshot(`"\\x68656c6c6f"`)
+  expect(result).toMatchInlineSnapshot(`"\\\\x68656c6c6f"`)
 })
 
 test('sql.json', async () => {
@@ -284,6 +277,17 @@ test('sql.type', async () => {
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
   expect(error.cause).toMatchInlineSnapshot(`
+    [ZodError]: [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "id"
+        ],
+        "message": "Expected string, received number"
+      }
+    ]
     {
       "issues": [
         {
@@ -327,6 +331,7 @@ test('sql.type with custom error message', async () => {
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
   expect(error).toMatchInlineSnapshot(`
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed
     {
       "message": "[select-usage_test_8729cac]: Parsing rows failed",
       "query": {
@@ -336,6 +341,20 @@ test('sql.type with custom error message', async () => {
         "values": []
       },
       "cause": {
+        "cause": {
+          "issues": [
+            {
+              "code": "invalid_type",
+              "expected": "string",
+              "received": "number",
+              "path": [
+                "id"
+              ],
+              "message": "Expected string, received number"
+            }
+          ],
+          "name": "ZodError"
+        },
         "name": "ZodValidationError",
         "details": [
           {
@@ -351,24 +370,6 @@ test('sql.type with custom error message', async () => {
       }
     }
   `)
-  expect(error.cause).toMatchInlineSnapshot(
-    `
-      {
-        "name": "ZodValidationError",
-        "details": [
-          {
-            "code": "invalid_type",
-            "expected": "string",
-            "received": "number",
-            "path": [
-              "id"
-            ],
-            "message": "Expected string, received number"
-          }
-        ]
-      }
-    `,
-  )
 })
 
 /**
@@ -389,20 +390,44 @@ test('createSqlTag + sql.typeAlias', async () => {
   expect(result).toEqual({name: 'Bob'})
 
   const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
-  expect(err.cause).toMatchInlineSnapshot(`
+  expect(err).toMatchInlineSnapshot(`
+    [QueryError]: [select_245d49b]: Parsing rows failed
     {
-      "name": "ZodValidationError",
-      "details": [
-        {
-          "code": "invalid_type",
-          "expected": "string",
-          "received": "number",
-          "path": [
-            "name"
+      "message": "[select_245d49b]: Parsing rows failed",
+      "query": {
+        "name": "select_245d49b",
+        "sql": "select 123 as name",
+        "token": "sql",
+        "values": []
+      },
+      "cause": {
+        "cause": {
+          "issues": [
+            {
+              "code": "invalid_type",
+              "expected": "string",
+              "received": "number",
+              "path": [
+                "name"
+              ],
+              "message": "Expected string, received number"
+            }
           ],
-          "message": "Expected string, received number"
-        }
-      ]
+          "name": "ZodError"
+        },
+        "name": "ZodValidationError",
+        "details": [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "number",
+            "path": [
+              "name"
+            ],
+            "message": "Expected string, received number"
+          }
+        ]
+      }
     }
   `)
 })

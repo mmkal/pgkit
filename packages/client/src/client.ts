@@ -89,10 +89,6 @@ export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query']
       return {...result, rows: await Promise.all(result.rows.map(query.parse))}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      console.log({
-        unknown: err,
-        error: error,
-      })
       throw new QueryError(`Parsing rows failed`, {query, cause: error})
     }
   }

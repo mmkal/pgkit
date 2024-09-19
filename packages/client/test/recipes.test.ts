@@ -3,14 +3,14 @@ import * as pgMem from 'pg-mem'
 import * as pgSqlAstParser from 'pgsql-ast-parser'
 import {beforeAll, beforeEach, expect, test, vi} from 'vitest'
 import {FieldInfo, createClient, sql} from '../src'
-import {printPostgresErrorSnapshot} from './snapshots'
+import {printError} from './snapshots'
 
 export let client: Awaited<ReturnType<typeof createClient>>
 let sqlProduced = [] as {sql: string; values: any[]}[]
 
 expect.addSnapshotSerializer({
-  test: () => true,
-  print: val => printPostgresErrorSnapshot(val),
+  test: Boolean,
+  print: printError,
 })
 
 beforeAll(async () => {
@@ -171,22 +171,22 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-    [[select_9dcc021]: Executing query failed]
-    {
-      "message": "[select_9dcc021]: Executing query failed",
-      "query": {
-        "name": "select_9dcc021",
-        "sql": "select pg_sleep($1)",
-        "token": "sql",
-        "values": [
-          0.04
-        ]
-      },
-      "cause": {
-        "query": "select pg_sleep(0.04)"
+      [QueryError]: [select_9dcc021]: Executing query failed
+      {
+        "message": "[select_9dcc021]: Executing query failed",
+        "query": {
+          "name": "select_9dcc021",
+          "sql": "select pg_sleep($1)",
+          "token": "sql",
+          "values": [
+            0.04
+          ]
+        },
+        "cause": {
+          "query": "select pg_sleep(0.04)"
+        }
       }
-    }
-  `,
+    `,
   )
   await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
     pg_sleep: '',
@@ -239,7 +239,7 @@ test('switchable clients', async () => {
       select pg_sleep(${sleepSeconds})
     `),
   ).rejects.toThrowErrorMatchingInlineSnapshot(`
-    [[select_6289211]: Executing query failed]
+    [QueryError]: [select_6289211]: Executing query failed
     {
       "message": "[select_6289211]: Executing query failed",
       "query": {
