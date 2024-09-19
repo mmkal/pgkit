@@ -33,31 +33,31 @@ export function errorFromUnknown(err: unknown) {
   return err instanceof Error ? err : new Error(`Non error thrown: ${String(err)}`, {cause: err})
 }
 
-export class QueryErrorCause {
-  constructor(
-    readonly query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>,
-    readonly error: Error | undefined,
-    readonly result: {rows: unknown[]} | undefined,
-  ) {}
-}
-
-export class QueryError extends Error {
-  cause!: {
-    name: string
-    message: string
+export namespace QueryError {
+  export type Params = {
     query: Pick<SQLQuery<unknown>, 'name'> & Partial<SQLQuery<unknown>>
-    error?: Error
     result?: {rows: unknown[]}
+    cause?: Error
+  }
+}
+export class QueryError extends Error {
+  query: QueryError.Params['query']
+  result?: QueryError.Params['result']
+  cause?: Error
+
+  constructor(message: string, {query, result, cause}: QueryError.Params) {
+    super(`[${query.name}]: ${message}`, {cause})
+    this.cause = cause
+    this.query = query
+    this.result = result
   }
 
-  constructor(message: string, params: Omit<QueryError['cause'], 'name' | 'message'>) {
-    super(`[Query ${params.query.name}]: ${message}`, {
-      cause: params,
-    })
-    this.cause = {
-      name: 'QueryErrorCause',
-      message: params?.error?.message || params.error?.constructor?.name || 'Query error',
-      ...params,
+  toJSON() {
+    return {
+      message: this.message,
+      query: this.query,
+      result: this.result,
+      cause: this.cause,
     }
   }
 }

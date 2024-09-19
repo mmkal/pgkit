@@ -171,22 +171,19 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-    [[Query select_9dcc021]: Query read timeout]
+    [[select_9dcc021]: Executing query failed]
     {
+      "message": "[select_9dcc021]: Executing query failed",
+      "query": {
+        "name": "select_9dcc021",
+        "sql": "select pg_sleep($1)",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
       "cause": {
-        "name": "QueryErrorCause",
-        "message": "Query read timeout",
-        "query": {
-          "name": "select_9dcc021",
-          "sql": "select pg_sleep($1)",
-          "token": "sql",
-          "values": [
-            0.04
-          ]
-        },
-        "error": {
-          "query": "select pg_sleep(0.04)"
-        }
+        "query": "select pg_sleep(0.04)"
       }
     }
   `,
@@ -242,22 +239,19 @@ test('switchable clients', async () => {
       select pg_sleep(${sleepSeconds})
     `),
   ).rejects.toThrowErrorMatchingInlineSnapshot(`
-    [[Query select_6289211]: Query read timeout]
+    [[select_6289211]: Executing query failed]
     {
+      "message": "[select_6289211]: Executing query failed",
+      "query": {
+        "name": "select_6289211",
+        "sql": "\\n      select pg_sleep($1)\\n    ",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
       "cause": {
-        "name": "QueryErrorCause",
-        "message": "Query read timeout",
-        "query": {
-          "name": "select_6289211",
-          "sql": "\\n      select pg_sleep($1)\\n    ",
-          "token": "sql",
-          "values": [
-            0.04
-          ]
-        },
-        "error": {
-          "query": "\\n      select pg_sleep(0.04)\\n    "
-        }
+        "query": "\\n      select pg_sleep(0.04)\\n    "
       }
     }
   `)
