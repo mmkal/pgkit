@@ -296,7 +296,7 @@ test('suggest table', async () => {
 
 test('suggest table w schema qualifier', async () => {
   // todo: improve this
-  expect(suggest('select * from public.pr|', {debug: true})).toMatchInlineSnapshot(`[]`)
+  expect(suggest('select * from public.pr|')).toMatchInlineSnapshot(`[]`)
 })
 
 test('suggest tables w/ name clash', async () => {
