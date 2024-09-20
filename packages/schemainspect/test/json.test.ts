@@ -27,11 +27,17 @@ test.sequential.each([['collations'], ['everything']] as const)(
 
     const inspector = await PostgreSQL.create(client)
 
-    const json = JSON.parse(JSON.stringify(inspector.toJSON()))
+    const reviver = (key: string, value: any) => {
+      if (key === 'version' && typeof value === 'string') {
+        return value.replaceAll(/\.\d+/g, '.x')
+      }
+      return value
+    }
+    const json = JSON.parse(JSON.stringify(inspector.toJSON(), reviver))
 
     const clone = PostgreSQL.fromJSON(json)
 
-    expect(JSON.parse(JSON.stringify(clone.toJSON()))).toEqual(json)
+    expect(JSON.parse(JSON.stringify(clone.toJSON(), reviver))).toEqual(json)
     const code = `${JSON.stringify(json, null, 2)}\n`
     await expect(code).toMatchFileSnapshot(`./__snapshots__/${name}.json`)
 

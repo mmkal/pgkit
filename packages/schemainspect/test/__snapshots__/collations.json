@@ -23,7 +23,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -39,7 +39,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "c": {
@@ -55,7 +55,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -88,7 +88,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -104,7 +104,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "c": {
@@ -120,7 +120,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -151,7 +151,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -167,7 +167,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "c": {
@@ -183,7 +183,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -202,7 +202,7 @@
     "plpgsql": {
       "name": "plpgsql",
       "schema": "pg_catalog",
-      "version": "1.0"
+      "version": "1.x"
     }
   },
   "functions": {},
