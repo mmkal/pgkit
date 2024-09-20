@@ -37,7 +37,7 @@ jobs:
           echo 'select 123 as test_column \gdesc' | docker exec -i postgres_github_actions psql "postgresql://postgres:postgres@localhost:5432/postgres" -f - | grep 'test_column | integer'
       - uses: actions/checkout@v2
       - name: install migra
-        uses: threeal/pipx-install-action@v2.0.0
+        uses: threeal/pipx-install-action@2.0.0
         with:
           packages: migra
       - run: migra --help | grep 'Generate a database migration'
