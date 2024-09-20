@@ -36,173 +36,173 @@ beforeAll(async () => {
 test('one error', async () => {
   await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
     `
-    [QueryError]: [select-test_errors_36f5f64]: Expected one row
-    {
-      "message": "[select-test_errors_36f5f64]: Expected one row",
-      "query": {
-        "name": "select-test_errors_36f5f64",
-        "sql": "select * from test_errors where id > 1",
-        "token": "sql",
-        "values": []
-      },
-      "result": {
-        "rows": [
-          {
-            "id": 2,
-            "name": "two"
-          },
-          {
-            "id": 3,
-            "name": "three"
-          }
-        ],
-        "command": "SELECT",
-        "rowCount": 2,
-        "fields": [
-          {
-            "name": "id",
-            "tableID": "[tableID]",
-            "columnID": 1,
-            "dataTypeID": "[dataTypeID]",
-            "dataTypeSize": 4,
-            "dataTypeModifier": -1,
-            "format": "text"
-          },
-          {
-            "name": "name",
-            "tableID": "[tableID]",
-            "columnID": 2,
-            "dataTypeID": "[dataTypeID]",
-            "dataTypeSize": -1,
-            "dataTypeModifier": -1,
-            "format": "text"
-          }
-        ]
+      [QueryError]: [select-test_errors_36f5f64]: Expected one row
+      {
+        "message": "[select-test_errors_36f5f64]: Expected one row",
+        "query": {
+          "name": "select-test_errors_36f5f64",
+          "sql": "select * from test_errors where id > 1",
+          "token": "sql",
+          "values": []
+        },
+        "result": {
+          "rows": [
+            {
+              "id": 2,
+              "name": "two"
+            },
+            {
+              "id": 3,
+              "name": "three"
+            }
+          ],
+          "command": "SELECT",
+          "rowCount": 2,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": "[tableID]",
+              "columnID": 1,
+              "dataTypeID": "[dataTypeID]",
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": "[tableID]",
+              "columnID": 2,
+              "dataTypeID": "[dataTypeID]",
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
+          ]
+        }
       }
-    }
-  `,
+    `,
   )
 })
 
 test('maybeOne error', async () => {
   await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
     `
-    [QueryError]: [select-test_errors_36f5f64]: Expected at most one row
-    {
-      "message": "[select-test_errors_36f5f64]: Expected at most one row",
-      "query": {
-        "name": "select-test_errors_36f5f64",
-        "sql": "select * from test_errors where id > 1",
-        "token": "sql",
-        "values": []
-      },
-      "result": {
-        "rows": [
-          {
-            "id": 2,
-            "name": "two"
-          },
-          {
-            "id": 3,
-            "name": "three"
-          }
-        ],
-        "command": "SELECT",
-        "rowCount": 2,
-        "fields": [
-          {
-            "name": "id",
-            "tableID": "[tableID]",
-            "columnID": 1,
-            "dataTypeID": "[dataTypeID]",
-            "dataTypeSize": 4,
-            "dataTypeModifier": -1,
-            "format": "text"
-          },
-          {
-            "name": "name",
-            "tableID": "[tableID]",
-            "columnID": 2,
-            "dataTypeID": "[dataTypeID]",
-            "dataTypeSize": -1,
-            "dataTypeModifier": -1,
-            "format": "text"
-          }
-        ]
+      [QueryError]: [select-test_errors_36f5f64]: Expected at most one row
+      {
+        "message": "[select-test_errors_36f5f64]: Expected at most one row",
+        "query": {
+          "name": "select-test_errors_36f5f64",
+          "sql": "select * from test_errors where id > 1",
+          "token": "sql",
+          "values": []
+        },
+        "result": {
+          "rows": [
+            {
+              "id": 2,
+              "name": "two"
+            },
+            {
+              "id": 3,
+              "name": "three"
+            }
+          ],
+          "command": "SELECT",
+          "rowCount": 2,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": "[tableID]",
+              "columnID": 1,
+              "dataTypeID": "[dataTypeID]",
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": "[tableID]",
+              "columnID": 2,
+              "dataTypeID": "[dataTypeID]",
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
+          ]
+        }
       }
-    }
-  `,
+    `,
   )
 })
 
 test('many error', async () => {
   await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.toMatchInlineSnapshot(
     `
-    [QueryError]: [select-test_errors_34cad85]: Expected at least one row
-    {
-      "message": "[select-test_errors_34cad85]: Expected at least one row",
-      "query": {
-        "name": "select-test_errors_34cad85",
-        "sql": "select * from test_errors where id > 100",
-        "token": "sql",
-        "values": []
-      },
-      "result": {
-        "rows": [],
-        "command": "SELECT",
-        "rowCount": 0,
-        "fields": [
-          {
-            "name": "id",
-            "tableID": "[tableID]",
-            "columnID": 1,
-            "dataTypeID": "[dataTypeID]",
-            "dataTypeSize": 4,
-            "dataTypeModifier": -1,
-            "format": "text"
-          },
-          {
-            "name": "name",
-            "tableID": "[tableID]",
-            "columnID": 2,
-            "dataTypeID": "[dataTypeID]",
-            "dataTypeSize": -1,
-            "dataTypeModifier": -1,
-            "format": "text"
-          }
-        ]
+      [QueryError]: [select-test_errors_34cad85]: Expected at least one row
+      {
+        "message": "[select-test_errors_34cad85]: Expected at least one row",
+        "query": {
+          "name": "select-test_errors_34cad85",
+          "sql": "select * from test_errors where id > 100",
+          "token": "sql",
+          "values": []
+        },
+        "result": {
+          "rows": [],
+          "command": "SELECT",
+          "rowCount": 0,
+          "fields": [
+            {
+              "name": "id",
+              "tableID": "[tableID]",
+              "columnID": 1,
+              "dataTypeID": "[dataTypeID]",
+              "dataTypeSize": 4,
+              "dataTypeModifier": -1,
+              "format": "text"
+            },
+            {
+              "name": "name",
+              "tableID": "[tableID]",
+              "columnID": 2,
+              "dataTypeID": "[dataTypeID]",
+              "dataTypeSize": -1,
+              "dataTypeModifier": -1,
+              "format": "text"
+            }
+          ]
+        }
       }
-    }
-  `,
+    `,
   )
 })
 
 test('syntax error', async () => {
   await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(
     `
-    [QueryError]: [select_fb83277]: Executing query failed (syntax_error)
-    {
-      "message": "[select_fb83277]: Executing query failed (syntax_error)",
-      "query": {
-        "name": "select_fb83277",
-        "sql": "select * frooom test_errors",
-        "token": "sql",
-        "values": []
-      },
-      "cause": {
-        "name": "error",
-        "message": "syntax error at or near \\"frooom\\"",
-        "length": 95,
-        "severity": "ERROR",
-        "code": "42601",
-        "position": "10",
-        "file": "scan.l",
-        "line": "[line]",
-        "routine": "scanner_yyerror",
-        "query": "select * frooom test_errors"
+      [QueryError]: [select_fb83277]: Executing query failed (syntax_error)
+      {
+        "message": "[select_fb83277]: Executing query failed (syntax_error)",
+        "query": {
+          "name": "select_fb83277",
+          "sql": "select * frooom test_errors",
+          "token": "sql",
+          "values": []
+        },
+        "cause": {
+          "name": "error",
+          "message": "syntax error at or near \\"frooom\\"",
+          "length": 95,
+          "severity": "ERROR",
+          "code": "42601",
+          "position": "10",
+          "file": "scan.l",
+          "line": "[line]",
+          "routine": "scanner_yyerror",
+          "query": "select * frooom test_errors"
+        }
       }
-    }
-  `,
+    `,
   )
 
   const err: Error = await pool.query(sql`select * frooom test_errors`).catch(e => e)
