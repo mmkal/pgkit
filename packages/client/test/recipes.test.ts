@@ -128,18 +128,18 @@ test('Query logging', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 1,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 2,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -183,6 +183,7 @@ test('query timeouts', async () => {
           ]
         },
         "cause": {
+          "message": "Query read timeout",
           "query": "select pg_sleep(0.04)"
         }
       }
@@ -251,6 +252,7 @@ test('switchable clients', async () => {
         ]
       },
       "cause": {
+        "message": "Query read timeout",
         "query": "\\n      select pg_sleep(0.04)\\n    "
       }
     }

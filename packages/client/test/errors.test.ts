@@ -1,6 +1,6 @@
 import * as path from 'path'
 import {beforeAll, expect, test} from 'vitest'
-import {QueryError, createPool, sql} from '../src'
+import {createPool, sql} from '../src'
 import {printError} from './snapshots'
 
 const repoRoot = path.resolve(process.cwd(), '../..')
@@ -61,18 +61,18 @@ test('one error', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 1,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 2,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -112,18 +112,18 @@ test('maybeOne error', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 1,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 2,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -154,18 +154,18 @@ test('many error', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 1,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 2,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -190,13 +190,14 @@ test('syntax error', async () => {
           "values": []
         },
         "cause": {
+          "message": "syntax error at or near \\"frooom\\"",
           "length": 95,
           "name": "error",
           "severity": "ERROR",
           "code": "42601",
           "position": "10",
           "file": "scan.l",
-          "line": "123456789",
+          "line": "[line]",
           "routine": "scanner_yyerror",
           "query": "select * frooom test_errors"
         }
@@ -212,7 +213,7 @@ test('syntax error', async () => {
         at <repo>/packages/client/test/errors.test.ts:<line>:<col>
   `)
 
-  expect((err as QueryError).cause?.stack).toMatchInlineSnapshot(`
+  expect((err as any).cause?.stack).toMatchInlineSnapshot(`
     error: syntax error at or near "frooom"
         at Parser.parseErrorMessage (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
         at Parser.handlePacket (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)

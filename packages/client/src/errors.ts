@@ -43,11 +43,9 @@ export namespace QueryError {
 export class QueryError extends Error {
   query: QueryError.Params['query']
   result?: QueryError.Params['result']
-  cause?: Error
 
   constructor(message: string, {query, result, cause}: QueryError.Params) {
-    super(`[${query.name}]: ${message}`, {cause})
-    this.cause = cause
+    super(`[${query.name}]: ${message}`, cause ? {cause} : undefined)
     this.query = query
     this.result = result
   }

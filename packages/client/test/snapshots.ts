@@ -9,14 +9,14 @@ export function printError(val: any): string {
     val,
     function reviver(this: any, key, value: any) {
       if (value?.constructor?.name?.endsWith('Error')) {
-        const keys = Object.getOwnPropertyNames(value).filter(p => p !== 'stack' && p !== 'message')
+        const keys = Object.getOwnPropertyNames(value).filter(p => p !== 'stack')
         return Object.fromEntries(keys.map(k => [k, value[k]]))
       }
       if (key === 'dataTypeID' || key === 'tableID') {
-        return 123_456_789 // avoid unstable pg generated ids
+        return `[${key}]` // avoid unstable pg generated ids
       }
       if (this.name === 'error' && key === 'line') {
-        return '123456789' // avoid unstable line numbers of generated statements
+        return `[${key}]` // avoid unstable line numbers of generated statements
       }
       return value
     },
