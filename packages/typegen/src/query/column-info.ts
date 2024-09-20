@@ -30,7 +30,7 @@ type RegTypeToTypeScript = (formattedRegType: string & {brand?: 'formatted regty
 // todo: get table description from obj_description(oid) (like column)
 
 const logTestWarning = (...args: unknown[]) => {
-  if (process.env.NODE_ENV === 'test' || process.env.PGKIT_TYPEGEN_DEBUG) {
+  if (process.env.PGKIT_TYPEGEN_DEBUG) {
     // eslint-disable-next-line no-console
     console.warn(...args)
   }
