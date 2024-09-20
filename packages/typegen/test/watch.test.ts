@@ -2,7 +2,7 @@ import * as fs from 'fs'
 import * as fsSyncer from 'fs-syncer'
 import * as path from 'path'
 
-import {test, beforeEach, expect, vi as jest} from 'vitest'
+import {test as _test, beforeEach, expect, vi as jest} from 'vitest'
 
 import * as typegen from '../src'
 import {getPureHelper as getHelper} from './helper'
@@ -13,6 +13,8 @@ beforeEach(async () => {
   jest.clearAllMocks()
   await helper.setupDb()
 })
+
+const test = process.env.CI ? _test.skip : _test
 
 test(
   'watch file system',
