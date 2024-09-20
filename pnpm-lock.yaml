@@ -650,8 +650,8 @@ importers:
         specifier: 8.0.2-next.0
         version: 8.0.2-next.0
       '@rebundled/p-memoize':
-        specifier: 7.1.2-next.7
-        version: 7.1.2-next.7
+        specifier: 7.1.2-next.8
+        version: 7.1.2-next.8
       chokidar:
         specifier: ^3.5.3
         version: 3.6.0
@@ -2303,8 +2303,8 @@ packages:
     resolution: {integrity: sha512-S3rd39mObqtVaXqShfiSiYf4F1pUjSXyONfk+VRvsrQt2i1pFTZZIEm7yGyplzPcWefY8/dA/XSivCMVkMGMHQ==}
     engines: {node: '>=18'}
 
-  '@rebundled/p-memoize@7.1.2-next.7':
-    resolution: {integrity: sha512-sAdEQ/4Khe7058VYJRlL2tnH8Tbv30PS5sA8Vh63tl2WMXZFe9refNUXFDCNyWK+EST777csHPEiHIcsveTxIg==}
+  '@rebundled/p-memoize@7.1.2-next.8':
+    resolution: {integrity: sha512-m9Fq4wwjAGi1fM6YIYvGGCLmCrMuYQ8yyd6JDb1hmmTasziUDsdJoqyUQp7Mz2fwd0YuHfPPIWg6C2kbA8j//w==}
     engines: {node: '>=14.16'}
 
   '@rollup/rollup-android-arm-eabi@4.9.6':
@@ -10057,7 +10057,7 @@ snapshots:
       signal-exit: 4.1.0
       strip-final-newline: 4.0.0
 
-  '@rebundled/p-memoize@7.1.2-next.7':
+  '@rebundled/p-memoize@7.1.2-next.8':
     dependencies:
       mimic-fn: 4.0.0
       type-fest: 3.13.1
