@@ -132,9 +132,9 @@ test('duplicate columns', async () => {
            *
            * regtype: \`integer\`
            *
-           * regtype: \`text\`
+           * regtype: \`integer\`
            */
-          a: (number | null) | (string | null)
+          a: number | null
         }
       }
     "

@@ -519,8 +519,8 @@ test('ignore irrelevant syntax', async () => {
 
         /** - query: \`select 1\` */
         export interface Column {
-          /** not null: \`true\`, regtype: \`integer\` */
-          '?column?': number
+          /** regtype: \`integer\` */
+          '?column?': number | null
         }
       }
     "

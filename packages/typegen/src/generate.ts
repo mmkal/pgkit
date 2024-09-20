@@ -199,9 +199,8 @@ export const generate = async (inputOptions: Partial<Options>) => {
 
       if (queries.length > 0) {
         const ignoreMsg = ignoreCount > 0 ? ` (${ignoreCount} ignored)` : ''
-        const averageFieldsPerQuery = lodash.sumBy(successfuls, q => q.fields.length) / successfuls.length
         logger.info(
-          `${getLogPath(file)} finished. Processed ${successfuls.length}/${queries.length} queries${ignoreMsg}. Fields per query: ${averageFieldsPerQuery.toFixed(1)}`,
+          `${getLogPath(file)} finished. Processed ${successfuls.length}/${queries.length} queries${ignoreMsg}.`,
         )
       }
 
