@@ -1514,7 +1514,7 @@
     "hstore": {
       "name": "hstore",
       "schema": "public",
-      "version": "1.8"
+      "version": "1.7"
     }
   },
   "functions": {
