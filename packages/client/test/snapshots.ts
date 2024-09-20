@@ -9,7 +9,7 @@ export function printError(val: any): string {
     val,
     function reviver(this: any, key, value: any) {
       if (value?.constructor?.name?.endsWith('Error')) {
-        const keys = Object.getOwnPropertyNames(value).filter(p => p !== 'stack')
+        const keys = ['name', ...Object.getOwnPropertyNames(value).filter(p => p !== 'stack')]
         return Object.fromEntries(keys.map(k => [k, value[k]]))
       }
       if (key === 'dataTypeID' || key === 'tableID') {

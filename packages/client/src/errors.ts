@@ -45,7 +45,9 @@ export class QueryError extends Error {
   result?: QueryError.Params['result']
 
   constructor(message: string, {query, result, cause}: QueryError.Params) {
-    super(`[${query.name}]: ${message}`, cause ? {cause} : undefined)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const suffix = cause && (cause as any).code in pgErrorCodes ? ` (${pgErrorCodes[(cause as any).code]})` : ''
+    super(`[${query.name}]: ${message}${suffix}`, cause ? {cause} : undefined)
     this.query = query
     this.result = result
   }

@@ -171,23 +171,24 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-      [QueryError]: [select_9dcc021]: Executing query failed
-      {
-        "message": "[select_9dcc021]: Executing query failed",
-        "query": {
-          "name": "select_9dcc021",
-          "sql": "select pg_sleep($1)",
-          "token": "sql",
-          "values": [
-            0.04
-          ]
-        },
-        "cause": {
-          "message": "Query read timeout",
-          "query": "select pg_sleep(0.04)"
-        }
+    [QueryError]: [select_9dcc021]: Executing query failed
+    {
+      "message": "[select_9dcc021]: Executing query failed",
+      "query": {
+        "name": "select_9dcc021",
+        "sql": "select pg_sleep($1)",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
+      "cause": {
+        "name": "Error",
+        "message": "Query read timeout",
+        "query": "select pg_sleep(0.04)"
       }
-    `,
+    }
+  `,
   )
   await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
     pg_sleep: '',
@@ -252,6 +253,7 @@ test('switchable clients', async () => {
         ]
       },
       "cause": {
+        "name": "Error",
         "message": "Query read timeout",
         "query": "\\n      select pg_sleep(0.04)\\n    "
       }
