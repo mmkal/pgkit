@@ -81,7 +81,7 @@ export const getPoolHelper = (params: {__filename: string; baseConnectionURI: st
 
   const setupDb = async () => {
     await admin.query(sql`create database ${sql.identifier([dbName])}`).catch(e => {
-      if (e.message.endsWith('(unique_violation)')) return
+      if (e.message.includes('unique_violation') || e.cause?.message.match(/database ".+" already exists/)) return
       throw e
     })
 
