@@ -23,7 +23,7 @@ test.each(fixtures)(
       cwd: process.cwd(),
       env: process.env,
       reject: false, // migra exits with a non-zero code when there are changes
-    }).then(p => format(p.stdout))
+    }).then(p => format(p.stderr).trim() || format(p.stdout))
     const migra = await runMigra(a, b, args())
     const actual = format(migra.sql)
 
