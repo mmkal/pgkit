@@ -107,6 +107,9 @@ export class Migration {
     this.add(this.changes.sequences({drops_only: true}))
     this.add(this.changes.enums({drops_only: true, modifications: false}))
     this.add(this.changes.extensions({drops_only: true, modifications: false}))
+    this.add(this.changes.domains({drops_only: true}))
+
+    this.add(this.changes.domains({creations_only: true}))
     this.add(this.changes.non_mv_indexes({creations_only: true}))
     this.add(this.changes.pk_constraints({creations_only: true}))
     this.add(this.changes.non_pk_constraints({creations_only: true}))

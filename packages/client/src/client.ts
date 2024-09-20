@@ -3,7 +3,17 @@ import TypeOverrides from 'pg/lib/type-overrides'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
 import {applyRecommendedTypeParsers} from './type-parsers'
-import {Client, First, Queryable, SQLQueryRowType, ClientOptions, Connection, Transaction, Result} from './types'
+import {
+  Client,
+  First,
+  Queryable,
+  SQLQueryRowType,
+  ClientOptions,
+  Connection,
+  Transaction,
+  Result,
+  DriverQueryable,
+} from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
 
@@ -58,8 +68,7 @@ const createQueryable = (query: Queryable['query']): Queryable => {
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDatabase<any>): Queryable['query'] => {
+export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query'] => {
   return async query => {
     type Row = SQLQueryRowType<typeof query>
     let result: Result<Row>
@@ -73,14 +82,14 @@ export const createQueryFn = (pgpQueryable: pgPromise.ITask<any> | pgPromise.IDa
       result = {rows, command, rowCount, fields}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError(error.message, {query, error})
+      throw new QueryError('Executing query failed', {query, cause: error})
     }
 
     try {
       return {...result, rows: await Promise.all(result.rows.map(query.parse))}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError(`Parsing rows failed`, {query, error})
+      throw new QueryError(`Parsing rows failed`, {query, cause: error})
     }
   }
 }
@@ -129,7 +138,7 @@ export const createClient = (connectionString: string, options: ClientOptions = 
       })
     }
 
-  const connect: Client['connect'] = async callback => {
+  const taskMethod: Client['task'] = async callback => {
     return pgPromiseClient.task({tag: crypto.randomUUID()}, async task => {
       const connectionInfo: Connection['connectionInfo'] = {pgp: task}
       const pgSuiteConnection: Connection = {
@@ -149,7 +158,8 @@ export const createClient = (connectionString: string, options: ClientOptions = 
     ...createQueryable(createWrappedQueryFn(pgPromiseClient)),
     connectionString: () => connectionString,
     end: async () => pgPromiseClient.$pool.end(),
-    connect,
+    connect: taskMethod,
+    task: taskMethod,
     transaction: transactionFnFromTask(pgPromiseClient),
   }
 }

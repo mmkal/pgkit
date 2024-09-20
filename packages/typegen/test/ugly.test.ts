@@ -47,7 +47,7 @@ test('prettier is optional', async () => {
   expect(mockWarn).toBeCalledTimes(1)
   expect(mockWarn.mock.calls[0]).toMatchInlineSnapshot(`
     [
-      "prettier failed to run; Your output might be ugly! Install prettier to fix this. prettier not found",
+      [Error: prettier failed to run; Your output might be ugly! Install prettier to fix this. prettier not found],
     ]
   `)
 
@@ -99,8 +99,7 @@ test('prettier can fail', async () => {
   expect(mockWarn).toBeCalledTimes(1)
   expect(mockWarn.mock.calls[0]).toMatchInlineSnapshot(`
     [
-      "prettier failed to run; Your output might be ugly! Error below:
-    Syntax error on line 1234",
+      [Error: prettier failed to run; Your output might be ugly!],
     ]
   `)
 

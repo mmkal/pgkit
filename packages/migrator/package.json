@@ -16,7 +16,7 @@
     "dist"
   ],
   "scripts": {
-    "dev": "PGKIT_MIGRATIONS_PATH=/Users/mmkal/src/pgkit/packages/admin/zignoreme/migrator/migrations PGKIT_MIGRATIONS_TABLE_NAME=admin_test_migrations tsx src/bin",
+    "dogfood": "PGKIT_MIGRATIONS_PATH=/Users/mmkal/src/pgkit/packages/admin/zignoreme/migrator/migrations PGKIT_MIGRATIONS_TABLE_NAME=admin_test_migrations tsx src/bin",
     "prepack": "pnpm build",
     "build": "tsc -p tsconfig.lib.json",
     "test": "vitest run"
@@ -49,7 +49,7 @@
     "picocolors": "^1.0.1",
     "strip-ansi": "6.0.0",
     "tasuku": "^2.0.1",
-    "trpc-cli": "^0.3.0",
+    "trpc-cli": "^0.5.0",
     "umzug": "^3.7.0",
     "zod": "^3.23.8",
     "zod-to-json-schema": "^3.23.0",

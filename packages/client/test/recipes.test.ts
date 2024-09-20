@@ -3,14 +3,14 @@ import * as pgMem from 'pg-mem'
 import * as pgSqlAstParser from 'pgsql-ast-parser'
 import {beforeAll, beforeEach, expect, test, vi} from 'vitest'
 import {FieldInfo, createClient, sql} from '../src'
-import {printPostgresErrorSnapshot} from './snapshots'
+import {printError} from './snapshots'
 
 export let client: Awaited<ReturnType<typeof createClient>>
 let sqlProduced = [] as {sql: string; values: any[]}[]
 
 expect.addSnapshotSerializer({
-  test: () => true,
-  print: val => printPostgresErrorSnapshot(val),
+  test: Boolean,
+  print: printError,
 })
 
 beforeAll(async () => {
@@ -74,6 +74,11 @@ test('Query logging', async () => {
   // Simplistic way of logging query times. For more accurate results, use process.hrtime()
   const log = vi.fn()
   const client = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
+    pgpOptions: {
+      connect: {
+        application_name: 'query-logger',
+      },
+    },
     wrapQueryFn: queryFn => async query => {
       const start = Date.now()
       const result = await queryFn(query)
@@ -128,18 +133,18 @@ test('Query logging', async () => {
           "fields": [
             {
               "name": "id",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 1,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": 4,
               "dataTypeModifier": -1,
               "format": "text"
             },
             {
               "name": "name",
-              "tableID": 123456789,
+              "tableID": "[tableID]",
               "columnID": 2,
-              "dataTypeID": 123456789,
+              "dataTypeID": "[dataTypeID]",
               "dataTypeSize": -1,
               "dataTypeModifier": -1,
               "format": "text"
@@ -171,22 +176,21 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-      [[Query select_9dcc021]: Query read timeout]
+      [QueryError]: [select_9dcc021]: Executing query failed
       {
+        "message": "[select_9dcc021]: Executing query failed",
+        "query": {
+          "name": "select_9dcc021",
+          "sql": "select pg_sleep($1)",
+          "token": "sql",
+          "values": [
+            0.04
+          ]
+        },
         "cause": {
-          "query": {
-            "name": "select_9dcc021",
-            "sql": "select pg_sleep($1)",
-            "token": "sql",
-            "values": [
-              0.04
-            ]
-          },
-          "error": {
-            "query": "select pg_sleep(0.04)"
-          },
+          "name": "Error",
           "message": "Query read timeout",
-          "name": "QueryErrorCause"
+          "query": "select pg_sleep(0.04)"
         }
       }
     `,
@@ -203,6 +207,7 @@ test('switchable clients', async () => {
     pgpOptions: {
       connect: {
         query_timeout: shortTimeoutMs,
+        application_name: 'impatient',
       },
     },
   })
@@ -210,11 +215,17 @@ test('switchable clients', async () => {
     pgpOptions: {
       connect: {
         query_timeout: shortTimeoutMs * 3,
+        application_name: 'patient',
       },
     },
   })
 
   const appClient = createClient(client.connectionString(), {
+    pgpOptions: {
+      connect: {
+        application_name: 'app',
+      },
+    },
     wrapQueryFn: _queryFn => {
       return async query => {
         let clientToUse = patientClient
@@ -242,22 +253,21 @@ test('switchable clients', async () => {
       select pg_sleep(${sleepSeconds})
     `),
   ).rejects.toThrowErrorMatchingInlineSnapshot(`
-    [[Query select_6289211]: Query read timeout]
+    [QueryError]: [select_6289211]: Executing query failed
     {
+      "message": "[select_6289211]: Executing query failed",
+      "query": {
+        "name": "select_6289211",
+        "sql": "\\n      select pg_sleep($1)\\n    ",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
       "cause": {
-        "query": {
-          "name": "select_6289211",
-          "sql": "\\n      select pg_sleep($1)\\n    ",
-          "token": "sql",
-          "values": [
-            0.04
-          ]
-        },
-        "error": {
-          "query": "\\n      select pg_sleep(0.04)\\n    "
-        },
+        "name": "Error",
         "message": "Query read timeout",
-        "name": "QueryErrorCause"
+        "query": "\\n      select pg_sleep(0.04)\\n    "
       }
     }
   `)

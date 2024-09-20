@@ -17,11 +17,12 @@ const migratorProcedure = trpc.procedure
   .use(async ({next, input}) => {
     return next({
       ctx: {
+        // todo: get from ctx
         migrator: migrator,
-        confirm: async (checkSql: string) => {
+        confirm: async (checkSql: string): Promise<string | null> => {
           checkSql = checkSql.trim()
           if (!checkSql) {
-            return false
+            return null
           }
 
           const confirmation = input?.confirmation?.trim()
@@ -30,7 +31,8 @@ const migratorProcedure = trpc.procedure
             throw new Error('confirmation_missing:' + checkSql)
           }
 
-          return checkSql === confirmation
+          // todo: allow updating the confirmation string
+          return checkSql === confirmation ? null : confirmation
         },
       },
     })

@@ -31,10 +31,7 @@ const argContext = async (x: Queryable | string): Promise<PostgreSQL | Queryable
   return createClient(x)
 }
 
-type CLI = {flags: any}
-export type Flags = Partial<CLI['flags']>
-
-export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable | string, args: Flags = {}) => {
+export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable | string, args: MigraOptions = {}) => {
   // const {schema} = args
   // const {excludeSchema} = args
   // const out: typeof process.stdout = args.out || process.stdout
@@ -100,6 +97,30 @@ export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable 
 }
 
 const t = initTRPC.meta<TrpcCliMeta>().create()
+export const MigraOptions = z.object({
+  unsafe: z.boolean().default(false).describe('Prevent migra from erroring upon generation of drop statements.'),
+  schema: z.string().optional().describe('Restrict output to statements for a particular schema'),
+  excludeSchema: z
+    .string()
+    .optional()
+    .describe('Restrict output to statements for all schemas except the specified schema'),
+  createExtensionsOnly: z
+    .boolean()
+    .default(false)
+    .describe('Only output "create extension..." statements, nothing else.'),
+  ignoreExtensionVersions: z.boolean().default(false).describe('Ignore the versions when comparing extensions.'),
+  withPrivileges: z
+    .boolean()
+    .default(false)
+    .describe('Also output privilege differences (ie. grant/revoke statements)'),
+  forceUtf8: z.boolean().default(false).describe('Force UTF-8 encoding for output'),
+})
+export type MigraOptions = z.infer<typeof MigraOptions>
+
+// export type Flags = MigraOptions
+
+const MigraRunInput = z.tuple([z.string().describe('dburlFrom'), z.string().describe('dburlTarget'), MigraOptions])
+
 const router = t.router({
   run: t.procedure
     .meta({
@@ -109,38 +130,7 @@ const router = t.router({
         `migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' --unsafe`,
       ],
     })
-    .input(
-      z.tuple([
-        z.string().describe('dburlFrom'),
-        z.string().describe('dburlTarget'),
-        z
-          .object({
-            unsafe: z
-              .boolean()
-              .default(false)
-              .describe('Prevent migra from erroring upon generation of drop statements.'),
-            schema: z.string().optional().describe('Restrict output to statements for a particular schema'),
-            excludeSchema: z
-              .string()
-              .optional()
-              .describe('Restrict output to statements for all schemas except the specified schema'),
-            createExtensionsOnly: z
-              .boolean()
-              .default(false)
-              .describe('Only output "create extension..." statements, nothing else.'),
-            ignoreExtensionVersions: z
-              .boolean()
-              .default(false)
-              .describe('Ignore the versions when comparing extensions.'),
-            withPrivileges: z
-              .boolean()
-              .default(false)
-              .describe('Also output privilege differences (ie. grant/revoke statements)'),
-            forceUtf8: z.boolean().default(false).describe('Force UTF-8 encoding for output'),
-          })
-          .optional(),
-      ]),
-    )
+    .input(MigraRunInput)
     .query(async ({input: [dburlFrom, dburlTarget, args]}) => {
       const {sql} = await run(dburlFrom, dburlTarget, args)
       return sql

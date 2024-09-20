@@ -4,7 +4,7 @@ import chokidar = require('chokidar')
 import * as fs from 'fs'
 import {glob} from 'glob'
 import * as lodash from 'lodash'
-import memoizee = require('memoizee')
+import memoizee = require('memoizee') // todo: replace with p-memoize
 import * as neverthrow from 'neverthrow'
 import * as path from 'path'
 import * as defaults from './defaults'
@@ -13,7 +13,7 @@ import {getEnumTypes, getRegtypeToPgTypnameMapping, psqlClient} from './pg'
 import {getColumnInfo, getTypeability} from './query'
 import {getParameterTypes} from './query/parameters'
 import {ExtractedQuery, Options, QueryField, QueryParameter} from './types'
-import {changedFiles, checkClean, containsIgnoreComment, globList} from './util'
+import {changedFiles, checkClean, containsIgnoreComment, globList, promiseDotAllChunked} from './util'
 
 export type {Options} from './types'
 
@@ -59,7 +59,6 @@ export const generate = async (inputOptions: Partial<Options>) => {
       })
   }
 
-  // const psql = memoizee(_psql, {max: 1000})
   const gdesc = memoizee(_gdesc, {max: 1000})
 
   const getLogPath = (filepath: string) => {
@@ -70,12 +69,13 @@ export const generate = async (inputOptions: Partial<Options>) => {
   const getFields = async (query: {sql: string}, searchPath?: string) => {
     const rowsResult = await gdesc(query.sql, searchPath)
     return rowsResult.asyncMap(async rows => {
-      return Promise.all(
-        rows.map<Promise<QueryField>>(async row => ({
+      return promiseDotAllChunked(
+        rows,
+        async (row): Promise<QueryField> => ({
           name: row.Column,
           regtype: row.Type,
           typescript: getTypeScriptType(row.Type),
-        })),
+        }),
       )
     })
   }
@@ -85,14 +85,12 @@ export const generate = async (inputOptions: Partial<Options>) => {
   const getParameters = async (query: ExtractedQuery): Promise<QueryParameter[]> => {
     const regtypes = await getParameterTypes(pool, query.sql)
 
-    const promises = regtypes.map(async (regtype, i) => ({
+    return promiseDotAllChunked(regtypes, async (regtype, i) => ({
       name: `$${i + 1}`, // todo: parse query and use heuristic to get sensible names
       regtype,
       // todo(one day): handle arrays and other more complex types. Right now they'll fall back to `defaultType` (= `any` or `unknown`)
       typescript: getTypeScriptType(regtype),
     }))
-
-    return Promise.all(promises)
   }
 
   const regtypeToPGTypeDictionary = await getRegtypeToPgTypnameMapping(pool)
@@ -158,7 +156,11 @@ export const generate = async (inputOptions: Partial<Options>) => {
     }
 
     async function generateForFiles(files: string[]) {
-      const processedFiles = await Promise.all(files.map(generateForFile))
+      // NOTE: empirically, when running this on a real codebase, upping the chunkSize here introduces some weird race condition, and the query results get mixed up half the time.
+      // That's on a codebase with only 2 files with queries, and 1 query in each, so likely the race condition is not hard to repro. It would probably be far worse on a larger codebase.
+      // So, in the spirit of make it work, make it right, make it fast, start with the default chunk size of 1.
+      // Ways it got mixed up: sometimes, "unnamed prepared statement does not exist", sometimes, result types were applied to the wrong queries.
+      const processedFiles = await promiseDotAllChunked(files, generateForFile)
 
       const stats = {
         'Total files': processedFiles.length,
@@ -183,12 +185,10 @@ export const generate = async (inputOptions: Partial<Options>) => {
       const queriesToDescribe = queries.filter(({sql}) => !containsIgnoreComment(sql))
       const ignoreCount = queries.length - queriesToDescribe.length
 
-      const analysedQueryResults = await Promise.all(
-        queriesToDescribe.map(async query => {
-          const describedQuery = await describeQuery(query)
-          return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, getTypeScriptType))
-        }),
-      )
+      const analysedQueryResults = await promiseDotAllChunked(queriesToDescribe, async query => {
+        const describedQuery = await describeQuery(query)
+        return describedQuery.asyncMap(dq => getColumnInfo(pool, dq, getTypeScriptType))
+      })
 
       const successfuls = analysedQueryResults.flatMap(res => {
         if (res.isOk()) return [res.value]
@@ -208,6 +208,7 @@ export const generate = async (inputOptions: Partial<Options>) => {
         await options.writeTypes(analysedQueryResults.flatMap(res => (res.isOk() ? [res.value] : [])))
       }
       return {
+        file,
         total: queries.length,
         successful: successfuls.length,
         ignored: ignoreCount,

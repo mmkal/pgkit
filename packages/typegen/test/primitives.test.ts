@@ -62,7 +62,7 @@ test('primitives are non-nullable', async () => {
         sql<queries.TestTable_sum>\`select sum(b) from test_table\`,
         sql<queries.CurrentDate>\`select current_date\`,
         sql<queries.Column>\`select 'foo' || 'bar'\`,
-        sql<queries.Column_4>\`select 'foo' || null\`,
+        sql<queries.Column>\`select 'foo' || null\`,
         sql<queries.TestTable>\`select a > 1 from test_table\`,
         sql<queries.A_21>\`select 2 > 1 as a\`,
       ]
@@ -106,18 +106,16 @@ test('primitives are non-nullable', async () => {
 
         /** - query: \`select current_date\` */
         export interface CurrentDate {
-          /** not null: \`true\`, regtype: \`date\` */
-          current_date: Date
+          /** regtype: \`date\` */
+          current_date: Date | null
         }
 
-        /** - query: \`select 'foo' || 'bar'\` */
+        /**
+         * queries:
+         * - \`select 'foo' || 'bar'\`
+         * - \`select 'foo' || null\`
+         */
         export interface Column {
-          /** not null: \`true\`, regtype: \`text\` */
-          '?column?': string
-        }
-
-        /** - query: \`select 'foo' || null\` */
-        export interface Column_4 {
           /** regtype: \`text\` */
           '?column?': string | null
         }

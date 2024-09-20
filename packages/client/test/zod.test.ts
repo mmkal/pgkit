@@ -89,36 +89,33 @@ test('Refine schemas', async () => {
 
   await expect(getResult()).rejects.toMatchInlineSnapshot(`
     {
+      "message": "[select-zod_test_83bbed1]: Parsing rows failed",
+      "query": {
+        "name": "select-zod_test_83bbed1",
+        "sql": "\\n      select * from zod_test\\n    ",
+        "token": "sql",
+        "values": []
+      },
       "cause": {
-        "query": {
-          "name": "select-zod_test_83bbed1",
-          "sql": "\\n      select * from zod_test\\n    ",
-          "token": "sql",
-          "values": []
-        },
-        "error": {
-          "issues": [
-            {
-              "code": "invalid_type",
-              "expected": "string",
-              "received": "undefined",
-              "path": [
-                "name"
-              ],
-              "message": "Required"
-            },
-            {
-              "code": "custom",
-              "message": "id must be even",
-              "path": [
-                "id"
-              ]
-            }
-          ],
-          "name": "ZodError"
-        },
-        "message": "[\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
-        "name": "QueryErrorCause"
+        "issues": [
+          {
+            "code": "invalid_type",
+            "expected": "string",
+            "received": "undefined",
+            "path": [
+              "name"
+            ],
+            "message": "Required"
+          },
+          {
+            "code": "custom",
+            "message": "id must be even",
+            "path": [
+              "id"
+            ]
+          }
+        ],
+        "name": "ZodError"
       }
     }
   `)

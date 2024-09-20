@@ -91,7 +91,7 @@ test(`default type mappings`, async () => {
           /** regtype: \`time without time zone\` */
           f: string | null
 
-          /** regtype: \`bit(1)\` */
+          /** regtype: \`bit\` */
           g: number | null
 
           /** regtype: \`money\` */
@@ -109,7 +109,7 @@ test(`default type mappings`, async () => {
           /** regtype: \`real\` */
           l: number | null
 
-          /** regtype: \`character(1)\` */
+          /** regtype: \`character\` */
           m: string | null
 
           /** regtype: \`character varying\` */

@@ -12,12 +12,16 @@ export type WriteFile = (filepath: string, content: string) => Promise<void>
 
 export const defaultWriteFile: WriteFile = async (filepath, content) => {
   await fs.promises.mkdir(path.dirname(filepath), {recursive: true})
-  const pretty = await prettifyOne({filepath, content})
-  const existing = (await fs.promises.readFile(filepath).catch(() => null)) as string | null
-  if (existing === pretty) {
+  const newPretty = await prettifyOne({filepath, content})
+  const existingContent = await fs.promises.readFile(filepath, 'utf8').catch(() => null /* file doesn't exist */)
+  if (existingContent === newPretty) {
     return
   }
-  await fs.promises.writeFile(filepath, pretty)
+  const existingPretty = existingContent && (await prettifyOne({filepath, content: existingContent}))
+  if (existingPretty === newPretty) {
+    return
+  }
+  await fs.promises.writeFile(filepath, newPretty)
 }
 
 /**

@@ -1,7 +1,7 @@
 import {Client, createClient} from '@pgkit/client'
 import {Migrator, createMigratorRouter} from '@pgkit/migrator'
 import {confirm} from '@pgkit/migrator/dist/cli'
-import {generate} from '@pgkit/typegen'
+import {defaults, generate} from '@pgkit/typegen'
 import express from 'express'
 import * as trpcCli from 'trpc-cli'
 import {z} from 'trpc-cli'
@@ -12,11 +12,8 @@ const t = trpcCli.trpcServer.initTRPC.meta<trpcCli.TrpcCliMeta>().create()
 const procedureWithClient = t.procedure.use(async ({ctx, next}) => {
   const config = await loadConfig()
   const client = (clientSingleton.client ||= createClient(config.client.connectionString))
-  const migrator = (clientSingleton.migrator ||= new Migrator({
-    client,
-    migrationsPath: config.migrator?.migrationsPath,
-    migrationTableName: config.migrator?.migrationTableName,
-  }))
+  const migratorOptions = typeof config.migrator === 'function' ? config.migrator({client}) : config.migrator
+  const migrator = (clientSingleton.migrator ||= new Migrator({client, ...migratorOptions}))
   return next({
     ctx: {...ctx, client, migrator, config},
   })
@@ -55,12 +52,17 @@ export const router = t.router({
       watch = watch ?? input.lazy
       if (input.lazy && !watch) throw new Error('Cannot specify --watch=false and --lazy')
 
+      const typegenOptions =
+        typeof ctx.config.typegen === 'function'
+          ? ctx.config.typegen({defaults, client: ctx.client})
+          : ctx.config.typegen
+
       const run = await generate({
         connectionString: ctx.client,
         ...input,
-        ...(ctx.config.typegen &&
+        ...(typegenOptions &&
           Object.fromEntries(
-            Object.entries(ctx.config.typegen).filter(([key]) => !ctx.inputKeys.has(key)), // don't override options explicitly passed, do override defaults
+            Object.entries(typegenOptions).filter(([key]) => !ctx.inputKeys.has(key)), // don't override options explicitly passed, do override defaults
           )),
       })
 

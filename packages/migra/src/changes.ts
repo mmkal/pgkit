@@ -33,6 +33,7 @@ const THINGS = new Set([
   'collations',
   'rlspolicies',
   'triggers',
+  'domains',
 ])
 
 const PK = 'PRIMARY KEY'
@@ -822,13 +823,9 @@ export class Changes {
   // TypeScript does not support dynamic property access in the same way as Python.
   // You would need to implement a method that takes the name as a parameter and returns the appropriate function.
   getChangesFor = <P extends PGDictProp>(name: P) => {
-    if (THINGS.has(name)) {
-      return (params?: Parameters<typeof statements_for_changes>[2]) => {
-        return statements_for_changes(this.i_from[name], this.i_target[name], params)
-      }
-    }
+    if (!THINGS.has(name)) throw new Error(`AttributeError: ${name}. Changes can be for: ${[...THINGS].join(',')}`)
 
-    throw new Error(`AttributeError: ${name}`)
+    return (opts?: StatementsForChangesParams) => statements_for_changes(this.i_from[name], this.i_target[name], opts)
   }
 
   schemas = this.getChangesFor('schemas')
@@ -836,6 +833,7 @@ export class Changes {
   enums = this.getChangesFor('enums')
   rlspolicies = this.getChangesFor('rlspolicies')
   privileges = this.getChangesFor('privileges')
+  domains = this.getChangesFor('domains')
 }
 
 export type GetSelectableChangesOptions = Parameters<typeof get_selectable_changes>[1]

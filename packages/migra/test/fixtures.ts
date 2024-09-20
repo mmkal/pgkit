@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import {kebabCase} from 'lodash'
 import * as path from 'path'
 import * as sqlFormatter from 'sql-formatter'
-import {type Flags} from '../src/command'
+import {type MigraOptions} from '../src/command'
 
 export const format = (query: string) => {
   try {
@@ -16,14 +16,14 @@ export const format = (query: string) => {
 const fixturesDir = path.join(__dirname, 'FIXTURES')
 const fixtureNames = fs.readdirSync(fixturesDir)
 
-const argsMap: Record<string, Flags> = {
+const argsMap: Record<string, MigraOptions> = {
   singleschema: {schema: 'goodschema'},
   excludeschema: {excludeSchema: 'excludedschema'},
   singleschema_ext: {createExtensionsOnly: true},
   extversions: {ignoreExtensionVersions: false},
 }
 
-export const setup = async (url: string, admin: Client, prefix: string) => {
+export const createDB = async (url: string, admin: Client, prefix: string) => {
   const db = url.split('/').at(-1)
   const variant = db.split('_').at(-1)
   const name = db.replace(prefix + '_', '').slice(0, -1 - variant.length)
@@ -38,11 +38,16 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
   await admin.query(sql`create database ${sql.identifier([db])}`)
 
   const pool = createClient(connectionString)
+  return {connectionString, pool, name, variant}
+}
+
+export const setup = async (url: string, admin: Client, prefix: string) => {
+  const {pool, name, variant} = await createDB(url, admin, prefix)
   const filepath = path.join(fixturesDir, name, `${variant}.sql`)
   const query = fs.readFileSync(filepath, 'utf8')
 
   await pool.query(sql`create role schemainspect_test_role`).catch(e => {
-    const isRoleExists = (e as Error)?.message?.includes(`role "schemainspect_test_role" already exists`)
+    const isRoleExists = (e as Error)?.message?.endsWith(`(duplicate_object)`)
     if (!isRoleExists) throw e as Error
   })
 
@@ -54,8 +59,8 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
 export const getFixtures = (prefix: string) =>
   fixtureNames.map(name => {
     const variant = (ab: 'a' | 'b', admin: Client) =>
-      admin.pgp.$cn.toString().replace(/postgres$/, `${prefix}_${name}_${ab}`)
-    const args: Flags = {
+      admin.connectionString().replace(/postgres$/, `${prefix}_${name}_${ab}`)
+    const args: MigraOptions = {
       unsafe: true,
       ignoreExtensionVersions: true,
       ...(name in argsMap && argsMap[name]),
@@ -79,7 +84,7 @@ export const getFixtures = (prefix: string) =>
             .replace(/exclude-schema/, 'exclude_schema')
           if (v === false) return []
           if (v === true) return [arg]
-          return [arg, v as string]
+          return [arg, v]
         })
       },
     } as const

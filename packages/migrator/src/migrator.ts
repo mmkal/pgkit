@@ -6,7 +6,7 @@ import {createHash, randomInt} from 'crypto'
 import {existsSync, readFileSync} from 'fs'
 import * as fs from 'fs/promises'
 import * as path from 'path'
-import {trpcCli} from 'trpc-cli'
+import {createCli} from 'trpc-cli'
 import {confirm} from './cli'
 import {createMigratorRouter} from './router'
 import * as templates from './templates'
@@ -43,6 +43,14 @@ export class Migrator {
   protected initialConfig: MigratorConfig
 
   constructor(params: MigratorConstructorParams) {
+    // todo: sensible defaults somewhere? Either way, these should always be defined
+    if (!params.migrationsPath) {
+      throw new Error('migrationsPath is required')
+    }
+    if (!params.migrationTableName) {
+      throw new Error('migrationTableName is required')
+    }
+
     this.initialConfig = {
       task: async (name, fn) => {
         this.logger.info('Starting', name)
@@ -87,7 +95,7 @@ export class Migrator {
 
   cli() {
     const router = createMigratorRouter()
-    return trpcCli({router, context: {migrator: this, confirm}})
+    return createCli({router, context: {migrator: this, confirm}})
   }
 
   /** Gets a hexadecimal integer to pass to postgres's `select pg_advisory_lock()` function */
@@ -263,7 +271,7 @@ export class Migrator {
   async unlock(params: {confirm: Confirm}) {
     const message =
       '*** WARNING ***: This will release the advisory lock. If you have multiple servers running migrations, this could cause more than one to try to apply migrations simultaneously. Are you sure?'
-    if (await params.confirm(message)) {
+    if (await params.confirm(message, {readonly: true})) {
       await this.releaseAdvisoryLock()
     }
   }
@@ -295,13 +303,14 @@ export class Migrator {
    */
   async goto(params: {name: string; confirm: Confirm; purgeDisk?: boolean}) {
     const diffTo = await this.getDiffTo({name: params.name})
-    if (await params.confirm(diffTo)) {
+    const confirmation = await params.confirm(diffTo)
+    if (confirmation) {
       await this.useAdvisoryLock(async () => {
-        await this.client.query(sql.raw(diffTo))
+        await this.client.query(sql.raw(confirmation))
         await this.baseline({
           to: params.name,
           purgeDisk: params.purgeDisk,
-          confirm: async () => true,
+          confirm: async () => 'confirmed',
         })
       })
     }
@@ -364,7 +373,7 @@ export class Migrator {
       `,
     ]
 
-    const ok = await params.confirm(this.renderConfirmable(queries))
+    const ok = await params.confirm(this.renderConfirmable(queries), {readonly: true})
     if (!ok) return
 
     await this.useContext(async context => {
@@ -509,11 +518,12 @@ export class Migrator {
       '',
       `Note: this will not update the database other than the migrations table. It will modify your filesystem.`,
     ]
-    if (await params.confirm(lines.join('\n'))) {
-      await this.baseline({to: params.from, purgeDisk: true, confirm: async () => true})
+    const confirmation = await params.confirm(lines.join('\n'), {readonly: true})
+    if (confirmation) {
+      await this.baseline({to: params.from, purgeDisk: true, confirm: async () => 'confirmed'})
       if (diff) {
         const created = await this.create({content: diff})
-        await this.baseline({to: created.name, confirm: async () => true})
+        await this.baseline({to: created.name, confirm: async () => 'confirmed'})
       }
     }
     return this.list()
@@ -533,8 +543,9 @@ export class Migrator {
    */
   async updateDbToMatchDefinitions(params: {confirm: Confirm}) {
     const diff = await this.diffToDefinitions()
-    if (await params.confirm(diff)) {
-      await this.client.query(sql.raw(diff))
+    const confirmation = await params.confirm(diff)
+    if (confirmation) {
+      await this.client.query(sql.raw(confirmation))
     }
   }
 
@@ -546,16 +557,16 @@ export class Migrator {
     const oldContent = await fs.readFile(this.definitionsFile, 'utf8').catch(() => '')
     const changed = formatSql(diff) !== formatSql(oldContent)
 
-    const doUpdate = changed && (await params.confirm(diff))
+    const confirmation = changed ? await params.confirm(diff) : null
 
-    if (doUpdate) {
+    if (confirmation) {
       await fs.mkdir(path.dirname(this.definitionsFile), {recursive: true})
-      await fs.writeFile(this.definitionsFile, diff)
+      await fs.writeFile(this.definitionsFile, confirmation)
     }
     return {
       path: this.definitionsFile,
       changed,
-      updated: doUpdate,
+      updated: confirmation,
       content: diff,
     }
   }
@@ -601,7 +612,7 @@ export class Migrator {
 
   async repair(params: {confirm: Confirm}) {
     const diff = await this.getRepairDiff()
-    const confirmed = await params.confirm(this.renderConfirmable(diff))
+    const confirmed = await params.confirm(this.renderConfirmable(diff), {readonly: true})
     if (!confirmed) {
       return {drifted: diff.length > 0, updated: false}
     }
@@ -681,9 +692,10 @@ export class Migrator {
 
   async wipe(params: {confirm: Confirm}) {
     const diff = await this.wipeDiff()
-    const warning = '### THIS WILL DELETE EVERYTHING IN YOUR DATABASE! ###'
-    if (await params.confirm(warning + '\n\n' + diff)) {
-      await this.client.query(sql.raw(diff))
+    const warning = '/* ### THIS WILL DELETE EVERYTHING IN YOUR DATABASE! ### */'
+    const confirmation = await params.confirm(warning + '\n\n' + diff)
+    if (confirmation) {
+      await this.client.query(sql.raw(confirmation))
     }
   }
 
@@ -778,7 +790,11 @@ export class Migrator {
    * }
    */
   async wrapMigra(...args: Parameters<typeof migra.run>) {
-    const result = await migra.run(args[0], args[1], {unsafe: true, ...args[2]})
+    const result = await migra.run(args[0], args[1], {
+      unsafe: true,
+      ...this.initialConfig.defaultMigraOptions,
+      ...args[2],
+    })
     const formatted = formatSql(result.sql)
     return {
       result,

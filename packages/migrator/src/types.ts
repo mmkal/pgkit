@@ -1,4 +1,5 @@
 import {sql, Client, Queryable} from '@pgkit/client'
+import {type MigraOptions} from '@pgkit/migra'
 import * as umzug from 'umzug'
 
 export interface MigratorContext {
@@ -6,9 +7,11 @@ export interface MigratorContext {
   sql: typeof sql
 }
 
+export type Awaitable<T> = T | Promise<T>
+
 export type Migration = (params: umzug.MigrationParams<MigratorContext>) => Promise<void>
 
-export type Confirm = (sql: string) => boolean | Promise<boolean>
+export type Confirm = (sql: string, options?: {readonly?: boolean}) => Awaitable<string | null>
 
 export interface BaseListedMigration {
   name: string
@@ -81,6 +84,9 @@ export interface MigratorConfig {
    */
   task: Task
   logger: Logger
+
+  /** flags passed to [migra](https://npmjs.com/package/@pgkit/migra) - which is called for various introspection tasks */
+  defaultMigraOptions?: MigraOptions
 }
 
 export interface MigratorConstructorParams extends Omit<MigratorConfig, 'client' | 'task' | 'logger'> {

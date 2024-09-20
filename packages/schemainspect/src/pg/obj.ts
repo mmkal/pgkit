@@ -2,9 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-shadow */
-/* eslint-disable @typescript-eslint/brace-style */
 /* eslint-disable unicorn/prefer-ternary */
-/* eslint-disable @typescript-eslint/padding-line-between-statements */
 /* eslint-disable max-lines */
 /* eslint-disable prefer-const */
 /* eslint-disable guard-for-in */
@@ -1163,20 +1161,17 @@ export class PostgreSQL extends DBInspector {
 
   queryResults: Record<string, unknown[]> = {}
 
-  private constructor(c: Queryable, options: PostgreSQLOptions = {}) {
+  private constructor(c: Queryable, serverVersion: string, options: PostgreSQLOptions = {}) {
     super(c, {include_internal: options.include_internal, i_remembered_to_call_initialize_super: true})
 
     this.is_raw_psyco_connection = false
     this.is_raw_psyco_connection = true // we don't have sqlalchemy so need to avoid it
 
-    // let pg_version: number
-    // try {
-    //   pg_version = c.dialect.server_version_info[0]
-    // } catch {
-    //   pg_version = Number.parseInt(c.connection.server_version.toString().slice(0, -4), 10)
-    const pg_version = 12
+    const pg_version = Number.parseInt(serverVersion.split('.')[0], 10)
+    if (Number.isNaN(pg_version)) {
+      throw new Error(`Unexpected server version: ${serverVersion}`)
+    }
     this.is_raw_psyco_connection = true
-    // }
 
     this.pg_version = pg_version
 
@@ -1255,9 +1250,12 @@ export class PostgreSQL extends DBInspector {
     this.TRIGGERS_QUERY = processed(TRIGGERS_QUERY)
   }
 
-  static async create(connection: Queryable | string, props?: PostgreSQLOptions): Promise<PostgreSQL> {
-    const c = typeof connection === 'string' ? createClient(connection) : connection
-    const instance = new PostgreSQL(c, props)
+  static async create(connectable: Queryable | string, props?: PostgreSQLOptions): Promise<PostgreSQL> {
+    const connection = typeof connectable === 'string' ? createClient(connectable) : connectable
+    const serverVersion = await connection.oneFirst<{server_version: string}>(
+      sql`select current_setting('server_version') server_version`,
+    )
+    const instance = new PostgreSQL(connection, serverVersion, props)
     await instance.load_all_async()
     return instance
   }
@@ -2024,7 +2022,7 @@ export class PostgreSQL extends DBInspector {
 
   // deviation: this is new - idea being you can have use a serialized version served via API/S3/filesystem
   static fromJSON(json: any): PostgreSQL {
-    const instance = new PostgreSQL(null as never)
+    const instance = new PostgreSQL(null as never, '12.0.0')
     for (const prop of PostgreSQL.serializationKeys) {
       const Cls = PostgreSQL.serializationPropsClasses[prop]
       instance[prop] = Object.fromEntries(
@@ -2038,7 +2036,7 @@ export class PostgreSQL extends DBInspector {
 
   // deviation: this is new - help making a baseline sql script for the whole database
   static empty(): PostgreSQL {
-    return new PostgreSQL(null as never)
+    return new PostgreSQL(null as never, '12.0.0')
   }
 
   equals(other: PostgreSQL): boolean {

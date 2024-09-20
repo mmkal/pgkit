@@ -80,10 +80,10 @@ export const getPoolHelper = (params: {__filename: string; baseConnectionURI: st
   // afterAll(async () => new Promise(r => setTimeout(r, 1)))
 
   const setupDb = async () => {
-    const exists = Boolean(await admin.maybeOne(sql`select 1 from pg_database where datname = ${dbName}`))
-    if (!exists) {
-      await admin.query(sql`create database ${sql.identifier([dbName])}`)
-    }
+    await admin.query(sql`create database ${sql.identifier([dbName])}`).catch(e => {
+      if (e.message.includes('unique_violation') || e.cause?.message.match(/database ".+" already exists/)) return
+      throw e
+    })
 
     await pool.query(sql`
       drop schema if exists ${schemaIdentifier} cascade;
