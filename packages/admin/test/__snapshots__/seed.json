@@ -29,7 +29,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -45,7 +45,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "another_column": {
@@ -61,7 +61,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -90,7 +90,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -106,7 +106,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -135,7 +135,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "description": {
@@ -151,7 +151,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status": {
@@ -167,7 +167,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -232,7 +232,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "order_id": {
@@ -248,7 +248,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "quantity": {
@@ -264,7 +264,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -293,7 +293,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "shipping_address": {
@@ -309,7 +309,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status": {
@@ -333,7 +333,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status2": {
@@ -349,7 +349,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "h": {
@@ -365,7 +365,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -394,7 +394,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -410,7 +410,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "price": {
@@ -426,7 +426,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "x": {
@@ -442,7 +442,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "newcolumn": {
@@ -458,7 +458,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "newcolumn2": {
@@ -474,7 +474,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -505,7 +505,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -521,7 +521,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -552,7 +552,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -568,7 +568,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -599,7 +599,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -615,7 +615,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "another_column": {
@@ -631,7 +631,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -660,7 +660,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -676,7 +676,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -705,7 +705,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "description": {
@@ -721,7 +721,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status": {
@@ -737,7 +737,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -802,7 +802,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "order_id": {
@@ -818,7 +818,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "quantity": {
@@ -834,7 +834,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -863,7 +863,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "shipping_address": {
@@ -879,7 +879,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status": {
@@ -903,7 +903,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status2": {
@@ -919,7 +919,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "h": {
@@ -935,7 +935,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -964,7 +964,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -980,7 +980,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "price": {
@@ -996,7 +996,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "x": {
@@ -1012,7 +1012,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "newcolumn": {
@@ -1028,7 +1028,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "newcolumn2": {
@@ -1044,7 +1044,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1073,7 +1073,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -1089,7 +1089,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1118,7 +1118,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -1134,7 +1134,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1237,7 +1237,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -1253,7 +1253,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "another_column": {
@@ -1269,7 +1269,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1298,7 +1298,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -1314,7 +1314,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1343,7 +1343,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "description": {
@@ -1359,7 +1359,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status": {
@@ -1375,7 +1375,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1440,7 +1440,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "order_id": {
@@ -1456,7 +1456,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "quantity": {
@@ -1472,7 +1472,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1501,7 +1501,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "shipping_address": {
@@ -1517,7 +1517,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status": {
@@ -1541,7 +1541,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "status2": {
@@ -1557,7 +1557,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "h": {
@@ -1573,7 +1573,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1602,7 +1602,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "name": {
@@ -1618,7 +1618,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "price": {
@@ -1634,7 +1634,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "x": {
@@ -1650,7 +1650,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "newcolumn": {
@@ -1666,7 +1666,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "newcolumn2": {
@@ -1682,7 +1682,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1711,7 +1711,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -1727,7 +1727,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1756,7 +1756,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         },
         "b": {
@@ -1772,7 +1772,7 @@
           "is_identity": false,
           "is_identity_always": false,
           "is_generated": false,
-          "can_drop_generated": false,
+          "can_drop_generated": true,
           "is_inherited": false
         }
       },
@@ -1950,7 +1950,7 @@
     "hstore": {
       "name": "hstore",
       "schema": "public",
-      "version": "1.6"
+      "version": "1.7"
     }
   },
   "functions": {
