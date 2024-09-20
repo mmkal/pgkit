@@ -310,6 +310,13 @@ test('sql.type', async () => {
 test('sql.type with custom error message', async () => {
   client = createClient(client.connectionString(), {
     ...client.options,
+    pgpOptions: {
+      ...client.options.pgpOptions,
+      connect: {
+        ...client.options.pgpOptions?.connect,
+        application_name: 'impatient',
+      },
+    },
     wrapQueryFn: queryFn => {
       const parentWrapper = client.options.wrapQueryFn || (x => x)
       return async (...args) => {

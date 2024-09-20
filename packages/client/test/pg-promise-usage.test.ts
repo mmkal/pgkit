@@ -3,11 +3,21 @@ import {createClient, sql} from '../src'
 
 test("type parsers don't override each other", async () => {
   const client1 = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
+    pgpOptions: {
+      connect: {
+        application_name: 'impatient',
+      },
+    },
     applyTypeParsers: types => {
       types.setTypeParser(types.builtins.INT8, Number)
     },
   })
   const client2 = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
+    pgpOptions: {
+      connect: {
+        application_name: 'patient',
+      },
+    },
     applyTypeParsers: types => {
       types.setTypeParser(types.builtins.INT8, BigInt)
     },

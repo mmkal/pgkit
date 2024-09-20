@@ -313,7 +313,7 @@ test('sql.type', async () => {
 
   const error = await client.any(sql.type(StringId)`select id from test_slonik37`).catch(e => e)
 
-  expect(error.cause).toMatchSnapshot()
+  expect(error).toMatchSnapshot()
 })
 
 /**
@@ -334,7 +334,7 @@ test('createSqlTag + sql.typeAlias', async () => {
   expect(result).toEqual({name: 'Bob'})
 
   const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
-  expect(err.cause).toMatchSnapshot()
+  expect(err).toMatchSnapshot()
 })
 // codegen:end
 

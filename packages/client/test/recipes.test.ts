@@ -74,6 +74,11 @@ test('Query logging', async () => {
   // Simplistic way of logging query times. For more accurate results, use process.hrtime()
   const log = vi.fn()
   const client = createClient('postgresql://postgres:postgres@localhost:5432/postgres', {
+    pgpOptions: {
+      connect: {
+        application_name: 'query-logger',
+      },
+    },
     wrapQueryFn: queryFn => async query => {
       const start = Date.now()
       const result = await queryFn(query)
@@ -171,24 +176,24 @@ test('query timeouts', async () => {
   const sleepSeconds = (shortTimeoutMs * 2) / 1000
   await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
     `
-    [QueryError]: [select_9dcc021]: Executing query failed
-    {
-      "message": "[select_9dcc021]: Executing query failed",
-      "query": {
-        "name": "select_9dcc021",
-        "sql": "select pg_sleep($1)",
-        "token": "sql",
-        "values": [
-          0.04
-        ]
-      },
-      "cause": {
-        "name": "Error",
-        "message": "Query read timeout",
-        "query": "select pg_sleep(0.04)"
+      [QueryError]: [select_9dcc021]: Executing query failed
+      {
+        "message": "[select_9dcc021]: Executing query failed",
+        "query": {
+          "name": "select_9dcc021",
+          "sql": "select pg_sleep($1)",
+          "token": "sql",
+          "values": [
+            0.04
+          ]
+        },
+        "cause": {
+          "name": "Error",
+          "message": "Query read timeout",
+          "query": "select pg_sleep(0.04)"
+        }
       }
-    }
-  `,
+    `,
   )
   await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
     pg_sleep: '',
@@ -202,6 +207,7 @@ test('switchable clients', async () => {
     pgpOptions: {
       connect: {
         query_timeout: shortTimeoutMs,
+        application_name: 'impatient',
       },
     },
   })
@@ -209,11 +215,17 @@ test('switchable clients', async () => {
     pgpOptions: {
       connect: {
         query_timeout: shortTimeoutMs * 3,
+        application_name: 'patient',
       },
     },
   })
 
   const appClient = createClient(client.connectionString(), {
+    pgpOptions: {
+      connect: {
+        application_name: 'app',
+      },
+    },
     wrapQueryFn: _queryFn => {
       return async query => {
         let clientToUse = patientClient
