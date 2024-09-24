@@ -55,7 +55,8 @@ export const confirm = async (input: string, options?: {readonly?: boolean}): Pr
 }
 
 async function editInDefaultEditor(input: string): Promise<string> {
-  const tempFile = path.join(os.tmpdir(), `pgkit-migrator-edit-${Date.now()}.sql`)
+  const tempFile = path.join(os.tmpdir(), `pgkit-migrator`, `changes-${Date.now()}.sql`)
+  fs.mkdirSync(path.dirname(tempFile), {recursive: true})
   fs.writeFileSync(tempFile, input.trim() + '\n')
 
   const editor = process.env.EDITOR || 'vi'
@@ -68,6 +69,9 @@ async function editInDefaultEditor(input: string): Promise<string> {
         else reject(new Error(`Editor exited with code ${code}`))
       })
     })
+
+    // Wait for user input to ensure the file has been saved
+    await prompt.input({message: 'Press Enter when you have finished editing'})
 
     const editedContent = fs.readFileSync(tempFile, 'utf8')
     return editedContent.trim()
