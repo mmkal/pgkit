@@ -27,6 +27,7 @@ export const safeParse = neverthrow.fromThrowable(pgsqlAST.parse, err => new Err
  */
 export const getTypeability = (template: string[]): neverthrow.Result<true, Error> => {
   const delimiter = `t${Math.random()}`.replace('0.', '')
+  const joined = template.join(delimiter)
   const safeWalk = neverthrow.fromThrowable(
     () => {
       const problems: string[] = []
@@ -36,10 +37,10 @@ export const getTypeability = (template: string[]): neverthrow.Result<true, Erro
           map.super().tableRef(t)
         },
       }))
-      visitor.statement(getASTModifiedToSingleSelect(template.join(delimiter)).ast)
+      visitor.statement(getASTModifiedToSingleSelect(joined).ast)
       return problems
     },
-    err => new Error(`Walking AST failed`, {cause: err}),
+    err => new Error(`Walking AST failed for ${joined}`, {cause: err}),
   )
   return safeWalk()
     .andThen(problems =>
@@ -283,9 +284,9 @@ export const suggestedTags = ({tables, columns}: ReturnType<typeof sqlTablesAndC
   return lodash
     .uniq([
       tablesInvolved, // e.g. User_Role
-      [tablesInvolved, ...columns.map(lodash.camelCase)].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
+      [tablesInvolved, ...columns.map(s => lodash.camelCase(s))].filter(Boolean).join('_'), // e.g. User_Role_id_name_roleId
     ])
-    .map(lodash.upperFirst)
+    .map(s => lodash.upperFirst(s))
     .filter(Boolean)
 }
 

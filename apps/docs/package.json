@@ -4,7 +4,7 @@
   "description": "Documentation for pgkit.dev",
   "scripts": {
     "generate": "tsx scripts/build",
-    "build": "rm -rf .next && next build",
+    "build": "rm -rf .next && next build && echo built!",
     "dev": "next dev"
   },
   "dependencies": {

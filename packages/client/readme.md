@@ -54,6 +54,7 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.array](#sqlarray)
    - [sql.identifier](#sqlidentifier)
    - [sql.unnest](#sqlunnest)
+   - [jsonb_populate_recordset](#jsonb_populate_recordset)
    - [jsonb_to_recordset](#jsonb_to_recordset)
    - [sql.join](#sqljoin)
    - [sql.fragment](#sqlfragment)
@@ -268,9 +269,9 @@ expect(result).toEqual([
 ])
 ```
 
-### jsonb_to_recordset
+### jsonb_populate_recordset
 
-`jsonb_to_recordset` is a PostgreSQL-native alternative to `sql.unnest`.
+`jsonb_populate_recordset` is a PostgreSQL-native alternative to `sql.unnest` which can be used to insert multiple records without re-specify the column names/types.
 
 ```typescript
 const records = [
@@ -280,7 +281,36 @@ const records = [
   {id: 14, name: 'fourteen'},
 ]
 const result = await client.any(sql`
-  insert into usage_test(id, name)
+  insert into usage_test
+  select *
+  from jsonb_populate_recordset(
+    null::usage_test,
+    ${JSON.stringify(records, null, 2)}
+  )
+  returning *
+`)
+
+expect(result).toEqual([
+  {id: 11, name: 'eleven'},
+  {id: 12, name: 'twelve'},
+  {id: 13, name: 'thirteen'},
+  {id: 14, name: 'fourteen'},
+])
+```
+
+### jsonb_to_recordset
+
+`jsonb_to_recordset` is a PostgreSQL-native alternative to `sql.unnest`. It may have a slight performance advantage over jsonb_populate_recordset, at the cost of some manual typing, since it requires explicit columns.
+
+```typescript
+const records = [
+  {id: 11, name: 'eleven'},
+  {id: 12, name: 'twelve'},
+  {id: 13, name: 'thirteen'},
+  {id: 14, name: 'fourteen'},
+]
+const result = await client.any(sql`
+  insert into usage_test
   select *
   from jsonb_to_recordset(
     ${JSON.stringify(records, null, 2)}

@@ -79,7 +79,35 @@ test('sql.unnest', async () => {
 })
 
 /**
- * `jsonb_to_recordset` is a PostgreSQL-native alternative to `sql.unnest`.
+ * `jsonb_populate_recordset` is a PostgreSQL-native alternative to `sql.unnest` which can be used to insert multiple records without re-specify the column names/types.
+ */
+test('jsonb_populate_recordset', async () => {
+  const records = [
+    {id: 11, name: 'eleven'},
+    {id: 12, name: 'twelve'},
+    {id: 13, name: 'thirteen'},
+    {id: 14, name: 'fourteen'},
+  ]
+  const result = await client.any(sql`
+    insert into usage_test
+    select *
+    from jsonb_populate_recordset(
+      null::usage_test,
+      ${JSON.stringify(records, null, 2)}
+    )
+    returning *
+  `)
+
+  expect(result).toEqual([
+    {id: 11, name: 'eleven'},
+    {id: 12, name: 'twelve'},
+    {id: 13, name: 'thirteen'},
+    {id: 14, name: 'fourteen'},
+  ])
+})
+
+/**
+ * `jsonb_to_recordset` is a PostgreSQL-native alternative to `sql.unnest`. It may have a slight performance advantage over jsonb_populate_recordset, at the cost of some manual typing, since it requires explicit columns.
  */
 test('jsonb_to_recordset', async () => {
   const records = [
@@ -89,7 +117,7 @@ test('jsonb_to_recordset', async () => {
     {id: 14, name: 'fourteen'},
   ]
   const result = await client.any(sql`
-    insert into usage_test(id, name)
+    insert into usage_test
     select *
     from jsonb_to_recordset(
       ${JSON.stringify(records, null, 2)}
