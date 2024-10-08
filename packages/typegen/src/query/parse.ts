@@ -193,7 +193,8 @@ export interface AliasInfo {
  * results can be used to look for non-nullability of columns.
  */
 export const getAliasInfo = (statement: pgsqlAST.Statement): AliasInfo[] => {
-  assert.strictEqual(statement.type, 'select' as const)
+  if (statement.type !== 'select')
+    throw new Error(`Can't get alias mappings from non-select statement`, {cause: new Error(JSON.stringify(statement))})
   assert.ok(statement.columns, `Can't get alias mappings from query with no columns`)
 
   interface QueryTableReference {

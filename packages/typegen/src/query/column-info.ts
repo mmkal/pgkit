@@ -135,6 +135,45 @@ export const analyzeAST = async (
     return analyzeAST(describedQuery, transactable, selectifiedAst, regTypeToTypeScript)
   }
 
+  if (ast.type === 'union all' || ast.type === 'union') {
+    const leftAnalyzed = await analyzeAST(describedQuery, transactable, ast.left, regTypeToTypeScript)
+    const rightAnalyzed = await analyzeAST(describedQuery, transactable, ast.right, regTypeToTypeScript)
+
+    const leftMap = Object.fromEntries(leftAnalyzed.map(a => [a.name, a]))
+    const rightMap = Object.fromEntries(rightAnalyzed.map(a => [a.name, a]))
+    const names = [...new Set([...Object.keys(leftMap), ...Object.keys(rightMap)])]
+
+    const merged = names.map((name): AnalysedQueryField => {
+      const left = leftMap[name]
+      const right = rightMap[name]
+      let nullability: AnalysedQueryField['nullability'] = 'unknown'
+      const [leftN, rightN] = [leftMap[name].nullability, rightMap[name].nullability].sort()
+      if (leftN === rightN) {
+        nullability = leftN
+      } else if (leftN === 'assumed_not_null' && rightN === 'not_null') {
+        nullability = 'assumed_not_null'
+      } else if (rightN === 'unknown') {
+        nullability = leftN
+      }
+
+      return {
+        name,
+        column: matchingOrUndefined(leftMap[name].column, rightMap[name].column),
+        nullability,
+        comment:
+          matchingOrUndefined(left.comment, right.comment) ||
+          [left.comment, right.comment].filter(Boolean).join('\n\n') ||
+          undefined,
+        regtype: matchingOrUndefined(left.regtype, right.regtype) || `${left.regtype} | ${right.regtype}`,
+        typescript:
+          matchingOrUndefined(left.typescript, right.typescript) ||
+          `${leftMap[name].typescript} | ${rightMap[name].typescript}`,
+      }
+    })
+
+    return merged
+  }
+
   const astSql = toSql.statement(ast.type === 'select' ? {...ast, where: undefined} : ast)
   const schemaName =
     'pgkit_typegen_temp_schema_' + createHash('md5').update(JSON.stringify(ast)).digest('hex').slice(0, 6)
@@ -484,6 +523,11 @@ export const analyzeAST = async (
   }
 
   return columnAnalysis
+}
+
+const matchingOrUndefined = <T>(left: T, right: T) => {
+  if (JSON.stringify(left) === JSON.stringify(right)) return left
+  return undefined
 }
 
 const insertTempTable = async (
