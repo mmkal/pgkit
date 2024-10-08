@@ -246,18 +246,12 @@ importers:
       sonner:
         specifier: ^1.4.41
         version: 1.4.41(react-dom@18.2.0(react@18.2.0))(react@18.2.0)
-      sql-autocomplete:
-        specifier: ^1.1.1
-        version: 1.1.1
       tailwind-merge:
         specifier: ^2.3.0
         version: 2.3.0
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.3(ts-node@10.9.2(@types/node@20.11.17)(typescript@5.6.2)))
-      websql-autocomplete:
-        specifier: ^6.0.0
-        version: 6.1.0(antlr4ng-cli@1.0.7)
       zod:
         specifier: ^3.22.4
         version: 3.22.4
@@ -292,6 +286,9 @@ importers:
       shadcn-ui:
         specifier: 0.8.0
         version: 0.8.0(typescript@5.6.2)
+      sql-autocomplete:
+        specifier: ^1.1.1
+        version: 1.1.1
       strip-indent:
         specifier: ^4.0.0
         version: 4.0.0
@@ -313,6 +310,9 @@ importers:
       vitest:
         specifier: ^1.2.2
         version: 1.2.2(@types/node@20.11.17)(sass@1.71.0)
+      websql-autocomplete:
+        specifier: ^6.0.0
+        version: 6.1.0(antlr4ng-cli@1.0.7)
 
   packages/client:
     dependencies:
