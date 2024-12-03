@@ -26,15 +26,16 @@ export interface Options {
    *
    * You can test this by running `echo 'select 123' | ${your_psqlCommand} -f -`
    *
-   * e.g. `echo 'select 1 as a, 2 as b' | docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -`
+   * e.g. `echo 'select 1 as a, 2 as b \gdesc' | docker-compose exec -T postgres psql "postgresql://postgres:postgres@localhost:5432/postgres" -f -`
    *
    * You should see something like this printed:
    *
    * ```
-   *  a | b
-   * ---+---
-   *  1 | 2
-   * (1 row)
+   *  Column | Type
+   * --------+-------
+   *  a      | integer
+   *  b      | integer
+   * (2 rows)
    * ```
    */
   psqlCommand: string
