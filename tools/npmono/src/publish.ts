@@ -419,6 +419,7 @@ const loadRegistryPackageJson = (pkg: PkgMeta) => {
 
 const bumpChoices = (oldVersion: string) => {
   const releaseTypes: semver.ReleaseType[] = allReleaseTypes.filter(r => r !== 'prerelease')
+  // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   semver.prerelease(oldVersion) ? releaseTypes.unshift('prerelease') : releaseTypes.push('prerelease')
 
   return [
@@ -452,32 +453,34 @@ async function getPackageLastPublishRef(pkg: Pkg) {
  * Requires a `pkg`, and an `expectVersion` function
  */
 async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
-  const packageJson = loadLocalPackageJson(params.pkg)
-  const newDependencies = {...packageJson.dependencies}
-  const updated: Record<string, string> = {}
-  for (const [name, version] of Object.entries(packageJson.dependencies || {})) {
-    const found = ctx.packages
-      .filter(other => other.name === name)
+  const localPackageJson = loadLocalPackageJson(params.pkg)
+  const registryPackageJson = loadRegistryPackageJson(params.pkg)
+  const localPackageDependencies = {...localPackageJson.dependencies}
+  const updates: Record<string, string> = {}
+  for (const [depName, depVersion] of Object.entries(localPackageJson.dependencies || {})) {
+    const foundDep = ctx.packages
+      .filter(other => other.name === depName)
       .flatMap(other => {
-        const prefix = ['', '^', '~'].find(p => version === p + other.version)
+        const prefix = ['', '^', '~'].find(p => depVersion === p + other.version)
         return prefix ? [{pkg: other, prefix}] : []
       })
       .find(Boolean)
 
-    if (!found) {
+    if (!foundDep) {
       continue
     }
 
-    const registryPackageJson = loadRegistryPackageJson(found.pkg)
-    const registryPackageDependencyVersion = registryPackageJson?.dependencies?.[name]
-    let expected = found.pkg.targetVersion
+    const registryPackageDependencyVersion = registryPackageJson?.dependencies?.[depName]
+
+    const dependencyPackageJsonOnRegistry = loadRegistryPackageJson(foundDep.pkg)
+    let expected = foundDep.pkg.targetVersion
     if (!expected) {
       // ok, looks like we're not publishing the dependency. That's fine, as long as there's an existing published version.
-      expected = registryPackageJson?.version || null
+      expected = dependencyPackageJsonOnRegistry?.version || null
     }
     if (!expected) {
       throw new Error(
-        `Package ${params.pkg.name} depends on ${found.pkg.name} but ${found.pkg.name} is not published, and no target version was set for publishing now. Did you opt to skip publishing ${found.pkg.name}? If so, please re-run and make sure to publish ${found.pkg.name}. You can't publish ${params.pkg.name} until you do that.`,
+        `Package ${params.pkg.name} depends on ${foundDep.pkg.name} but ${foundDep.pkg.name} is not published, and no target version was set for publishing now. Did you opt to skip publishing ${foundDep.pkg.name}? If so, please re-run and make sure to publish ${foundDep.pkg.name}. You can't publish ${params.pkg.name} until you do that.`,
       )
     }
 
@@ -488,18 +491,19 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
     //   continue
     // }
 
-    const prefix = found.prefix || registryPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    const prefix = foundDep.prefix || registryPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
 
-    newDependencies[name] = prefix + expected
-    updated[name] = `${registryPackageDependencyVersion} -> ${newDependencies[name]}`
+    localPackageDependencies[depName] = prefix + expected
+    updates[depName] =
+      `${registryPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName, registryPackageJson: dependencyPackageJsonOnRegistry}, null, 2)} -> ${localPackageDependencies[depName]}`
   }
 
-  if (Object.keys(updated).length === 0) {
-    // keep reference equality, avoid `undefined` -> `{}`
-    return {updated, dependencies: packageJson.dependencies}
+  if (Object.keys(updates).length === 0) {
+    // keep reference equality, avoid `undefined` to `{}`
+    return {updated: updates, dependencies: localPackageJson.dependencies}
   }
 
-  return {updated, dependencies: newDependencies}
+  return {updated: updates, dependencies: localPackageDependencies}
 }
 
 async function getPackageRevList(pkg: Pkg) {
@@ -519,7 +523,7 @@ async function getPackageRevList(pkg: Pkg) {
     .filter(Boolean)
     .map(line => `- ${line}`)
   const sections = [
-    commitBullets.length > 0 && '<h3>Commits</h3>\n',
+    commitBullets.length > 0 && '<h3 data-commits>Commits</h3>\n',
     ...commitBullets,
     uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
   ]
@@ -559,10 +563,11 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
     const dep = depPkg.name
     if (bumpedDeps.updated[dep]) {
       const depChanges = await getOrCreateChangelog(ctx, depPkg)
+      const verb = depChanges?.includes('data-commits') ? 'changed' : 'bumped'
       const newMessage = [
         '<!-- data-change-type="dependencies" -->',
         `<details>`,
-        `<summary>Dependency ${depPkg.name} changed (${bumpedDeps.updated[dep]})</summary>`,
+        `<summary>Dependency ${depPkg.name} ${verb} (${bumpedDeps.updated[dep]})</summary>`,
         '',
         '<blockquote>',
         depChanges
@@ -670,7 +675,7 @@ type PackageJson = import('type-fest').PackageJson & {
    * not an official package.json field, but there is a library that does something similar to this: https://github.com/Metnew/git-hash-package
    * having git.sha point to a commit hash seems pretty useful to me, even if it's not standard.
    * tagging versions in git is still a good best practice but there are many different ways, e.g. `1.2.3` vs `v1.2.3` vs `mypgk@1.2.3` vs `mypkg@v1.2.3`
-   * plus, that's only useful in going from git -> npm, not npm -> git.
+   * plus, that's only useful in going from git to npm, not npm to git.
    */
   git?: {sha?: string}
 }
