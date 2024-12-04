@@ -76,7 +76,8 @@ export const router = t.router({
         port: z.number().default(7002),
       }),
     )
-    .mutation(async ({input, ctx}) => {
+    .output(z.void())
+    .mutation(async ({input, ctx}): Promise<void> => {
       const {getExpressRouter} = await import('@pgkit/admin')
       const app = express()
       app.use(getExpressRouter(ctx.client))
