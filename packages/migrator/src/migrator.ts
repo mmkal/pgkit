@@ -728,7 +728,11 @@ export class Migrator {
    */
   async useShadowClient<T>(cb: (client: Client) => Promise<T>) {
     const shadowDbName = `shadow_${Date.now()}_${randomInt(1_000_000)}`
-    const shadowConnectionString = this.client.connectionString().replace(/\w+$/, shadowDbName)
+
+    const shadowConnectionUrl = new URL(this.client.connectionString());
+    shadowConnectionUrl.pathname = shadowDbName;
+    const shadowConnectionString = shadowConnectionUrl.toString();
+
     const shadowClient = createClient(shadowConnectionString, this.client.options)
 
     try {
