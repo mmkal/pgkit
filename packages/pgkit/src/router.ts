@@ -78,7 +78,9 @@ export const router = t.router({
     )
     .output(z.void())
     .mutation(async ({input, ctx}): Promise<void> => {
-      const {getExpressRouter} = await import('@pgkit/admin')
+      const {getExpressRouter} = await import('@pgkit/admin').catch(cause => {
+        throw new Error('Admin UI is a peer dependency. Please install @pgkit/admin to use this feature.', {cause})
+      })
       const app = express()
       app.use(getExpressRouter(ctx.client))
       app.listen(input.port, () => {
