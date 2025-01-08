@@ -6,29 +6,29 @@ import {trpcCli, TrpcCliMeta} from 'trpc-cli'
 import {z} from 'zod'
 import {Migration} from './migra'
 
-// todo: deviation: always return a PostgreSQL instance, and make `Migration.create` only accept PostgreSQL instances
-const argContext = async (x: Queryable | string): Promise<PostgreSQL | Queryable> => {
-  if (typeof x !== 'string') {
-    return x
+// deviation: always return a PostgreSQL instance, and make `Migration.create` only accept PostgreSQL instances
+const argContext = async (connInfo: Queryable | string): Promise<PostgreSQL | Queryable> => {
+  if (typeof connInfo !== 'string') {
+    return connInfo
   }
 
-  if (x === 'EMPTY') {
+  if (connInfo === 'EMPTY') {
     return PostgreSQL.empty()
   }
 
-  if (x.startsWith('file://')) {
-    const url = new URL(x)
+  if (connInfo.startsWith('file://')) {
+    const url = new URL(connInfo)
     if (url.hostname) throw new Error(`Not implemented: can only read files from localhost (got ${url.hostname})`)
     const content = await readFile(url.pathname, 'utf8')
     return PostgreSQL.fromJSON(JSON.parse(content))
   }
 
-  if (/^https?:\/\//.test(x)) {
-    const response = await fetch(x)
+  if (/^https?:\/\//.test(connInfo)) {
+    const response = await fetch(connInfo)
     return PostgreSQL.fromJSON(await response.json())
   }
 
-  return createClient(x)
+  return createClient(connInfo)
 }
 
 export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable | string, args: MigraOptions = {}) => {
