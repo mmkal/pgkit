@@ -578,9 +578,6 @@ importers:
 
   packages/pgkit:
     dependencies:
-      '@pgkit/admin':
-        specifier: workspace:^
-        version: link:../admin
       '@pgkit/client':
         specifier: workspace:^
         version: link:../client
@@ -600,6 +597,9 @@ importers:
         specifier: ^0.5.0
         version: 0.5.0(@trpc/server@10.45.2)(zod@3.23.8)
     devDependencies:
+      '@pgkit/admin':
+        specifier: workspace:^
+        version: link:../admin
       '@types/express':
         specifier: ^4.17.21
         version: 4.17.21
