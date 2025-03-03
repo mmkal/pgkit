@@ -10,6 +10,9 @@ import {inspect} from 'util'
 
 const VERSION_ZERO = '0.0.0'
 
+const TO_BE_PUBLISHED_FOLDER = 'to-be-published'
+const PUBLISHED_ALREADY_FOLDER = 'published-already'
+
 export const PublishInput = z.object({
   publish: z.boolean().optional(),
   otp: z.string().optional(),
@@ -195,7 +198,7 @@ export const publish = async (input: PublishInput) => {
                 packageJson.dependencies = await getBumpedDependencies(ctx, {pkg}).then(r => r.dependencies)
 
                 fs.writeFileSync(
-                  packageJsonFilepath(pkg, 'local'),
+                  packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER),
                   sortPackageJson(JSON.stringify(packageJson, null, 2)),
                 )
               },
@@ -229,7 +232,7 @@ export const publish = async (input: PublishInput) => {
               skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRegistryPackageJson(pkg)?.version,
               task: async (_ctx, subtask) => {
                 await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
-                  cwd: path.dirname(packageJsonFilepath(pkg, 'local')),
+                  cwd: path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)),
                 })
               },
             })),
@@ -349,11 +352,11 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
         ctx.packages.map(pkg => ({
           title: `Packing ${pkg.name}`,
           task: async (_ctx, subtask) => {
-            const localFolder = path.join(pkg.folder, 'local')
-            await pipeExeca(subtask, 'pnpm', ['pack', '--pack-destination', localFolder], {cwd: pkg.path})
+            const toBePublishedFolderPath = path.join(pkg.folder, TO_BE_PUBLISHED_FOLDER)
+            await pipeExeca(subtask, 'pnpm', ['pack', '--pack-destination', toBePublishedFolderPath], {cwd: pkg.path})
 
-            const tgzFileName = fs.readdirSync(localFolder).at(0)!
-            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: localFolder})
+            const tgzFileName = fs.readdirSync(toBePublishedFolderPath).at(0)!
+            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: toBePublishedFolderPath})
           },
         })),
         {concurrent: true},
@@ -361,34 +364,56 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     },
   },
   {
-    title: `Writing registry packages`,
+    title: `Pulling registry packages`,
+    rendererOptions: {persistentOutput: true},
     task: (ctx, task) => {
       return task.newListr(
         ctx.packages.map(pkg => ({
           title: `Pulling ${pkg.name}`,
+          rendererOptions: {persistentOutput: true},
           task: async (_ctx, subtask) => {
             const {sortPackageJson} = await import('sort-package-json')
-            const registryFolder = path.join(pkg.folder, 'registry')
-            fs.mkdirSync(registryFolder, {recursive: true})
-            // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
-            await pipeExeca(subtask, 'npm', ['pack', pkg.name], {
-              reject: false,
-              cwd: registryFolder,
-            })
+            const publishedAlreadyFolder = path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER)
+            fs.mkdirSync(publishedAlreadyFolder, {recursive: true})
+            const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
+            const StdoutShape = z.union([
+              z.array(z.string()).nonempty(), // success
+              z.object({error: z.object({code: z.literal('E404')})}), // not found
+            ])
+            const registryVersionsStdout = StdoutShape.parse(JSON.parse(registryVersionsResult.stdout))
+            const registryVersions = Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
+            const latestProperRelease = registryVersions
+              .slice()
+              .reverse()
+              .find(v => !v.includes('-'))
 
-            const tgzFileName = fs.readdirSync(registryFolder).at(0)
-            if (!tgzFileName) {
+            if (!latestProperRelease) {
+              task.output = `${task.output || ''}\n- No release found for ${pkg.name}`.trim()
               return
             }
 
-            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: registryFolder})
+            // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
+            await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${latestProperRelease}`], {
+              reject: false,
+              cwd: publishedAlreadyFolder,
+            })
+
+            const tgzFileName = fs.readdirSync(publishedAlreadyFolder).at(0)
+            if (!tgzFileName) {
+              const msg = `No tgz file found in ${publishedAlreadyFolder}, even though a last release was found. Registry versions: ${registryVersions.join(', ')}`
+              throw new Error(msg)
+            }
+
+            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: publishedAlreadyFolder})
 
             const registryPackageJson = loadRegistryPackageJson(pkg)
             if (registryPackageJson) {
-              const registryPackageJsonPath = packageJsonFilepath(pkg, 'registry')
+              const registryPackageJsonPath = packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER)
               // avoid churn on package.json field ordering, which npm seems to mess with
               fs.writeFileSync(registryPackageJsonPath, sortPackageJson(JSON.stringify(registryPackageJson, null, 2)))
             }
+
+            task.output = `${task.output || ''}\n- Pulled ${pkg.name}@${latestProperRelease}`.trim()
           },
         })),
         {concurrent: true},
@@ -397,16 +422,16 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
   },
 ]
 
-const packageJsonFilepath = (pkg: PkgMeta, type: 'local' | 'registry') =>
+const packageJsonFilepath = (pkg: PkgMeta, type: typeof TO_BE_PUBLISHED_FOLDER | typeof PUBLISHED_ALREADY_FOLDER) =>
   path.join(pkg.folder, type, 'package', 'package.json')
 
 const loadLocalPackageJson = (pkg: PkgMeta) => {
-  const filepath = packageJsonFilepath(pkg, 'local')
+  const filepath = packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
 const loadRegistryPackageJson = (pkg: PkgMeta) => {
-  const filepath = packageJsonFilepath(pkg, 'registry')
-  if (!fs.existsSync(path.join(pkg.folder, 'registry'))) {
+  const filepath = packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER)
+  if (!fs.existsSync(path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER))) {
     // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
     throw new Error(
       `Registry package.json folder for ${filepath} doesn't exist yet. Has the "Pulling \${pkg.name}" step run yet?`,
@@ -594,8 +619,8 @@ async function diffPackagesTask(ctx: Ctx, task: ListrTaskWrapper<Ctx, any, any>)
     ctx.packages.map(pkg => ({
       title: `Diff ${pkg.name}`,
       task: async (_ctx, subtask) => {
-        const localPath = path.dirname(packageJsonFilepath(pkg, 'local'))
-        const registryPath = path.dirname(packageJsonFilepath(pkg, 'registry'))
+        const localPath = path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER))
+        const registryPath = path.dirname(packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER))
 
         const changesFolder = path.join(pkg.folder, 'changes')
         await fs.promises.mkdir(changesFolder, {recursive: true})
