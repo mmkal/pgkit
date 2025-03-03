@@ -10,8 +10,10 @@ import {inspect} from 'util'
 
 const VERSION_ZERO = '0.0.0'
 
-const TO_BE_PUBLISHED_FOLDER = 'to-be-published'
-const PUBLISHED_ALREADY_FOLDER = 'published-already'
+/** "left" folder i.e. base for comparison - usually from the registry */
+const LHS_FOLDER = 'left'
+/** "right" folder i.e. head for publishing - usually build from local source */
+const RHS_FOLDER = 'right'
 
 export const PublishInput = z.object({
   publish: z.boolean().optional(),
@@ -79,148 +81,15 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     },
   },
   {
-    title: `Writing local packages`,
-    task: (ctx, task) => {
-      return task.newListr(
-        ctx.packages.map(pkg => ({
-          title: `Packing ${pkg.name}`,
-          task: async (_ctx, subtask) => {
-            const toBePublishedFolderPath = path.join(pkg.folder, TO_BE_PUBLISHED_FOLDER)
-            await pipeExeca(subtask, 'pnpm', ['pack', '--pack-destination', toBePublishedFolderPath], {cwd: pkg.path})
-
-            const tgzFileName = fs.readdirSync(toBePublishedFolderPath).at(0)!
-            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: toBePublishedFolderPath})
-          },
-        })),
-        {concurrent: true},
-      )
-    },
-  },
-  {
     title: 'Getting published versions',
     task: (ctx, task) => {
       return task.newListr(
         ctx.packages.map(pkg => ({
           title: `Getting published versions for ${pkg.name}`,
           task: async _ctx => {
-            const publishedAlreadyFolder = path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER)
-            fs.mkdirSync(publishedAlreadyFolder, {recursive: true})
-            const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
-            const StdoutShape = z.union([
-              z.array(z.string()).nonempty(), // success
-              z.object({error: z.object({code: z.literal('E404')})}), // not found
-            ])
-            const registryVersionsStdout = StdoutShape.parse(JSON.parse(registryVersionsResult.stdout))
-            const registryVersions = Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
-            pkg.publishedVersions = registryVersions
-          },
-        })),
-        {concurrent: true},
-      )
-    },
-  },
-  {
-    title: 'Get version strategy',
-    rendererOptions: {persistentOutput: true},
-    task: async (ctx, task) => {
-      const allVersions = [
-        ...ctx.packages.map(pkg => pkg.version),
-        ...ctx.packages.flatMap(pkg => pkg.publishedVersions.slice()),
-      ]
-      const maxVersion = allVersions.sort(semver.compare).at(-1) || VERSION_ZERO
-      if (!maxVersion) throw new Error(`No versions found`)
-
-      let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-        type: 'Select',
-        message: `Select semver increment for all packages, specify new version, or publish packages independently`,
-        hint: `Current latest version across all packageas is ${maxVersion}`,
-        choices: [
-          ...bumpChoices(maxVersion),
-          {
-            message: 'Independent (each package will have its own version)',
-            value: 'independent',
-          },
-        ],
-      })
-
-      if (bumpedVersion === 'independent') {
-        const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | 'ask'>({
-          type: 'Select',
-          message: 'Select semver increment for each package',
-          choices: [
-            ...allReleaseTypes.map(type => ({message: type, value: type})),
-            {
-              message: 'Ask for each package',
-              value: 'ask',
-            },
-          ],
-        })
-
-        ctx.versionStrategy = {
-          type: 'independent',
-          bump: bumpMethod === 'ask' ? null : bumpMethod,
-        }
-      } else if (bumpedVersion === 'other') {
-        bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-          type: 'Input',
-          message: `Enter a custom version (must be greater than ${maxVersion})`,
-          validate: v => typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
-        })
-      } else {
-        ctx.versionStrategy = {
-          type: 'fixed',
-          version: bumpedVersion,
-        }
-      }
-      task.output = inspect(ctx.versionStrategy)
-    },
-  },
-  {
-    title: `Pulling registry packages`,
-    rendererOptions: {persistentOutput: true},
-    task: (ctx, task) => {
-      return task.newListr(
-        ctx.packages.map(pkg => ({
-          title: `Pulling ${pkg.name}`,
-          rendererOptions: {persistentOutput: true},
-          task: async (_ctx, subtask) => {
-            const {sortPackageJson} = await import('sort-package-json')
-            const registryVersions = pkg.publishedVersions
-            const publishedAlreadyFolder = path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER)
-            const publishedVersionForComparison = registryVersions
-              .slice()
-              .reverse()
-              .find(
-                v =>
-                  ctx.versionStrategy.type === 'independent' || // independent mode: compare to prerelease versions
-                  ctx.versionStrategy.version.includes('-') || // fixed mode prerelease version wanted: compare to prerelease versions
-                  !v.includes('-'), // otherwise, compare to proper releases
-              )
-
-            if (!publishedVersionForComparison) {
-              return
-            }
-
-            // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
-            await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${publishedVersionForComparison}`], {
-              reject: false,
-              cwd: publishedAlreadyFolder,
-            })
-
-            const tgzFileName = fs.readdirSync(publishedAlreadyFolder).at(0)
-            if (!tgzFileName) {
-              const msg = `No tgz file found in ${publishedAlreadyFolder}, even though a last release was found. Registry versions: ${registryVersions.join(', ')}`
-              throw new Error(msg)
-            }
-
-            await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: publishedAlreadyFolder})
-
-            const registryPackageJson = loadPublishedAlreadyPackageJson(pkg)
-            if (registryPackageJson) {
-              const registryPackageJsonPath = packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER)
-              // avoid churn on package.json field ordering, which npm seems to mess with
-              fs.writeFileSync(registryPackageJsonPath, sortPackageJson(JSON.stringify(registryPackageJson, null, 2)))
-            }
+            const rightFolderPath = path.join(pkg.folder, LHS_FOLDER)
+            fs.mkdirSync(rightFolderPath, {recursive: true})
+            pkg.publishedVersions = await getRegistryVersions(pkg)
           },
         })),
         {concurrent: true},
@@ -229,22 +98,172 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
   },
 ]
 
+const getRegistryVersions = async (pkg: Pick<Pkg, 'name'>) => {
+  const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
+  const StdoutShape = z.union([
+    z.array(z.string()).nonempty(), // success
+    z.object({error: z.object({code: z.literal('E404')})}), // not found
+  ])
+  const registryVersionsStdout = StdoutShape.parse(JSON.parse(registryVersionsResult.stdout))
+  return Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
+}
+
 export const publish = async (input: PublishInput) => {
   const {sortPackageJson} = await import('sort-package-json')
   const tasks = new Listr(
     [
       ...setupContextTasks,
       {
+        title: `Writing local packages`,
+        task: (ctx, task) => {
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Packing ${pkg.name}`,
+              task: async (_ctx, subtask) => {
+                const toBePublishedFolderPath = path.join(pkg.folder, RHS_FOLDER)
+                await pipeExeca(subtask, 'pnpm', ['pack', '--pack-destination', toBePublishedFolderPath], {
+                  cwd: pkg.path,
+                })
+
+                const tgzFileName = () => fs.readdirSync(toBePublishedFolderPath).at(0)!
+                await fs.promises.rename(
+                  path.join(toBePublishedFolderPath, tgzFileName()),
+                  path.join(toBePublishedFolderPath, `${pkg.name.replace('@', '').replace('/', '-')}-local.tgz`),
+                )
+                await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName()], {cwd: toBePublishedFolderPath})
+              },
+            })),
+            {concurrent: true},
+          )
+        },
+      },
+      {
+        title: 'Get version strategy',
+        rendererOptions: {persistentOutput: true},
+        task: async (ctx, task) => {
+          const allVersions = [
+            ...ctx.packages.map(pkg => pkg.version),
+            ...ctx.packages.flatMap(pkg => pkg.publishedVersions.slice()),
+          ]
+          const maxVersion = allVersions.sort(semver.compare).at(-1) || VERSION_ZERO
+          if (!maxVersion) throw new Error(`No versions found`)
+
+          let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+            type: 'Select',
+            message: `Select semver increment for all packages, specify new version, or publish packages independently`,
+            hint: `Current latest version across all packageas is ${maxVersion}`,
+            choices: [
+              ...bumpChoices(maxVersion),
+              {
+                message: 'Independent (each package will have its own version)',
+                value: 'independent',
+              },
+            ],
+          })
+
+          if (bumpedVersion === 'independent') {
+            const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | 'ask'>({
+              type: 'Select',
+              message: 'Select semver increment for each package',
+              choices: [
+                ...allReleaseTypes.map(type => ({message: type, value: type})),
+                {
+                  message: 'Ask for each package',
+                  value: 'ask',
+                },
+              ],
+            })
+
+            ctx.versionStrategy = {
+              type: 'independent',
+              bump: bumpMethod === 'ask' ? null : bumpMethod,
+            }
+          } else if (bumpedVersion === 'other') {
+            bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+              type: 'Input',
+              message: `Enter a custom version (must be greater than ${maxVersion})`,
+              validate: v =>
+                typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
+            })
+          } else {
+            ctx.versionStrategy = {
+              type: 'fixed',
+              version: bumpedVersion,
+            }
+          }
+          task.output = inspect(ctx.versionStrategy)
+        },
+      },
+      {
+        title: `Pulling registry packages`,
+        rendererOptions: {persistentOutput: true},
+        task: (ctx, task) => {
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Pulling ${pkg.name}`,
+              rendererOptions: {persistentOutput: true},
+              task: async (_ctx, subtask) => {
+                const registryVersions = pkg.publishedVersions
+                const publishedAlreadyFolder = path.join(pkg.folder, LHS_FOLDER)
+                const publishedVersionForComparison = registryVersions
+                  .slice()
+                  .reverse()
+                  .find(
+                    v =>
+                      ctx.versionStrategy.type === 'independent' || // independent mode: compare to prerelease versions
+                      ctx.versionStrategy.version.includes('-') || // fixed mode prerelease version wanted: compare to prerelease versions
+                      !v.includes('-'), // otherwise, compare to proper releases
+                  )
+
+                if (!publishedVersionForComparison) {
+                  return
+                }
+
+                // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
+                await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${publishedVersionForComparison}`], {
+                  reject: false,
+                  cwd: publishedAlreadyFolder,
+                })
+
+                const tgzFileName = fs.readdirSync(publishedAlreadyFolder).at(0)
+                if (!tgzFileName) {
+                  const msg = `No tgz file found in ${publishedAlreadyFolder}, even though a last release was found. Registry versions: ${registryVersions.join(', ')}`
+                  throw new Error(msg)
+                }
+
+                await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: publishedAlreadyFolder})
+
+                const registryPackageJson = loadRightPackageJson(pkg)
+                if (registryPackageJson) {
+                  const registryPackageJsonPath = packageJsonFilepath(pkg, LHS_FOLDER)
+                  // avoid churn on package.json field ordering, which npm seems to mess with
+                  fs.writeFileSync(
+                    registryPackageJsonPath,
+                    sortPackageJson(JSON.stringify(registryPackageJson, null, 2)),
+                  )
+                }
+              },
+            })),
+            {concurrent: true},
+          )
+        },
+      },
+      {
         title: 'Set target versions',
         task: async function setTargetVersions(ctx, task) {
+          const {stdout: rightSha} = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'])
           for (const pkg of ctx.packages) {
+            pkg.shas = {
+              left: await getPackageLastPublishRef(pkg),
+              right: rightSha,
+            }
             const changelog = await getOrCreateChangelog(ctx, pkg)
             if (ctx.versionStrategy.type === 'fixed') {
               pkg.targetVersion = ctx.versionStrategy.version
               continue
             }
 
-            const currentVersion = [loadPublishedAlreadyPackageJson(pkg)?.version, pkg.version]
+            const currentVersion = [loadRightPackageJson(pkg)?.version, pkg.version]
               .sort((a, b) => semver.compare(a || VERSION_ZERO, b || VERSION_ZERO))
               .at(-1)
 
@@ -340,7 +359,7 @@ export const publish = async (input: PublishInput) => {
                 const sha = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'], {
                   cwd: pkg.path,
                 })
-                const packageJson = loadToBePublishedPackageJson(pkg)
+                const packageJson = loadLeftPackageJson(pkg)
 
                 packageJson.version = pkg.targetVersion
                 packageJson.git = {
@@ -351,7 +370,7 @@ export const publish = async (input: PublishInput) => {
                 packageJson.dependencies = await getBumpedDependencies(ctx, {pkg}).then(r => r.dependencies)
 
                 fs.writeFileSync(
-                  packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER),
+                  packageJsonFilepath(pkg, RHS_FOLDER),
                   sortPackageJson(JSON.stringify(packageJson, null, 2)),
                 )
               },
@@ -366,36 +385,36 @@ export const publish = async (input: PublishInput) => {
             ctx.packages.map(pkg => ({
               title: `Diff ${pkg.name}`,
               task: async (_ctx, subtask) => {
-                const localPath = path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER))
-                const registryPath = path.dirname(packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER))
+                const leftFolderPath = path.dirname(packageJsonFilepath(pkg, LHS_FOLDER))
+                const rightFolderPath = path.dirname(packageJsonFilepath(pkg, RHS_FOLDER))
 
                 const changesFolder = path.join(pkg.folder, 'changes')
                 await fs.promises.mkdir(changesFolder, {recursive: true})
 
-                const toBePublishedPkg = loadToBePublishedPackageJson(pkg)
-                const publishedAlreadyPkg = loadPublishedAlreadyPackageJson(pkg)
+                const leftPackageJson = loadLeftPackageJson(pkg)
+                const rightPackageJson = loadRightPackageJson(pkg)
 
-                if (!publishedAlreadyPkg) {
+                if (!leftPackageJson) {
                   subtask.output = 'No published version'
                   return
                 }
 
-                await execa('git', ['diff', '--no-index', registryPath, localPath], {
+                await execa('git', ['diff', '--no-index', leftFolderPath, rightFolderPath], {
                   reject: false, // git diff --no-index implies --exit-code. So when there are changes it exits with 1
                   stdout: {
                     file: path.join(changesFolder, 'package.diff'),
                   },
                 })
 
-                const localRef = toBePublishedPkg.git?.sha
-                const registryRef = publishedAlreadyPkg.git?.sha
+                const leftRef = leftPackageJson.git?.sha
+                const rightRef = rightPackageJson?.git?.sha
 
-                if (!localRef) {
-                  throw new Error(`No local ref found for ${pkg.name}`)
+                if (!rightRef) {
+                  throw new Error(`No ref found for package.json preparing to be plubished for ${pkg.name}`)
                 }
 
-                if (localRef && registryRef) {
-                  await execa('git', ['diff', registryRef, localRef, '--', '.'], {
+                if (leftRef && rightRef) {
+                  await execa('git', ['diff', rightRef, leftRef, '--', '.'], {
                     cwd: pkg.path,
                     stdout: {
                       file: path.join(changesFolder, 'source.diff'),
@@ -426,10 +445,10 @@ export const publish = async (input: PublishInput) => {
           return task.newListr(
             ctx.packages.map(pkg => ({
               title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
-              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadPublishedAlreadyPackageJson(pkg)?.version,
+              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRightPackageJson(pkg)?.version,
               task: async (_ctx, subtask) => {
                 await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
-                  cwd: path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)),
+                  cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
                 })
               },
             })),
@@ -445,34 +464,170 @@ export const publish = async (input: PublishInput) => {
 }
 
 export const ReleaseNotesInput = z.object({
-  baseComparisonSha: z.string().optional(),
+  comparison: z
+    .string()
+    .regex(/^\S+\.{2,3}\S+$/)
+    .transform(s => {
+      const [left, right] = s.split(/\.{2,3}/)
+      return {left, right, original: s}
+    })
+    .optional()
+    .describe('The comparison to use for the release notes. Format: `left...right` e.g. `1.0.0...1.0.1`'),
+  mode: z.enum(['individual', 'unified']).default('unified'),
 })
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
+
+const pullRegistryPackage = async (
+  subtask: ListrTaskWrapper<Ctx, never, never>,
+  pkg: {name: string},
+  {version, folder}: {version: string; folder: string},
+) => {
+  // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
+  await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${version}`], {cwd: folder})
+
+  const tgzFileName = fs.readdirSync(folder).at(0)
+  if (!tgzFileName) {
+    throw new Error(`No tgz file found in ${folder}, tried to pull ${pkg.name}@${version}`)
+  }
+
+  await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: folder})
+
+  const filepath = path.join(folder, 'package', 'package.json')
+  const packageJson = JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
+
+  return packageJson
+}
 
 // this doesn't work yet
 // consider making it a separate command that can read the folder made by the main publish command
 export const releaseNotes = async (input: ReleaseNotesInput) => {
-  const tasks = new Listr(
+  const tasks = new Listr<Ctx, never, never>(
     [
       ...setupContextTasks,
       {
+        title: `Get comparison`,
+        enabled: () => !input.comparison,
+        task: async (ctx, task) => {
+          const pkgVersions = await Promise.all(ctx.packages.map(pkg => getRegistryVersions(pkg)))
+          const lasts = pkgVersions.map(v => v.at(-1)!.slice())
+          const latest = lasts.sort((a, b) => semver.compare(a, b)).at(-1)!
+          const all = pkgVersions.flat().sort((a, b) => semver.compare(a, b))
+
+          const left =
+            all
+              .slice(0, -1)
+              .reverse()
+              .find(v => {
+                if (v === latest) return false
+                if (semver.prerelease(latest)) return true // if RHS is prerelease, then we whichever version was immediately before it
+                return !semver.prerelease(v) // if RHS was a proper release, then we want the last proper release
+              })! || all[0]
+
+          input.comparison = {left, right: latest, original: `${left}...${latest}`}
+          task.output = `Using ${input.comparison.original} for release notes`
+        },
+        rendererOptions: {persistentOutput: true},
+      },
+      {
+        title: 'Write packages locally',
+        task: async (ctx, task) => {
+          return task.newListr<Ctx>(
+            ctx.packages.map(pkg => ({
+              title: `Write ${pkg.name} locally`,
+              task: async (_ctx, subtask) => {
+                if (!input.comparison) throw new Error('No comparison provided')
+                const pullables = [
+                  {str: input.comparison.left, folder: path.join(pkg.folder, LHS_FOLDER), side: 'left' as const},
+                  {str: input.comparison.right, folder: path.join(pkg.folder, RHS_FOLDER), side: 'right' as const},
+                ]
+                for (const pullable of pullables) {
+                  fs.mkdirSync(pullable.folder, {recursive: true})
+                  if (semver.valid(pullable.str)) {
+                    subtask.output = `Pulling ${pullable.str} for ${pkg.name}`
+                    const packageJson = await pullRegistryPackage(subtask, pkg, {
+                      version: pullable.str,
+                      folder: pullable.folder,
+                    })
+                    pkg.shas ||= {} as never
+                    pkg.shas[pullable.side] = packageJson.git!.sha!.slice()
+                  } else if (/^[\da-f]+/.test(pullable.str)) {
+                    // actually it's a sha
+                    pkg.shas ||= {} as never
+                    pkg.shas[pullable.side] = pullable.str
+                    const versions = await getRegistryVersions(pkg)
+                    for (const version of versions.slice().reverse()) {
+                      subtask.output = `Pulling ${version} for ${pkg.name}`
+                      const packedPackageJson = await pullRegistryPackage(subtask, pkg, {
+                        version,
+                        folder: pullable.folder,
+                      })
+                      if (packedPackageJson.git?.sha === pullable.str) {
+                        break
+                      }
+                    }
+                  } else {
+                    throw new Error(`Unknown release ${pullable.str} for ${pkg.name}`)
+                  }
+                }
+              },
+            })),
+            {concurrent: true},
+          )
+        },
+      },
+      {
+        title: 'Write changelogs',
+        task: async (ctx, task) => {
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Write ${pkg.name} changelog`,
+              task: async () => getOrCreateChangelog(ctx, pkg),
+            })),
+            {concurrent: true},
+          )
+        },
+      },
+      {
         title: 'Generate release notes',
         task: async (ctx, task) => {
-          for (const pkg of ctx.packages) {
-            pkg.baseComparisonSha = input.baseComparisonSha
-            const body = await getOrCreateChangelog(ctx, pkg)
-            const title = `${pkg.name}@${pkg.version}`
-            const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
+          const allChangelogs = await Promise.all(
+            ctx.packages.map(async pkg => ({
+              pkg,
+              changelog: await getOrCreateChangelog(ctx, pkg),
+            })),
+          )
+          const pnpmWorkspaceFilepath = findUpOrThrow('pnpm-workspace.yaml', {cwd: process.cwd()})
+          const rootPackageJson = loadPackageJson(path.join(path.dirname(pnpmWorkspaceFilepath), 'package.json'))
+          const repoUrl = getPackageJsonRepository(rootPackageJson)
+          if (!repoUrl) {
+            const message =
+              'No repository URL found in root package.json - please add a repository field like `"repository": {"type": "git", "url": "https://githbu.com/foo/bar"}`'
+            throw new Error(message)
+          }
+          if (input.mode === 'unified') {
+            const unified = allChangelogs.map(p => p.changelog).join('\n\n---\n\n')
             const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
               type: 'confirm',
-              message: message + '\n\nDraft relesae?',
-              initial: false,
+              message: unified + '\n\nDraft relesae?',
             })
             if (doRelease) {
-              const releaseParams = {title, body}
-              await execa('open', [
-                `https://github.com/mmkal/pgkit/releases/new?${new URLSearchParams(releaseParams).toString()}`,
-              ])
+              const releaseParams = {title: 'Release notes', body: unified}
+              await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
+            }
+          } else {
+            for (const pkg of ctx.packages) {
+              const body = await getOrCreateChangelog(ctx, pkg)
+              const title = `${pkg.name}@${pkg.version}`
+              const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
+              const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
+                type: 'confirm',
+                message: message + '\n\nDraft relesae?',
+                initial: false,
+              })
+              if (doRelease) {
+                const releaseParams = {title, body}
+                await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
+              }
             }
           }
         },
@@ -484,16 +639,21 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
   await tasks.run()
 }
 
-const packageJsonFilepath = (pkg: PkgMeta, type: typeof TO_BE_PUBLISHED_FOLDER | typeof PUBLISHED_ALREADY_FOLDER) =>
+const packageJsonFilepath = (pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) =>
   path.join(pkg.folder, type, 'package', 'package.json')
 
-const loadToBePublishedPackageJson = (pkg: PkgMeta) => {
-  const filepath = packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)
+const loadPackageJson = (filepath: string) => {
+  const packageJson = JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
+  return packageJson
+}
+
+const loadLeftPackageJson = (pkg: PkgMeta) => {
+  const filepath = packageJsonFilepath(pkg, LHS_FOLDER)
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
-const loadPublishedAlreadyPackageJson = (pkg: PkgMeta) => {
-  const filepath = packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER)
-  if (!fs.existsSync(path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER))) {
+const loadRightPackageJson = (pkg: PkgMeta) => {
+  const filepath = packageJsonFilepath(pkg, RHS_FOLDER)
+  if (!fs.existsSync(path.join(pkg.folder, RHS_FOLDER))) {
     // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
     throw new Error(
       `Registry package.json folder for ${filepath} doesn't exist yet. Has the "Pulling \${pkg.name}" step run yet?`,
@@ -526,7 +686,7 @@ const bumpChoices = (oldVersion: string) => {
 
 /** Pessimistic comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
-  const registryRef = pkg.baseComparisonSha || loadPublishedAlreadyPackageJson(pkg)?.git?.sha
+  const registryRef = loadRightPackageJson(pkg)?.git?.sha
   if (registryRef) return registryRef
 
   const {stdout: firstRef} = await execa('git', ['log', '--reverse', '-n', '1', '--pretty=format:%h', '--', '.'], {
@@ -540,11 +700,11 @@ async function getPackageLastPublishRef(pkg: Pkg) {
  * Requires a `pkg`, and an `expectVersion` function
  */
 async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
-  const localPackageJson = loadToBePublishedPackageJson(params.pkg)
-  const registryPackageJson = loadPublishedAlreadyPackageJson(params.pkg)
-  const localPackageDependencies = {...localPackageJson.dependencies}
+  const leftPackageJson = loadLeftPackageJson(params.pkg)
+  const rightPackageJson = loadRightPackageJson(params.pkg)
+  const localPackageDependencies = {...leftPackageJson.dependencies}
   const updates: Record<string, string> = {}
-  for (const [depName, depVersion] of Object.entries(localPackageJson.dependencies || {})) {
+  for (const [depName, depVersion] of Object.entries(leftPackageJson.dependencies || {})) {
     const foundDep = ctx.packages
       .filter(other => other.name === depName)
       .flatMap(other => {
@@ -557,13 +717,13 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
       continue
     }
 
-    const registryPackageDependencyVersion = registryPackageJson?.dependencies?.[depName]
+    const registryPackageDependencyVersion = rightPackageJson?.dependencies?.[depName]
 
-    const dependencyPackageJsonOnRegistry = loadPublishedAlreadyPackageJson(foundDep.pkg)
+    const dependencyPackageJsonOnRHS = loadRightPackageJson(foundDep.pkg)
     let expected = foundDep.pkg.targetVersion
     if (!expected) {
       // ok, looks like we're not publishing the dependency. That's fine, as long as there's an existing published version.
-      expected = dependencyPackageJsonOnRegistry?.version || null
+      expected = dependencyPackageJsonOnRHS?.version || null
     }
     if (!expected) {
       throw new Error(
@@ -582,21 +742,23 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
 
     localPackageDependencies[depName] = prefix + expected
     updates[depName] =
-      `${registryPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName, registryPackageJson: dependencyPackageJsonOnRegistry}, null, 2)} -> ${localPackageDependencies[depName]}`
+      `${registryPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName, registryPackageJson: dependencyPackageJsonOnRHS}, null, 2)} -> ${localPackageDependencies[depName]}`
   }
 
   if (Object.keys(updates).length === 0) {
     // keep reference equality, avoid `undefined` to `{}`
-    return {updated: updates, dependencies: localPackageJson.dependencies}
+    return {updated: updates, dependencies: leftPackageJson.dependencies}
   }
 
   return {updated: updates, dependencies: localPackageDependencies}
 }
 
 async function getPackageRevList(pkg: Pkg) {
-  const fromRef = await getPackageLastPublishRef(pkg)
+  // const fromRef = await getPackageLastPublishRef(pkg)
 
-  const {stdout: localRef} = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'])
+  // const {stdout: localRef} = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'])
+  const fromRef = pkg.shas.left
+  const localRef = pkg.shas.right
   const {stdout} = await execa(
     'git',
     ['rev-list', '--ancestry-path', `${fromRef}..${localRef}`, '--format=oneline', '--abbrev-commit', '--', '.'],
@@ -610,10 +772,10 @@ async function getPackageRevList(pkg: Pkg) {
     .filter(Boolean)
     .map(line => `- ${line}`)
   const commitComparisonString = `${fromRef}..${localRef}`
-  const versionComparisonString = `${loadPublishedAlreadyPackageJson(pkg)?.version || 'unknown'}->${pkg.targetVersion}`
+  const versionComparisonString = `${loadLeftPackageJson(pkg)?.version || 'unknown'}->${loadRightPackageJson(pkg)?.version || 'unknown'}`
   const sections = [
     commitBullets.length > 0 &&
-      `<h3 data-commits>Commits ${commitComparisonString} (${versionComparisonString})</h3>\n`,
+      `<h3 data-commits>${pkg.name} commits ${commitComparisonString} (${versionComparisonString})</h3>\n`,
     ...commitBullets,
     uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
   ]
@@ -649,7 +811,7 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   const sourceChanges = await getPackageRevList(pkg)
 
   const changes = sourceChanges
-    ? [`<!-- data-change-type="source" -->\n${sourceChanges}`] // break
+    ? [`<!-- data-change-type="source" data-pkg="${pkg.name}" -->\n${sourceChanges}`] // break
     : []
 
   const bumpedDeps = await getBumpedDependencies(ctx, {pkg})
@@ -681,6 +843,42 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   fs.mkdirSync(path.dirname(changelogFile), {recursive: true})
   fs.writeFileSync(changelogFile, changelogContent)
   return changelogContent
+}
+
+const getPackageJsonRepository = (packageJson: PackageJson) => {
+  let repoString: string
+  if (!packageJson.repository) return null
+  if (typeof packageJson.repository === 'object' && packageJson.repository.type !== 'git') {
+    throw new Error(`Unsupported repository type ${packageJson.repository.type}`)
+  }
+  // mmkal
+  // eslint-disable-next-line unicorn/prefer-ternary
+  if (typeof packageJson.repository === 'object') {
+    repoString = packageJson.repository.url
+  } else {
+    // must be a string
+    repoString = packageJson.repository
+  }
+
+  if (repoString.startsWith('git+')) {
+    repoString = repoString.replace('git+', '')
+  }
+  if (repoString.startsWith('github:')) {
+    repoString = repoString.replace('github:', 'https://github.com/')
+  }
+  if (repoString.endsWith('.git')) {
+    repoString = repoString.slice(0, -4)
+  }
+  if (/^[\w-.]+\/[\w-.]+$/.test(repoString)) {
+    repoString = `https://github.com/${repoString}`
+  }
+
+  const url = new URL(repoString)
+  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+    throw new Error(`Unsupported repository protocol ${url.protocol}`)
+  }
+
+  return repoString
 }
 
 const allReleaseTypes: readonly semver.ReleaseType[] = [
@@ -732,7 +930,10 @@ type PkgMeta = {
   folder: string
   lastPublished: PackageJson | null
   targetVersion: string | null
-  baseComparisonSha: string | undefined
+  shas: {
+    left: string
+    right: string
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -7,6 +7,10 @@
         "build": "turbo build",
         "test": "pnpm --recursive --workspace-concurrency 1 test"
     },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/mmkal/pgkit"
+    },
     "devDependencies": {
         "@listr2/prompt-adapter-enquirer": "^2.0.2",
         "@parcel/transformer-typescript-types": "2.11.0",

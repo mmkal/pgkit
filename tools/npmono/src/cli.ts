@@ -1,4 +1,5 @@
 import * as trpcCli from 'trpc-cli'
+import {z} from 'trpc-cli'
 import {releaseNotes, ReleaseNotesInput, publish, PublishInput} from './publish'
 
 const t = trpcCli.trpcServer.initTRPC.meta<trpcCli.TrpcCliMeta>().create()
@@ -11,7 +12,11 @@ const router = t.router({
     }),
 
   releaseNotes: t.procedure
-    .input(ReleaseNotesInput) //
+    .input(
+      ReleaseNotesInput.extend({
+        acknowledgeThisDoesNotWorkYet: z.boolean(),
+      }),
+    ) //
     .mutation(async ({input}) => {
       return releaseNotes(input)
     }),
