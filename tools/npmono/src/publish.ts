@@ -19,217 +19,6 @@ export const PublishInput = z.object({
 })
 export type PublishInput = z.infer<typeof PublishInput>
 
-export const publish = async (input: PublishInput) => {
-  const {sortPackageJson} = await import('sort-package-json')
-  const tasks = new Listr(
-    [
-      ...setupContextTasks,
-      {
-        title: 'Set target versions',
-        task: async function setTargetVersions(ctx, task) {
-          for (const pkg of ctx.packages) {
-            const changelog = await getOrCreateChangelog(ctx, pkg)
-            if (ctx.versionStrategy.type === 'fixed') {
-              pkg.targetVersion = ctx.versionStrategy.version
-              continue
-            }
-
-            const currentVersion = [loadRegistryPackageJson(pkg)?.version, pkg.version]
-              .sort((a, b) => semver.compare(a || VERSION_ZERO, b || VERSION_ZERO))
-              .at(-1)
-
-            if (ctx.versionStrategy.bump) {
-              pkg.targetVersion = semver.inc(currentVersion || VERSION_ZERO, ctx.versionStrategy.bump)
-              continue
-            }
-
-            const choices = bumpChoices(currentVersion || VERSION_ZERO)
-            if (changelog) {
-              choices.push({message: `Do not publish (note: package is changed)`, value: 'none'})
-            } else {
-              choices.unshift({message: `Do not publish (package is unchanged)`, value: 'none'})
-            }
-
-            let newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-              type: 'Select',
-              message: `Select semver increment for ${pkg.name} or specify new version (current latest is ${currentVersion})`,
-              choices,
-            })
-            if (newVersion === 'none') {
-              continue
-            }
-            if (newVersion === 'other') {
-              newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-                type: 'Input',
-                message: `Enter a custom version (must be greater than ${currentVersion})`,
-                validate: v =>
-                  typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, currentVersion || VERSION_ZERO),
-              })
-            }
-
-            pkg.targetVersion = newVersion
-          }
-          const packagesWithChanges = ctx.packages.map(pkg => ({
-            pkg,
-            changes: fs.readFileSync(changelogFilepath(pkg)).toString(),
-          }))
-
-          if (ctx.versionStrategy.type === 'fixed') return
-
-          if (ctx.versionStrategy.type === 'independent' && !ctx.versionStrategy.bump) return
-
-          const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
-            type: 'MultiSelect',
-            message: 'Select packages',
-            hint: 'Press <space> to toggle, <a> to toggle all, <i> to invert selection',
-            initial: packagesWithChanges.flatMap((c, i) => (c.changes ? [i] : [])),
-            choices: packagesWithChanges.map(c => {
-              const changeTypes = [...new Set([...c.changes.matchAll(/data-change-type="(\w+)"/g)].map(m => m[1]))]
-              return {
-                name: `${c.pkg.name} ${c.changes ? `(changes: ${changeTypes.join(', ')})` : '(unchanged)'}`.trim(),
-                value: c.pkg.name,
-              }
-            }),
-            validate: (values: string[]) => {
-              const names = values.map(v => v.split(' ')[0])
-              const problems: string[] = []
-              for (const name of names) {
-                const pkg = ctx.packages.find(p => p.name === name)
-                if (!pkg) {
-                  problems.push(`Package ${name} not found`)
-                  continue
-                }
-                const dependencies = workspaceDependencies(pkg, ctx)
-                const missing = dependencies.filter(d => !names.includes(d.name))
-
-                problems.push(...missing.map(m => `Package ${name} depends on ${m.name}`))
-              }
-
-              if (problems.length > 0) return `Can't publish that selection of packages:\n` + problems.join('\n')
-
-              return true
-            },
-          })
-
-          const includeSet = new Set(include.map(inc => inc.split(' ')[0]))
-
-          ctx.packages = ctx.packages.filter(pkg => includeSet.has(pkg.name))
-        },
-      },
-      {
-        title: `Modify local packages`,
-        task: (ctx, task) => {
-          return task.newListr<Ctx>(
-            ctx.packages.map(pkg => ({
-              title: `Modify ${pkg.name}`,
-              task: async (_ctx, _subtask) => {
-                if (!pkg.targetVersion || !semver.valid(pkg.targetVersion)) {
-                  throw new Error(`Invalid version for ${pkg.name}: ${pkg.targetVersion}`)
-                }
-
-                const sha = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'], {
-                  cwd: pkg.path,
-                })
-                const packageJson = loadLocalPackageJson(pkg)
-
-                packageJson.version = pkg.targetVersion
-                packageJson.git = {
-                  ...(packageJson.git as {}),
-                  sha: sha.stdout,
-                }
-
-                packageJson.dependencies = await getBumpedDependencies(ctx, {pkg}).then(r => r.dependencies)
-
-                fs.writeFileSync(
-                  packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER),
-                  sortPackageJson(JSON.stringify(packageJson, null, 2)),
-                )
-              },
-            })),
-          )
-        },
-      },
-      {
-        title: 'Diff packages',
-        task: diffPackagesTask,
-      },
-      {
-        title: ['Publish packages', !input.publish && '(dry run)'].filter(Boolean).join(' '),
-        rendererOptions: {persistentOutput: true},
-        task: async (ctx, task) => {
-          const shouldActuallyPublish = input.publish
-          let otp = input.otp
-          if (shouldActuallyPublish) {
-            otp ||= await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-              message: 'Enter npm OTP (press enter to try publishing without MFA)',
-              type: 'Input',
-              validate: v => v === '' || (typeof v === 'string' && /^\d{6}$/.test(v)),
-            })
-            if (otp.length === 0) {
-              task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
-            }
-          }
-          return task.newListr(
-            ctx.packages.map(pkg => ({
-              title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
-              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRegistryPackageJson(pkg)?.version,
-              task: async (_ctx, subtask) => {
-                await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
-                  cwd: path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)),
-                })
-              },
-            })),
-            {rendererOptions: {collapseSubtasks: false}},
-          )
-        },
-      },
-    ],
-    {ctx: {} as Ctx},
-  )
-
-  await tasks.run()
-}
-
-export const ReleaseNotesInput = z.object({
-  baseComparisonSha: z.string().optional(),
-})
-export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
-
-// this doesn't work yet
-// consider making it a separate command that can read the folder made by the main publish command
-export const releaseNotes = async (input: ReleaseNotesInput) => {
-  const tasks = new Listr(
-    [
-      ...setupContextTasks,
-      {
-        title: 'Generate release notes',
-        task: async (ctx, task) => {
-          for (const pkg of ctx.packages) {
-            pkg.baseComparisonSha = input.baseComparisonSha
-            const body = await getOrCreateChangelog(ctx, pkg)
-            const title = `${pkg.name}@${pkg.version}`
-            const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
-            const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
-              type: 'confirm',
-              message: message + '\n\nDraft relesae?',
-              initial: false,
-            })
-            if (doRelease) {
-              const releaseParams = {title, body}
-              await execa('open', [
-                `https://github.com/mmkal/pgkit/releases/new?${new URLSearchParams(releaseParams).toString()}`,
-              ])
-            }
-          }
-        },
-      },
-    ],
-    {ctx: {} as Ctx},
-  )
-
-  await tasks.run()
-}
-
 export const setupContextTasks: ListrTask<Ctx>[] = [
   {
     title: 'Set working directory',
@@ -426,7 +215,7 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
 
             await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: publishedAlreadyFolder})
 
-            const registryPackageJson = loadRegistryPackageJson(pkg)
+            const registryPackageJson = loadPublishedAlreadyPackageJson(pkg)
             if (registryPackageJson) {
               const registryPackageJsonPath = packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER)
               // avoid churn on package.json field ordering, which npm seems to mess with
@@ -440,14 +229,269 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
   },
 ]
 
+export const publish = async (input: PublishInput) => {
+  const {sortPackageJson} = await import('sort-package-json')
+  const tasks = new Listr(
+    [
+      ...setupContextTasks,
+      {
+        title: 'Set target versions',
+        task: async function setTargetVersions(ctx, task) {
+          for (const pkg of ctx.packages) {
+            const changelog = await getOrCreateChangelog(ctx, pkg)
+            if (ctx.versionStrategy.type === 'fixed') {
+              pkg.targetVersion = ctx.versionStrategy.version
+              continue
+            }
+
+            const currentVersion = [loadPublishedAlreadyPackageJson(pkg)?.version, pkg.version]
+              .sort((a, b) => semver.compare(a || VERSION_ZERO, b || VERSION_ZERO))
+              .at(-1)
+
+            if (ctx.versionStrategy.bump) {
+              pkg.targetVersion = semver.inc(currentVersion || VERSION_ZERO, ctx.versionStrategy.bump)
+              continue
+            }
+
+            const choices = bumpChoices(currentVersion || VERSION_ZERO)
+            if (changelog) {
+              choices.push({message: `Do not publish (note: package is changed)`, value: 'none'})
+            } else {
+              choices.unshift({message: `Do not publish (package is unchanged)`, value: 'none'})
+            }
+
+            let newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+              type: 'Select',
+              message: `Select semver increment for ${pkg.name} or specify new version (current latest is ${currentVersion})`,
+              choices,
+            })
+            if (newVersion === 'none') {
+              continue
+            }
+            if (newVersion === 'other') {
+              newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+                type: 'Input',
+                message: `Enter a custom version (must be greater than ${currentVersion})`,
+                validate: v =>
+                  typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, currentVersion || VERSION_ZERO),
+              })
+            }
+
+            pkg.targetVersion = newVersion
+          }
+          const packagesWithChanges = ctx.packages.map(pkg => ({
+            pkg,
+            changes: fs.readFileSync(changelogFilepath(pkg)).toString(),
+          }))
+
+          if (ctx.versionStrategy.type === 'fixed') return
+
+          if (ctx.versionStrategy.type === 'independent' && !ctx.versionStrategy.bump) return
+
+          const include = await task.prompt(ListrEnquirerPromptAdapter).run<string[]>({
+            type: 'MultiSelect',
+            message: 'Select packages',
+            hint: 'Press <space> to toggle, <a> to toggle all, <i> to invert selection',
+            initial: packagesWithChanges.flatMap((c, i) => (c.changes ? [i] : [])),
+            choices: packagesWithChanges.map(c => {
+              const changeTypes = [...new Set([...c.changes.matchAll(/data-change-type="(\w+)"/g)].map(m => m[1]))]
+              return {
+                name: `${c.pkg.name} ${c.changes ? `(changes: ${changeTypes.join(', ')})` : '(unchanged)'}`.trim(),
+                value: c.pkg.name,
+              }
+            }),
+            validate: (values: string[]) => {
+              const names = values.map(v => v.split(' ')[0])
+              const problems: string[] = []
+              for (const name of names) {
+                const pkg = ctx.packages.find(p => p.name === name)
+                if (!pkg) {
+                  problems.push(`Package ${name} not found`)
+                  continue
+                }
+                const dependencies = workspaceDependencies(pkg, ctx)
+                const missing = dependencies.filter(d => !names.includes(d.name))
+
+                problems.push(...missing.map(m => `Package ${name} depends on ${m.name}`))
+              }
+
+              if (problems.length > 0) return `Can't publish that selection of packages:\n` + problems.join('\n')
+
+              return true
+            },
+          })
+
+          const includeSet = new Set(include.map(inc => inc.split(' ')[0]))
+
+          ctx.packages = ctx.packages.filter(pkg => includeSet.has(pkg.name))
+        },
+      },
+      {
+        title: `Modify local packages`,
+        task: (ctx, task) => {
+          return task.newListr<Ctx>(
+            ctx.packages.map(pkg => ({
+              title: `Modify ${pkg.name}`,
+              task: async (_ctx, _subtask) => {
+                if (!pkg.targetVersion || !semver.valid(pkg.targetVersion)) {
+                  throw new Error(`Invalid version for ${pkg.name}: ${pkg.targetVersion}`)
+                }
+
+                const sha = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'], {
+                  cwd: pkg.path,
+                })
+                const packageJson = loadToBePublishedPackageJson(pkg)
+
+                packageJson.version = pkg.targetVersion
+                packageJson.git = {
+                  ...(packageJson.git as {}),
+                  sha: sha.stdout,
+                }
+
+                packageJson.dependencies = await getBumpedDependencies(ctx, {pkg}).then(r => r.dependencies)
+
+                fs.writeFileSync(
+                  packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER),
+                  sortPackageJson(JSON.stringify(packageJson, null, 2)),
+                )
+              },
+            })),
+          )
+        },
+      },
+      {
+        title: 'Diff packages',
+        task: (ctx, task) =>
+          task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Diff ${pkg.name}`,
+              task: async (_ctx, subtask) => {
+                const localPath = path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER))
+                const registryPath = path.dirname(packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER))
+
+                const changesFolder = path.join(pkg.folder, 'changes')
+                await fs.promises.mkdir(changesFolder, {recursive: true})
+
+                const toBePublishedPkg = loadToBePublishedPackageJson(pkg)
+                const publishedAlreadyPkg = loadPublishedAlreadyPackageJson(pkg)
+
+                if (!publishedAlreadyPkg) {
+                  subtask.output = 'No published version'
+                  return
+                }
+
+                await execa('git', ['diff', '--no-index', registryPath, localPath], {
+                  reject: false, // git diff --no-index implies --exit-code. So when there are changes it exits with 1
+                  stdout: {
+                    file: path.join(changesFolder, 'package.diff'),
+                  },
+                })
+
+                const localRef = toBePublishedPkg.git?.sha
+                const registryRef = publishedAlreadyPkg.git?.sha
+
+                if (!localRef) {
+                  throw new Error(`No local ref found for ${pkg.name}`)
+                }
+
+                if (localRef && registryRef) {
+                  await execa('git', ['diff', registryRef, localRef, '--', '.'], {
+                    cwd: pkg.path,
+                    stdout: {
+                      file: path.join(changesFolder, 'source.diff'),
+                    },
+                  })
+                }
+              },
+            })),
+            {concurrent: true},
+          ),
+      },
+      {
+        title: ['Publish packages', !input.publish && '(dry run)'].filter(Boolean).join(' '),
+        rendererOptions: {persistentOutput: true},
+        task: async (ctx, task) => {
+          const shouldActuallyPublish = input.publish
+          let otp = input.otp
+          if (shouldActuallyPublish) {
+            otp ||= await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+              message: 'Enter npm OTP (press enter to try publishing without MFA)',
+              type: 'Input',
+              validate: v => v === '' || (typeof v === 'string' && /^\d{6}$/.test(v)),
+            })
+            if (otp.length === 0) {
+              task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
+            }
+          }
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
+              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadPublishedAlreadyPackageJson(pkg)?.version,
+              task: async (_ctx, subtask) => {
+                await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
+                  cwd: path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)),
+                })
+              },
+            })),
+            {rendererOptions: {collapseSubtasks: false}},
+          )
+        },
+      },
+    ],
+    {ctx: {} as Ctx},
+  )
+
+  await tasks.run()
+}
+
+export const ReleaseNotesInput = z.object({
+  baseComparisonSha: z.string().optional(),
+})
+export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
+
+// this doesn't work yet
+// consider making it a separate command that can read the folder made by the main publish command
+export const releaseNotes = async (input: ReleaseNotesInput) => {
+  const tasks = new Listr(
+    [
+      ...setupContextTasks,
+      {
+        title: 'Generate release notes',
+        task: async (ctx, task) => {
+          for (const pkg of ctx.packages) {
+            pkg.baseComparisonSha = input.baseComparisonSha
+            const body = await getOrCreateChangelog(ctx, pkg)
+            const title = `${pkg.name}@${pkg.version}`
+            const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
+            const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
+              type: 'confirm',
+              message: message + '\n\nDraft relesae?',
+              initial: false,
+            })
+            if (doRelease) {
+              const releaseParams = {title, body}
+              await execa('open', [
+                `https://github.com/mmkal/pgkit/releases/new?${new URLSearchParams(releaseParams).toString()}`,
+              ])
+            }
+          }
+        },
+      },
+    ],
+    {ctx: {} as Ctx},
+  )
+
+  await tasks.run()
+}
+
 const packageJsonFilepath = (pkg: PkgMeta, type: typeof TO_BE_PUBLISHED_FOLDER | typeof PUBLISHED_ALREADY_FOLDER) =>
   path.join(pkg.folder, type, 'package', 'package.json')
 
-const loadLocalPackageJson = (pkg: PkgMeta) => {
+const loadToBePublishedPackageJson = (pkg: PkgMeta) => {
   const filepath = packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER)
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
-const loadRegistryPackageJson = (pkg: PkgMeta) => {
+const loadPublishedAlreadyPackageJson = (pkg: PkgMeta) => {
   const filepath = packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER)
   if (!fs.existsSync(path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER))) {
     // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
@@ -482,7 +526,7 @@ const bumpChoices = (oldVersion: string) => {
 
 /** Pessimistic comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
-  const registryRef = pkg.baseComparisonSha || loadRegistryPackageJson(pkg)?.git?.sha
+  const registryRef = pkg.baseComparisonSha || loadPublishedAlreadyPackageJson(pkg)?.git?.sha
   if (registryRef) return registryRef
 
   const {stdout: firstRef} = await execa('git', ['log', '--reverse', '-n', '1', '--pretty=format:%h', '--', '.'], {
@@ -496,8 +540,8 @@ async function getPackageLastPublishRef(pkg: Pkg) {
  * Requires a `pkg`, and an `expectVersion` function
  */
 async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
-  const localPackageJson = loadLocalPackageJson(params.pkg)
-  const registryPackageJson = loadRegistryPackageJson(params.pkg)
+  const localPackageJson = loadToBePublishedPackageJson(params.pkg)
+  const registryPackageJson = loadPublishedAlreadyPackageJson(params.pkg)
   const localPackageDependencies = {...localPackageJson.dependencies}
   const updates: Record<string, string> = {}
   for (const [depName, depVersion] of Object.entries(localPackageJson.dependencies || {})) {
@@ -515,7 +559,7 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
 
     const registryPackageDependencyVersion = registryPackageJson?.dependencies?.[depName]
 
-    const dependencyPackageJsonOnRegistry = loadRegistryPackageJson(foundDep.pkg)
+    const dependencyPackageJsonOnRegistry = loadPublishedAlreadyPackageJson(foundDep.pkg)
     let expected = foundDep.pkg.targetVersion
     if (!expected) {
       // ok, looks like we're not publishing the dependency. That's fine, as long as there's an existing published version.
@@ -566,7 +610,7 @@ async function getPackageRevList(pkg: Pkg) {
     .filter(Boolean)
     .map(line => `- ${line}`)
   const commitComparisonString = `${fromRef}..${localRef}`
-  const versionComparisonString = `${loadRegistryPackageJson(pkg)?.version || 'unknown'}->${pkg.targetVersion}`
+  const versionComparisonString = `${loadPublishedAlreadyPackageJson(pkg)?.version || 'unknown'}->${pkg.targetVersion}`
   const sections = [
     commitBullets.length > 0 &&
       `<h3 data-commits>Commits ${commitComparisonString} (${versionComparisonString})</h3>\n`,
@@ -637,54 +681,6 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   fs.mkdirSync(path.dirname(changelogFile), {recursive: true})
   fs.writeFileSync(changelogFile, changelogContent)
   return changelogContent
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function diffPackagesTask(ctx: Ctx, task: ListrTaskWrapper<Ctx, any, any>) {
-  return task.newListr(
-    ctx.packages.map(pkg => ({
-      title: `Diff ${pkg.name}`,
-      task: async (_ctx, subtask) => {
-        const localPath = path.dirname(packageJsonFilepath(pkg, TO_BE_PUBLISHED_FOLDER))
-        const registryPath = path.dirname(packageJsonFilepath(pkg, PUBLISHED_ALREADY_FOLDER))
-
-        const changesFolder = path.join(pkg.folder, 'changes')
-        await fs.promises.mkdir(changesFolder, {recursive: true})
-
-        const localPkg = loadLocalPackageJson(pkg)
-        const registryPkg = loadRegistryPackageJson(pkg)
-
-        if (!registryPkg) {
-          subtask.output = 'No published version'
-          return
-        }
-
-        await execa('git', ['diff', '--no-index', registryPath, localPath], {
-          reject: false, // git diff --no-index implies --exit-code. So when there are changes it exits with 1
-          stdout: {
-            file: path.join(changesFolder, 'package.diff'),
-          },
-        })
-
-        const localRef = localPkg.git?.sha
-        const registryRef = registryPkg.git?.sha
-
-        if (!localRef) {
-          throw new Error(`No local ref found for ${pkg.name}`)
-        }
-
-        if (localRef && registryRef) {
-          await execa('git', ['diff', registryRef, localRef, '--', '.'], {
-            cwd: pkg.path,
-            stdout: {
-              file: path.join(changesFolder, 'source.diff'),
-            },
-          })
-        }
-      },
-    })),
-    {concurrent: true},
-  )
 }
 
 const allReleaseTypes: readonly semver.ReleaseType[] = [

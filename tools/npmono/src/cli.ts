@@ -10,13 +10,11 @@ const router = t.router({
       return publish(input)
     }),
 
-  ...(process.env.TEST_RELEASE_NOTES && {
-    releaseNotes: t.procedure
-      .input(ReleaseNotesInput) //
-      .mutation(async ({input}) => {
-        return releaseNotes(input)
-      }),
-  }),
+  releaseNotes: t.procedure
+    .input(ReleaseNotesInput) //
+    .mutation(async ({input}) => {
+      return releaseNotes(input)
+    }),
 })
 
 const cli = trpcCli.createCli({
