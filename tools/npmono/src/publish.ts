@@ -25,63 +25,6 @@ export const publish = async (input: PublishInput) => {
     [
       ...setupContextTasks,
       {
-        title: 'Get version strategy',
-        rendererOptions: {persistentOutput: true},
-        task: async (ctx, task) => {
-          const allVersions = [
-            ...ctx.packages.map(pkg => pkg.version),
-            ...(ctx.packages.map(pkg => loadRegistryPackageJson(pkg)?.version).filter(Boolean) as string[]),
-          ]
-          const maxVersion = allVersions.sort(semver.compare).at(-1) || VERSION_ZERO
-          if (!maxVersion) throw new Error(`No versions found`)
-
-          let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-            type: 'Select',
-            message: `Select semver increment for all packages, specify new version, or publish packages independently`,
-            hint: `Current latest version across all packageas is ${maxVersion}`,
-            choices: [
-              ...bumpChoices(maxVersion),
-              {
-                message: 'Independent (each package will have its own version)',
-                value: 'independent',
-              },
-            ],
-          })
-
-          if (bumpedVersion === 'independent') {
-            const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | 'ask'>({
-              type: 'Select',
-              message: 'Select semver increment for each package',
-              choices: [
-                ...allReleaseTypes.map(type => ({message: type, value: type})),
-                {
-                  message: 'Ask for each package',
-                  value: 'ask',
-                },
-              ],
-            })
-
-            ctx.versionStrategy = {
-              type: 'independent',
-              bump: bumpMethod === 'ask' ? null : bumpMethod,
-            }
-          } else if (bumpedVersion === 'other') {
-            bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-              type: 'Input',
-              message: `Enter a custom version (must be greater than ${maxVersion})`,
-              validate: v =>
-                typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
-            })
-          } else {
-            ctx.versionStrategy = {
-              type: 'fixed',
-              version: bumpedVersion,
-            }
-          }
-          task.output = inspect(ctx.versionStrategy)
-        },
-      },
-      {
         title: 'Set target versions',
         task: async function setTargetVersions(ctx, task) {
           for (const pkg of ctx.packages) {
@@ -253,6 +196,7 @@ export const ReleaseNotesInput = z.object({
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
 
 // this doesn't work yet
+// consider making it a separate command that can read the folder made by the main publish command
 export const releaseNotes = async (input: ReleaseNotesInput) => {
   const tasks = new Listr(
     [
@@ -341,7 +285,7 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
         const number = Number(`1${'0'.repeat(length.toString().length + 1)}`) + i
         pkg.folder = path.join(ctx.tempDir, `${number}.${pkg.name.replace('/', '__')}`)
       })
-      task.output = ctx.packages.map(pkg => `${pkg.name}`).join('\n')
+      task.output = ctx.packages.map(pkg => `${pkg.name}`).join(', ')
       return `Found ${ctx.packages.length} packages to publish`
     },
   },
@@ -364,15 +308,12 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     },
   },
   {
-    title: `Pulling registry packages`,
-    rendererOptions: {persistentOutput: true},
+    title: 'Getting published versions',
     task: (ctx, task) => {
       return task.newListr(
         ctx.packages.map(pkg => ({
-          title: `Pulling ${pkg.name}`,
-          rendererOptions: {persistentOutput: true},
-          task: async (_ctx, subtask) => {
-            const {sortPackageJson} = await import('sort-package-json')
+          title: `Getting published versions for ${pkg.name}`,
+          task: async _ctx => {
             const publishedAlreadyFolder = path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER)
             fs.mkdirSync(publishedAlreadyFolder, {recursive: true})
             const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
@@ -382,18 +323,97 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
             ])
             const registryVersionsStdout = StdoutShape.parse(JSON.parse(registryVersionsResult.stdout))
             const registryVersions = Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
-            const latestProperRelease = registryVersions
+            pkg.publishedVersions = registryVersions
+          },
+        })),
+        {concurrent: true},
+      )
+    },
+  },
+  {
+    title: 'Get version strategy',
+    rendererOptions: {persistentOutput: true},
+    task: async (ctx, task) => {
+      const allVersions = [
+        ...ctx.packages.map(pkg => pkg.version),
+        ...ctx.packages.flatMap(pkg => pkg.publishedVersions.slice()),
+      ]
+      const maxVersion = allVersions.sort(semver.compare).at(-1) || VERSION_ZERO
+      if (!maxVersion) throw new Error(`No versions found`)
+
+      let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+        type: 'Select',
+        message: `Select semver increment for all packages, specify new version, or publish packages independently`,
+        hint: `Current latest version across all packageas is ${maxVersion}`,
+        choices: [
+          ...bumpChoices(maxVersion),
+          {
+            message: 'Independent (each package will have its own version)',
+            value: 'independent',
+          },
+        ],
+      })
+
+      if (bumpedVersion === 'independent') {
+        const bumpMethod = await task.prompt(ListrEnquirerPromptAdapter).run<semver.ReleaseType | 'ask'>({
+          type: 'Select',
+          message: 'Select semver increment for each package',
+          choices: [
+            ...allReleaseTypes.map(type => ({message: type, value: type})),
+            {
+              message: 'Ask for each package',
+              value: 'ask',
+            },
+          ],
+        })
+
+        ctx.versionStrategy = {
+          type: 'independent',
+          bump: bumpMethod === 'ask' ? null : bumpMethod,
+        }
+      } else if (bumpedVersion === 'other') {
+        bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+          type: 'Input',
+          message: `Enter a custom version (must be greater than ${maxVersion})`,
+          validate: v => typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
+        })
+      } else {
+        ctx.versionStrategy = {
+          type: 'fixed',
+          version: bumpedVersion,
+        }
+      }
+      task.output = inspect(ctx.versionStrategy)
+    },
+  },
+  {
+    title: `Pulling registry packages`,
+    rendererOptions: {persistentOutput: true},
+    task: (ctx, task) => {
+      return task.newListr(
+        ctx.packages.map(pkg => ({
+          title: `Pulling ${pkg.name}`,
+          rendererOptions: {persistentOutput: true},
+          task: async (_ctx, subtask) => {
+            const {sortPackageJson} = await import('sort-package-json')
+            const registryVersions = pkg.publishedVersions
+            const publishedAlreadyFolder = path.join(pkg.folder, PUBLISHED_ALREADY_FOLDER)
+            const publishedVersionForComparison = registryVersions
               .slice()
               .reverse()
-              .find(v => !v.includes('-'))
+              .find(
+                v =>
+                  ctx.versionStrategy.type === 'independent' || // independent mode: compare to prerelease versions
+                  ctx.versionStrategy.version.includes('-') || // fixed mode prerelease version wanted: compare to prerelease versions
+                  !v.includes('-'), // otherwise, compare to proper releases
+              )
 
-            if (!latestProperRelease) {
-              task.output = `${task.output || ''}\n- No release found for ${pkg.name}`.trim()
+            if (!publishedVersionForComparison) {
               return
             }
 
             // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
-            await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${latestProperRelease}`], {
+            await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${publishedVersionForComparison}`], {
               reject: false,
               cwd: publishedAlreadyFolder,
             })
@@ -412,8 +432,6 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
               // avoid churn on package.json field ordering, which npm seems to mess with
               fs.writeFileSync(registryPackageJsonPath, sortPackageJson(JSON.stringify(registryPackageJson, null, 2)))
             }
-
-            task.output = `${task.output || ''}\n- Pulled ${pkg.name}@${latestProperRelease}`.trim()
           },
         })),
         {concurrent: true},
@@ -547,13 +565,17 @@ async function getPackageRevList(pkg: Pkg) {
     .split('\n')
     .filter(Boolean)
     .map(line => `- ${line}`)
+  const commitComparisonString = `${fromRef}..${localRef}`
+  const versionComparisonString = `${loadRegistryPackageJson(pkg)?.version || 'unknown'}->${pkg.targetVersion}`
   const sections = [
-    commitBullets.length > 0 && '<h3 data-commits>Commits</h3>\n',
+    commitBullets.length > 0 &&
+      `<h3 data-commits>Commits ${commitComparisonString} (${versionComparisonString})</h3>\n`,
     ...commitBullets,
     uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
   ]
   return (
-    sections.filter(Boolean).join('\n').trim() || `No ${pkg.name} changes since last publish (${fromRef}..${localRef})`
+    sections.filter(Boolean).join('\n').trim() ||
+    `No ${pkg.name} changes since last publish: ${commitComparisonString} (${versionComparisonString})`
   )
 }
 
@@ -573,7 +595,11 @@ const workspaceDependencies = (pkg: Pkg, ctx: Ctx, depth = 0): Pkg[] =>
 async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   const changelogFile = changelogFilepath(pkg)
   if (fs.existsSync(changelogFile)) {
-    return fs.readFileSync(changelogFile).toString()
+    const existingContent = fs.readFileSync(changelogFile).toString()
+    // hack: sometimes we get a changelog a bit early before the targetVersion is set. Check that the existing version doesn't include 'undefined' so we can try again after the targetVersion is set.
+    if (!existingContent.includes('undefined')) {
+      return existingContent
+    }
   }
 
   const sourceChanges = await getPackageRevList(pkg)
@@ -676,6 +702,7 @@ type Pkg = PkgMeta & {
   version: string
   path: string
   private: boolean
+  publishedVersions: string[]
   dependencies: Record<
     string,
     {
