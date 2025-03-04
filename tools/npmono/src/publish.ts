@@ -661,7 +661,7 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
 
 const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: string; body: string}) => {
   const getUrl = () => `${repoUrl}/releases/new?${new URLSearchParams(params).toString()}`
-  if (getUrl().length > 2048) {
+  if (getUrl().length > 8192) {
     // copy body to clipboard using clipboardy
     const clipboardy = await import('clipboardy')
     await clipboardy.default.write(params.body)
