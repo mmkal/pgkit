@@ -552,7 +552,7 @@ test(`queries with syntax errors don't affect others`, async () => {
         Error:
         ./test/fixtures/options.test.ts/queries-with-syntax-errors-don-t-affect-others/index.ts:4
         [!] Query is not typeable.
-          Caused by: Error: Walking AST failed
+          Caused by: Error: Walking AST failed for select this is a nonsense query which will cause an error
             Caused by: Error: Syntax error at line 1 col 16:
 
             1  select this is a nonsense query which will cause an error

@@ -57,7 +57,11 @@ test('types are correct', async () => {
   // todo: fix this. I don't think we should be logging an error for a valid query that can't be typegen'd.
   expect(logger.warn.mock.calls[0][0]).toMatchInlineSnapshot(`
     "Error: ./test/types.test.ts.ignoreme.copy.ts:16 [!] Query is not typeable.
-      Caused by: Error: Walking AST failed
+      Caused by: Error: Walking AST failed for 
+          create table types_test_table(foo int primary key, bar text);
+
+          insert into types_test_table(foo, bar) values (1, 'a')
+
         Caused by: AssertionError [ERR_ASSERTION]: Can't parse query
         ---
 
