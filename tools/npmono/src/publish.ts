@@ -928,7 +928,7 @@ type PackageJson = import('type-fest').PackageJson & {
   /**
    * not an official package.json field, but there is a library that does something similar to this: https://github.com/Metnew/git-hash-package
    * having git.sha point to a commit hash seems pretty useful to me, even if it's not standard.
-   * tagging versions in git is still a good best practice but there are many different ways, e.g. `1.2.3` vs `v1.2.3` vs `mypgk@1.2.3` vs `mypkg@v1.2.3`
+   * tagging versions in git is still a good best practice but there are many different ways, e.g. `1.2.3` vs `v1.2.3` vs `mypkg@1.2.3` vs `mypkg@v1.2.3`
    * plus, that's only useful in going from git to npm, not npm to git.
    */
   git?: {sha?: string}
@@ -936,7 +936,6 @@ type PackageJson = import('type-fest').PackageJson & {
 
 type PkgMeta = {
   folder: string
-  lastPublished: PackageJson | null
   targetVersion: string | null
   shas: {
     left: string
