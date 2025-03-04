@@ -24,10 +24,7 @@ export type PublishInput = z.infer<typeof PublishInput>
 export const setupContextTasks: ListrTask<Ctx>[] = [
   {
     title: 'Set working directory',
-    task: async () => {
-      const monorepoRoot = path.dirname(findUpOrThrow('pnpm-workspace.yaml'))
-      process.chdir(monorepoRoot)
-    },
+    task: async () => process.chdir(getWorkspaceRoot()),
   },
   {
     title: 'Building',
@@ -233,7 +230,7 @@ export const publish = async (input: PublishInput) => {
 
                 await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: publishedAlreadyFolder})
 
-                const registryPackageJson = loadRightPackageJson(pkg)
+                const registryPackageJson = loadRHSPackageJson(pkg)
                 if (registryPackageJson) {
                   const registryPackageJsonPath = packageJsonFilepath(pkg, LHS_FOLDER)
                   // avoid churn on package.json field ordering, which npm seems to mess with
@@ -263,7 +260,7 @@ export const publish = async (input: PublishInput) => {
               continue
             }
 
-            const currentVersion = [loadRightPackageJson(pkg)?.version, pkg.version]
+            const currentVersion = [loadRHSPackageJson(pkg)?.version, pkg.version]
               .sort((a, b) => semver.compare(a || VERSION_ZERO, b || VERSION_ZERO))
               .at(-1)
 
@@ -359,7 +356,7 @@ export const publish = async (input: PublishInput) => {
                 const sha = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'], {
                   cwd: pkg.path,
                 })
-                const packageJson = loadLeftPackageJson(pkg)
+                const packageJson = loadLHSPackageJson(pkg)
 
                 packageJson.version = pkg.targetVersion
                 packageJson.git = {
@@ -391,8 +388,8 @@ export const publish = async (input: PublishInput) => {
                 const changesFolder = path.join(pkg.folder, 'changes')
                 await fs.promises.mkdir(changesFolder, {recursive: true})
 
-                const leftPackageJson = loadLeftPackageJson(pkg)
-                const rightPackageJson = loadRightPackageJson(pkg)
+                const leftPackageJson = loadLHSPackageJson(pkg)
+                const rightPackageJson = loadRHSPackageJson(pkg)
 
                 if (!leftPackageJson) {
                   subtask.output = 'No published version'
@@ -445,7 +442,7 @@ export const publish = async (input: PublishInput) => {
           return task.newListr(
             ctx.packages.map(pkg => ({
               title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
-              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRightPackageJson(pkg)?.version,
+              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRHSPackageJson(pkg)?.version,
               task: async (_ctx, subtask) => {
                 await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
                   cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
@@ -596,8 +593,7 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
               changelog: await getOrCreateChangelog(ctx, pkg),
             })),
           )
-          const pnpmWorkspaceFilepath = findUpOrThrow('pnpm-workspace.yaml', {cwd: process.cwd()})
-          const rootPackageJson = loadPackageJson(path.join(path.dirname(pnpmWorkspaceFilepath), 'package.json'))
+          const rootPackageJson = loadPackageJson(path.join(getWorkspaceRoot(), 'package.json'))
           const repoUrl = getPackageJsonRepository(rootPackageJson)
           if (!repoUrl) {
             const message =
@@ -647,11 +643,11 @@ const loadPackageJson = (filepath: string) => {
   return packageJson
 }
 
-const loadLeftPackageJson = (pkg: PkgMeta) => {
+const loadLHSPackageJson = (pkg: PkgMeta) => {
   const filepath = packageJsonFilepath(pkg, LHS_FOLDER)
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
-const loadRightPackageJson = (pkg: PkgMeta) => {
+const loadRHSPackageJson = (pkg: PkgMeta) => {
   const filepath = packageJsonFilepath(pkg, RHS_FOLDER)
   if (!fs.existsSync(path.join(pkg.folder, RHS_FOLDER))) {
     // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
@@ -684,9 +680,15 @@ const bumpChoices = (oldVersion: string) => {
   ]
 }
 
-/** Pessimistic comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
+function getWorkspaceRoot() {
+  return path.dirname(
+    findUp.sync('pnpm-workspace.yaml') || findUp.sync('pnpm-lock.yaml') || findUpOrThrow('.git', {type: 'directory'}),
+  )
+}
+
+/** "Pessimistic" comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
-  const registryRef = loadRightPackageJson(pkg)?.git?.sha
+  const registryRef = loadRHSPackageJson(pkg)?.git?.sha
   if (registryRef) return registryRef
 
   const {stdout: firstRef} = await execa('git', ['log', '--reverse', '-n', '1', '--pretty=format:%h', '--', '.'], {
@@ -700,8 +702,8 @@ async function getPackageLastPublishRef(pkg: Pkg) {
  * Requires a `pkg`, and an `expectVersion` function
  */
 async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
-  const leftPackageJson = loadLeftPackageJson(params.pkg)
-  const rightPackageJson = loadRightPackageJson(params.pkg)
+  const leftPackageJson = loadLHSPackageJson(params.pkg)
+  const rightPackageJson = loadRHSPackageJson(params.pkg)
   const localPackageDependencies = {...leftPackageJson.dependencies}
   const updates: Record<string, string> = {}
   for (const [depName, depVersion] of Object.entries(leftPackageJson.dependencies || {})) {
@@ -719,7 +721,7 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
 
     const registryPackageDependencyVersion = rightPackageJson?.dependencies?.[depName]
 
-    const dependencyPackageJsonOnRHS = loadRightPackageJson(foundDep.pkg)
+    const dependencyPackageJsonOnRHS = loadRHSPackageJson(foundDep.pkg)
     let expected = foundDep.pkg.targetVersion
     if (!expected) {
       // ok, looks like we're not publishing the dependency. That's fine, as long as there's an existing published version.
@@ -772,7 +774,7 @@ async function getPackageRevList(pkg: Pkg) {
     .filter(Boolean)
     .map(line => `- ${line}`)
   const commitComparisonString = `${fromRef}..${localRef}`
-  const versionComparisonString = `${loadLeftPackageJson(pkg)?.version || 'unknown'}->${loadRightPackageJson(pkg)?.version || 'unknown'}`
+  const versionComparisonString = `${loadLHSPackageJson(pkg)?.version || 'unknown'}->${loadRHSPackageJson(pkg)?.version || 'unknown'}`
   const sections = [
     commitBullets.length > 0 &&
       `<h3 data-commits>${pkg.name} commits ${commitComparisonString} (${versionComparisonString})</h3>\n`,
@@ -865,6 +867,12 @@ const getPackageJsonRepository = (packageJson: PackageJson) => {
   }
   if (repoString.startsWith('github:')) {
     repoString = repoString.replace('github:', 'https://github.com/')
+  }
+  if (repoString.startsWith('gitlab:')) {
+    repoString = repoString.replace('gitlab:', 'https://gitlab.com/')
+  }
+  if (repoString.startsWith('bitbucket:')) {
+    repoString = repoString.replace('bitbucket:', 'https://bitbucket.org/')
   }
   if (repoString.endsWith('.git')) {
     repoString = repoString.slice(0, -4)
