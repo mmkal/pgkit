@@ -612,25 +612,32 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
               'No repository URL found in root package.json - please add a repository field like `"repository": {"type": "git", "url": "https://githbu.com/foo/bar"}`'
             throw new Error(message)
           }
+          const versions = [
+            ...new Set(ctx.packages.map(p => (p.targetVersion ? `v${p.targetVersion}` : '')).filter(Boolean)),
+          ]
           if (input.mode === 'unified') {
+            if (versions.length !== 1) {
+              throw new Error('Unified mode requires exactly one version')
+            }
             const unified = allChangelogs.map(p => p.changelog).join('\n\n---\n\n')
             const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
               type: 'confirm',
               message: unified + '\n\nDraft release?',
             })
             if (doRelease) {
-              const versions = new Set(ctx.packages.map(p => p.targetVersion && `v${p.targetVersion}`).filter(Boolean))
               const releaseParams = {
-                title: [...versions].join(' / '),
+                tag: versions[0],
+                title: versions[0],
                 body: unified,
               }
               // await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
-              await openReleaseDraft(repoUrl, releaseParams.title, releaseParams.body)
+              await openReleaseDraft(repoUrl, releaseParams)
             }
           } else {
             for (const pkg of ctx.packages) {
               const body = await getOrCreateChangelog(ctx, pkg)
-              const title = `${pkg.name}@${pkg.targetVersion}`
+              const title = `${pkg.name}@v${pkg.targetVersion}`
+              const tag = `${pkg.name}@v${pkg.targetVersion}` // same as title... today
               const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
               const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
                 type: 'confirm',
@@ -638,8 +645,8 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
                 initial: false,
               })
               if (doRelease) {
-                const releaseParams = {title, body}
-                await openReleaseDraft(repoUrl, releaseParams.title, releaseParams.body)
+                const releaseParams = {tag, title, body}
+                await openReleaseDraft(repoUrl, releaseParams)
               }
             }
           }
@@ -652,13 +659,13 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
   await tasks.run()
 }
 
-const openReleaseDraft = async (repoUrl: string, title: string, body: string) => {
-  const getUrl = () => `${repoUrl}/releases/new?${new URLSearchParams({title, body}).toString()}`
+const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: string; body: string}) => {
+  const getUrl = () => `${repoUrl}/releases/new?${new URLSearchParams(params).toString()}`
   if (getUrl().length > 2048) {
     // copy body to clipboard using clipboardy
     const clipboardy = await import('clipboardy')
-    await clipboardy.default.write(body)
-    body = '<!-- body copied to clipboard -->'
+    await clipboardy.default.write(params.body)
+    params = {...params, body: '<!-- body copied to clipboard -->'}
   }
   await execa('open', [getUrl()])
 }
