@@ -540,13 +540,24 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
                 for (const pullable of pullables) {
                   fs.mkdirSync(pullable.folder, {recursive: true})
                   if (semver.valid(pullable.str)) {
+                    if (pullable.side === 'right') pkg.targetVersion = pullable.str
                     subtask.output = `Pulling ${pullable.str} for ${pkg.name}`
                     const packageJson = await pullRegistryPackage(subtask, pkg, {
                       version: pullable.str,
                       folder: pullable.folder,
+                    }).catch(async e => {
+                      if (`${e}`.includes('No matching version found')) {
+                        // if the version doesn't exist on the registry, we might have passed a comparison string from before it existed (can happen with fixed versioning)
+                        const versions = await getRegistryVersions(pkg)
+                        return pullRegistryPackage(subtask, pkg, {
+                          version: pullable.side === 'left' ? versions[0] : versions.at(-1)!,
+                          folder: pullable.folder,
+                        })
+                      }
+                      throw e
                     })
                     pkg.shas ||= {} as never
-                    pkg.shas[pullable.side] = packageJson.git!.sha!.slice()
+                    pkg.shas[pullable.side] = await getPackageJsonGitSha(pkg, packageJson)
                   } else if (/^[\da-f]+/.test(pullable.str)) {
                     // actually it's a sha
                     pkg.shas ||= {} as never
@@ -559,6 +570,7 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
                         folder: pullable.folder,
                       })
                       if (packedPackageJson.git?.sha === pullable.str) {
+                        if (pullable.side === 'right') pkg.targetVersion = packedPackageJson.version!
                         break
                       }
                     }
@@ -604,25 +616,30 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
             const unified = allChangelogs.map(p => p.changelog).join('\n\n---\n\n')
             const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
               type: 'confirm',
-              message: unified + '\n\nDraft relesae?',
+              message: unified + '\n\nDraft release?',
             })
             if (doRelease) {
-              const releaseParams = {title: 'Release notes', body: unified}
-              await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
+              const versions = new Set(ctx.packages.map(p => p.targetVersion && `v${p.targetVersion}`).filter(Boolean))
+              const releaseParams = {
+                title: [...versions].join(' / '),
+                body: unified,
+              }
+              // await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
+              await openReleaseDraft(repoUrl, releaseParams.title, releaseParams.body)
             }
           } else {
             for (const pkg of ctx.packages) {
               const body = await getOrCreateChangelog(ctx, pkg)
-              const title = `${pkg.name}@${pkg.version}`
+              const title = `${pkg.name}@${pkg.targetVersion}`
               const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
               const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
                 type: 'confirm',
-                message: message + '\n\nDraft relesae?',
+                message: message + '\n\nDraft release?',
                 initial: false,
               })
               if (doRelease) {
                 const releaseParams = {title, body}
-                await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
+                await openReleaseDraft(repoUrl, releaseParams.title, releaseParams.body)
               }
             }
           }
@@ -633,6 +650,17 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
   )
 
   await tasks.run()
+}
+
+const openReleaseDraft = async (repoUrl: string, title: string, body: string) => {
+  const getUrl = () => `${repoUrl}/releases/new?${new URLSearchParams({title, body}).toString()}`
+  if (getUrl().length > 2048) {
+    // copy body to clipboard using clipboardy
+    const clipboardy = await import('clipboardy')
+    await clipboardy.default.write(body)
+    body = '<!-- body copied to clipboard -->'
+  }
+  await execa('open', [getUrl()])
 }
 
 const packageJsonFilepath = (pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) =>
@@ -688,13 +716,21 @@ function getWorkspaceRoot() {
 
 /** "Pessimistic" comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
-  const registryRef = loadRHSPackageJson(pkg)?.git?.sha
-  if (registryRef) return registryRef
+  const packageJson = loadRHSPackageJson(pkg)
+  return await getPackageJsonGitSha(pkg, packageJson)
+}
 
-  const {stdout: firstRef} = await execa('git', ['log', '--reverse', '-n', '1', '--pretty=format:%h', '--', '.'], {
+async function getPackageJsonGitSha(pkg: Pkg, packageJson: PackageJson | null) {
+  const explicitSha = packageJson?.git?.sha
+  if (explicitSha) return explicitSha
+  return await getFirstRef(pkg)
+}
+
+async function getFirstRef(pkg: Pkg) {
+  const {stdout: commitsOldestFirst} = await execa('git', ['log', '--reverse', '--pretty=format:%h', '--', '.'], {
     cwd: pkg.path,
   })
-  return firstRef
+  return commitsOldestFirst.split('\n')[0]
 }
 
 /**
@@ -755,6 +791,7 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
   return {updated: updates, dependencies: localPackageDependencies}
 }
 
+/** Get a markdown formatted list of commits for a package. */
 async function getPackageRevList(pkg: Pkg) {
   // const fromRef = await getPackageLastPublishRef(pkg)
 
@@ -773,18 +810,17 @@ async function getPackageRevList(pkg: Pkg) {
     .split('\n')
     .filter(Boolean)
     .map(line => `- ${line}`)
-  const commitComparisonString = `${fromRef}..${localRef}`
-  const versionComparisonString = `${loadLHSPackageJson(pkg)?.version || 'unknown'}->${loadRHSPackageJson(pkg)?.version || 'unknown'}`
+
   const sections = [
-    commitBullets.length > 0 &&
-      `<h3 data-commits>${pkg.name} commits ${commitComparisonString} (${versionComparisonString})</h3>\n`,
+    commitBullets.length > 0 && `<h3 data-commits>Commits</h3>\n`,
     ...commitBullets,
     uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
   ]
-  return (
-    sections.filter(Boolean).join('\n').trim() ||
-    `No ${pkg.name} changes since last publish: ${commitComparisonString} (${versionComparisonString})`
-  )
+  return {
+    // commitComparisonString,
+    // versionComparisonString,
+    markdown: sections.filter(Boolean).join('\n').trim() || `No ${pkg.name} changes since last publish.`,
+  }
 }
 
 const changelogFilepath = (pkg: Pkg) => path.join(pkg.folder, 'changes/changelog.md')
@@ -811,10 +847,31 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   }
 
   const sourceChanges = await getPackageRevList(pkg)
+  const npmVersionLink = (packageJson: PackageJson | null | undefined) => {
+    const version = packageJson?.version
+    return `[${version || 'unknown'}](https://npmjs.com/package/${pkg.name}${version ? `/v/${version}` : ''})`
+  }
+  const repoUrl = getPackageJsonRepository(
+    loadRHSPackageJson(pkg) ||
+      loadLHSPackageJson(pkg) ||
+      loadPackageJson(path.join(getWorkspaceRoot(), 'package.json')),
+  )
 
-  const changes = sourceChanges
-    ? [`<!-- data-change-type="source" data-pkg="${pkg.name}" -->\n${sourceChanges}`] // break
-    : []
+  const changes: string[] = []
+  if (sourceChanges) {
+    changes.push(
+      [
+        `<!-- data-change-type="source" data-pkg="${pkg.name}" -->`, // break
+        `# ${pkg.name}`,
+        '',
+        '|old version|new version|compare|',
+        '|-|-|-|',
+        `|${npmVersionLink(loadLHSPackageJson(pkg))} | ${npmVersionLink(loadRHSPackageJson(pkg))} | [${pkg.shas.left}...${pkg.shas.right}](${repoUrl}/compare/${pkg.shas.left}...${pkg.shas.right})`,
+        '',
+        sourceChanges.markdown,
+      ].join('\n'),
+    )
+  }
 
   const bumpedDeps = await getBumpedDependencies(ctx, {pkg})
 
