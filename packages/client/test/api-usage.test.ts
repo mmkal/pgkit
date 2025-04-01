@@ -36,6 +36,35 @@ test('sql.array', async () => {
   ])
 })
 
+test('nested sql.array', async () => {
+  expect(
+    await client.anyFirst(sql`
+      select id from usage_test
+      where name = any(${sql.array(['one', 'two'], 'text')})
+    `),
+  ).toMatchInlineSnapshot(`
+    [
+      1,
+      2
+    ]
+  `)
+
+  const isInGroupConditionSql = sql`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from usage_test
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchInlineSnapshot(`
+    [
+      1,
+      2
+    ]
+  `)
+})
+
 /**
  * String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc.
  * you can use `sql.identifier`.
