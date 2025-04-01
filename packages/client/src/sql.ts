@@ -1,7 +1,7 @@
 import pgPromise from 'pg-promise'
 import {QueryError} from './errors'
 import {nameQuery} from './naming'
-import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, ZodesqueType, SQLParameter} from './types'
+import type {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, ZodesqueType, SQLParameter, SqlFragment, SQLTagHelperParameters} from './types'
 
 const sqlMethodHelpers: SQLMethodHelpers = {
   raw: <T>(query: string): SQLQuery<T, []> => ({
@@ -140,28 +140,54 @@ const sqlFn: SQLTagFunction = (
 
       case 'fragment': {
         const [parts, ...fragmentValues] = param.args;
+        const baseIndex = values.length;
+        let fragmentSql = '';
+        let paramCounter = 1;
+
         for (const [j, part] of parts.entries()) {
-            segments.push(part);
-            if (j < fragmentValues.length) {
-                const fragmentValue = fragmentValues[j];
-                if (fragmentValue && typeof fragmentValue === 'object' && fragmentValue.token) {
-                    // Handle nested SQL fragments
-                    if (fragmentValue.token === 'sql') {
-                        segments.push(fragmentValue.sql);
-                        values.push(...fragmentValue.values);
-                    } else if (fragmentValue.token === 'array') {
-                        values.push(fragmentValue.args[0]);
-                        segments.push('$' + values.length + '::' + fragmentValue.args[1] + '[]');
-                    } else {
-                        values.push(fragmentValue);
-                        segments.push('$' + values.length);
-                    }
-                } else {
-                    values.push(fragmentValue);
-                    segments.push('$' + values.length);
-                }
+          // Handle any existing parameter numbers in the fragment
+          const adjustedPart = part.replace(/\$(\d+)/g, (match, num) => {
+            return `$${baseIndex + paramCounter++}`;
+          });
+          fragmentSql += adjustedPart;
+
+          if (j < fragmentValues.length) {
+            const fragmentValue = fragmentValues[j];
+            if (fragmentValue && typeof fragmentValue === 'object') {
+              if (fragmentValue.token === 'sql') {
+                // Handle nested SQL objects
+                const nestedSql = fragmentValue.sql.replace(/\$(\d+)/g, (match, num) => {
+                  return `$${baseIndex + paramCounter++}`;
+                });
+                fragmentSql += nestedSql;
+                values.push(...(fragmentValue as SqlFragment).values);
+              } else if (fragmentValue.token === 'array') {
+                // Handle array values
+                const arrayParam = fragmentValue as unknown as {
+                  token: 'array';
+                  args: [values: readonly unknown[], memberType: string];
+                };
+                values.push(arrayParam.args[0]);
+                fragmentSql += `$${values.length}::${arrayParam.args[1]}[]`;
+              } else if (fragmentValue.token === 'fragment') {
+                // Handle nested fragments by recursively processing them
+                const nestedFragment = sqlFn`${fragmentValue}`;
+                const nestedSql = nestedFragment.sql.replace(/\$(\d+)/g, (match, num) => {
+                  return `$${baseIndex + paramCounter++}`;
+                });
+                fragmentSql += nestedSql;
+                values.push(...nestedFragment.values);
+              } else {
+                values.push(fragmentValue);
+                fragmentSql += `$${values.length}`;
+              }
+            } else {
+              values.push(fragmentValue);
+              fragmentSql += `$${values.length}`;
             }
+          }
         }
+        segments.push(fragmentSql);
         break;
       }
 
@@ -169,28 +195,45 @@ const sqlFn: SQLTagFunction = (
         // Handle nested SQL objects properly
         if (param.values && Array.isArray(param.values)) {
           // This is a direct SQL object
-          segments.push(param.sql)
-          param.values.forEach(val => {
-            if (val && typeof val === 'object' && val.token === 'array') {
+          const baseIndex = values.length;
+          const paramSql = param.sql.replace(/\$(\d+)/g, (match, num) => {
+            return `$${baseIndex + Number.parseInt(num)}`;
+          });
+          segments.push(paramSql);
+          for (const val of param.values) {
+            if (val && typeof val === 'object' && 'token' in val && val.token === 'array') {
               // Handle nested array objects
-              values.push(val.args[0])
-              // The index is already in the param.sql
+              const arrayParam = val as unknown as {
+                token: 'array';
+                args: [values: readonly unknown[], memberType: string];
+              };
+              values.push(arrayParam.args[0]);
             } else {
-              values.push(val)
+              values.push(val);
             }
-          })
+          }
         } else {
           // This is a template-based SQL object
-          const [parts, ...fragmentValues] = param.templateArgs()
+          const [parts, ...fragmentValues] = param.templateArgs();
           for (const [j, part] of parts.entries()) {
-            segments.push(part)
+            segments.push(part);
             if (j < fragmentValues.length) {
-              values.push(fragmentValues[j])
-              segments.push('$' + values.length)
+              const fragmentValue = fragmentValues[j];
+              if (fragmentValue && typeof fragmentValue === 'object' && 'token' in fragmentValue && fragmentValue.token === 'array') {
+                const arrayParam = fragmentValue as unknown as {
+                  token: 'array';
+                  args: [values: readonly unknown[], memberType: string];
+                };
+                values.push(arrayParam.args[0]);
+                segments.push(`$${values.length}::${arrayParam.args[1]}[]`);
+              } else {
+                values.push(fragmentValue);
+                segments.push(`$${values.length}`);
+              }
             }
           }
         }
-        break
+        break;
       }
 
       default: {
