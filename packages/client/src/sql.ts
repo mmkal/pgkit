@@ -146,20 +146,15 @@ const sqlFnInner = (
       }
 
       case 'fragment': {
-        const [parts, ...fragmentValues] = param.args
-        for (const [j, part] of parts.entries()) {
-          segments.push(part)
-          if (j < fragmentValues.length) {
-            values.push(fragmentValues[j])
-            segments.push(getValuePlaceholder(j))
-          }
-        }
+        const innerResult = sqlFnInner({priorValues: values.length}, ...(param.args as Parameters<SQLTagFunction>))
+        segments.push(...innerResult.segments())
+        values.push(...innerResult.values)
         break
       }
 
       case 'sql': {
-        const [innerStrings, ...innerTemplateParameters] = param.templateArgs() as Parameters<typeof sqlFn>
-        const innerResult = sqlFnInner({priorValues: values.length}, innerStrings, ...innerTemplateParameters)
+        const innerArgs = param.templateArgs() as Parameters<SQLTagFunction>
+        const innerResult = sqlFnInner({priorValues: values.length}, ...innerArgs)
         segments.push(...innerResult.segments())
         values.push(...innerResult.values)
         break

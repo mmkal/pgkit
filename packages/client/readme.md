@@ -212,7 +212,7 @@ await client.query(sql`insert into profile (id, name) values (1, 'one')`)
 
 Here's a usage example for each of the `sql...` methods:
 
-<!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3} -->
+<!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3, exclude: [exclude from readme]} -->
 ### sql.array
 
 ```typescript

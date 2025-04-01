@@ -2,6 +2,48 @@
 
 exports[`createSqlTag + sql.typeAlias 1`] = `[SchemaValidationError: Query returned rows that do not conform with the schema.]`;
 
+exports[`deeply nested sql.fragment - exclude from readme 1`] = `
+[
+  1,
+  2,
+]
+`;
+
+exports[`deeply nested sql.fragment - exclude from readme 2`] = `
+[
+  1,
+  2,
+]
+`;
+
+exports[`nested sql.array - exclude from readme 1`] = `
+[
+  1,
+  2,
+]
+`;
+
+exports[`nested sql.array - exclude from readme 2`] = `
+[
+  1,
+  2,
+]
+`;
+
+exports[`nested sql.fragment - exclude from readme 1`] = `
+[
+  1,
+  2,
+]
+`;
+
+exports[`nested sql.fragment - exclude from readme 2`] = `
+[
+  1,
+  2,
+]
+`;
+
 exports[`sql.binary 1`] = `"hello"`;
 
 exports[`sql.interval 1`] = `946818000000`;

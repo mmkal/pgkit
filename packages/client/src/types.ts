@@ -126,7 +126,10 @@ export type SQLTagHelperParameters = {
   array: [values: readonly PrimitiveValueExpression[], memberType: MemberType]
   binary: [data: Buffer]
   date: [date: Date]
-  fragment: [parts: TemplateStringsArray, ...values: readonly ValueExpression[]]
+  fragment: [
+    parts: TemplateStringsArray,
+    ...values: readonly (ValueExpression | {token: 'sql' | keyof SQLTagHelperParameters})[],
+  ]
   identifier: [names: readonly string[]]
   interval: [interval: IntervalInput]
   join: [members: readonly ValueExpression[], glue: SqlFragment]

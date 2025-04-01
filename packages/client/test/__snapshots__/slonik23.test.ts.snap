@@ -1,3 +1,17 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`nested sql.array - exclude from readme 1`] = `
+[
+  1,
+  2,
+]
+`;
+
+exports[`nested sql.array - exclude from readme 2`] = `
+[
+  1,
+  2,
+]
+`;
+
 exports[`sql.binary 1`] = `"hello"`;
