@@ -6,6 +6,7 @@ const t = trpcCli.trpcServer.initTRPC.meta<trpcCli.TrpcCliMeta>().create()
 
 const router = t.router({
   publish: t.procedure
+    .meta({default: true})
     .input(PublishInput) //
     .mutation(async ({input}) => {
       return publish(input)
@@ -22,9 +23,6 @@ const router = t.router({
     }),
 })
 
-const cli = trpcCli.createCli({
-  router,
-  default: {procedure: 'publish'},
-})
+const cli = trpcCli.createCli({router})
 
 void cli.run()

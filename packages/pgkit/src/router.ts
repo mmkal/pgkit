@@ -31,7 +31,8 @@ export const router = t.router({
     }),
   ),
   generate: procedureWithClient
-    .use(async ({rawInput, ctx, next}) => {
+    .use(async ({getRawInput, ctx, next}) => {
+      const rawInput = getRawInput() as {}
       const inputObject = typeof rawInput === 'object' ? Object.keys(rawInput || {}) : []
       return next({
         ctx: {...ctx, inputKeys: new Set(Object.keys(inputObject))},

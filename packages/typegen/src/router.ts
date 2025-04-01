@@ -1,6 +1,7 @@
+import * as trpcServer from '@trpc/server'
 import {existsSync} from 'fs'
 import * as path from 'path'
-import {trpcServer, z, TrpcCliMeta} from 'trpc-cli'
+import {z, TrpcCliMeta} from 'trpc-cli'
 import * as defaults from './defaults'
 import {generate, Options} from './generate'
 
@@ -71,7 +72,8 @@ export const CliOptions = z
 
 export const router = trpc.router({
   generate: trpc.procedure
-    .use(async ({rawInput, ctx, next}) => {
+    .use(async ({ctx, next, getRawInput}) => {
+      const rawInput = getRawInput() as {}
       const inputObject = typeof rawInput === 'object' ? Object.keys(rawInput || {}) : []
       return next({
         ctx: {...ctx, inputKeys: new Set(Object.keys(inputObject))},

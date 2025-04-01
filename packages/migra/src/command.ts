@@ -2,7 +2,7 @@ import {Queryable, createClient} from '@pgkit/client'
 import {PostgreSQL} from '@pgkit/schemainspect'
 import {initTRPC} from '@trpc/server'
 import {readFile} from 'fs/promises'
-import {trpcCli, TrpcCliMeta} from 'trpc-cli'
+import {createCli, TrpcCliMeta} from 'trpc-cli'
 import {z} from 'zod'
 import {Migration} from './migra'
 
@@ -129,6 +129,7 @@ const router = t.router({
         `migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a'`,
         `migra 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' 'postgresql://postgres:postgres@localhost:5432/migra_test_collations_a' --unsafe`,
       ],
+      default: true,
     })
     .input(MigraRunInput)
     .query(async ({input: [dburlFrom, dburlTarget, args]}) => {
@@ -139,9 +140,6 @@ const router = t.router({
 
 if (require.main === module) {
   // eslint-disable-next-line unicorn/prefer-top-level-await, no-console
-  const cli = trpcCli({
-    router,
-    default: {procedure: 'run'},
-  })
+  const cli = createCli({router})
   void cli.run()
 }

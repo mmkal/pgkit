@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "fetch": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ],
+      "env": {}
+    },
+    "duckduckgo-web-search": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:mmkal/duck-duck-scrape-mcp"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest",
+        "--headless"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    },
+    "cli-parser": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "../vibebot/src/mcp/cli-parser.ts"
+      ]
+    },
+    "op": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["./server/mcp/op.ts"]
+    }
+  }
+}

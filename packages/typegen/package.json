@@ -32,6 +32,7 @@
     "@pgkit/client": "workspace:^",
     "@rebundled/execa": "8.0.2-next.0",
     "@rebundled/p-memoize": "7.1.2-next.8",
+    "@trpc/server": "^11.0.1",
     "chokidar": "^3.5.3",
     "execa": "^5.1.1",
     "find-up": "^5.0.0",
@@ -42,7 +43,7 @@
     "neverthrow": "^7.1.0",
     "pgsql-ast-parser": "^11.1.0",
     "pluralize": "^8.0.0",
-    "trpc-cli": "^0.5.0",
+    "trpc-cli": "^0.6.0-9",
     "zod": "^3.23.8"
   },
   "devDependencies": {
