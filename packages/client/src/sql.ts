@@ -139,24 +139,55 @@ const sqlFn: SQLTagFunction = (
       }
 
       case 'fragment': {
-        const [parts, ...fragmentValues] = param.args
+        const [parts, ...fragmentValues] = param.args;
         for (const [j, part] of parts.entries()) {
-          segments.push(part)
-          if (j < fragmentValues.length) {
-            values.push(fragmentValues[j])
-            segments.push('$' + String(values.length + j))
-          }
+            segments.push(part);
+            if (j < fragmentValues.length) {
+                const fragmentValue = fragmentValues[j];
+                if (fragmentValue && typeof fragmentValue === 'object' && fragmentValue.token) {
+                    // Handle nested SQL fragments
+                    if (fragmentValue.token === 'sql') {
+                        segments.push(fragmentValue.sql);
+                        values.push(...fragmentValue.values);
+                    } else if (fragmentValue.token === 'array') {
+                        values.push(fragmentValue.args[0]);
+                        segments.push('$' + values.length + '::' + fragmentValue.args[1] + '[]');
+                    } else {
+                        values.push(fragmentValue);
+                        segments.push('$' + values.length);
+                    }
+                } else {
+                    values.push(fragmentValue);
+                    segments.push('$' + values.length);
+                }
+            }
         }
-        break
+        break;
       }
 
       case 'sql': {
-        const [parts, ...fragmentValues] = param.templateArgs()
-        for (const [j, part] of parts.entries()) {
-          segments.push(part)
-          if (j < fragmentValues.length) {
-            values.push(fragmentValues[j])
-            segments.push('$' + String(values.length + j))
+        // Handle nested SQL objects properly
+        if (param.values && Array.isArray(param.values)) {
+          // This is a direct SQL object
+          segments.push(param.sql)
+          param.values.forEach(val => {
+            if (val && typeof val === 'object' && val.token === 'array') {
+              // Handle nested array objects
+              values.push(val.args[0])
+              // The index is already in the param.sql
+            } else {
+              values.push(val)
+            }
+          })
+        } else {
+          // This is a template-based SQL object
+          const [parts, ...fragmentValues] = param.templateArgs()
+          for (const [j, part] of parts.entries()) {
+            segments.push(part)
+            if (j < fragmentValues.length) {
+              values.push(fragmentValues[j])
+              segments.push('$' + values.length)
+            }
           }
         }
         break
