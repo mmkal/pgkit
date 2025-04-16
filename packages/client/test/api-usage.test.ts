@@ -36,6 +36,84 @@ test('sql.array', async () => {
   ])
 })
 
+test('nested sql.fragment - exclude from readme', async () => {
+  expect(
+    await client.anyFirst(sql`
+      select id from test_slonik37
+      where name = any(${sql.array(['one', 'two'], 'text')})
+    `),
+  ).toMatchSnapshot()
+
+  const isInGroupConditionSql = sql.fragment`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from test_slonik37
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchSnapshot()
+})
+
+test('nested sql.array - exclude from readme', async () => {
+  expect(
+    await client.anyFirst(sql`
+      select id from usage_test
+      where name = any(${sql.array(['one', 'two'], 'text')})
+    `),
+  ).toMatchInlineSnapshot(`
+    [
+      1,
+      2
+    ]
+  `)
+
+  const isInGroupConditionSql = sql`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from usage_test
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchInlineSnapshot(`
+    [
+      1,
+      2
+    ]
+  `)
+})
+
+test('deeply nested sql.fragment - exclude from readme', async () => {
+  const name2 = sql.fragment`select name from usage_test where id = ${sql`2`}`
+  expect(
+    await client.anyFirst(sql`
+      select id from usage_test
+      where name = 'one' or name in (${name2})
+    `),
+  ).toMatchInlineSnapshot(`
+    [
+      1,
+      2
+    ]
+  `)
+
+  const isInGroupConditionSql = sql`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from usage_test
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchInlineSnapshot(`
+    [
+      1,
+      2
+    ]
+  `)
+})
+
 /**
  * String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc.
  * you can use `sql.identifier`.

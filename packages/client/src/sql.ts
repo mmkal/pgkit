@@ -10,6 +10,7 @@ const sqlMethodHelpers: SQLMethodHelpers = {
     name: nameQuery([query]),
     token: 'sql',
     values: [],
+    segments: () => [query],
     templateArgs: () => [[query]],
   }),
   type: type => {
@@ -51,12 +52,18 @@ const sqlMethodHelpers: SQLMethodHelpers = {
 /**
  * Template tag function. Walks through each string segment and parameter, and concatenates them into a valid SQL query.
  */
-const sqlFn: SQLTagFunction = (
+const sqlFn: SQLTagFunction = (strings, ...templateParameters) => {
+  return sqlFnInner({}, strings, ...templateParameters)
+}
+
+const sqlFnInner = (
+  {priorValues = 0},
   strings: TemplateStringsArray,
   ...templateParameters: SQLParameter[]
 ): SQLQuery<never> => {
   const segments: string[] = []
   const values: unknown[] = []
+  const getValuePlaceholder = (inc = 0) => '$' + (values.length + priorValues + inc)
 
   // eslint-disable-next-line complexity
   strings.forEach((string, i) => {
@@ -68,7 +75,7 @@ const sqlFn: SQLTagFunction = (
     const param = templateParameters[i]
     if (!param || typeof param !== 'object') {
       values.push(param ?? null)
-      segments.push('$' + values.length)
+      segments.push(getValuePlaceholder())
       return
     }
 
@@ -80,7 +87,7 @@ const sqlFn: SQLTagFunction = (
       case 'jsonb':
       case 'timestamp': {
         values.push(param.args[0])
-        segments.push('$' + values.length)
+        segments.push(getValuePlaceholder())
         break
       }
 
@@ -93,9 +100,9 @@ const sqlFn: SQLTagFunction = (
         segments.push('make_interval(')
         Object.entries(param.args[0]).forEach(([unit, value], j, {length}) => {
           values.push(unit)
-          segments.push('$' + values.length + ':name')
+          segments.push(getValuePlaceholder() + ':name')
           values.push(value)
-          segments.push(` => $${values.length}`)
+          segments.push(` => ${getValuePlaceholder()}`)
           if (j < length - 1) segments.push(', ')
         })
         segments.push(')')
@@ -111,7 +118,7 @@ const sqlFn: SQLTagFunction = (
           }
 
           values.push(value)
-          segments.push('$' + values.length)
+          segments.push(getValuePlaceholder())
           if (j < length - 1) segments.push(param.args[1].sql)
         })
         break
@@ -120,7 +127,7 @@ const sqlFn: SQLTagFunction = (
       case 'identifier': {
         param.args[0].forEach((name, j, {length}) => {
           values.push(name)
-          segments.push('$' + values.length + ':name')
+          segments.push(getValuePlaceholder() + ':name')
           if (j < length - 1) segments.push('.')
         })
         break
@@ -131,7 +138,7 @@ const sqlFn: SQLTagFunction = (
         param.args[1].forEach((typename, j, {length}) => {
           const valueArray = param.args[0].map(tuple => tuple[j])
           values.push(valueArray)
-          segments.push('$' + values.length + '::' + typename + '[]')
+          segments.push(getValuePlaceholder() + '::' + typename + '[]')
           if (j < length - 1) segments.push(', ')
         })
         segments.push(')')
@@ -139,26 +146,17 @@ const sqlFn: SQLTagFunction = (
       }
 
       case 'fragment': {
-        const [parts, ...fragmentValues] = param.args
-        for (const [j, part] of parts.entries()) {
-          segments.push(part)
-          if (j < fragmentValues.length) {
-            values.push(fragmentValues[j])
-            segments.push('$' + String(values.length + j))
-          }
-        }
+        const innerResult = sqlFnInner({priorValues: values.length}, ...(param.args as Parameters<SQLTagFunction>))
+        segments.push(...innerResult.segments())
+        values.push(...innerResult.values)
         break
       }
 
       case 'sql': {
-        const [parts, ...fragmentValues] = param.templateArgs()
-        for (const [j, part] of parts.entries()) {
-          segments.push(part)
-          if (j < fragmentValues.length) {
-            values.push(fragmentValues[j])
-            segments.push('$' + String(values.length + j))
-          }
-        }
+        const innerArgs = param.templateArgs() as Parameters<SQLTagFunction>
+        const innerResult = sqlFnInner({priorValues: values.length}, ...innerArgs)
+        segments.push(...innerResult.segments())
+        values.push(...innerResult.values)
         break
       }
 
@@ -179,6 +177,7 @@ const sqlFn: SQLTagFunction = (
     sql: segments.join(''),
     token: 'sql',
     values,
+    segments: () => segments,
     templateArgs: () => [strings, ...templateParameters],
   }
 }

@@ -7,6 +7,8 @@ export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[
   sql: string
   values: Values
   parse: (input: unknown) => Row | Promise<Row>
+  /** @internal "segments" is the array of strings that make up the SQL query, including any parameter placeholders like `$1`, `$2`., and literals like dynamic table names, etc. It is joined together to form the `sql` property. */
+  segments: () => string[]
   /** @internal */
   templateArgs: () => [strings: readonly string[], ...inputParameters: readonly unknown[]]
 }
@@ -124,7 +126,10 @@ export type SQLTagHelperParameters = {
   array: [values: readonly PrimitiveValueExpression[], memberType: MemberType]
   binary: [data: Buffer]
   date: [date: Date]
-  fragment: [parts: TemplateStringsArray, ...values: readonly ValueExpression[]]
+  fragment: [
+    parts: TemplateStringsArray,
+    ...values: readonly (ValueExpression | {token: 'sql' | keyof SQLTagHelperParameters})[],
+  ]
   identifier: [names: readonly string[]]
   interval: [interval: IntervalInput]
   join: [members: readonly ValueExpression[], glue: SqlFragment]

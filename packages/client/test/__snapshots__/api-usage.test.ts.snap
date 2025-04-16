@@ -1,0 +1,15 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`nested sql.fragment - exclude from readme 1`] = `
+[
+  1,
+  2
+]
+`;
+
+exports[`nested sql.fragment - exclude from readme 2`] = `
+[
+  1,
+  2
+]
+`;

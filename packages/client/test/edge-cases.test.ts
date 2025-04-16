@@ -26,6 +26,7 @@ test('nested parameterized `sql` tag', async () => {
     {
       "name": "insert_e99c9be",
       "parse": [Function],
+      "segments": [Function],
       "sql": "
         insert into edge_cases_test values (4, $1)
         on conflict (id) do update set name = $2
@@ -63,6 +64,7 @@ test('nested parameterized `sql.fragment` tag', async () => {
     {
       "name": "insert_e99c9be",
       "parse": [Function],
+      "segments": [Function],
       "sql": "
         insert into edge_cases_test values (4, $1)
         on conflict (id) do update set name = $2

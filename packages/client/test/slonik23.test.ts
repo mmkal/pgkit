@@ -7,7 +7,7 @@ beforeAll(async () => {
   client = createPool('postgresql://postgres:postgres@localhost:5432/postgres')
 })
 
-// codegen:start {preset: custom, source: ./generate.cjs, export: generate, dev: true, removeTests: [sql.interval, sql.jsonb, sql.literalValue, sql.fragment, sql.type, 'createSqlTag + sql.typeAlias', 'sql.type with custom error message']}
+// codegen:start {preset: custom, source: ./generate.cjs, export: generate, dev: true, removeTests: [sql.interval, sql.jsonb, sql.literalValue, sql.fragment, 'sql.type', 'createSqlTag + sql.typeAlias', 'sql.type with custom error message', 'deeply nested sql.fragment - exclude from readme', 'nested sql.fragment - exclude from readme']}
 beforeEach(async () => {
   await client.query(sql`
     drop table if exists test_slonik23;
@@ -28,10 +28,25 @@ test('sql.array', async () => {
   ])
 })
 
-/**
- * String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc.
- * you can use `sql.identifier`.
- */
+test('nested sql.array - exclude from readme', async () => {
+  expect(
+    await client.anyFirst(sql`
+      select id from test_slonik23
+      where name = any(${sql.array(['one', 'two'], 'text')})
+    `),
+  ).toMatchSnapshot()
+
+  const isInGroupConditionSql = sql`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from test_slonik23
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchSnapshot()
+})
+
 test('sql.identifier', async () => {
   const result = await client.oneFirst(sql`
     select count(1)

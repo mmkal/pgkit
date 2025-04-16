@@ -73,6 +73,64 @@ test('sql.array', async () => {
   ])
 })
 
+test('nested sql.fragment - exclude from readme', async () => {
+  expect(
+    await client.anyFirst(sql`
+      select id from test_slonik37
+      where name = any(${sql.array(['one', 'two'], 'text')})
+    `),
+  ).toMatchSnapshot()
+
+  const isInGroupConditionSql = sql.fragment`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from test_slonik37
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchSnapshot()
+})
+
+test('nested sql.array - exclude from readme', async () => {
+  expect(
+    await client.anyFirst(sql`
+      select id from test_slonik37
+      where name = any(${sql.array(['one', 'two'], 'text')})
+    `),
+  ).toMatchSnapshot()
+
+  const isInGroupConditionSql = sql`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from test_slonik37
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchSnapshot()
+})
+
+test('deeply nested sql.fragment - exclude from readme', async () => {
+  const name2 = sql.fragment`select name from test_slonik37 where id = ${sql`2`}`
+  expect(
+    await client.anyFirst(sql`
+      select id from test_slonik37
+      where name = 'one' or name in (${name2})
+    `),
+  ).toMatchSnapshot()
+
+  const isInGroupConditionSql = sql`name = any(${sql.array(['one', 'two'], 'text')})`
+
+  expect(
+    await client.anyFirst(sql`
+      select id
+      from test_slonik37
+      where ${isInGroupConditionSql}
+    `),
+  ).toMatchSnapshot()
+})
+
 /**
  * String parameters are formatted in as parameters. To use dynamic strings for schema names, table names, etc.
  * you can use `sql.identifier`.
