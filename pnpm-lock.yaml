@@ -442,8 +442,8 @@ importers:
         specifier: ^11.0.1
         version: 11.0.1(typescript@5.8.2)
       trpc-cli:
-        specifier: ^0.6.0-9
-        version: 0.6.0-9(typescript@5.8.2)
+        specifier: ^0.6.0-10
+        version: 0.6.0-10(typescript@5.8.2)
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -512,8 +512,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       trpc-cli:
-        specifier: ^0.6.0-9
-        version: 0.6.0-9(typescript@5.8.2)
+        specifier: ^0.6.0-10
+        version: 0.6.0-10(typescript@5.8.2)
       umzug:
         specifier: ^3.7.0
         version: 3.7.0
@@ -594,8 +594,8 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4
       trpc-cli:
-        specifier: ^0.6.0-9
-        version: 0.6.0-9(typescript@5.8.2)
+        specifier: ^0.6.0-10
+        version: 0.6.0-10(typescript@5.8.2)
     devDependencies:
       '@pgkit/admin':
         specifier: workspace:^
@@ -686,8 +686,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       trpc-cli:
-        specifier: ^0.6.0-9
-        version: 0.6.0-9(typescript@5.8.2)
+        specifier: ^0.6.0-10
+        version: 0.6.0-10(typescript@5.8.2)
       typescript:
         specifier: '*'
         version: 5.8.2
@@ -762,8 +762,8 @@ importers:
         specifier: ^2.8.0
         version: 2.8.0
       trpc-cli:
-        specifier: ^0.6.0-9
-        version: 0.6.0-9(typescript@5.8.2)
+        specifier: ^0.6.0-10
+        version: 0.6.0-10(typescript@5.8.2)
     devDependencies:
       '@types/semver':
         specifier: ^7.5.8
@@ -7868,9 +7868,10 @@ packages:
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
-  trpc-cli@0.6.0-9:
-    resolution: {integrity: sha512-0ht76PMxx+JnuVbfkuAhcBVGizpHHRrufgjdP+qEPRI31JOm/nXNqzdH8qFoHde4LB5mvSU4PaJRSQo9Z4Fawg==}
+  trpc-cli@0.6.0-10:
+    resolution: {integrity: sha512-wEs154MXJU95ZycbDv7Vqy1owkB6LHU68eyXZ2MdFI/DKO4c03q0B/K3mpPOJTQzwgSXvUlZgIYb4Ru6svsJwg==}
     engines: {node: '>=18'}
+    hasBin: true
     peerDependencies:
       omelette: '>=0.4.17'
     peerDependenciesMeta:
@@ -17436,7 +17437,7 @@ snapshots:
 
   trough@2.2.0: {}
 
-  trpc-cli@0.6.0-9(typescript@5.8.2):
+  trpc-cli@0.6.0-10(typescript@5.8.2):
     dependencies:
       '@trpc/server': 11.0.1(typescript@5.8.2)
       '@types/omelette': 0.4.5
