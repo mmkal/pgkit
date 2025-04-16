@@ -15,9 +15,9 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await client.query(sql`
-    drop table if exists zod_test;
-    create table zod_test(id int, location text, label text);
-    insert into zod_test values (1, '70,-108', 'a'), (2, '71,-102', 'b'), (3, '66,-90', null);
+    drop table if exists arktype_test;
+    create table arktype_test(id int, location text, label text);
+    insert into arktype_test values (1, '70,-108', 'a'), (2, '71,-102', 'b'), (3, '66,-90', null);
   `)
 })
 
@@ -27,7 +27,7 @@ test('simple schemas', async () => {
 
   await expect(
     client.any(sql.type(GoodRow)`
-      select id, label from zod_test
+      select id, label from arktype_test
     `),
   ).resolves.toMatchInlineSnapshot(`
     [
@@ -48,14 +48,14 @@ test('simple schemas', async () => {
 
   await expect(
     client.any(sql.type(BadRow)`
-      select id, label from zod_test
+      select id, label from arktype_test
     `),
   ).rejects.toMatchInlineSnapshot(`
     {
-      "message": "[select-zod_test_244277e]: Parsing rows failed",
+      "message": "[select-arktype_test_244277e]: Parsing rows failed",
       "query": {
-        "name": "select-zod_test_244277e",
-        "sql": "\\n      select id, label from zod_test\\n    ",
+        "name": "select-arktype_test_244277e",
+        "sql": "\\n      select id, label from arktype_test\\n    ",
         "token": "sql",
         "values": []
       },
