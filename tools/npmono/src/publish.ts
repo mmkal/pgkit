@@ -496,7 +496,7 @@ export const publish = async (input: PublishInput) => {
     {ctx: {} as Ctx},
   )
 
-  await tasks.run()
+  return tasks.run()
 }
 
 const loadContext = (folderPath: string) => {
