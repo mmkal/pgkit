@@ -705,7 +705,7 @@ If you like, you can use [zod](https://npmjs.com/package/zod) to parse query res
 
 ```ts
 const Profile = z.object({
-  id: z.string(),
+  id: z.number(),
   name: z.string(),
 })
 
@@ -721,8 +721,8 @@ Note that zod is not a dependency of this library, nor even a peer dependency. Y
 ```ts
 import * as v from 'valibot'
 
-const ProfileS = v.object({
-  id: v.string(),
+const Profile = v.object({
+  id: v.number(),
   name: v.string(),
 })
 
@@ -730,20 +730,17 @@ const profiles = await client.any(sql.type(Profile)`select * from profile`)
 ```
 
 ```ts
-import * as v from 'valibot'
+import {type} from 'arktype'
 
-const ProfileSchema = v.object({
-  id: v.string(),
-  name: v.string(),
+const Profile = type({
+  id: 'number',
+  name: 'string',
 })
-const Profile = {
-  parseAsync: async (input: unknown) => v.parse(ProfileSchema, input),
-}
 
 const profiles = await client.any(sql.type(Profile)`select * from profile`)
 ```
 
-You can use any zod features here. For example:
+You can also use any zod features like transforms here. For example:
 
 <!-- codegen:start {preset: markdownFromTests, source: test/zod.test.ts} -->
 Transform rows:

@@ -23,7 +23,7 @@ beforeEach(async () => {
 
 test('simple schemas', async () => {
   const GoodRow = v.object({id: v.number(), label: v.nullable(v.string())})
-  const BadRow = v.object({id: v.number(), label: v.pipe(v.string(), v.regex(/a crazy regex/))})
+  const BadRow = v.object({id: v.number(), label: v.pipe(v.string(), v.regex(/a/))})
 
   await expect(
     client.any(sql.type(GoodRow)`
@@ -60,26 +60,26 @@ test('simple schemas', async () => {
         "values": []
       },
       "cause": {
-        "message": "Validation failed:\\n\\n.label: Invalid format: Expected /a crazy regex/ but received \\"a\\"",
+        "message": "Validation failed:\\n\\n.label: Invalid format: Expected /a/ but received \\"b\\"",
         "issues": [
           {
             "kind": "validation",
             "type": "regex",
-            "input": "a",
-            "expected": "/a crazy regex/",
-            "received": "\\"a\\"",
-            "message": "Invalid format: Expected /a crazy regex/ but received \\"a\\"",
+            "input": "b",
+            "expected": "/a/",
+            "received": "\\"b\\"",
+            "message": "Invalid format: Expected /a/ but received \\"b\\"",
             "requirement": {},
             "path": [
               {
                 "type": "object",
                 "origin": "value",
                 "input": {
-                  "id": 1,
-                  "label": "a"
+                  "id": 2,
+                  "label": "b"
                 },
                 "key": "label",
-                "value": "a"
+                "value": "b"
               }
             ]
           }

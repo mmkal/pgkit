@@ -23,7 +23,7 @@ beforeEach(async () => {
 
 test('simple schemas', async () => {
   const GoodRow = type({id: 'number', label: 'string | null'})
-  const BadRow = type({id: 'number', label: '/a crazy regex/'})
+  const BadRow = type({id: 'number', label: '/a/'})
 
   await expect(
     client.any(sql.type(GoodRow)`
@@ -52,29 +52,29 @@ test('simple schemas', async () => {
     `),
   ).rejects.toMatchInlineSnapshot(`
     {
-      "message": "[select-arktype_test_244277e]: Parsing rows failed",
+      "message": "[select-arktype_test_46f036f]: Parsing rows failed",
       "query": {
-        "name": "select-arktype_test_244277e",
+        "name": "select-arktype_test_46f036f",
         "sql": "\\n      select id, label from arktype_test\\n    ",
         "token": "sql",
         "values": []
       },
       "cause": {
-        "message": "Validation failed:\\n\\n.label: label must be matched by a crazy regex (was \\"a\\")",
+        "message": "Validation failed:\\n\\n.label: label must be matched by a (was \\"b\\")",
         "issues": [
           {
-            "data": "a",
+            "data": "b",
             "path": [
               "label"
             ],
             "code": "pattern",
-            "description": "matched by a crazy regex",
+            "description": "matched by a",
             "meta": {},
-            "rule": "a crazy regex",
-            "expected": "matched by a crazy regex",
-            "actual": "\\"a\\"",
-            "problem": "must be matched by a crazy regex (was \\"a\\")",
-            "message": "label must be matched by a crazy regex (was \\"a\\")"
+            "rule": "a",
+            "expected": "matched by a",
+            "actual": "\\"b\\"",
+            "problem": "must be matched by a (was \\"b\\")",
+            "message": "label must be matched by a (was \\"b\\")"
           }
         ]
       }
