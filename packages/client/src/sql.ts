@@ -17,26 +17,25 @@ const sqlMethodHelpers: SQLMethodHelpers = {
   type: type => {
     return (strings, ...parameters) => ({
       ...sqlFn(strings, ...(parameters as never)),
-      parse: async input => {
+      parse: async (input, index, array) => {
         const result = await type['~standard'].validate(input)
-        return extractStandardSchemaV1Result(result)
+        if (result.issues) throw new ValidationError(result.issues, `Row ${index + 1} of ${array.length}: `)
+        return result.value
       },
     })
   },
 }
 
-const extractStandardSchemaV1Result = <T>(result: StandardSchemaV1.Result<T>): T => {
-  if (result.issues) throw new ValidationError(result.issues)
-  return result.value
-}
-
 class ValidationError extends Error {
   readonly message: string
-  constructor(public readonly issues: StandardSchemaV1.FailureResult['issues']) {
+  constructor(
+    public readonly issues: StandardSchemaV1.FailureResult['issues'],
+    prefix = '',
+  ) {
     const lines = issues.map(issue => {
       return `.${issue.path?.map(pathSegmentKey)?.join('.') || ''}: ${issue.message}`
     })
-    const message = `Validation failed:\n\n${lines.join('\n')}`
+    const message = `${prefix}Validation failed:\n\n${lines.join('\n')}`
     super(message)
     this.message = message
   }

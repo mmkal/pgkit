@@ -97,7 +97,7 @@ test('Refine schemas', async () => {
         "values": []
       },
       "cause": {
-        "message": "Validation failed:\\n\\n.id: id must be even\\n.name: Required",
+        "message": "Row 1 of 3: Validation failed:\\n\\n.id: id must be even\\n.name: Required",
         "issues": [
           {
             "code": "custom",

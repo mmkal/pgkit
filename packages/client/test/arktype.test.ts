@@ -60,7 +60,7 @@ test('simple schemas', async () => {
         "values": []
       },
       "cause": {
-        "message": "Validation failed:\\n\\n.label: label must be matched by a (was \\"b\\")",
+        "message": "Row 2 of 3: Validation failed:\\n\\n.label: label must be matched by a (was \\"b\\")",
         "issues": [
           {
             "data": "b",

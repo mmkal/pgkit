@@ -394,7 +394,7 @@ test('sql.type', async () => {
       },
       "cause": {
         "name": "Error",
-        "message": "Validation failed:\\n\\n.id: Expected string, received number",
+        "message": "Row 1 of 3: Validation failed:\\n\\n.id: Expected string, received number",
         "issues": [
           {
             "code": "invalid_type",
@@ -455,7 +455,7 @@ test('sql.type with custom error message', async () => {
       },
       "cause": {
         "name": "Error",
-        "message": "Validation failed:\\n\\n.id: Expected string, received number",
+        "message": "Row 1 of 3: Validation failed:\\n\\n.id: Expected string, received number",
         "issues": [
           {
             "code": "invalid_type",
@@ -502,7 +502,7 @@ test('createSqlTag + sql.typeAlias', async () => {
       },
       "cause": {
         "name": "Error",
-        "message": "Validation failed:\\n\\n.name: Expected string, received number",
+        "message": "Row 1 of 1: Validation failed:\\n\\n.name: Expected string, received number",
         "issues": [
           {
             "code": "invalid_type",

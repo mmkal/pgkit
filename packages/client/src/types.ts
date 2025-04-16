@@ -7,7 +7,7 @@ export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[
   name: string
   sql: string
   values: Values
-  parse: (input: unknown) => Row | Promise<Row>
+  parse: (input: unknown, index: number, array: unknown[]) => Row | Promise<Row>
   /** @internal "segments" is the array of strings that make up the SQL query, including any parameter placeholders like `$1`, `$2`., and literals like dynamic table names, etc. It is joined together to form the `sql` property. */
   segments: () => string[]
   /** @internal */

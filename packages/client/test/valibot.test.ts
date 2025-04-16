@@ -60,7 +60,7 @@ test('simple schemas', async () => {
         "values": []
       },
       "cause": {
-        "message": "Validation failed:\\n\\n.label: Invalid format: Expected /a/ but received \\"b\\"",
+        "message": "Row 2 of 3: Validation failed:\\n\\n.label: Invalid format: Expected /a/ but received \\"b\\"",
         "issues": [
           {
             "kind": "validation",
