@@ -29,6 +29,10 @@ export const PublishInput = z
       .describe('semver "bump" strategy - if not provided you will be prompted for it. Do not use with --version.')
       .optional(),
     version: z.string().describe('specify an exact version to bump to. Do not use with --bump.').optional(),
+    skipRegistryPull: z
+      .boolean()
+      .optional()
+      .describe('skip pulling registry packages. Note: if publishing, the full history will appear in changelogs'),
   })
   .refine(obj => !(obj.bump && obj.version), {message: `Don't use --bump and --version together`})
 export type PublishInput = z.infer<typeof PublishInput>
@@ -215,6 +219,7 @@ export const publish = async (input: PublishInput) => {
       {
         title: `Pulling registry packages`,
         rendererOptions: {persistentOutput: true},
+        skip: input.skipRegistryPull,
         task: (ctx, task) => {
           return task.newListr(
             ctx.packages.map(pkg => ({
@@ -971,7 +976,7 @@ const Pkg = PkgMeta.extend({
     .optional(),
 })
 
-const Ctx = z.object({
+export const Ctx = z.object({
   tempDir: z.string(),
   versionStrategy: z.union([
     z.object({type: z.literal('fixed'), version: z.string()}).readonly(),
