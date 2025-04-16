@@ -455,6 +455,12 @@ export const publish = async (input: PublishInput) => {
         },
       },
       {
+        title: 'Write context',
+        task: async ctx => {
+          fs.writeFileSync(path.join(ctx.tempDir, 'context.json'), JSON.stringify(ctx, null, 2))
+        },
+      },
+      {
         title: ['Publish packages', !input.publish && '(dry run)'].filter(Boolean).join(' '),
         rendererOptions: {persistentOutput: true},
         task: async (ctx, task) => {
@@ -470,22 +476,20 @@ export const publish = async (input: PublishInput) => {
               task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
             }
           }
-          return task.newListr(
-            ctx.packages.map(pkg => {
-              const lhsPackageJson = loadLHSPackageJson(pkg)
-              const rhsPackageJson = loadRHSPackageJson(pkg)
-              return {
-                title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${pkg.targetVersion}`,
-                skip: () => !shouldActuallyPublish || pkg.targetVersion === rhsPackageJson?.version,
-                task: async (_ctx, subtask) => {
-                  await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
-                    cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
-                  })
-                },
-              }
-            }),
-            {rendererOptions: {collapseSubtasks: false}},
-          )
+          const publishTasks = createPublishTasks(ctx, otp)
+          if (!shouldActuallyPublish) publishTasks.forEach(t => (t.skip = true))
+
+          return task.newListr(publishTasks, {rendererOptions: {collapseSubtasks: false}})
+        },
+      },
+      {
+        title: 'Dry run complete',
+        enabled: !input.publish,
+        rendererOptions: {persistentOutput: true},
+        task: async (ctx, task) => {
+          task.output = `To publish, run the following command:`
+          task.output += `\n\n`
+          task.output += `pnpm npmono prebuilt ${ctx.tempDir}`
         },
       },
     ],
@@ -494,6 +498,79 @@ export const publish = async (input: PublishInput) => {
 
   await tasks.run()
 }
+
+const loadContext = (folderPath: string) => {
+  const contextFilepath = path.join(folderPath, 'context.json')
+  if (!fs.existsSync(contextFilepath)) throw new Error(`No context found at ${contextFilepath}`)
+  const ctxString = fs.readFileSync(contextFilepath).toString()
+  try {
+    const json = JSON.parse(ctxString) as {}
+    return Ctx.parse(json)
+  } catch (e) {
+    throw new Error(`Invalid context at ${contextFilepath}: ${e}`)
+  }
+}
+
+export const PrebuiltInput = z.tuple([
+  z.string().describe('Path to the prebuilt publishable folder'),
+  z.object({
+    otp: z.string().describe('OTP for publishing. If not provided, you will be prompted for it.').optional(),
+  }),
+])
+type PrebuiltInput = z.infer<typeof PrebuiltInput>
+
+export const publishPrebuilt = async ([folder, options]: PrebuiltInput) => {
+  const ctx = loadContext(folder)
+  const tasks = new Listr(
+    [
+      {
+        title: 'Get OTP',
+        enabled: !options.otp,
+        task: async (_ctx, task) => {
+          options.otp = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+            message: 'Enter npm OTP',
+            type: 'Input',
+            validate: v => v === '' || (typeof v === 'string' && /^\d{6}$/.test(v)),
+          })
+          if (options.otp === '') {
+            const confirmed = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
+              message: 'This will fail unless you have disabled MFA, which is not recommended.',
+              type: 'confirm',
+            })
+            if (!confirmed) {
+              throw new Error('OTP not provided')
+            }
+          }
+        },
+      },
+      ...createPublishTasks(ctx, options),
+    ],
+    {ctx},
+  )
+
+  await tasks.run()
+}
+
+const createPublishTasks = (ctx: Ctx, options: {otp?: string}) =>
+  ctx.packages.map((pkg): ListrTask => {
+    const lhsPackageJson = loadLHSPackageJson(pkg)
+    const rhsPackageJson = loadRHSPackageJson(pkg)
+    ensureValidBumpedVersion(lhsPackageJson?.version || VERSION_ZERO, rhsPackageJson?.version)
+    return {
+      title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${rhsPackageJson?.version}`,
+      task: async (_ctx, subtask) => {
+        const publishArgs = ['--access', 'public']
+        if (options.otp) publishArgs.push('--otp', options.otp)
+        await pipeExeca(subtask, 'pnpm', ['publish', ...publishArgs], {
+          cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
+          env: {
+            ...process.env,
+            COREPACK_ENABLE_AUTO_PIN: '0',
+          },
+        })
+      },
+    }
+  })
 
 export const ReleaseNotesInput = z.object({
   comparison: z
@@ -847,54 +924,84 @@ const allReleaseTypes: readonly semver.ReleaseType[] = [
   'prerelease',
 ]
 
-type Pkg = PkgMeta & {
-  name: string
-  version: string
-  path: string
-  private: boolean
-  publishedVersions: string[]
-  dependencies: Record<
-    string,
-    {
-      from: string
-      version: string
-      path: string
-    }
-  >
-}
-
-type Ctx = {
-  tempDir: string
-  versionStrategy:
-    | Readonly<{type: 'fixed'; version: string}>
-    | Readonly<{type: 'independent'; bump: semver.ReleaseType | null}>
-  publishTag: string
-  packages: Array<Pkg>
-}
-
-type PackageJson = import('type-fest').PackageJson & {
+const PackageJson = z.object({
+  name: z.string(),
+  version: z.string(),
+  dependencies: z.record(z.string(), z.string()).optional(),
   /**
    * not an official package.json field, but there is a library that does something similar to this: https://github.com/Metnew/git-hash-package
    * having git.sha point to a commit hash seems pretty useful to me, even if it's not standard.
    * tagging versions in git is still a good best practice but there are many different ways, e.g. `1.2.3` vs `v1.2.3` vs `mypkg@1.2.3` vs `mypkg@v1.2.3`
    * plus, that's only useful in going from git to npm, not npm to git.
    */
-  git?: {sha?: string}
-}
+  git: z.object({sha: z.string().optional()}).optional(),
+  repository: z
+    .object({
+      type: z.string(),
+      url: z.string(),
+    })
+    .optional(),
+})
 
-type PkgMeta = {
-  folder: string
-  targetVersion: string | null
-  changeTypes?: Set<string>
-  shas: {
-    left: string
-    right: string
-  }
-}
+const PkgMeta = z.object({
+  folder: z.string(),
+  targetVersion: z.string().nullable(),
+  changeTypes: z.set(z.string()).optional(),
+  shas: z.object({
+    left: z.string(),
+    right: z.string(),
+  }),
+})
+
+const Pkg = PkgMeta.extend({
+  name: z.string(),
+  version: z.string(),
+  path: z.string(),
+  private: z.boolean(),
+  publishedVersions: z.array(z.string()),
+  dependencies: z
+    .record(
+      z.string(),
+      z.object({
+        from: z.string(),
+        version: z.string(),
+        path: z.string(),
+      }),
+    )
+    .optional(),
+})
+
+const Ctx = z.object({
+  tempDir: z.string(),
+  versionStrategy: z.union([
+    z.object({type: z.literal('fixed'), version: z.string()}).readonly(),
+    z
+      .object({
+        type: z.literal('independent'),
+        bump: z.union([
+          z.enum(['patch', 'minor', 'major', 'prepatch', 'preminor', 'premajor', 'prerelease']),
+          z.null(),
+        ]),
+      })
+      .readonly(),
+  ]),
+  packages: z.array(Pkg),
+})
+
+type PackageJson = z.infer<typeof PackageJson>
+type PkgMeta = z.infer<typeof PkgMeta>
+type Pkg = z.infer<typeof Pkg>
+type Ctx = z.infer<typeof Ctx>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, args: string[], options?: Options) => {
-  const cmd = execa(file, args, options)
+  const cmd = execa(file, args, {
+    ...options,
+    env: {
+      ...options?.env,
+      COREPACK_ENABLE_STRICT: '0',
+    },
+  })
   cmd.stdout.pipe(task.stdout())
   return cmd
 }
