@@ -703,9 +703,9 @@ async function getFirstRef(pkg: Pkg) {
 async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
   const leftPackageJson = loadLHSPackageJson(params.pkg)
   const rightPackageJson = loadRHSPackageJson(params.pkg)
-  const localPackageDependencies = {...leftPackageJson?.dependencies}
+  const rightPackageDependencies = {...rightPackageJson?.dependencies}
   const updates: Record<string, string> = {}
-  for (const [depName, depVersion] of Object.entries(leftPackageJson?.dependencies || {})) {
+  for (const [depName, depVersion] of Object.entries(rightPackageJson?.dependencies || {})) {
     const foundDep = ctx.packages
       .filter(other => other.name === depName)
       .flatMap(other => {
@@ -718,7 +718,7 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
       continue
     }
 
-    const registryPackageDependencyVersion = rightPackageJson?.dependencies?.[depName]
+    const leftPackageDependencyVersion = leftPackageJson?.dependencies?.[depName]
 
     const dependencyPackageJsonOnRHS = loadRHSPackageJson(foundDep.pkg)
     let expected = foundDep.pkg.targetVersion
@@ -739,19 +739,19 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
     //   continue
     // }
 
-    const prefix = foundDep.prefix || registryPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    const prefix = foundDep.prefix || leftPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
 
-    localPackageDependencies[depName] = prefix + expected
+    rightPackageDependencies[depName] = prefix + expected
     updates[depName] =
-      `${registryPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName, registryPackageJson: dependencyPackageJsonOnRHS}, null, 2)} -> ${localPackageDependencies[depName]}`
+      `${leftPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName, registryPackageJson: dependencyPackageJsonOnRHS}, null, 2)} -> ${rightPackageDependencies[depName]}`
   }
 
   if (Object.keys(updates).length === 0) {
     // keep reference equality, avoid `undefined` to `{}`
-    return {updated: updates, dependencies: leftPackageJson?.dependencies}
+    return {updated: updates, dependencies: rightPackageJson?.dependencies}
   }
 
-  return {updated: updates, dependencies: localPackageDependencies}
+  return {updated: updates, dependencies: rightPackageDependencies}
 }
 
 /** Get a markdown formatted list of commits for a package. */
