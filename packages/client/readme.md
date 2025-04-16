@@ -72,6 +72,7 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
 - [Types](#types)
 - [Automatic type generation](#automatic-type-generation)
    - [Zod](#zod)
+   - [Other validators](#other-validators)
 - [Recipes](#recipes)
    - [Inserting many rows with sql.unnest](#inserting-many-rows-with-sqlunnest)
    - [Query logging](#query-logging)
@@ -520,7 +521,8 @@ expect(error).toMatchInlineSnapshot(`
       "values": []
     },
     "cause": {
-      "name": "ZodError",
+      "name": "Error",
+      "message": "Validation failed:\\n\\n.id: Expected string, received number",
       "issues": [
         {
           "code": "invalid_type",
@@ -581,23 +583,9 @@ expect(error).toMatchInlineSnapshot(`
       "values": []
     },
     "cause": {
-      "name": "ZodValidationError",
-      "message": "Validation error: Expected string, received number at \\"id\\"",
-      "cause": {
-        "name": "ZodError",
-        "issues": [
-          {
-            "code": "invalid_type",
-            "expected": "string",
-            "received": "number",
-            "path": [
-              "id"
-            ],
-            "message": "Expected string, received number"
-          }
-        ]
-      },
-      "details": [
+      "name": "Error",
+      "message": "Validation failed:\\n\\n.id: Expected string, received number",
+      "issues": [
         {
           "code": "invalid_type",
           "expected": "string",
@@ -642,23 +630,9 @@ expect(err).toMatchInlineSnapshot(`
       "values": []
     },
     "cause": {
-      "name": "ZodValidationError",
-      "message": "Validation error: Expected string, received number at \\"name\\"",
-      "cause": {
-        "name": "ZodError",
-        "issues": [
-          {
-            "code": "invalid_type",
-            "expected": "string",
-            "received": "number",
-            "path": [
-              "name"
-            ],
-            "message": "Expected string, received number"
-          }
-        ]
-      },
-      "details": [
+      "name": "Error",
+      "message": "Validation failed:\\n\\n.name: Expected string, received number",
+      "issues": [
         {
           "code": "invalid_type",
           "expected": "string",
@@ -747,18 +721,13 @@ Note that zod is not a dependency of this library, nor even a peer dependency. Y
 ```ts
 import * as v from 'valibot'
 
-const ProfileSchema = v.object({
+const ProfileS = v.object({
   id: v.string(),
   name: v.string(),
 })
-const Profile = {
-  parse: (input: unknown) => v.parse(ProfileSchema, input),
-}
 
 const profiles = await client.any(sql.type(Profile)`select * from profile`)
 ```
-
-You can also define `safeParse`, `parseAsync` or `safeParseAsync` as long as they match their zod equivalents:
 
 ```ts
 import * as v from 'valibot'
@@ -857,7 +826,15 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
       "values": []
     },
     "cause": {
+      "message": "Validation failed:\\n\\n.id: id must be even\\n.name: Required",
       "issues": [
+        {
+          "code": "custom",
+          "message": "id must be even",
+          "path": [
+            "id"
+          ]
+        },
         {
           "code": "invalid_type",
           "expected": "string",
@@ -866,16 +843,8 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
             "name"
           ],
           "message": "Required"
-        },
-        {
-          "code": "custom",
-          "message": "id must be even",
-          "path": [
-            "id"
-          ]
         }
-      ],
-      "name": "ZodError"
+      ]
     }
   }
 `)

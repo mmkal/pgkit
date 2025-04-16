@@ -34,12 +34,17 @@ class ValidationError extends Error {
   readonly message: string
   constructor(public readonly issues: StandardSchemaV1.FailureResult['issues']) {
     const lines = issues.map(issue => {
-      return `.${issue.path?.join('.') || ''}: ${issue.message}`
+      return `.${issue.path?.map(pathSegmentKey)?.join('.') || ''}: ${issue.message}`
     })
     const message = `Validation failed:\n\n${lines.join('\n')}`
     super(message)
     this.message = message
   }
+}
+const pathSegmentKey = (segment: PropertyKey | StandardSchemaV1.PathSegment) => {
+  if (typeof segment === 'string' || typeof segment === 'number' || typeof segment === 'symbol') return segment
+  if (segment?.key) return segment.key
+  return ''
 }
 
 /**
