@@ -6,7 +6,7 @@ import {createCascadingState} from './utils/cascading-state'
 import {ZForm} from './utils/zform/form'
 
 export const Settings = z.object({
-  apiUrl: z.string(),
+  apiUrl: z.string().optional(),
   includeSchemas: z.string().optional(),
   excludeSchemas: z.string().optional(),
   headers: z.record(z.string()).optional(),
