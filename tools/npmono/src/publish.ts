@@ -84,8 +84,7 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
         ctx.packages.map(pkg => ({
           title: `Getting published versions for ${pkg.name}`,
           task: async _ctx => {
-            const rightFolderPath = path.join(pkg.folder, LHS_FOLDER)
-            fs.mkdirSync(rightFolderPath, {recursive: true})
+            fs.mkdirSync(path.join(pkg.folder, LHS_FOLDER), {recursive: true})
             pkg.publishedVersions = await getRegistryVersions(pkg)
           },
         })),
@@ -175,14 +174,15 @@ export const publish = async (input: PublishInput) => {
               type: 'independent',
               bump: bumpMethod === 'ask' ? null : bumpMethod,
             }
-          } else if (bumpedVersion === 'other') {
-            bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
-              type: 'Input',
-              message: `Enter a custom version (must be greater than ${maxVersion})`,
-              validate: v =>
-                typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
-            })
           } else {
+            if (bumpedVersion === 'other') {
+              bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+                type: 'Input',
+                message: `Enter a custom version (must be greater than ${maxVersion})`,
+                validate: v =>
+                  typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
+              })
+            }
             ctx.versionStrategy = {
               type: 'fixed',
               version: bumpedVersion,
@@ -230,13 +230,13 @@ export const publish = async (input: PublishInput) => {
 
                 await pipeExeca(subtask, 'tar', ['-xvzf', tgzFileName], {cwd: publishedAlreadyFolder})
 
-                const registryPackageJson = loadRHSPackageJson(pkg)
-                if (registryPackageJson) {
-                  const registryPackageJsonPath = packageJsonFilepath(pkg, LHS_FOLDER)
-                  // avoid churn on package.json field ordering, which npm seems to mess with
+                const leftPackageJson = loadLHSPackageJson(pkg)
+                if (leftPackageJson) {
+                  const leftPackageJsonPath = packageJsonFilepath(pkg, LHS_FOLDER)
                   fs.writeFileSync(
-                    registryPackageJsonPath,
-                    sortPackageJson(JSON.stringify(registryPackageJson, null, 2)),
+                    leftPackageJsonPath,
+                    // avoid churn on package.json field ordering, which npm seems to mess with
+                    sortPackageJson(JSON.stringify(leftPackageJson, null, 2)),
                   )
                 }
               },
@@ -254,7 +254,7 @@ export const publish = async (input: PublishInput) => {
               left: await getPackageLastPublishRef(pkg),
               right: rightSha,
             }
-            const changelog = await getOrCreateChangelog(ctx, pkg)
+            const changelog = await getChangelog(ctx, pkg)
             if (ctx.versionStrategy.type === 'fixed') {
               pkg.targetVersion = ctx.versionStrategy.version
               continue
@@ -294,11 +294,8 @@ export const publish = async (input: PublishInput) => {
             }
 
             pkg.targetVersion = newVersion
+            pkg.changeTypes = new Set(Array.from(changelog?.matchAll(/data-change-type="(\w+)"/g) || []).map(m => m[1]))
           }
-          const packagesWithChanges = ctx.packages.map(pkg => ({
-            pkg,
-            changes: fs.readFileSync(changelogFilepath(pkg)).toString(),
-          }))
 
           if (ctx.versionStrategy.type === 'fixed') return
 
@@ -308,12 +305,12 @@ export const publish = async (input: PublishInput) => {
             type: 'MultiSelect',
             message: 'Select packages',
             hint: 'Press <space> to toggle, <a> to toggle all, <i> to invert selection',
-            initial: packagesWithChanges.flatMap((c, i) => (c.changes ? [i] : [])),
-            choices: packagesWithChanges.map(c => {
-              const changeTypes = [...new Set([...c.changes.matchAll(/data-change-type="(\w+)"/g)].map(m => m[1]))]
+            initial: ctx.packages.flatMap((pkg, i) => (pkg.changeTypes?.size ? [i] : [])),
+            choices: ctx.packages.map(pkg => {
+              const changeTypes = [...(pkg.changeTypes || [])]
               return {
-                name: `${c.pkg.name} ${c.changes ? `(changes: ${changeTypes.join(', ')})` : '(unchanged)'}`.trim(),
-                value: c.pkg.name,
+                name: `${pkg.name} ${changeTypes.length ? `(changes: ${changeTypes.join(', ')})` : '(unchanged)'}`.trim(),
+                value: pkg.name,
               }
             }),
             validate: (values: string[]) => {
@@ -356,7 +353,7 @@ export const publish = async (input: PublishInput) => {
                 const sha = await execa('git', ['log', '-n', '1', '--pretty=format:%h', '--', '.'], {
                   cwd: pkg.path,
                 })
-                const packageJson = loadLHSPackageJson(pkg)
+                const packageJson = loadRHSPackageJson(pkg)!
 
                 packageJson.version = pkg.targetVersion
                 packageJson.git = {
@@ -422,6 +419,18 @@ export const publish = async (input: PublishInput) => {
             })),
             {concurrent: true},
           ),
+      },
+      {
+        title: 'Write changelogs',
+        task: async (ctx, task) => {
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Write ${pkg.name} changelog`,
+              task: async () => getOrCreateChangelog(ctx, pkg),
+            })),
+            {concurrent: true},
+          )
+        },
       },
       {
         title: ['Publish packages', !input.publish && '(dry run)'].filter(Boolean).join(' '),
@@ -493,170 +502,6 @@ const pullRegistryPackage = async (
   const packageJson = JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 
   return packageJson
-}
-
-// this doesn't work yet
-// consider making it a separate command that can read the folder made by the main publish command
-export const releaseNotes = async (input: ReleaseNotesInput) => {
-  const tasks = new Listr<Ctx, never, never>(
-    [
-      ...setupContextTasks,
-      {
-        title: `Get comparison`,
-        enabled: () => !input.comparison,
-        task: async (ctx, task) => {
-          const pkgVersions = await Promise.all(ctx.packages.map(pkg => getRegistryVersions(pkg)))
-          const lasts = pkgVersions.map(v => v.at(-1)!.slice())
-          const latest = lasts.sort((a, b) => semver.compare(a, b)).at(-1)!
-          const all = pkgVersions.flat().sort((a, b) => semver.compare(a, b))
-
-          const left =
-            all
-              .slice(0, -1)
-              .reverse()
-              .find(v => {
-                if (v === latest) return false
-                if (semver.prerelease(latest)) return true // if RHS is prerelease, then we whichever version was immediately before it
-                return !semver.prerelease(v) // if RHS was a proper release, then we want the last proper release
-              })! || all[0]
-
-          input.comparison = {left, right: latest, original: `${left}...${latest}`}
-          task.output = `Using ${input.comparison.original} for release notes`
-        },
-        rendererOptions: {persistentOutput: true},
-      },
-      {
-        title: 'Write packages locally',
-        task: async (ctx, task) => {
-          return task.newListr<Ctx>(
-            ctx.packages.map(pkg => ({
-              title: `Write ${pkg.name} locally`,
-              task: async (_ctx, subtask) => {
-                if (!input.comparison) throw new Error('No comparison provided')
-                const pullables = [
-                  {str: input.comparison.left, folder: path.join(pkg.folder, LHS_FOLDER), side: 'left' as const},
-                  {str: input.comparison.right, folder: path.join(pkg.folder, RHS_FOLDER), side: 'right' as const},
-                ]
-                for (const pullable of pullables) {
-                  fs.mkdirSync(pullable.folder, {recursive: true})
-                  if (semver.valid(pullable.str)) {
-                    if (pullable.side === 'right') pkg.targetVersion = pullable.str
-                    subtask.output = `Pulling ${pullable.str} for ${pkg.name}`
-                    const packageJson = await pullRegistryPackage(subtask, pkg, {
-                      version: pullable.str,
-                      folder: pullable.folder,
-                    }).catch(async e => {
-                      if (`${e}`.includes('No matching version found')) {
-                        // if the version doesn't exist on the registry, we might have passed a comparison string from before it existed (can happen with fixed versioning)
-                        const versions = await getRegistryVersions(pkg)
-                        return pullRegistryPackage(subtask, pkg, {
-                          version: pullable.side === 'left' ? versions[0] : versions.at(-1)!,
-                          folder: pullable.folder,
-                        })
-                      }
-                      throw e
-                    })
-                    pkg.shas ||= {} as never
-                    pkg.shas[pullable.side] = await getPackageJsonGitSha(pkg, packageJson)
-                  } else if (/^[\da-f]+/.test(pullable.str)) {
-                    // actually it's a sha
-                    pkg.shas ||= {} as never
-                    pkg.shas[pullable.side] = pullable.str
-                    const versions = await getRegistryVersions(pkg)
-                    for (const version of versions.slice().reverse()) {
-                      subtask.output = `Pulling ${version} for ${pkg.name}`
-                      const packedPackageJson = await pullRegistryPackage(subtask, pkg, {
-                        version,
-                        folder: pullable.folder,
-                      })
-                      if (packedPackageJson.git?.sha === pullable.str) {
-                        if (pullable.side === 'right') pkg.targetVersion = packedPackageJson.version!
-                        break
-                      }
-                    }
-                  } else {
-                    throw new Error(`Unknown release ${pullable.str} for ${pkg.name}`)
-                  }
-                }
-              },
-            })),
-            {concurrent: true},
-          )
-        },
-      },
-      {
-        title: 'Write changelogs',
-        task: async (ctx, task) => {
-          return task.newListr(
-            ctx.packages.map(pkg => ({
-              title: `Write ${pkg.name} changelog`,
-              task: async () => getOrCreateChangelog(ctx, pkg),
-            })),
-            {concurrent: true},
-          )
-        },
-      },
-      {
-        title: 'Generate release notes',
-        task: async (ctx, task) => {
-          const allChangelogs = await Promise.all(
-            ctx.packages.map(async pkg => ({
-              pkg,
-              changelog: await getOrCreateChangelog(ctx, pkg),
-            })),
-          )
-          const rootPackageJson = loadPackageJson(path.join(getWorkspaceRoot(), 'package.json'))
-          const repoUrl = getPackageJsonRepository(rootPackageJson)
-          if (!repoUrl) {
-            const message =
-              'No repository URL found in root package.json - please add a repository field like `"repository": {"type": "git", "url": "https://githbu.com/foo/bar"}`'
-            throw new Error(message)
-          }
-          const versions = [
-            ...new Set(ctx.packages.map(p => (p.targetVersion ? `v${p.targetVersion}` : '')).filter(Boolean)),
-          ]
-          if (input.mode === 'unified') {
-            if (versions.length !== 1) {
-              throw new Error('Unified mode requires exactly one version')
-            }
-            const unified = allChangelogs.map(p => p.changelog).join('\n\n---\n\n')
-            const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
-              type: 'confirm',
-              message: unified + '\n\nDraft release?',
-            })
-            if (doRelease) {
-              const releaseParams = {
-                tag: versions[0],
-                title: versions[0],
-                body: unified,
-              }
-              // await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
-              await openReleaseDraft(repoUrl, releaseParams)
-            }
-          } else {
-            for (const pkg of ctx.packages) {
-              const body = await getOrCreateChangelog(ctx, pkg)
-              const title = `${pkg.name}@v${pkg.targetVersion}`
-              const tag = `${pkg.name}@v${pkg.targetVersion}` // same as title... today
-              const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
-              const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
-                type: 'confirm',
-                message: message + '\n\nDraft release?',
-                initial: false,
-              })
-              if (doRelease) {
-                const releaseParams = {tag, title, body}
-                await openReleaseDraft(repoUrl, releaseParams)
-              }
-            }
-          }
-        },
-      },
-    ],
-    {ctx: {} as Ctx},
-  )
-
-  await tasks.run()
 }
 
 const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: string; body: string}) => {
@@ -853,6 +698,13 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
     }
   }
 
+  const changelogContent = await getChangelog(ctx, pkg)
+  fs.mkdirSync(path.dirname(changelogFile), {recursive: true})
+  fs.writeFileSync(changelogFile, changelogContent)
+  return changelogContent
+}
+
+async function getChangelog(ctx: Ctx, pkg: Pkg) {
   const sourceChanges = await getPackageRevList(pkg)
   const npmVersionLink = (packageJson: PackageJson | null | undefined) => {
     const version = packageJson?.version
@@ -885,7 +737,7 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   for (const depPkg of workspaceDependencies(pkg, ctx)) {
     const dep = depPkg.name
     if (bumpedDeps.updated[dep]) {
-      const depChanges = await getOrCreateChangelog(ctx, depPkg)
+      const depChanges = await getChangelog(ctx, depPkg)
       const verb = depChanges?.includes('data-commits') ? 'changed' : 'bumped'
       const newMessage = [
         '<!-- data-change-type="dependencies" -->',
@@ -906,8 +758,6 @@ async function getOrCreateChangelog(ctx: Ctx, pkg: Pkg): Promise<string> {
   }
 
   const changelogContent = changes.filter(Boolean).join('\n\n')
-  fs.mkdirSync(path.dirname(changelogFile), {recursive: true})
-  fs.writeFileSync(changelogFile, changelogContent)
   return changelogContent
 }
 
@@ -1001,6 +851,7 @@ type PackageJson = import('type-fest').PackageJson & {
 type PkgMeta = {
   folder: string
   targetVersion: string | null
+  changeTypes?: Set<string>
   shas: {
     left: string
     right: string
@@ -1020,4 +871,168 @@ const findUpOrThrow = (file: string, options?: Parameters<typeof findUp.sync>[1]
     throw new Error(`Could not find ${file}`)
   }
   return result
+}
+
+// this doesn't work yet
+// consider making it a separate command that can read the folder made by the main publish command
+export const releaseNotes = async (input: ReleaseNotesInput) => {
+  const tasks = new Listr<Ctx, never, never>(
+    [
+      ...setupContextTasks,
+      {
+        title: `Get comparison`,
+        enabled: () => !input.comparison,
+        task: async (ctx, task) => {
+          const pkgVersions = await Promise.all(ctx.packages.map(pkg => getRegistryVersions(pkg)))
+          const lasts = pkgVersions.map(v => v.at(-1)!.slice())
+          const latest = lasts.sort((a, b) => semver.compare(a, b)).at(-1)!
+          const all = pkgVersions.flat().sort((a, b) => semver.compare(a, b))
+
+          const left =
+            all
+              .slice(0, -1)
+              .reverse()
+              .find(v => {
+                if (v === latest) return false
+                if (semver.prerelease(latest)) return true // if RHS is prerelease, then we whichever version was immediately before it
+                return !semver.prerelease(v) // if RHS was a proper release, then we want the last proper release
+              })! || all[0]
+
+          input.comparison = {left, right: latest, original: `${left}...${latest}`}
+          task.output = `Using ${input.comparison.original} for release notes`
+        },
+        rendererOptions: {persistentOutput: true},
+      },
+      {
+        title: 'Write packages locally',
+        task: async (ctx, task) => {
+          return task.newListr<Ctx>(
+            ctx.packages.map(pkg => ({
+              title: `Write ${pkg.name} locally`,
+              task: async (_ctx, subtask) => {
+                if (!input.comparison) throw new Error('No comparison provided')
+                const pullables = [
+                  {str: input.comparison.left, folder: path.join(pkg.folder, LHS_FOLDER), side: 'left' as const},
+                  {str: input.comparison.right, folder: path.join(pkg.folder, RHS_FOLDER), side: 'right' as const},
+                ]
+                for (const pullable of pullables) {
+                  fs.mkdirSync(pullable.folder, {recursive: true})
+                  if (semver.valid(pullable.str)) {
+                    if (pullable.side === 'right') pkg.targetVersion = pullable.str
+                    subtask.output = `Pulling ${pullable.str} for ${pkg.name}`
+                    const packageJson = await pullRegistryPackage(subtask, pkg, {
+                      version: pullable.str,
+                      folder: pullable.folder,
+                    }).catch(async e => {
+                      if (`${e}`.includes('No matching version found')) {
+                        // if the version doesn't exist on the registry, we might have passed a comparison string from before it existed (can happen with fixed versioning)
+                        const versions = await getRegistryVersions(pkg)
+                        return pullRegistryPackage(subtask, pkg, {
+                          version: pullable.side === 'left' ? versions[0] : versions.at(-1)!,
+                          folder: pullable.folder,
+                        })
+                      }
+                      throw e
+                    })
+                    pkg.shas ||= {} as never
+                    pkg.shas[pullable.side] = await getPackageJsonGitSha(pkg, packageJson)
+                  } else if (/^[\da-f]+/.test(pullable.str)) {
+                    // actually it's a sha
+                    pkg.shas ||= {} as never
+                    pkg.shas[pullable.side] = pullable.str
+                    const versions = await getRegistryVersions(pkg)
+                    for (const version of versions.slice().reverse()) {
+                      subtask.output = `Pulling ${version} for ${pkg.name}`
+                      const packedPackageJson = await pullRegistryPackage(subtask, pkg, {
+                        version,
+                        folder: pullable.folder,
+                      })
+                      if (packedPackageJson.git?.sha === pullable.str) {
+                        if (pullable.side === 'right') pkg.targetVersion = packedPackageJson.version!
+                        break
+                      }
+                    }
+                  } else {
+                    throw new Error(`Unknown release ${pullable.str} for ${pkg.name}`)
+                  }
+                }
+              },
+            })),
+            {concurrent: true},
+          )
+        },
+      },
+      {
+        title: 'Write changelogs',
+        task: async (ctx, task) => {
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Write ${pkg.name} changelog`,
+              task: async () => getOrCreateChangelog(ctx, pkg),
+            })),
+            {concurrent: true},
+          )
+        },
+      },
+      {
+        title: 'Generate release notes',
+        task: async (ctx, task) => {
+          const allChangelogs = await Promise.all(
+            ctx.packages.map(async pkg => ({
+              pkg,
+              changelog: await getOrCreateChangelog(ctx, pkg),
+            })),
+          )
+          const rootPackageJson = loadPackageJson(path.join(getWorkspaceRoot(), 'package.json'))
+          const repoUrl = getPackageJsonRepository(rootPackageJson)
+          if (!repoUrl) {
+            const message =
+              'No repository URL found in root package.json - please add a repository field like `"repository": {"type": "git", "url": "https://githbu.com/foo/bar"}`'
+            throw new Error(message)
+          }
+          const versions = [
+            ...new Set(ctx.packages.map(p => (p.targetVersion ? `v${p.targetVersion}` : '')).filter(Boolean)),
+          ]
+          if (input.mode === 'unified') {
+            if (versions.length !== 1) {
+              throw new Error('Unified mode requires exactly one version')
+            }
+            const unified = allChangelogs.map(p => p.changelog).join('\n\n---\n\n')
+            const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
+              type: 'confirm',
+              message: unified + '\n\nDraft release?',
+            })
+            if (doRelease) {
+              const releaseParams = {
+                tag: versions[0],
+                title: versions[0],
+                body: unified,
+              }
+              // await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
+              await openReleaseDraft(repoUrl, releaseParams)
+            }
+          } else {
+            for (const pkg of ctx.packages) {
+              const body = await getOrCreateChangelog(ctx, pkg)
+              const title = `${pkg.name}@v${pkg.targetVersion}`
+              const tag = `${pkg.name}@v${pkg.targetVersion}` // same as title... today
+              const message = `👇👇👇${title} changelog👇👇👇\n\n${body}\n\n👆👆👆${title} changelog👆👆👆`
+              const doRelease = await task.prompt(ListrEnquirerPromptAdapter).run<boolean>({
+                type: 'confirm',
+                message: message + '\n\nDraft release?',
+                initial: false,
+              })
+              if (doRelease) {
+                const releaseParams = {tag, title, body}
+                await openReleaseDraft(repoUrl, releaseParams)
+              }
+            }
+          }
+        },
+      },
+    ],
+    {ctx: {} as Ctx},
+  )
+
+  await tasks.run()
 }
