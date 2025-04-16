@@ -476,7 +476,7 @@ export const publish = async (input: PublishInput) => {
               task.output = 'No OTP provided - publish will likely error unless you have disabled MFA.'
             }
           }
-          const publishTasks = createPublishTasks(ctx, otp)
+          const publishTasks = createPublishTasks(ctx, {otp})
           if (!shouldActuallyPublish) publishTasks.forEach(t => (t.skip = true))
 
           return task.newListr(publishTasks, {rendererOptions: {collapseSubtasks: false}})
