@@ -13,8 +13,6 @@ export const useInspectQuery = () => {
     {enabled: Boolean(healthy?.ok)},
   )
 
-  console.log('query.data', query.data?.inspected)
-
   return query
 }
 

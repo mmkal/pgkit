@@ -7,7 +7,7 @@ import {Toaster} from '@/components/ui/sonner'
 
 export default function App() {
   const {queryClient, trpcClient} = useTrpcClient()
-  if (!trpcClient) return null
+  if (!trpcClient) return <>no trpc client found</>
 
   return (
     <settingsContext.Provider>
