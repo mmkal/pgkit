@@ -15,10 +15,22 @@ const LHS_FOLDER = 'left'
 /** "right" folder i.e. head for publishing - usually build from local source */
 const RHS_FOLDER = 'right'
 
-export const PublishInput = z.object({
-  publish: z.boolean().optional(),
-  otp: z.string().optional(),
-})
+export const PublishInput = z
+  .object({
+    publish: z
+      .boolean()
+      .describe(
+        'actually publish packages - if not provided the tool will run in dry-run mode and create a directory containing the packages to be published.',
+      )
+      .optional(),
+    otp: z.string().describe('npm otp - needed with --publish. If not provided you will be prompted for it').optional(),
+    bump: z
+      .enum(['major', 'minor', 'patch', 'premajor', 'preminor', 'prepatch', 'prerelease', 'other', 'independent'])
+      .describe('semver "bump" strategy - if not provided you will be prompted for it. Do not use with --version.')
+      .optional(),
+    version: z.string().describe('specify an exact version to bump to. Do not use with --bump.').optional(),
+  })
+  .refine(obj => !(obj.bump && obj.version), {message: `Don't use --bump and --version together`})
 export type PublishInput = z.infer<typeof PublishInput>
 
 export const setupContextTasks: ListrTask<Ctx>[] = [
@@ -144,7 +156,14 @@ export const publish = async (input: PublishInput) => {
           const maxVersion = allVersions.sort(semver.compare).at(-1) || VERSION_ZERO
           if (!maxVersion) throw new Error(`No versions found`)
 
-          let bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+          let bumpedVersion: string
+          if (input.bump) {
+            bumpedVersion = bumpChoices(maxVersion).find(c => c.type === input.bump)?.value || input.bump
+          } else if (input.version) {
+            bumpedVersion = input.version
+          }
+
+          bumpedVersion ||= await task.prompt(ListrEnquirerPromptAdapter).run<string>({
             type: 'Select',
             message: `Select semver increment for all packages, specify new version, or publish packages independently`,
             hint: `Current latest version across all packageas is ${maxVersion}`,
@@ -179,10 +198,12 @@ export const publish = async (input: PublishInput) => {
               bumpedVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
                 type: 'Input',
                 message: `Enter a custom version (must be greater than ${maxVersion})`,
-                validate: v =>
-                  typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, maxVersion || VERSION_ZERO),
+                validate: (v: unknown) => getBumpedVersionValidation(maxVersion, v),
               })
             }
+
+            ensureValidBumpedVersion(maxVersion, bumpedVersion)
+
             ctx.versionStrategy = {
               type: 'fixed',
               version: bumpedVersion,
@@ -271,9 +292,9 @@ export const publish = async (input: PublishInput) => {
 
             const choices = bumpChoices(currentVersion || VERSION_ZERO)
             if (changelog) {
-              choices.push({message: `Do not publish (note: package is changed)`, value: 'none'})
+              choices.push({type: 'none', message: `Do not publish (note: package is changed)`, value: 'none'})
             } else {
-              choices.unshift({message: `Do not publish (package is unchanged)`, value: 'none'})
+              choices.unshift({type: 'none', message: `Do not publish (package is unchanged)`, value: 'none'})
             }
 
             let newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
@@ -288,10 +309,11 @@ export const publish = async (input: PublishInput) => {
               newVersion = await task.prompt(ListrEnquirerPromptAdapter).run<string>({
                 type: 'Input',
                 message: `Enter a custom version (must be greater than ${currentVersion})`,
-                validate: v =>
-                  typeof v === 'string' && Boolean(semver.valid(v)) && semver.gt(v, currentVersion || VERSION_ZERO),
+                validate: (v: unknown) => getBumpedVersionValidation(currentVersion || VERSION_ZERO, v),
               })
             }
+
+            ensureValidBumpedVersion(currentVersion || VERSION_ZERO, newVersion)
 
             pkg.targetVersion = newVersion
             pkg.changeTypes = new Set(Array.from(changelog?.matchAll(/data-change-type="(\w+)"/g) || []).map(m => m[1]))
@@ -549,15 +571,29 @@ const bumpChoices = (oldVersion: string) => {
     ...releaseTypes.map(type => {
       const result = semver.inc(oldVersion, type)!
       return {
+        type: type,
         message: `${type} ${result}`,
         value: result,
       }
     }),
     {
+      type: 'other',
       message: 'Other (please specify)',
       value: 'other',
     },
   ]
+}
+
+function ensureValidBumpedVersion(lowerBoundVersion: string, v: unknown) {
+  const validation = getBumpedVersionValidation(lowerBoundVersion, v)
+  if (validation !== true) throw new Error(`Invalid bumped version ${v as string}: ${validation || 'invalid'}`)
+}
+function getBumpedVersionValidation(lowerBoundVersion: string, v: unknown) {
+  if (typeof v !== 'string') return 'Must be a string'
+  if (!semver.valid(v)) return 'Must be a valid semver version'
+  if (!semver.gt(v, lowerBoundVersion || VERSION_ZERO))
+    return `Must be greater than the current version ${lowerBoundVersion}`
+  return true
 }
 
 function getWorkspaceRoot() {
