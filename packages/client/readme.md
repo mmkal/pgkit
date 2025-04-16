@@ -740,7 +740,9 @@ const profiles = await client.any(sql.type(Profile)`select * from profile`)
 
 This will use zod to validate each row returned by your query.
 
-Note that zod is not a dependency of this library, nor even a peer dependency. In fact, you could use a different library entirely, as long as you provide a "type" which has a `parse` method:
+### Other validators
+
+Note that zod is not a dependency of this library, nor even a peer dependency. You can use any library which conforms to [standard-schema](https://github.com/standard-schema/standard-schema):
 
 ```ts
 import * as v from 'valibot'

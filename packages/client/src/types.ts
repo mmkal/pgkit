@@ -213,7 +213,7 @@ export type SQLMethodHelpers = {
   ) => <Parameters extends SQLParameter[] = SQLParameter[]>(
     strings: TemplateStringsArray,
     ...parameters: Parameters
-  ) => SQLQuery<Row>
+  ) => SQLQuery<RowOutput>
 }
 
 /** Called `pgp` in pg-promise docs  */

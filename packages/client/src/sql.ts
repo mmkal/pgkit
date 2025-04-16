@@ -31,11 +31,14 @@ const extractStandardSchemaV1Result = <T>(result: StandardSchemaV1.Result<T>): T
 }
 
 class ValidationError extends Error {
+  readonly message: string
   constructor(public readonly issues: StandardSchemaV1.FailureResult['issues']) {
     const lines = issues.map(issue => {
       return `.${issue.path?.join('.') || ''}: ${issue.message}`
     })
-    super(`Validation failed:\n\n${lines.join('\n')}`)
+    const message = `Validation failed:\n\n${lines.join('\n')}`
+    super(message)
+    this.message = message
   }
 }
 
@@ -192,7 +195,7 @@ export const allSqlHelpers = {...sqlMethodHelpers, ...sqlTagHelpers}
 export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.assign(sqlFn, allSqlHelpers)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any>>>(params: {
+export const createSqlTag = <TypeAliases extends Record<string, StandardSchemaV1<any, any>>>(params: {
   typeAliases: TypeAliases
 }) => {
   // eslint-disable-next-line func-name-matching, func-names, @typescript-eslint/no-shadow
@@ -203,7 +206,7 @@ export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any
   return Object.assign(fn, allSqlHelpers, {
     typeAlias<K extends keyof TypeAliases>(name: K) {
       const type = params.typeAliases[name]
-      type Result = typeof type extends ZodesqueType<infer R> ? R : never
+      type Result = typeof type extends StandardSchemaV1<infer _RowInput, infer RowOutput> ? RowOutput : never
       return sql.type(type) as <Parameters extends SQLParameter[] = SQLParameter[]>(
         strings: TemplateStringsArray,
         ...parameters: Parameters
