@@ -393,7 +393,8 @@ test('sql.type', async () => {
         "values": []
       },
       "cause": {
-        "name": "ZodError",
+        "name": "Error",
+        "message": "Validation failed:\\n\\n.id: Expected string, received number",
         "issues": [
           {
             "code": "invalid_type",
@@ -453,23 +454,9 @@ test('sql.type with custom error message', async () => {
         "values": []
       },
       "cause": {
-        "name": "ZodValidationError",
-        "message": "Validation error: Expected string, received number at \\"id\\"",
-        "cause": {
-          "name": "ZodError",
-          "issues": [
-            {
-              "code": "invalid_type",
-              "expected": "string",
-              "received": "number",
-              "path": [
-                "id"
-              ],
-              "message": "Expected string, received number"
-            }
-          ]
-        },
-        "details": [
+        "name": "Error",
+        "message": "Validation failed:\\n\\n.id: Expected string, received number",
+        "issues": [
           {
             "code": "invalid_type",
             "expected": "string",
@@ -514,23 +501,9 @@ test('createSqlTag + sql.typeAlias', async () => {
         "values": []
       },
       "cause": {
-        "name": "ZodValidationError",
-        "message": "Validation error: Expected string, received number at \\"name\\"",
-        "cause": {
-          "name": "ZodError",
-          "issues": [
-            {
-              "code": "invalid_type",
-              "expected": "string",
-              "received": "number",
-              "path": [
-                "name"
-              ],
-              "message": "Expected string, received number"
-            }
-          ]
-        },
-        "details": [
+        "name": "Error",
+        "message": "Validation failed:\\n\\n.name: Expected string, received number",
+        "issues": [
           {
             "code": "invalid_type",
             "expected": "string",

@@ -99,6 +99,13 @@ test('Refine schemas', async () => {
       "cause": {
         "issues": [
           {
+            "code": "custom",
+            "message": "id must be even",
+            "path": [
+              "id"
+            ]
+          },
+          {
             "code": "invalid_type",
             "expected": "string",
             "received": "undefined",
@@ -106,16 +113,8 @@ test('Refine schemas', async () => {
               "name"
             ],
             "message": "Required"
-          },
-          {
-            "code": "custom",
-            "message": "id must be even",
-            "path": [
-              "id"
-            ]
           }
-        ],
-        "name": "ZodError"
+        ]
       }
     }
   `)

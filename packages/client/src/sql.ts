@@ -1,7 +1,8 @@
 import pgPromise from 'pg-promise'
 import {QueryError} from './errors'
 import {nameQuery} from './naming'
-import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, ZodesqueType, SQLParameter} from './types'
+import {StandardSchemaV1} from './standard-schema'
+import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, SQLParameter} from './types'
 
 const sqlMethodHelpers: SQLMethodHelpers = {
   raw: <T>(query: string): SQLQuery<T, []> => ({
@@ -14,39 +15,28 @@ const sqlMethodHelpers: SQLMethodHelpers = {
     templateArgs: () => [[query]],
   }),
   type: type => {
-    type Result = typeof type extends ZodesqueType<infer R> ? R : never
-    let parseAsync: (input: unknown) => Promise<Result>
-    if ('parseAsync' in type) {
-      parseAsync = type.parseAsync
-    } else if ('safeParseAsync' in type) {
-      parseAsync = async input => {
-        const parsed = await type.safeParseAsync(input)
-        if (!parsed.success) {
-          throw parsed.error
-        }
-        return parsed.data
-      }
-    } else if ('parse' in type) {
-      parseAsync = async input => type.parse(input)
-    } else if ('safeParse' in type) {
-      parseAsync = async input => {
-        const parsed = type.safeParse(input)
-        if (!parsed.success) {
-          throw parsed.error
-        }
-        return parsed.data
-      }
-    } else {
-      const _: never = type
-      throw new Error('Invalid type parser. Must have parse, safeParse, parseAsync or safeParseAsync method', {
-        cause: type,
-      })
-    }
     return (strings, ...parameters) => ({
       ...sqlFn(strings, ...(parameters as never)),
-      parse: parseAsync,
+      parse: async input => {
+        const result = await type['~standard'].validate(input)
+        return extractStandardSchemaV1Result(result)
+      },
     })
   },
+}
+
+const extractStandardSchemaV1Result = <T>(result: StandardSchemaV1.Result<T>): T => {
+  if (result.issues) throw new ValidationError(result.issues)
+  return result.value
+}
+
+class ValidationError extends Error {
+  constructor(public readonly issues: StandardSchemaV1.FailureResult['issues']) {
+    const lines = issues.map(issue => {
+      return `.${issue.path?.join('.') || ''}: ${issue.message}`
+    })
+    super(`Validation failed:\n\n${lines.join('\n')}`)
+  }
 }
 
 /**
