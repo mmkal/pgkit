@@ -110,7 +110,7 @@ const getRegistryVersions = async (pkg: Pick<Pkg, 'name'>) => {
   const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
   const StdoutShape = z.union([
     z.array(z.string()).nonempty(), // success
-    z.object({error: z.object({code: z.literal('E404')})}), // not found
+    z.object({error: z.object({code: z.literal('E404')})}), // not found - package doesn't exist (yet!). this is ok. other errors are not.
   ])
   const registryVersionsStdout = StdoutShape.parse(JSON.parse(registryVersionsResult.stdout))
   return Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
@@ -471,15 +471,19 @@ export const publish = async (input: PublishInput) => {
             }
           }
           return task.newListr(
-            ctx.packages.map(pkg => ({
-              title: `Publish ${pkg.name} -> ${pkg.targetVersion}`,
-              skip: () => !shouldActuallyPublish || pkg.targetVersion === loadRHSPackageJson(pkg)?.version,
-              task: async (_ctx, subtask) => {
-                await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
-                  cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
-                })
-              },
-            })),
+            ctx.packages.map(pkg => {
+              const lhsPackageJson = loadLHSPackageJson(pkg)
+              const rhsPackageJson = loadRHSPackageJson(pkg)
+              return {
+                title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${pkg.targetVersion}`,
+                skip: () => !shouldActuallyPublish || pkg.targetVersion === rhsPackageJson?.version,
+                task: async (_ctx, subtask) => {
+                  await pipeExeca(subtask, 'pnpm', ['publish', '--access', 'public', ...(otp ? ['--otp', otp] : [])], {
+                    cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
+                  })
+                },
+              }
+            }),
             {rendererOptions: {collapseSubtasks: false}},
           )
         },
@@ -547,17 +551,11 @@ const loadPackageJson = (filepath: string) => {
 
 const loadLHSPackageJson = (pkg: PkgMeta) => {
   const filepath = packageJsonFilepath(pkg, LHS_FOLDER)
+  if (!fs.existsSync(filepath)) return null
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
 const loadRHSPackageJson = (pkg: PkgMeta) => {
   const filepath = packageJsonFilepath(pkg, RHS_FOLDER)
-  if (!fs.existsSync(path.join(pkg.folder, RHS_FOLDER))) {
-    // it's ok for the package to not exist, maybe this is a new package. But the folder should exist so we know that there's been an attempt to pull it.
-    throw new Error(
-      `Registry package.json folder for ${filepath} doesn't exist yet. Has the "Pulling \${pkg.name}" step run yet?`,
-    )
-  }
-
   if (!fs.existsSync(filepath)) return null
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
@@ -628,9 +626,9 @@ async function getFirstRef(pkg: Pkg) {
 async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
   const leftPackageJson = loadLHSPackageJson(params.pkg)
   const rightPackageJson = loadRHSPackageJson(params.pkg)
-  const localPackageDependencies = {...leftPackageJson.dependencies}
+  const localPackageDependencies = {...leftPackageJson?.dependencies}
   const updates: Record<string, string> = {}
-  for (const [depName, depVersion] of Object.entries(leftPackageJson.dependencies || {})) {
+  for (const [depName, depVersion] of Object.entries(leftPackageJson?.dependencies || {})) {
     const foundDep = ctx.packages
       .filter(other => other.name === depName)
       .flatMap(other => {
@@ -673,7 +671,7 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
 
   if (Object.keys(updates).length === 0) {
     // keep reference equality, avoid `undefined` to `{}`
-    return {updated: updates, dependencies: leftPackageJson.dependencies}
+    return {updated: updates, dependencies: leftPackageJson?.dependencies}
   }
 
   return {updated: updates, dependencies: localPackageDependencies}
