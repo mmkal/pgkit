@@ -1,4 +1,5 @@
 import * as crypto from 'node:crypto'
+import {inspect} from 'node:util'
 import TypeOverrides from 'pg/lib/type-overrides'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
@@ -82,14 +83,14 @@ export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query']
       result = {rows, command, rowCount, fields}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError('Executing query failed', {query, cause: error})
+      throw new QueryError('Executing query failed', {cause: error, query})
     }
 
     try {
       return {...result, rows: await Promise.all(result.rows.map(query.parse))}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError(`Parsing rows failed`, {query, cause: error})
+      throw new QueryError(`Parsing rows failed`, {cause: error, query})
     }
   }
 }

@@ -1454,6 +1454,116 @@ expect((err as any).cause?.stack).toMatchInlineSnapshot(`
       at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:<line>:<col>)
 `)
 ```
+
+##### no snapshot serializer
+
+```typescript
+const badQuery = `
+  select *
+  from whoops information_schema.tables;
+`.repeat(30)
+
+const err = await pool.query(sql.raw(badQuery)).catch(e => e)
+expect('disable-snapshot-serializer\n\n' + inspect(err)).toMatchInlineSnapshot(`
+  "disable-snapshot-serializer
+
+  [select_6955765]: Executing query failed (syntax_error)
+
+  [select_6955765]: Executing query failed (syntax_error)
+
+      select *
+      from whoops information_schema.tables;
+  __________________________________👆_______
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+
+      select *
+      from whoops information_schema.tables;
+    "
+`)
+```
 <!-- codegen:end -->
 
 </details>

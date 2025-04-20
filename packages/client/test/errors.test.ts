@@ -1,4 +1,5 @@
 import * as path from 'path'
+import {inspect} from 'util'
 import {beforeAll, expect, test} from 'vitest'
 import {createPool, sql} from '../src'
 import {printError} from './snapshots'
@@ -6,7 +7,7 @@ import {printError} from './snapshots'
 const repoRoot = path.resolve(process.cwd(), '../..')
 
 expect.addSnapshotSerializer({
-  test: Boolean,
+  test: val => !printError(val).includes('disable-snapshot-serializer'),
   print: printError,
 })
 
@@ -220,4 +221,115 @@ test('syntax error', async () => {
         at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
         at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:<line>:<col>)
   `)
+})
+
+test('no snapshot serializer', async () => {
+  const badQuery = `
+    select *
+    from whoops information_schema.tables;
+  `.repeat(30)
+
+  const err = await pool.query(sql.raw(badQuery)).catch(e => e)
+  expect('disable-snapshot-serializer\n\n' + inspect(err)).toMatchInlineSnapshot(
+    `
+      "disable-snapshot-serializer
+
+      [select_6955765]: Executing query failed (syntax_error)
+
+      length=90, name=error, severity=ERROR, code=42601, position=49, file=scan.l, line=1176, routine=scanner_yyerror
+
+
+          select *
+          from whoops information_schema.tables;
+      ----------------------------------👆-------
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+  
+          select *
+          from whoops information_schema.tables;
+        "
+    `,
+  )
 })

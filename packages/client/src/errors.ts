@@ -1,3 +1,4 @@
+import {inspect} from 'node:util'
 import {SQLQuery} from './types'
 
 // only used by eslint to generate error codes, but I guess you could use it too
@@ -45,11 +46,23 @@ export class QueryError extends Error {
   result?: QueryError.Params['result']
 
   constructor(message: string, {query, result, cause}: QueryError.Params) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const suffix = cause && (cause as any).code in pgErrorCodes ? ` (${pgErrorCodes[(cause as any).code]})` : ''
-    super(`[${query.name}]: ${message}${suffix}`, cause ? {cause} : undefined)
+    message = QueryError.getMessage(message, {query, result, cause})
+    super(message, cause ? {cause} : undefined)
     this.query = query
     this.result = result
+  }
+
+  static getMessage(message: string, params: QueryError.Params) {
+    const {query, cause} = params
+    message = `[${query.name}]: ${message}`
+    if (isPgErrorLike(cause)) {
+      message += ` (${exports.pgErrorCodes[cause.code]})`
+      message += `\n\n${cause.message}\n\n`
+      message += `${QueryError.prettyPgErrorMessage(params) || ''}`.trim()
+    } else {
+      message += `: ${cause?.message}`
+    }
+    return message
   }
 
   toJSON() {
@@ -60,6 +73,57 @@ export class QueryError extends Error {
       cause: this.cause,
     }
   }
+
+  static prettyPgErrorMessage({cause, query}: QueryError.Params) {
+    if (isPgErrorLike(cause)) {
+      const position = Number(cause.position)
+
+      const shortProps = Object.entries(cause)
+        .filter(e => e[1])
+        .map(entry => entry.join('='))
+        .filter(s => s.length < 50)
+        .join(', ')
+      if (Number.isFinite(position) && query.sql) {
+        const queryUpToPosition = query.sql.slice(0, position)
+        const queryAfterPosition = query.sql.slice(position)
+        const linesUpToPosition = queryUpToPosition.split('\n')
+
+        const positionColumn = linesUpToPosition.at(-1)!.length - 1
+
+        const firstNewLineAfterPosition = queryAfterPosition.indexOf('\n')
+        const snippet =
+          queryUpToPosition +
+          queryAfterPosition.slice(0, firstNewLineAfterPosition) +
+          '\n' +
+          '-'.repeat(positionColumn) +
+          '👆' +
+          '-'.repeat(firstNewLineAfterPosition) +
+          queryAfterPosition.slice(firstNewLineAfterPosition)
+
+        return shortProps + '\n\n[annotated query]\n\n    ' + snippet.replaceAll('\n', '\n    ')
+      }
+      return shortProps
+    }
+
+    return null
+  }
+
+  [inspect.custom]() {
+    if (isPgErrorLike(this.cause)) {
+      const proxy = new Proxy(this, {
+        get(target, prop, receiver) {
+          if (prop === inspect.custom) return undefined
+          return Reflect.get(target, prop, receiver)
+        },
+      })
+      return inspect(proxy, {depth: null})
+    }
+    return this.message
+  }
+}
+
+const isPgErrorLike = (err: unknown): err is {code: keyof typeof pgErrorCodes; position?: string} => {
+  return Boolean(err && typeof err === 'object' && 'code' in err && (err.code as string) in pgErrorCodes)
 }
 
 // codegen:start {preset: custom, export: fetchErrorCodes}

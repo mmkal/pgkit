@@ -216,7 +216,7 @@ export type SQLTagFunction = <Row = Record<string, unknown>>(
 ) => SQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
 
 export type SQLMethodHelpers = {
-  raw: <T>(query: string) => SQLQuery<T, []>
+  raw: <Row>(query: string, values?: unknown[]) => SQLQuery<Row, unknown[]>
   type: <Row>(
     parser: ZodesqueType<Row>,
   ) => <Parameters extends SQLParameter[] = SQLParameter[]>(

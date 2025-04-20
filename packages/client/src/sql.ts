@@ -4,12 +4,12 @@ import {nameQuery} from './naming'
 import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, ZodesqueType, SQLParameter} from './types'
 
 const sqlMethodHelpers: SQLMethodHelpers = {
-  raw: <T>(query: string): SQLQuery<T, []> => ({
+  raw: <T>(query: string, values: unknown[] = []): SQLQuery<T, unknown[]> => ({
     sql: query,
     parse: input => input as T,
     name: nameQuery([query]),
     token: 'sql',
-    values: [],
+    values,
     segments: () => [query],
     templateArgs: () => [[query]],
   }),
