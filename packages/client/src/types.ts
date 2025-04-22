@@ -55,6 +55,9 @@ export interface Queryable {
 
   many<Row>(query: SQLQuery<Row>): Promise<Row[]>
   manyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<Row>>>
+
+  throwOnNulls: boolean
+  noNulls: Queryable
 }
 
 export interface Transactable extends Queryable {

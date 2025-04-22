@@ -66,6 +66,20 @@ const createQueryable = (query: Queryable['query']): Queryable => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
       return Object.values(result.rows[0] as any)[0] as any
     },
+    get noNulls() {
+      return createQueryable(async input => {
+        const result = await query(input)
+        return {
+          ...result,
+          rows: result.rows.map((row, i) => {
+            Object.entries(row as {}).forEach(([key, value]) => {
+              if (value === null) throw new QueryError(`column ${key} in row ${i} is null`, {query: input, result})
+            })
+            return row
+          }),
+        }
+      })
+    },
   }
 }
 
