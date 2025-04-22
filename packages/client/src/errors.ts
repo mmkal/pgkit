@@ -68,7 +68,7 @@ export class QueryError extends Error {
       message += ` (${exports.pgErrorCodes[cause.code]})`
       message += `\n\n${cause.message}\n\n`
       message += `${QueryError.prettyPgErrorMessage(params) || ''}`.trim()
-    } else {
+    } else if (typeof cause?.message === 'string') {
       message += `: ${cause?.message}`
     }
     return message
