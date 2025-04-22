@@ -1,5 +1,4 @@
 import * as crypto from 'node:crypto'
-import {inspect} from 'node:util'
 import TypeOverrides from 'pg/lib/type-overrides'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
@@ -14,6 +13,7 @@ import {
   Transaction,
   Result,
   DriverQueryable,
+  NonNullQueryable,
 } from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
@@ -69,16 +69,13 @@ const createQueryable = (query: Queryable['query']): Queryable => {
     get noNulls() {
       return createQueryable(async input => {
         const result = await query(input)
-        return {
-          ...result,
-          rows: result.rows.map((row, i) => {
-            Object.entries(row as {}).forEach(([key, value]) => {
-              if (value === null) throw new QueryError(`column ${key} in row ${i} is null`, {query: input, result})
-            })
-            return row
-          }),
+        for (const [i, row] of result.rows.entries()) {
+          for (const [key, value] of Object.entries(row as {})) {
+            if (value === null) throw new QueryError(`column ${key} in row index ${i} is null`, {query: input, result})
+          }
         }
-      })
+        return result
+      }) as NonNullQueryable
     },
   }
 }

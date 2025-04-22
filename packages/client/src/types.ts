@@ -56,8 +56,28 @@ export interface Queryable {
   many<Row>(query: SQLQuery<Row>): Promise<Row[]>
   manyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<Row>>>
 
-  throwOnNulls: boolean
-  noNulls: Queryable
+  /** Returns a new Queryable which wraps the `query` method to throw an error if any row contains null values */
+  noNulls: NonNullQueryable
+}
+
+export interface NonNullQueryable {
+  query<Row>(query: SQLQuery<Row>): Promise<Result<NonNullRow<Row>>>
+
+  one<Row>(query: SQLQuery<Row>): Promise<NonNullRow<Row>>
+  maybeOne<Row>(query: SQLQuery<Row>): Promise<NonNullRow<Row> | null>
+
+  oneFirst<Row>(query: SQLQuery<Row>): Promise<First<NonNullRow<Row>>>
+  maybeOneFirst<Row>(query: SQLQuery<Row>): Promise<First<NonNullRow<Row>> | null>
+
+  any<Row>(query: SQLQuery<Row>): Promise<NonNullRow<Row>[]>
+  anyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<NonNullRow<Row>>>>
+
+  many<Row>(query: SQLQuery<Row>): Promise<NonNullRow<Row>[]>
+  manyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<NonNullRow<Row>>>>
+}
+
+export type NonNullRow<Row> = {
+  [K in keyof Row]: NonNullable<Row[K]>
 }
 
 export interface Transactable extends Queryable {
