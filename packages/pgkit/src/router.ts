@@ -76,6 +76,31 @@ export const router = t.router({
       return next({ctx: {...ctx, confirm}})
     }),
   ),
+  empty: procedureWithClient.mutation(async ({ctx}) => {
+    const migrator = ctx.migrator
+    // get a wipe diff since this will *drop* tables in reverse dependency order. We want to truncate them in that order since foreign key constraints could otherwise prevent deletions
+    // update: uuuh this doesn't work, it drops tables in a seemingly arbitrary order. i guess migra isn't doing topological sorting yet.
+    const wipeDiff = await migrator.wipeDiff()
+    const statements = wipeDiff.split(';').flatMap(s => {
+      s = s.trim()
+      const lower = s.toLowerCase()
+      const dropTablePrefix = 'drop table '
+      const dropTableIndex = lower.indexOf(dropTablePrefix)
+      if (dropTableIndex === -1) return []
+      if (dropTableIndex !== 0)
+        throw new Error(`Expected drop table statement to start with "${dropTablePrefix}"`, {cause: s})
+
+      const truncateStatement = s.replace(dropTablePrefix, `truncate table `)
+
+      return [truncateStatement]
+    })
+
+    const truncateQuery = statements.join(';\n\n')
+    const confirmed = await confirm(truncateQuery)
+    if (confirmed) {
+      await ctx.client.query(sql.raw(truncateQuery))
+    }
+  }),
   generate: procedureWithClient
     .use(async ({getRawInput, ctx, next}) => {
       const rawInput = getRawInput() as {}

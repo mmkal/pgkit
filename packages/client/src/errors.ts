@@ -102,11 +102,11 @@ export class QueryError extends Error {
         const firstNewLineAfterPosition = queryAfterPosition.indexOf('\n')
         const snippet =
           queryUpToPosition +
-          queryAfterPosition.slice(0, firstNewLineAfterPosition) +
+          queryAfterPosition.slice(0, Math.max(0, firstNewLineAfterPosition)) +
           '\n' +
           '-'.repeat(positionColumn) +
           '👆' +
-          '-'.repeat(firstNewLineAfterPosition) +
+          '-'.repeat(Math.max(0, firstNewLineAfterPosition)) +
           queryAfterPosition.slice(firstNewLineAfterPosition)
 
         return shortProps + '\n\n[annotated query]\n\n    ' + snippet.replaceAll('\n', '\n    ')
