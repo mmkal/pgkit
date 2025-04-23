@@ -104,7 +104,7 @@ export class QueryError extends Error {
           queryUpToPosition +
           queryAfterPosition.slice(0, Math.max(0, firstNewLineAfterPosition)) +
           '\n' +
-          '-'.repeat(Math.max(0, positionColumn)) +
+          '-'.repeat(Math.max(2, positionColumn)) +
           '👆' +
           '-'.repeat(Math.max(0, firstNewLineAfterPosition)) +
           queryAfterPosition.slice(firstNewLineAfterPosition)
