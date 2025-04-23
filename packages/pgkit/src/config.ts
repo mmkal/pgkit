@@ -24,7 +24,7 @@ export const defineConfig = (config: Config) => config
 
 export const loadConfig = async (): Promise<Config> => {
   const importx = await import('importx') // todo: consider c12 instead
-  const configLocations = ['pgkit.config.ts', 'pgkit.config.js']
+  const configLocations = ['pgkit.config.ts', 'pgkit.config.js', process.env.PGKIT_CONFIG_PATH].filter(Boolean)
   let config: Config | undefined
   let cwd = process.cwd()
   while (!config) {
