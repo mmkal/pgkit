@@ -89,7 +89,7 @@ test('Refine schemas', async () => {
 
   await expect(getResult()).rejects.toMatchInlineSnapshot(`
     {
-      "message": "[select-zod_test_83bbed1]: Parsing rows failed",
+      "message": "[select-zod_test_83bbed1]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
       "query": {
         "name": "select-zod_test_83bbed1",
         "sql": "\\n      select * from zod_test\\n    ",

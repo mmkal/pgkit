@@ -182,8 +182,17 @@ test('syntax error', async () => {
   await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(
     `
       [QueryError]: [select_fb83277]: Executing query failed (syntax_error)
+
+      syntax error at or near "frooom"
+
+      length=95, name=error, severity=ERROR, code=42601, position=10, file=scan.l, line=1176, routine=scanner_yyerror, query=select * frooom test_errors
+
+      [annotated query]
+
+          select * frooom test_errors
+          ---------👆-----------------
       {
-        "message": "[select_fb83277]: Executing query failed (syntax_error)",
+        "message": "[select_fb83277]: Executing query failed (syntax_error)\\n\\nsyntax error at or near \\"frooom\\"\\n\\nlength=95, name=error, severity=ERROR, code=42601, position=10, file=scan.l, line=1176, routine=scanner_yyerror, query=select * frooom test_errors\\n\\n[annotated query]\\n\\n    select * frooom test_errors\\n    ---------👆-----------------",
         "query": {
           "name": "select_fb83277",
           "sql": "select * frooom test_errors",
@@ -210,6 +219,15 @@ test('syntax error', async () => {
 
   expect(err.stack).toMatchInlineSnapshot(`
     Error: [select_fb83277]: Executing query failed (syntax_error)
+
+    syntax error at or near "frooom"
+
+    length=95, name=error, severity=ERROR, code=42601, position=10, file=scan.l, line=1176, routine=scanner_yyerror, query=select * frooom test_errors
+
+    [annotated query]
+
+        select * frooom test_errors
+        ---------👆-----------------
         at Object.query (<repo>/packages/client/src/client.ts:<line>:<col>)
         at <repo>/packages/client/test/errors.test.ts:<line>:<col>
   `)
@@ -231,105 +249,325 @@ test('no snapshot serializer', async () => {
 
   const err = await pool.query(sql.raw(badQuery)).catch(e => e)
   expect('disable-snapshot-serializer\n\n' + inspect(err)).toMatchInlineSnapshot(
+    // eslint-disable-next-line unicorn/template-indent
     `
-      "disable-snapshot-serializer
+    disable-snapshot-serializer
 
-      [select_6955765]: Executing query failed (syntax_error)
+    [QueryError: [select_6955765]: Executing query failed (syntax_error)
 
-      length=90, name=error, severity=ERROR, code=42601, position=49, file=scan.l, line=1176, routine=scanner_yyerror
+    syntax error at or near "."
 
+    length=90, name=error, severity=ERROR, code=42601, position=49, file=scan.l, line=1176, routine=scanner_yyerror
 
-          select *
-          from whoops information_schema.tables;
-      ----------------------------------👆-------
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-  
-          select *
-          from whoops information_schema.tables;
-        "
-    `,
+    [annotated query]
+
+        
+            select *
+            from whoops information_schema.tables;
+        ----------------------------------👆-------
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;
+          
+            select *
+            from whoops information_schema.tables;] {
+      query: {
+        sql: '\\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  ',
+        parse: [Function: parse],
+        name: 'select_6955765',
+        token: 'sql',
+        values: [],
+        segments: [Function: segments],
+        templateArgs: [Function: templateArgs]
+      },
+      result: undefined,
+      [cause]: error: syntax error at or near "."
+          at Parser.parseErrorMessage (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+          at Parser.handlePacket (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+          at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
+          at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:<line>:<col>)
+        length: 90,
+        severity: 'ERROR',
+        code: '42601',
+        detail: undefined,
+        hint: undefined,
+        position: '49',
+        internalPosition: undefined,
+        internalQuery: undefined,
+        where: undefined,
+        schema: undefined,
+        table: undefined,
+        column: undefined,
+        dataType: undefined,
+        constraint: undefined,
+        file: 'scan.l',
+        line: '1176',
+        routine: 'scanner_yyerror',
+        query: '\\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  \\n' +
+          '    select *\\n' +
+          '    from whoops information_schema.tables;\\n' +
+          '  ',
+        params: undefined
+      }
+    }
+  `,
   )
 })

@@ -383,9 +383,19 @@ test('sql.type', async () => {
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
   expect(error).toMatchInlineSnapshot(`
-    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "id"
+        ],
+        "message": "Expected string, received number"
+      }
+    ]
     {
-      "message": "[select-usage_test_8729cac]: Parsing rows failed",
+      "message": "[select-usage_test_8729cac]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
       "query": {
         "name": "select-usage_test_8729cac",
         "sql": "select id from usage_test",
@@ -443,9 +453,19 @@ test('sql.type with custom error message', async () => {
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
   expect(error).toMatchInlineSnapshot(`
-    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "id"
+        ],
+        "message": "Expected string, received number"
+      }
+    ]
     {
-      "message": "[select-usage_test_8729cac]: Parsing rows failed",
+      "message": "[select-usage_test_8729cac]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
       "query": {
         "name": "select-usage_test_8729cac",
         "sql": "select id from usage_test",
@@ -504,9 +524,19 @@ test('createSqlTag + sql.typeAlias', async () => {
 
   const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
   expect(err).toMatchInlineSnapshot(`
-    [QueryError]: [select_245d49b]: Parsing rows failed
+    [QueryError]: [select_245d49b]: Parsing rows failed: [
+      {
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number",
+        "path": [
+          "name"
+        ],
+        "message": "Expected string, received number"
+      }
+    ]
     {
-      "message": "[select_245d49b]: Parsing rows failed",
+      "message": "[select_245d49b]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
       "query": {
         "name": "select_245d49b",
         "sql": "select 123 as name",

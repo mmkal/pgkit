@@ -94,7 +94,7 @@ export class QueryError extends Error {
         .join(', ')
       if (Number.isFinite(position) && query.sql) {
         const queryUpToPosition = query.sql.slice(0, position)
-        const queryAfterPosition = query.sql.slice(position)
+        const queryAfterPosition = query.sql.slice(position) + '\n'
         const linesUpToPosition = queryUpToPosition.split('\n')
 
         const positionColumn = linesUpToPosition.at(-1)!.length - 1
@@ -107,7 +107,7 @@ export class QueryError extends Error {
           '-'.repeat(Math.max(2, positionColumn)) +
           '👆' +
           '-'.repeat(Math.max(0, firstNewLineAfterPosition)) +
-          queryAfterPosition.slice(firstNewLineAfterPosition)
+          queryAfterPosition.slice(firstNewLineAfterPosition, -1)
 
         return shortProps + '\n\n[annotated query]\n\n    ' + snippet.replaceAll('\n', '\n    ')
       }
