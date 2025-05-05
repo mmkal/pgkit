@@ -74,7 +74,7 @@ export const createMigratorRouter = (procedure: TRPCProcedureLike<MigratorRouter
   // This means any router with a different context type can use this helper to creater a migrations sub-router, by just defining a middleware that sets the correct context
   const trpc = {router: migratorTrpc.router, procedure: procedure} as typeof migratorTrpc
 
-  const router = migratorTrpc.router({
+  const router = trpc.router({
     up: trpc.procedure
       .meta({description: 'Apply pending migrations'})
       .input(

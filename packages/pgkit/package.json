@@ -46,9 +46,10 @@
     "@pgkit/client": "workspace:^",
     "@pgkit/migrator": "workspace:^",
     "@pgkit/typegen": "workspace:^",
+    "enquirer": "^2.4.1",
     "express": "^4.18.2",
     "importx": "^0.4.4",
-    "trpc-cli": "^0.6.0-10"
+    "trpc-cli": "^0.6.0-15"
   },
   "peerDependencies": {
     "@pgkit/admin": "workspace:^"
