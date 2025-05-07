@@ -34,7 +34,7 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
       err.message,
       '',
       `If you think the query is actually valid, it's possible the parsing library has a bug.`,
-      `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB anyway.`,
+      `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB as-is.`,
     ].join('\n')
     return [
       {
