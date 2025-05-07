@@ -15,6 +15,26 @@ beforeEach(async () => {
   `)
 })
 
+test('sql.array with jsonb', async () => {
+  await client.query(sql`
+    drop table if exists jsonb_array_test;
+    create table jsonb_array_test(id int, jsons jsonb[]);
+  `)
+
+  const values = [{n: 'one'}, {n: 'two'}, {n: 'three'}]
+
+  const result = await client.any(sql`
+    insert into jsonb_array_test
+    values (1, ${sql.array(
+      values.map(v => JSON.stringify(v)),
+      'jsonb',
+    )})
+    returning *
+  `)
+
+  expect(result).toEqual([{id: 1, jsons: [{n: 'one'}, {n: 'two'}, {n: 'three'}]}])
+})
+
 test('nested parameterized `sql` tag', async () => {
   const complexQuery = sql`
     insert into edge_cases_test values (4, ${'four'})

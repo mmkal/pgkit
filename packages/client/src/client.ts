@@ -94,6 +94,7 @@ export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query']
       result = {rows, command, rowCount, fields}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
+      console.log('error', error, query)
       throw new QueryError('Executing query failed', {cause: error, query})
     }
 
