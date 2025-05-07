@@ -241,7 +241,7 @@ test('syntax error', async () => {
   `)
 })
 
-test('no snapshot serializer', async () => {
+test('no snapshot serializer - exclude from readme', async () => {
   const badQuery = `
     select *
     from whoops information_schema.tables;

@@ -214,7 +214,7 @@ await client.query(sql`insert into profile (id, name) values (1, 'one')`)
 
 Here's a usage example for each of the `sql...` methods:
 
-<!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3, exclude: [exclude from readme]} -->
+<!-- codegen:start {preset: markdownFromTests, source: test/api-usage.test.ts, headerLevel: 3, exclude: [exclude from readme, no snapshot serializer]} -->
 ### sql.array
 
 ```typescript
@@ -512,9 +512,19 @@ await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).re
 const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
 expect(error).toMatchInlineSnapshot(`
-  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: [
+    {
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "number",
+      "path": [
+        "id"
+      ],
+      "message": "Expected string, received number"
+    }
+  ]
   {
-    "message": "[select-usage_test_8729cac]: Parsing rows failed",
+    "message": "[select-usage_test_8729cac]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
     "query": {
       "name": "select-usage_test_8729cac",
       "sql": "select id from usage_test",
@@ -573,9 +583,19 @@ const StringId = z.object({id: z.string()})
 const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
 expect(error).toMatchInlineSnapshot(`
-  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: [
+    {
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "number",
+      "path": [
+        "id"
+      ],
+      "message": "Expected string, received number"
+    }
+  ]
   {
-    "message": "[select-usage_test_8729cac]: Parsing rows failed",
+    "message": "[select-usage_test_8729cac]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
     "query": {
       "name": "select-usage_test_8729cac",
       "sql": "select id from usage_test",
@@ -634,9 +654,19 @@ expect(result).toEqual({name: 'Bob'})
 
 const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
 expect(err).toMatchInlineSnapshot(`
-  [QueryError]: [select_245d49b]: Parsing rows failed
+  [QueryError]: [select_245d49b]: Parsing rows failed: [
+    {
+      "code": "invalid_type",
+      "expected": "string",
+      "received": "number",
+      "path": [
+        "name"
+      ],
+      "message": "Expected string, received number"
+    }
+  ]
   {
-    "message": "[select_245d49b]: Parsing rows failed",
+    "message": "[select_245d49b]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
     "query": {
       "name": "select_245d49b",
       "sql": "select 123 as name",
@@ -870,7 +900,7 @@ const getResult = () =>
 
 await expect(getResult()).rejects.toMatchInlineSnapshot(`
   {
-    "message": "[select-zod_test_83bbed1]: Parsing rows failed",
+    "message": "[select-zod_test_83bbed1]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
     "query": {
       "name": "select-zod_test_83bbed1",
       "sql": "\\n      select * from zod_test\\n    ",
@@ -1055,24 +1085,24 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
-    [QueryError]: [select_9dcc021]: Executing query failed
-    {
-      "message": "[select_9dcc021]: Executing query failed",
-      "query": {
-        "name": "select_9dcc021",
-        "sql": "select pg_sleep($1)",
-        "token": "sql",
-        "values": [
-          0.04
-        ]
-      },
-      "cause": {
-        "name": "Error",
-        "message": "Query read timeout",
-        "query": "select pg_sleep(0.04)"
-      }
+  [QueryError]: [select_9dcc021]: Executing query failed: Query read timeout
+  {
+    "message": "[select_9dcc021]: Executing query failed: Query read timeout",
+    "query": {
+      "name": "select_9dcc021",
+      "sql": "select pg_sleep($1)",
+      "token": "sql",
+      "values": [
+        0.04
+      ]
+    },
+    "cause": {
+      "name": "Error",
+      "message": "Query read timeout",
+      "query": "select pg_sleep(0.04)"
     }
-  `,
+  }
+`,
 )
 await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
   pg_sleep: '',
@@ -1135,9 +1165,9 @@ await expect(
     select pg_sleep(${sleepSeconds})
   `),
 ).rejects.toThrowErrorMatchingInlineSnapshot(`
-  [QueryError]: [select_6289211]: Executing query failed
+  [QueryError]: [select_6289211]: Executing query failed: Query read timeout
   {
-    "message": "[select_6289211]: Executing query failed",
+    "message": "[select_6289211]: Executing query failed: Query read timeout",
     "query": {
       "name": "select_6289211",
       "sql": "\\n      select pg_sleep($1)\\n    ",
@@ -1280,7 +1310,7 @@ For errors based on the number of rows returned (for `one`, `oneFirst`, `many`, 
 <details>
 <summary>Here's what some sample errors look like</summary>
 
-<!-- codegen:start {preset: markdownFromTests, source: test/errors.test.ts, headerLevel: 5} -->
+<!-- codegen:start {preset: markdownFromTests, source: test/errors.test.ts, headerLevel: 5, exclude: [exclude from readme]} -->
 ##### one error
 
 ```typescript
@@ -1437,8 +1467,17 @@ await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.t
 await expect(pool.query(sql`select * frooom test_errors`)).rejects.toMatchInlineSnapshot(
   `
     [QueryError]: [select_fb83277]: Executing query failed (syntax_error)
+
+    syntax error at or near "frooom"
+
+    length=95, name=error, severity=ERROR, code=42601, position=10, file=scan.l, line=1176, routine=scanner_yyerror, query=select * frooom test_errors
+
+    [annotated query]
+
+        select * frooom test_errors
+        ---------👆-----------------
     {
-      "message": "[select_fb83277]: Executing query failed (syntax_error)",
+      "message": "[select_fb83277]: Executing query failed (syntax_error)\\n\\nsyntax error at or near \\"frooom\\"\\n\\nlength=95, name=error, severity=ERROR, code=42601, position=10, file=scan.l, line=1176, routine=scanner_yyerror, query=select * frooom test_errors\\n\\n[annotated query]\\n\\n    select * frooom test_errors\\n    ---------👆-----------------",
       "query": {
         "name": "select_fb83277",
         "sql": "select * frooom test_errors",
@@ -1465,6 +1504,15 @@ const err: Error = await pool.query(sql`select * frooom test_errors`).catch(e =>
 
 expect(err.stack).toMatchInlineSnapshot(`
   Error: [select_fb83277]: Executing query failed (syntax_error)
+
+  syntax error at or near "frooom"
+
+  length=95, name=error, severity=ERROR, code=42601, position=10, file=scan.l, line=1176, routine=scanner_yyerror, query=select * frooom test_errors
+
+  [annotated query]
+
+      select * frooom test_errors
+      ---------👆-----------------
       at Object.query (<repo>/packages/client/src/client.ts:<line>:<col>)
       at <repo>/packages/client/test/errors.test.ts:<line>:<col>
 `)
@@ -1476,119 +1524,6 @@ expect((err as any).cause?.stack).toMatchInlineSnapshot(`
       at Parser.parse (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/parser.ts:<line>:<col>)
       at Socket.<anonymous> (<repo>/node_modules/.pnpm/pg-protocol@1.6.0/node_modules/pg-protocol/src/index.ts:<line>:<col>)
 `)
-```
-
-##### no snapshot serializer
-
-```typescript
-const badQuery = `
-  select *
-  from whoops information_schema.tables;
-`.repeat(30)
-
-const err = await pool.query(sql.raw(badQuery)).catch(e => e)
-expect('disable-snapshot-serializer\n\n' + inspect(err)).toMatchInlineSnapshot(
-  `
-    "disable-snapshot-serializer
-
-    [select_6955765]: Executing query failed (syntax_error)
-
-    length=90, name=error, severity=ERROR, code=42601, position=49, file=scan.l, line=1176, routine=scanner_yyerror
-
-
-        select *
-        from whoops information_schema.tables;
-    ----------------------------------👆-------
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-
-        select *
-        from whoops information_schema.tables;
-      "
-  `,
-)
 ```
 <!-- codegen:end -->
 
