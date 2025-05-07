@@ -279,10 +279,18 @@ export const generate = async (inputOptions: Partial<Options>) => {
         await promise
       }
 
+      const handlerWithCatch: typeof handler = async (filepath, ...args) => {
+        try {
+          await handler(filepath, ...args)
+        } catch (err) {
+          logger.error(`Error generating types for ${filepath}: ${err as string}`)
+        }
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      watcher.on('add', async f => handler(f, 'add'))
+      watcher.on('add', async f => handlerWithCatch(f, 'add'))
       // eslint-disable-next-line @typescript-eslint/no-misused-promises
-      watcher.on('change', async f => handler(f, 'change'))
+      watcher.on('change', async f => handlerWithCatch(f, 'change'))
       const closer = {
         async close() {
           await watcher.close()

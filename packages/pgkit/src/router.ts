@@ -28,7 +28,6 @@ const clientSingleton = {
 export const router = t.router({
   query: procedureWithClient
     .meta({
-      default: true,
       aliases: {
         command: ['q'],
         options: {
