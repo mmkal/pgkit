@@ -78,6 +78,7 @@
     "next-themes": "^0.3.0",
     "p-memoize": "^7.1.1",
     "pgsql-ast-parser": "^12.0.1",
+    "pgsql-parser": "^13.16.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.51.3",

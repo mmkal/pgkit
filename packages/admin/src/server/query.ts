@@ -1,6 +1,51 @@
 import {FieldInfo, Queryable, nameQuery, sql} from '@pgkit/client'
 import * as parser from 'pgsql-ast-parser'
+import * as pgParser from 'pgsql-parser'
 import {type ServerContext} from './context.js'
+
+declare module 'pgsql-parser' {
+  /* example
+  {
+    RawStmt: {
+      stmt: {
+        SelectStmt: {
+          targetList: [
+            {
+              ResTarget: {
+                val: {
+                  A_Const: { val: { Integer: { ival: 1 } }, location: 7 }
+                },
+                location: 7
+              }
+            }
+          ],
+          fromClause: [
+            {
+              RangeVar: {
+                relname: 'a',
+                inh: true,
+                relpersistence: 'p',
+                location: 14
+              }
+            }
+          ],
+          limitOption: 'LIMIT_OPTION_DEFAULT',
+          op: 'SETOP_NONE'
+        }
+      },
+      stmt_len: 15,
+      stmt_location: 0
+    }
+  }
+  */
+  export type ParseResult = {
+    RawStmt: {
+      stmt: {}
+      stmt_len: number
+      stmt_location: number | undefined
+    }
+  }
+}
 
 export const runQuery = async (query: string, {connection}: ServerContext): Promise<QueryResult[]> => {
   if (query.startsWith('--split-semicolons\n')) {
@@ -15,9 +60,62 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
     return [await runOneQuery(query, connection)]
   }
 
+  const results = [] as QueryResult[]
+
+  let nativeParsed: pgParser.ParseResult[]
+  try {
+    nativeParsed = pgParser.parse(query) as pgParser.ParseResult[]
+  } catch (err) {
+    makeJsonable(err)
+    err.message = [
+      err.message,
+      '',
+      `If you think the query is actually valid, it's possible the parsing library has a bug.`,
+      `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB anyway.`,
+    ].join('\n')
+    return [
+      {
+        query: nameQuery([query]),
+        original: query,
+        error: err,
+        result: null,
+        fields: null,
+        position: (err as {cursorPosition?: number}).cursorPosition,
+      },
+    ]
+  }
+
+  const sliceables = nativeParsed.map(s => {
+    if (typeof s?.RawStmt?.stmt_location !== 'number') return undefined
+
+    const start = s.RawStmt.stmt_location
+    const length = s.RawStmt.stmt_len
+    const end = typeof length === 'number' ? start + length : undefined
+
+    return [start, end] as const
+  })
+
+  // throw new Error(JSON.stringify({sliceables}))
+
+  if (sliceables.every(Array.isArray)) {
+    await connection.transaction(async tx => {
+      for (const [start, end] of sliceables as [number, number][]) {
+        const result = await runOneQuery(query.slice(start, end), tx)
+
+        if (result.error) {
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+          const position = (result.error as any).cause?.error?.position
+          if (position) result.position = start + Number(position)
+
+          throw result.error
+        }
+        results.push(result)
+      }
+    })
+  }
   let parsed: parser.Statement[]
   try {
-    parsed = parser.parse(query, {locationTracking: true})
+    parsed = results.length ? [] : parser.parse(query, {locationTracking: true})
   } catch (err) {
     makeJsonable(err)
     err.message = [
@@ -29,7 +127,6 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
     return [{query: nameQuery([query]), original: query, error: err, result: null, fields: null}]
   }
 
-  const results = [] as QueryResult[]
   await connection
     .transaction(async tx => {
       for (const stmt of parsed) {
