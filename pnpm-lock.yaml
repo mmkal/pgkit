@@ -590,6 +590,9 @@ importers:
       '@pgkit/typegen':
         specifier: workspace:^
         version: link:../typegen
+      '@trpc/server':
+        specifier: ^11.0.1
+        version: 11.1.2(typescript@5.8.2)
       enquirer:
         specifier: ^2.4.1
         version: 2.4.1

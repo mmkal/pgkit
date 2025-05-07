@@ -74,7 +74,7 @@ export const router = t.router({
     procedureWithClient.use(async ({ctx, next}) => {
       return next({ctx: {...ctx, confirm}})
     }),
-  ),
+  )._def.record, // todo: figure out why it doesn't like the actual router
   empty: procedureWithClient.mutation(async ({ctx}) => {
     const migrator = ctx.migrator
     // get a wipe diff since this will *drop* tables in reverse dependency order. We want to truncate them in that order since foreign key constraints could otherwise prevent deletions
@@ -160,4 +160,4 @@ export const router = t.router({
       })
       return new Promise(_r => {})
     }),
-})
+}) as trpcCli.AnyRouter
