@@ -11,7 +11,7 @@ const router = t.router({
     .meta({default: true})
     .input(PublishInput) //
     .mutation(async ({input}) => {
-      return publish(input)
+      await publish(input)
     }),
 
   prebuilt: t.procedure

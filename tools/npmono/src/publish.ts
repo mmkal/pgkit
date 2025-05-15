@@ -435,7 +435,7 @@ export const publish = async (input: PublishInput) => {
                 }
 
                 if (leftRef && rightRef) {
-                  await execa('git', ['diff', rightRef, leftRef, '--', '.'], {
+                  await execa('git', ['diff', leftRef, rightRef, '--', '.'], {
                     cwd: pkg.path,
                     stdout: {
                       file: path.join(changesFolder, 'source.diff'),
@@ -684,7 +684,7 @@ function getWorkspaceRoot() {
 
 /** "Pessimistic" comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
-  const packageJson = loadRHSPackageJson(pkg)
+  const packageJson = loadLHSPackageJson(pkg)
   return await getPackageJsonGitSha(pkg, packageJson)
 }
 
@@ -768,9 +768,17 @@ async function getPackageRevList(pkg: Pkg) {
   const localRef = pkg.shas.right
   const {stdout} = await execa(
     'git',
-    ['rev-list', '--ancestry-path', `${fromRef}..${localRef}`, '--format=oneline', '--abbrev-commit', '--', '.'],
+    ['rev-list', '--ancestry-path', `${fromRef}...${localRef}`, '--format=oneline', '--abbrev-commit', '--', '.'],
     {cwd: pkg.path},
   )
+
+  const {stdout: mergeBase} = await execa('git', ['merge-base', fromRef, localRef])
+  let mergeBaseNote = ''
+  if (mergeBase !== fromRef) {
+    const {stdout: mergeBaseSummary} = await execa('git', ['log', '-n', '1', '--format=%h %s (%ad)', mergeBase])
+    mergeBaseNote = `\n🚧🚧 NOTE 🚧🚧: ${localRef} (current) is not a descendant of ${fromRef} (last publish). The last publish may have beendone on a separate branch. The merge base is:\n${mergeBaseSummary}`
+  }
+
   const {stdout: uncommitedChanges} = await execa('git', ['status', '--porcelain', '--', '.'], {
     cwd: pkg.path,
   })
@@ -783,11 +791,14 @@ async function getPackageRevList(pkg: Pkg) {
     commitBullets.length > 0 && `<h3 data-commits>Commits</h3>\n`,
     ...commitBullets,
     uncommitedChanges.trim() && 'Uncommitted changes:\n' + uncommitedChanges,
+    mergeBaseNote,
   ]
   return {
     // commitComparisonString,
     // versionComparisonString,
-    markdown: sections.filter(Boolean).join('\n').trim() || `No ${pkg.name} changes since last publish.`,
+    markdown:
+      sections.filter(Boolean).join('\n').trim() ||
+      `Unable to list commits to ${pkg.name} between ${fromRef} (last publish) and ${localRef} (current). Was ${fromRef} on a different branch?`,
   }
 }
 
