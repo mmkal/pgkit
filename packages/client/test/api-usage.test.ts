@@ -39,7 +39,7 @@ test('sql.array', async () => {
 test('nested sql.fragment - exclude from readme', async () => {
   expect(
     await client.anyFirst(sql`
-      select id from test_slonik37
+      select id from usage_test
       where name = any(${sql.array(['one', 'two'], 'text')})
     `),
   ).toMatchSnapshot()
@@ -49,7 +49,7 @@ test('nested sql.fragment - exclude from readme', async () => {
   expect(
     await client.anyFirst(sql`
       select id
-      from test_slonik37
+      from usage_test
       where ${isInGroupConditionSql}
     `),
   ).toMatchSnapshot()
