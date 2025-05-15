@@ -49,7 +49,7 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
   const exists = await pool.oneFirst<{exists: boolean}>(
     sql`select exists(select 1 from pg_catalog.pg_roles where rolname = 'schemainspect_test_role')`,
   )
-  if (!exists) await pool.query(sql`create role schemainspect_test_role if not exists`)
+  if (!exists) await pool.query(sql`create role schemainspect_test_role`)
 
   await pool.query(sql.raw(query))
 

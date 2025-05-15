@@ -11,6 +11,16 @@ beforeAll(async () => {
 
 const fixtures = getFixtures('python_parity').map(f => [f] as const)
 
+test('python migra CLI is installed and on PATH', async () => {
+  const {execa} = await import('execa')
+  const {stdout} = await execa('migra', ['--help'], {
+    cwd: process.cwd(),
+    env: process.env,
+  })
+  expect(stdout).toContain('usage: migra')
+  expect(stdout).toContain('Generate a database migration.')
+})
+
 test.each(fixtures)(
   '%j migra fixture',
   async ({name, args, ...fixture}) => {
