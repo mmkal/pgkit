@@ -97,7 +97,7 @@ jobs:
         name: find packages
         run: |
           migrator_package_json=$(find /tmp/build_folder | grep pgkit__migrator/right/package/package.json)
-          echo "migrator=$(dirname $migrator_package_json)" >> $GITHUB_OUTPUT
+          echo "migrator=$($migrator_package_json)" >> $GITHUB_OUTPUT
       - run: npm init -y
-      - run: npm install ${{ steps.find_packages.outputs.migrator }}
+      - run: npm install file:${{ steps.find_packages.outputs.migrator }}
       - run: ./node_modules/.bin/migrator --help
