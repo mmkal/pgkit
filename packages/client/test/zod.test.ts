@@ -89,7 +89,7 @@ test('Refine schemas', async () => {
 
   await expect(getResult()).rejects.toMatchInlineSnapshot(`
     {
-      "message": "[select-zod_test_83bbed1]: Parsing rows failed: see cause for details",
+      "message": "[select-zod_test_83bbed1]: Parsing rows failed: ✖ id must be even → at id\\n✖ Required → at name",
       "query": {
         "name": "select-zod_test_83bbed1",
         "sql": "\\n      select * from zod_test\\n    ",
@@ -99,6 +99,13 @@ test('Refine schemas', async () => {
       "cause": {
         "issues": [
           {
+            "code": "custom",
+            "message": "id must be even",
+            "path": [
+              "id"
+            ]
+          },
+          {
             "code": "invalid_type",
             "expected": "string",
             "received": "undefined",
@@ -106,16 +113,8 @@ test('Refine schemas', async () => {
               "name"
             ],
             "message": "Required"
-          },
-          {
-            "code": "custom",
-            "message": "id must be even",
-            "path": [
-              "id"
-            ]
           }
-        ],
-        "name": "ZodError"
+        ]
       }
     }
   `)

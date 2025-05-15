@@ -1,4 +1,6 @@
 import {inspect} from 'node:util'
+import {prettifyStandardSchemaError, StandardSchemaV1Error} from './standard-schema/errors'
+import {looksLikeStandardSchemaFailure} from './standard-schema/utils'
 import type {SQLQuery} from './types'
 
 // only used by eslint to generate error codes, but I guess you could use it too
@@ -40,6 +42,7 @@ export const fetchErrorCodes: import('eslint-plugin-codegen').Preset<{}> = ({met
 }
 
 export function errorFromUnknown(err: unknown) {
+  if (looksLikeStandardSchemaFailure(err)) return new StandardSchemaV1Error(err)
   return err instanceof Error ? err : new Error(`Non error thrown: ${String(err)}`, {cause: err})
 }
 
@@ -68,6 +71,8 @@ export class QueryError extends Error {
       message += ` (${exports.pgErrorCodes[cause.code]})`
       message += `\n\n${cause.message}\n\n`
       message += `${QueryError.prettyPgErrorMessage(params) || ''}`.trim()
+    } else if (looksLikeStandardSchemaFailure(cause)) {
+      message += `: ${prettifyStandardSchemaError(cause)}`
     } else if (cause?.constructor?.name === 'ZodError') {
       message += ': see cause for details'
     } else if (typeof cause?.message === 'string') {

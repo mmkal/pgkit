@@ -1,7 +1,9 @@
 import pgPromise from 'pg-promise'
 import {QueryError} from './errors'
 import {nameQuery} from './naming'
-import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, ZodesqueType, SQLParameter} from './types'
+import {StandardSchemaV1} from './standard-schema/contract'
+import {looksLikeStandardSchema, looksLikeStandardSchemaFailure} from './standard-schema/utils'
+import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, SQLParameter} from './types'
 
 const sqlMethodHelpers: SQLMethodHelpers = {
   raw: <T>(query: string, values: unknown[] = []): SQLQuery<T, unknown[]> => ({
@@ -14,34 +16,45 @@ const sqlMethodHelpers: SQLMethodHelpers = {
     templateArgs: () => [[query]],
   }),
   type: type => {
-    type Result = typeof type extends ZodesqueType<infer R> ? R : never
-    let parseAsync: (input: unknown) => Promise<Result>
-    if ('parseAsync' in type) {
-      parseAsync = type.parseAsync
-    } else if ('safeParseAsync' in type) {
-      parseAsync = async input => {
-        const parsed = await type.safeParseAsync(input)
-        if (!parsed.success) {
-          throw parsed.error
-        }
-        return parsed.data
-      }
-    } else if ('parse' in type) {
-      parseAsync = async input => type.parse(input)
-    } else if ('safeParse' in type) {
-      parseAsync = async input => {
-        const parsed = type.safeParse(input)
-        if (!parsed.success) {
-          throw parsed.error
-        }
-        return parsed.data
-      }
-    } else {
-      const _: never = type
-      throw new Error('Invalid type parser. Must have parse, safeParse, parseAsync or safeParseAsync method', {
-        cause: type,
-      })
+    if (!looksLikeStandardSchema(type)) {
+      throw new Error('Invalid type parser. Must be a Standard Schema', {cause: type})
     }
+    const {validate} = type['~standard']
+    const parseAsync = async (input: unknown) => {
+      const result = await validate(input)
+      if (looksLikeStandardSchemaFailure(result)) {
+        throw result as {} as Error
+      }
+      return result.value as never
+    }
+    // type Result = typeof type extends ZodesqueType<infer R> ? R : never
+    // let parseAsync: (input: unknown) => Promise<Result>
+    // if ('parseAsync' in type) {
+    //   parseAsync = type.parseAsync
+    // } else if ('safeParseAsync' in type) {
+    //   parseAsync = async input => {
+    //     const parsed = await type.safeParseAsync(input)
+    //     if (!parsed.success) {
+    //       throw parsed.error
+    //     }
+    //     return parsed.data
+    //   }
+    // } else if ('parse' in type) {
+    //   parseAsync = async input => type.parse(input)
+    // } else if ('safeParse' in type) {
+    //   parseAsync = async input => {
+    //     const parsed = type.safeParse(input)
+    //     if (!parsed.success) {
+    //       throw parsed.error
+    //     }
+    //     return parsed.data
+    //   }
+    // } else {
+    //   const _: never = type
+    //   throw new Error('Invalid type parser. Must have parse, safeParse, parseAsync or safeParseAsync method', {
+    //     cause: type,
+    //   })
+    // }
     return (strings, ...parameters) => ({
       ...sqlFn(strings, ...(parameters as never)),
       parse: parseAsync,
@@ -219,7 +232,7 @@ export const allSqlHelpers = {...sqlMethodHelpers, ...sqlTagHelpers}
 export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.assign(sqlFn, allSqlHelpers)
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any>>>(params: {
+export const createSqlTag = <TypeAliases extends Record<string, StandardSchemaV1>>(params: {
   typeAliases: TypeAliases
 }) => {
   // eslint-disable-next-line func-name-matching, func-names, @typescript-eslint/no-shadow
@@ -230,7 +243,7 @@ export const createSqlTag = <TypeAliases extends Record<string, ZodesqueType<any
   return Object.assign(fn, allSqlHelpers, {
     typeAlias<K extends keyof TypeAliases>(name: K) {
       const type = params.typeAliases[name]
-      type Result = typeof type extends ZodesqueType<infer R> ? R : never
+      type Result = typeof type extends StandardSchemaV1<any, infer R> ? R : never
       return sql.type(type) as <Parameters extends SQLParameter[] = SQLParameter[]>(
         strings: TemplateStringsArray,
         ...parameters: Parameters

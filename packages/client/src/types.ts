@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import pgPromise from 'pg-promise'
+import {StandardSchemaV1} from './standard-schema/contract'
 
 export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[] = unknown[]> {
   token: 'sql'
@@ -190,17 +191,6 @@ export type TypeNameIdentifier =
   | 'uuid'
 /* eslint-enable @typescript-eslint/no-redundant-type-constituents */
 
-export type ZodesqueType<T> =
-  | ZodesqueTypeSafe<T>
-  | ZodesqueTypeAsyncSafe<T>
-  | ZodesqueTypeAsyncUnsafe<T>
-  | ZodesqueTypeUnsafe<T>
-export type ZodesqueTypeUnsafe<T> = {parse: (input: unknown) => T}
-export type ZodesqueTypeSafe<T> = {safeParse: (input: unknown) => ZodesqueResult<T>}
-export type ZodesqueTypeAsyncUnsafe<T> = {parseAsync: (input: unknown) => Promise<T>}
-export type ZodesqueTypeAsyncSafe<T> = {safeParseAsync: (input: unknown) => Promise<ZodesqueResult<T>>}
-export type ZodesqueResult<T> = {success: true; data: T} | {success: false; error: Error}
-
 export type SQLTagHelperParameters = {
   array: [values: readonly PrimitiveValueExpression[], memberType: MemberType]
   binary: [data: Buffer]
@@ -241,7 +231,7 @@ export type SQLTagFunction = <Row = Record<string, unknown>>(
 export type SQLMethodHelpers = {
   raw: <Row>(query: string, values?: unknown[]) => SQLQuery<Row, unknown[]>
   type: <Row>(
-    parser: ZodesqueType<Row>,
+    parser: StandardSchemaV1<any, Row>,
   ) => <Parameters extends SQLParameter[] = SQLParameter[]>(
     strings: TemplateStringsArray,
     ...parameters: Parameters
