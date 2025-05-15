@@ -100,4 +100,7 @@ jobs:
           echo "migrator=$($migrator_package_json)" >> $GITHUB_OUTPUT
       - run: npm init -y
       - run: npm install file:${{ steps.find_packages.outputs.migrator }}
+      - run: |
+          cat package.json
+          ls -R
       - run: ./node_modules/.bin/migrator --help
