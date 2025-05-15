@@ -98,6 +98,6 @@ jobs:
         run: |
           migrator_tgz=$(find /tmp/build_folder | grep pgkit__migrator/right | grep .tgz)
           echo "migrator_tgz=$migrator_tgz" >> $GITHUB_OUTPUT
-      - run: pnpm init -y
-      - run: pnpm install ${{ steps.find_tgz.outputs.migrator_tgz }}
+      - run: npm init -y
+      - run: npm install ${{ steps.find_tgz.outputs.migrator_tgz }}
       - run: ./node_modules/.bin/migrator --help
