@@ -558,7 +558,7 @@ export class InspectedIndex extends InspectedIndexParent implements TableRelated
       algorithm: true,
 
       definition: true,
-      constraint: true,
+      constraint: false,
       included_columns: true,
       index_columns: true,
       key_collations: true,
