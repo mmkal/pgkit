@@ -14,6 +14,8 @@
     "directory": "packages/schemainspect"
   },
   "scripts": {
+    "get-python": "curl -L https://github.com/djrobstep/schemainspect/archive/refs/heads/master.zip -o python.zip && unzip python.zip && mv schemainspect-master python && rm python.zip",
+    "rm-python": "rm -rf python",
     "prepack": "pnpm build",
     "codegen": "ts-node scripts/generate-types.ts",
     "build": "tsc --sourceMap -p tsconfig.lib.json",
