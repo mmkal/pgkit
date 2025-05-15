@@ -5,6 +5,13 @@ import {StandardSchemaV1} from './standard-schema/contract'
 import {looksLikeStandardSchema, looksLikeStandardSchemaFailure} from './standard-schema/utils'
 import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, SQLParameter} from './types'
 
+const maybeAsyncMap = <T, U>(thing: T | Promise<T>, map: (value: T) => U): U | Promise<U> => {
+  if (typeof (thing as {then?: unknown})?.then === 'function') {
+    return (thing as {then: (mapper: typeof map) => Promise<U>}).then(map)
+  }
+  return map(thing as T)
+}
+
 const sqlMethodHelpers: SQLMethodHelpers = {
   raw: <T>(query: string, values: unknown[] = []): SQLQuery<T, unknown[]> => ({
     sql: query,
@@ -17,15 +24,20 @@ const sqlMethodHelpers: SQLMethodHelpers = {
   }),
   type: type => {
     if (!looksLikeStandardSchema(type)) {
-      throw new Error('Invalid type parser. Must be a Standard Schema', {cause: type})
+      const typeName = (type as {})?.constructor?.name
+      const hint = typeName?.includes('Zod') ? ` Try upgrading zod` : ''
+      throw new Error(`Invalid type parser. Must be a Standard Schema. Got ${typeName}.${hint}`, {
+        cause: type,
+      })
     }
     const {validate} = type['~standard']
-    const parseAsync = async (input: unknown) => {
-      const result = await validate(input)
-      if (looksLikeStandardSchemaFailure(result)) {
-        throw result as {} as Error
-      }
-      return result.value as never
+    const parseAsync = (input: unknown) => {
+      return maybeAsyncMap(validate(input), result => {
+        if (looksLikeStandardSchemaFailure(result)) {
+          throw result as {} as Error
+        }
+        return result.value
+      })
     }
     // type Result = typeof type extends ZodesqueType<infer R> ? R : never
     // let parseAsync: (input: unknown) => Promise<Result>
