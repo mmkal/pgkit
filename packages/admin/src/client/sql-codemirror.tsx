@@ -14,7 +14,7 @@ export interface SqlCodeMirrorProps {
   code?: string
   onChange?: (query: string) => void
   onExecute?: (sql: string) => void
-  errors?: Array<{position: number; message: string}>
+  errors?: Array<{position: number; message: string | string[]}>
   height: string
   readonly?: boolean
   wrapText?: boolean
@@ -79,7 +79,7 @@ export const SqlCodeMirror = ({code, onChange, onExecute, errors, height, ...pro
         return {
           from,
           to,
-          message: e.message.split('\n')[0] || unknownErrorMessage,
+          message: [e.message].flat().join('\n').split('\n')[0] || unknownErrorMessage,
           severity: 'error',
         }
       })

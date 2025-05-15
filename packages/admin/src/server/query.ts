@@ -1,17 +1,8 @@
 import {FieldInfo, Queryable, nameQuery, sql} from '@pgkit/client'
-import PGQueryEmscripten, {PgQueryEmscriptenParseResult} from 'pg-query-emscripten'
+import PGQueryEmscripten from 'pg-query-emscripten'
 import {type ServerContext} from './context.js'
 
-export type PgsqlParserParseResult = {
-  RawStmt?: {
-    stmt?: {}
-    stmt_len?: number
-    stmt_location?: number
-  }
-}
-
 export const runQuery = async (query: string, {connection}: ServerContext): Promise<QueryResult[]> => {
-  console.log('query', query)
   if (query.startsWith('--split-semicolons\n')) {
     const queries = query.split(/;\s*\n/)
     const results = []
@@ -26,52 +17,32 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
 
   const results = [] as QueryResult[]
 
-  let nativeParsed: PgQueryEmscriptenParseResult
-  try {
-    const pgsqlParser = await new PGQueryEmscripten()
-    nativeParsed = pgsqlParser.parse(query)
-    if (nativeParsed.error) {
-      const message = [
-        nativeParsed.error.message,
-        '',
-        `If you think the query is actually valid, it's possible the parsing library has a bug.`,
-        `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB as-is.`,
-      ].join('\n')
-      const err = new Error(message, {cause: nativeParsed.error})
-      makeJsonable(err)
-      // if (Math.random()) throw new Error(nativeParsed.error.message, {cause: nativeParsed.error})
-      return [
-        {
-          query: nameQuery([query]),
-          original: query,
-          error: err,
-          result: null,
-          fields: null,
-          position: nativeParsed.error.cursorpos - 1,
-        },
-      ]
-    }
-  } catch (err) {
-    makeJsonable(err)
-    err.message = [
-      err.message,
+  const [parseError, nativeParsed] = await Promise.resolve()
+    .then(() => new PGQueryEmscripten())
+    .then(parser => [null, parser.parse(query)] as const)
+    .catch((error: Error) => [error, null] as const)
+
+  if (parseError || nativeParsed.error) {
+    const error = parseError || new Error(nativeParsed.error!.message, {cause: nativeParsed.error})
+    error.message = [
+      error.message,
       '',
       `If you think the query is actually valid, it's possible the parsing library has a bug.`,
       `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB as-is.`,
     ].join('\n')
+    makeJsonable(error)
     return [
       {
         query: nameQuery([query]),
         original: query,
-        error: err,
+        error,
         result: null,
         fields: null,
-        position: (err as {cursorPosition?: number})?.cursorPosition,
+        position: nativeParsed?.error?.cursorpos,
       },
     ]
   }
 
-  console.dir({nativeParsed}, {depth: null})
   const slices = nativeParsed.parse_tree.stmts.map(s => {
     // if (typeof s?.stmt_location !== 'number') return undefined
 

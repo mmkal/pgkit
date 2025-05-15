@@ -29,13 +29,13 @@ export const Querier = () => {
     onSuccess: data => {
       const newErrors = data.results.flatMap(r => {
         if (r.error && typeof r.position === 'number') {
-          return [{message: r.error.message, position: r.position + 1}]
+          return [{message: r.error.message, position: r.position}]
         }
 
         const parsed = PGErrorWrapper.safeParse(r.error?.cause)
         if (parsed.success) {
           const pgError = parsed.data.error
-          return [{message: r.error?.message || pgError.code, position: Number(pgError.position) - 1}]
+          return [{message: r.error?.message || pgError.code, position: Number(pgError.position)}]
         }
 
         return []
@@ -76,7 +76,7 @@ export const Querier = () => {
         <div className="flex gap-1">
           <Button
             title="AI"
-            disabled={aiMutation.isLoading}
+            disabled={aiMutation.isPending}
             onClick={() => {
               const aiPrompt = prompt('Enter a prompt', aiMutation.variables?.prompt || '')
               if (!aiPrompt) return
@@ -94,7 +94,7 @@ export const Querier = () => {
           </Button>
         </div>
       </div>
-      {aiMutation.isLoading && <FakeProgress value={aiMutation.isSuccess ? 100 : null} estimate={3000} />}
+      {aiMutation.isPending && <FakeProgress value={aiMutation.isSuccess ? 100 : null} estimate={3000} />}
       <div className="flex flex-col gap-4 h-[90%] relative">
         <div ref={ref} className="h-1/2 border rounded-lg overflow-scroll relative bg-gray-800">
           <SqlCodeMirror
