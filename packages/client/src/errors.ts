@@ -68,6 +68,8 @@ export class QueryError extends Error {
       message += ` (${exports.pgErrorCodes[cause.code]})`
       message += `\n\n${cause.message}\n\n`
       message += `${QueryError.prettyPgErrorMessage(params) || ''}`.trim()
+    } else if (cause?.constructor?.name === 'ZodError') {
+      message += ': see cause for details'
     } else if (typeof cause?.message === 'string') {
       message += `: ${cause?.message}`
     }

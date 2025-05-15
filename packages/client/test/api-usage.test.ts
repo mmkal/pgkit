@@ -3,7 +3,7 @@ import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import {z} from 'zod'
 import {fromError, isZodErrorLike} from 'zod-validation-error'
 import {createClient, createSqlTag, QueryError, sql} from '../src'
-import {printError} from './snapshots'
+import {printErrorCompact as printError} from './snapshots'
 
 expect.addSnapshotSerializer({
   test: Boolean,
@@ -383,40 +383,8 @@ test('sql.type', async () => {
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
   expect(error).toMatchInlineSnapshot(`
-    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: [
-      {
-        "code": "invalid_type",
-        "expected": "string",
-        "received": "number",
-        "path": [
-          "id"
-        ],
-        "message": "Expected string, received number"
-      }
-    ]
-    {
-      "message": "[select-usage_test_8729cac]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
-      "query": {
-        "name": "select-usage_test_8729cac",
-        "sql": "select id from usage_test",
-        "token": "sql",
-        "values": []
-      },
-      "cause": {
-        "name": "ZodError",
-        "issues": [
-          {
-            "code": "invalid_type",
-            "expected": "string",
-            "received": "number",
-            "path": [
-              "id"
-            ],
-            "message": "Expected string, received number"
-          }
-        ]
-      }
-    }
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: see cause for details
+      Caused by: [ZodError]: Validation error: Expected string, received number at "id" (**auto-formatted for snapshot**)
   `)
 })
 
@@ -452,57 +420,7 @@ test('sql.type with custom error message', async () => {
 
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
-  expect(error).toMatchInlineSnapshot(`
-    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: [
-      {
-        "code": "invalid_type",
-        "expected": "string",
-        "received": "number",
-        "path": [
-          "id"
-        ],
-        "message": "Expected string, received number"
-      }
-    ]
-    {
-      "message": "[select-usage_test_8729cac]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
-      "query": {
-        "name": "select-usage_test_8729cac",
-        "sql": "select id from usage_test",
-        "token": "sql",
-        "values": []
-      },
-      "cause": {
-        "name": "ZodValidationError",
-        "message": "Validation error: Expected string, received number at \\"id\\"",
-        "cause": {
-          "name": "ZodError",
-          "issues": [
-            {
-              "code": "invalid_type",
-              "expected": "string",
-              "received": "number",
-              "path": [
-                "id"
-              ],
-              "message": "Expected string, received number"
-            }
-          ]
-        },
-        "details": [
-          {
-            "code": "invalid_type",
-            "expected": "string",
-            "received": "number",
-            "path": [
-              "id"
-            ],
-            "message": "Expected string, received number"
-          }
-        ]
-      }
-    }
-  `)
+  expect(error).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "id"`)
 })
 
 /**
@@ -523,55 +441,5 @@ test('createSqlTag + sql.typeAlias', async () => {
   expect(result).toEqual({name: 'Bob'})
 
   const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
-  expect(err).toMatchInlineSnapshot(`
-    [QueryError]: [select_245d49b]: Parsing rows failed: [
-      {
-        "code": "invalid_type",
-        "expected": "string",
-        "received": "number",
-        "path": [
-          "name"
-        ],
-        "message": "Expected string, received number"
-      }
-    ]
-    {
-      "message": "[select_245d49b]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"number\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Expected string, received number\\"\\n  }\\n]",
-      "query": {
-        "name": "select_245d49b",
-        "sql": "select 123 as name",
-        "token": "sql",
-        "values": []
-      },
-      "cause": {
-        "name": "ZodValidationError",
-        "message": "Validation error: Expected string, received number at \\"name\\"",
-        "cause": {
-          "name": "ZodError",
-          "issues": [
-            {
-              "code": "invalid_type",
-              "expected": "string",
-              "received": "number",
-              "path": [
-                "name"
-              ],
-              "message": "Expected string, received number"
-            }
-          ]
-        },
-        "details": [
-          {
-            "code": "invalid_type",
-            "expected": "string",
-            "received": "number",
-            "path": [
-              "name"
-            ],
-            "message": "Expected string, received number"
-          }
-        ]
-      }
-    }
-  `)
+  expect(err).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "name"`)
 })
