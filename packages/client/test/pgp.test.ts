@@ -29,6 +29,24 @@ test('pgp works', async () => {
   expect(result).toEqual([{foo: 1}])
 })
 
+test('jsonb array', async () => {
+  await db.query(`drop table if exists jsonb_array_test`)
+  await db.query(`create table jsonb_array_test(id int, jsons jsonb[])`)
+
+  const values = [{n: 'one'}, {n: 'two'}, {n: 'three'}]
+
+  const result = await db.query(
+    `
+      insert into jsonb_array_test
+      values (1, $1::jsonb[])
+      returning *
+    `,
+    [values.map(v => JSON.stringify(v))],
+  )
+
+  expect(result).toEqual([{id: 1, jsons: values}])
+})
+
 test('any keyword', async () => {
   await db.query(`insert into pgp_test (id) values ('normal string'), ($1)`, ["'string with quotes'"])
 

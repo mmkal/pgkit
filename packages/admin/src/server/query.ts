@@ -1,5 +1,5 @@
 import {FieldInfo, Queryable, nameQuery, sql} from '@pgkit/client'
-import * as parser from 'pgsql-ast-parser'
+import PGQueryEmscripten from 'pg-query-emscripten'
 import {type ServerContext} from './context.js'
 
 export const runQuery = async (query: string, {connection}: ServerContext): Promise<QueryResult[]> => {
@@ -15,46 +15,60 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
     return [await runOneQuery(query, connection)]
   }
 
-  let parsed: parser.Statement[]
-  try {
-    parsed = parser.parse(query, {locationTracking: true})
-  } catch (err) {
-    makeJsonable(err)
-    err.message = [
-      err.message,
+  const results = [] as QueryResult[]
+
+  const [parseError, nativeParsed] = await Promise.resolve()
+    .then(() => new PGQueryEmscripten())
+    .then(parser => [null, parser.parse(query)] as const)
+    .catch((error: Error) => [error, null] as const)
+
+  if (parseError || nativeParsed.error) {
+    const error = parseError || new Error(nativeParsed.error!.message, {cause: nativeParsed.error})
+    error.message = [
+      error.message,
       '',
       `If you think the query is actually valid, it's possible the parsing library has a bug.`,
-      `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB anyway.`,
+      `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB as-is.`,
     ].join('\n')
-    return [{query: nameQuery([query]), original: query, error: err, result: null, fields: null}]
+    makeJsonable(error)
+    return [
+      {
+        query: nameQuery([query]),
+        original: query,
+        error,
+        result: null,
+        fields: null,
+        position: nativeParsed?.error?.cursorpos,
+      },
+    ]
   }
 
-  const results = [] as QueryResult[]
-  await connection
-    .transaction(async tx => {
-      for (const stmt of parsed) {
-        const statementSql = stmt._location
-          ? query.slice(stmt._location.start, stmt._location.end + 1)
-          : parser.toSql.statement(stmt)
-        const result = await runOneQuery(statementSql, tx)
-        results.push(result)
+  const slices = nativeParsed.parse_tree.stmts.map(s => {
+    // if (typeof s?.stmt_location !== 'number') return undefined
 
-        if (result.error) {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
-          const position = (result.error as any).cause?.error?.position
-          if (position && stmt._location) {
-            result.position = stmt._location.start + Number(position)
-          }
+    const start = s.stmt_location ?? 0
+    const length = s.stmt_len
+    const end = typeof length === 'number' ? start + length : undefined
 
-          throw result.error
-        }
+    return [start, end] as const
+  })
+
+  if (!slices.every(Array.isArray)) {
+    throw new Error('Failed to parse query')
+  }
+
+  await connection.transaction(async tx => {
+    for (const [start, end] of slices as [number, number][]) {
+      const result = await runOneQuery(query.slice(start, end), tx)
+
+      if (result.error) {
+        // @ts-expect-error optional chain yolo
+        const position: unknown = result.error?.cause?.error?.position
+        if (typeof position === 'number') result.position = start + Number(position)
       }
-    })
-    .catch((e: unknown) => {
-      const error = new Error(`Transaction failed`, {cause: e})
-      makeJsonable(error)
-      results.push({query: nameQuery([query]), original: query, error, result: null, fields: null})
-    })
+      results.push(result)
+    }
+  })
 
   return results
 }

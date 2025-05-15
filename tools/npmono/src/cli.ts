@@ -41,17 +41,12 @@ const router = t.router({
             'path to prebuilt folder. if ommitted a dry-run publish will be done to build and pack packages into a temp folder.\nNOTE: if you provide this value, dependencies in this folder will be replaced with local versions using the file protocol.',
           )
           .optional(),
-        includePeerDependencies: z
-          .boolean()
-          .describe(
-            "Converts peer dependencies to production dependencies. Don't use unless you are sure you need this",
-          )
-          .default(false),
       }),
     )
     .mutation(async ({input: options}) => {
+      const date = new Date(Number(options.prebuilt?.match(/\b\d{13}$/)?.[0] || Date.now()))
       const dateVersion =
-        new Date().toISOString().split('T')[0].split('-').join('.').replaceAll('.0', '.') + -Date.now()
+        date.toISOString().split('T')[0].split('-').join('.').replaceAll('.0', '.') + String(-date.getTime())
       const ctx = options.prebuilt
         ? Ctx.parse(JSON.parse(fs.readFileSync(options.prebuilt + '/context.json').toString()))
         : await publish({
@@ -65,21 +60,24 @@ const router = t.router({
         const packageJsonPath = path.join(packagePath, 'package.json')
         const packageJson = JSON.parse(fs.readFileSync(packageJsonPath).toString()) as import('type-fest').PackageJson
 
-        const deps = {
-          ...packageJson.dependencies,
-          ...(options.includePeerDependencies && packageJson.peerDependencies),
-        }
-        for (const dep of Object.keys(deps)) {
+        packageJson.version = dateVersion
+
+        const warning = `ONLY INTENDED FOR LOCAL INSTALLATION VIA 'file:' PROTOCOL. DO NOT PUBLISH!`
+        packageJson.description = [warning, packageJson.description].filter(Boolean).join('\n\n')
+
+        for (const dep of Object.keys(packageJson.dependencies || {})) {
           const foundDep = ctx.packages.find(p => p.name === dep)
           if (foundDep) {
-            deps[dep] = `file:${path.join(foundDep.folder, 'right/package')}`
-            packageJson.dependencies = deps
+            packageJson.dependencies![dep] = `file:${path.join(foundDep.folder, 'right/package')}`
           }
         }
-        if (packageJson.dependencies === deps) {
-          // we updated the dependencies, so we need to write the file
-          fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2))
+        for (const peerDep of Object.keys(packageJson.peerDependencies || {})) {
+          const foundPeerDep = ctx.packages.find(p => p.name === peerDep)
+          if (foundPeerDep) {
+            packageJson.peerDependencies![foundPeerDep.name] = dateVersion
+          }
         }
+        fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2))
       }
 
       for (const pkg of ctx.packages) {

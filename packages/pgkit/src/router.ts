@@ -1,8 +1,9 @@
-import {Client, createClient} from '@pgkit/client'
+import {Client, createClient, sql} from '@pgkit/client'
 import {Migrator, createMigratorRouter} from '@pgkit/migrator'
 import {confirm} from '@pgkit/migrator/dist/cli'
 import {defaults, generate} from '@pgkit/typegen'
 import express from 'express'
+import * as fs from 'fs'
 import * as trpcCli from 'trpc-cli'
 import {z} from 'trpc-cli'
 import {loadConfig} from './config'
@@ -25,11 +26,80 @@ const clientSingleton = {
 }
 
 export const router = t.router({
+  query: procedureWithClient
+    .meta({
+      aliases: {
+        command: ['q'],
+        options: {
+          param: 'p',
+          method: 'm',
+        },
+      },
+    })
+    .input(
+      z.tuple([
+        z.string().describe('Either a filepath to a .sql file or a string to be executed directly'),
+        z.object({
+          param: z
+            .array(z.union([z.string(), z.number()]))
+            .describe('Parameters to be passed to the query. The query should format these as $1, $2 etc.')
+            .optional(),
+          method: z
+            .enum(['query', 'any', 'one', 'maybeOne', 'oneFirst', 'maybeOneFirst', 'anyFirst', 'many', 'manyFirst'])
+            .describe("Client method to use. Use `one` to throw if doesn't return exactly one row, for example.")
+            .default('any')
+            .optional(),
+          replacements: z
+            .string()
+            .transform(s => s.split(':'))
+            .pipe(z.tuple([z.string(), z.string()]))
+            .array()
+            .describe(
+              "Replace substrings in the raw query before executing. Format a:b. Defaults to ~:' (to facilitate bash scripting with single quotes)",
+            )
+            .optional(),
+        }),
+      ]),
+    )
+    .mutation(async ({ctx, input: [fileOrQuery, options]}) => {
+      let query = fs.existsSync(fileOrQuery) ? fs.readFileSync(fileOrQuery, 'utf8') : fileOrQuery
+      const replacements = options?.replacements ?? [['~', `'`]]
+      replacements.forEach(([a, b]) => {
+        query = query.replaceAll(a, b)
+      })
+      const method = options?.method ?? 'any'
+      return ctx.client[method](sql.raw(query, options?.param))
+    }),
   migrate: createMigratorRouter(
     procedureWithClient.use(async ({ctx, next}) => {
       return next({ctx: {...ctx, confirm}})
     }),
-  ),
+  )._def.record, // todo: figure out why it doesn't like the actual router
+  empty: procedureWithClient.mutation(async ({ctx}) => {
+    const migrator = ctx.migrator
+    // get a wipe diff since this will *drop* tables in reverse dependency order. We want to truncate them in that order since foreign key constraints could otherwise prevent deletions
+    // update: uuuh this doesn't work, it drops tables in a seemingly arbitrary order. i guess migra isn't doing topological sorting yet.
+    const wipeDiff = await migrator.wipeDiff()
+    const statements = wipeDiff.split(';').flatMap(s => {
+      s = s.trim()
+      const lower = s.toLowerCase()
+      const dropTablePrefix = 'drop table '
+      const dropTableIndex = lower.indexOf(dropTablePrefix)
+      if (dropTableIndex === -1) return []
+      if (dropTableIndex !== 0)
+        throw new Error(`Expected drop table statement to start with "${dropTablePrefix}"`, {cause: s})
+
+      const truncateStatement = s.replace(dropTablePrefix, `truncate table `)
+
+      return [truncateStatement]
+    })
+
+    const truncateQuery = statements.join(';\n\n')
+    const confirmed = await confirm(truncateQuery)
+    if (confirmed) {
+      await ctx.client.query(sql.raw(truncateQuery))
+    }
+  }),
   generate: procedureWithClient
     .use(async ({getRawInput, ctx, next}) => {
       const rawInput = getRawInput() as {}
@@ -90,4 +160,4 @@ export const router = t.router({
       })
       return new Promise(_r => {})
     }),
-})
+}) as trpcCli.AnyRouter

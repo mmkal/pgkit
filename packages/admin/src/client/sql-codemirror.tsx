@@ -14,7 +14,7 @@ export interface SqlCodeMirrorProps {
   code?: string
   onChange?: (query: string) => void
   onExecute?: (sql: string) => void
-  errors?: Array<{position: number; message: string}>
+  errors?: Array<{position: number; message: string | string[]}>
   height: string
   readonly?: boolean
   wrapText?: boolean
@@ -75,7 +75,13 @@ export const SqlCodeMirror = ({code, onChange, onExecute, errors, height, ...pro
     const linterExtension = linter(v => {
       return (errors || []).map(e => {
         const {from, to} = v.state.wordAt(e.position) || {from: e.position, to: e.position + 1}
-        return {from, to, message: e.message, severity: 'error'}
+        const unknownErrorMessage = `Unknown error. If this error came from the server, it may need a custom serializer - Errors by default are serialized to '{}'`
+        return {
+          from,
+          to,
+          message: [e.message].flat().join('\n').split('\n')[0] || unknownErrorMessage,
+          severity: 'error',
+        }
       })
     })
 

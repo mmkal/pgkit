@@ -1,4 +1,4 @@
-import {isValidationErrorLike} from 'zod-validation-error'
+import {isValidationErrorLike, fromError, isZodErrorLike} from 'zod-validation-error'
 
 export function printError(val: any): string {
   const message = val instanceof Error ? `[${val.constructor.name}]: ${val.message}` : undefined
@@ -23,4 +23,21 @@ export function printError(val: any): string {
     2,
   )
   return [message, props].filter(Boolean).join('\n')
+}
+
+export function printErrorCompact(val: any): string {
+  if (!(val instanceof Error)) {
+    return printError(val)
+  }
+  const lines: string[] = []
+  let e = val as Error | undefined
+  while (e) {
+    if (isValidationErrorLike(e)) {
+      return printError(e)
+    }
+    const message = isZodErrorLike(e) ? `${fromError(e).message} (**auto-formatted for snapshot**)` : e.message
+    lines.push(`${'  '.repeat(lines.length)}${lines.length ? 'Caused by: ' : ''}[${e.constructor.name}]: ${message}`)
+    e = e.cause as Error | undefined
+  }
+  return lines.join('\n')
 }

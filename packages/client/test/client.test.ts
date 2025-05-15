@@ -32,3 +32,11 @@ test('pool', async () => {
   })
   expect(result4).toEqual(result1)
 })
+
+test('raw', async () => {
+  const result1 = await client.any(sql.raw(`SELECT 1 as foo`))
+  expect(result1).toEqual([{foo: 1}])
+
+  const result2 = await client.any(sql.raw<{foo: number}>(`SELECT $1 as foo`, [111]))
+  expect(result2).toEqual([{foo: 111}])
+})

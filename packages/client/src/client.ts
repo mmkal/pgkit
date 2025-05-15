@@ -13,6 +13,7 @@ import {
   Transaction,
   Result,
   DriverQueryable,
+  NonNullQueryable,
 } from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
@@ -65,6 +66,17 @@ const createQueryable = (query: Queryable['query']): Queryable => {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
       return Object.values(result.rows[0] as any)[0] as any
     },
+    get noNulls() {
+      return createQueryable(async input => {
+        const result = await query(input)
+        for (const [i, row] of result.rows.entries()) {
+          for (const [key, value] of Object.entries(row as {})) {
+            if (value === null) throw new QueryError(`column ${key} in row index ${i} is null`, {query: input, result})
+          }
+        }
+        return result
+      }) as NonNullQueryable
+    },
   }
 }
 
@@ -82,14 +94,14 @@ export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query']
       result = {rows, command, rowCount, fields}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError('Executing query failed', {query, cause: error})
+      throw new QueryError('Executing query failed', {cause: error, query})
     }
 
     try {
       return {...result, rows: await Promise.all(result.rows.map(query.parse))}
     } catch (err: unknown) {
       const error = errorFromUnknown(err)
-      throw new QueryError(`Parsing rows failed`, {query, cause: error})
+      throw new QueryError(`Parsing rows failed`, {cause: error, query})
     }
   }
 }

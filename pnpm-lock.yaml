@@ -219,9 +219,9 @@ importers:
       p-memoize:
         specifier: ^7.1.1
         version: 7.1.1
-      pgsql-ast-parser:
-        specifier: ^12.0.1
-        version: 12.0.1
+      pg-query-emscripten:
+        specifier: ^5.1.0
+        version: 5.1.0
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -280,6 +280,9 @@ importers:
       eslint-plugin-tailwindcss:
         specifier: 3.15.1
         version: 3.15.1(tailwindcss@3.4.3(ts-node@10.9.2(@types/node@20.11.17)(typescript@5.8.2)))
+      pgsql-ast-parser:
+        specifier: ^12.0.1
+        version: 12.0.1
       postcss:
         specifier: ^8.4.38
         version: 8.4.38
@@ -370,7 +373,7 @@ importers:
         version: 3.0.2(pg-promise@11.5.4)(slonik@37.2.0(zod@3.22.4))
       quicktype-core:
         specifier: ^23.0.81
-        version: 23.0.81
+        version: 23.0.81(encoding@0.1.13)
       slonik:
         specifier: ^37.2.0
         version: 37.2.0(zod@3.22.4)
@@ -442,8 +445,8 @@ importers:
         specifier: ^11.0.1
         version: 11.0.1(typescript@5.8.2)
       trpc-cli:
-        specifier: ^0.6.0-10
-        version: 0.6.0-10(typescript@5.8.2)
+        specifier: ^0.6.0-15
+        version: 0.6.0-15(@inquirer/prompts@5.0.4)(typescript@5.8.2)
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -468,7 +471,7 @@ importers:
         version: 4.17.21
       quicktype-core:
         specifier: ^23.0.81
-        version: 23.0.81
+        version: 23.0.81(encoding@0.1.13)
       sql-formatter:
         specifier: ^15.2.0
         version: 15.2.0
@@ -512,8 +515,8 @@ importers:
         specifier: ^2.0.1
         version: 2.0.1
       trpc-cli:
-        specifier: ^0.6.0-10
-        version: 0.6.0-10(typescript@5.8.2)
+        specifier: ^0.6.0-15
+        version: 0.6.0-15(@inquirer/prompts@5.0.4)(typescript@5.8.2)
       umzug:
         specifier: ^3.7.0
         version: 3.7.0
@@ -559,7 +562,7 @@ importers:
         version: 4.17.21
       quicktype-core:
         specifier: ^23.0.81
-        version: 23.0.81
+        version: 23.0.81(encoding@0.1.13)
       sql-formatter:
         specifier: ^15.2.0
         version: 15.2.0
@@ -587,6 +590,12 @@ importers:
       '@pgkit/typegen':
         specifier: workspace:^
         version: link:../typegen
+      '@trpc/server':
+        specifier: ^11.0.1
+        version: 11.1.2(typescript@5.8.2)
+      enquirer:
+        specifier: ^2.4.1
+        version: 2.4.1
       express:
         specifier: ^4.18.2
         version: 4.18.2
@@ -594,8 +603,8 @@ importers:
         specifier: ^0.4.4
         version: 0.4.4
       trpc-cli:
-        specifier: ^0.6.0-10
-        version: 0.6.0-10(typescript@5.8.2)
+        specifier: ^0.6.0-15
+        version: 0.6.0-15(@inquirer/prompts@5.0.4)(typescript@5.8.2)
     devDependencies:
       '@pgkit/admin':
         specifier: workspace:^
@@ -633,7 +642,7 @@ importers:
         version: 0.10.1(eslint@8.57.0)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.11.20)(sass@1.71.0))
       quicktype-core:
         specifier: ^23.0.81
-        version: 23.0.81
+        version: 23.0.81(encoding@0.1.13)
       ts-node:
         specifier: ^10.9.2
         version: 10.9.2(@types/node@20.11.20)(typescript@5.8.2)
@@ -686,8 +695,8 @@ importers:
         specifier: ^8.0.0
         version: 8.0.0
       trpc-cli:
-        specifier: ^0.6.0-10
-        version: 0.6.0-10(typescript@5.8.2)
+        specifier: ^0.6.0-15
+        version: 0.6.0-15(@inquirer/prompts@5.0.4)(typescript@5.8.2)
       typescript:
         specifier: '*'
         version: 5.8.2
@@ -762,8 +771,8 @@ importers:
         specifier: ^2.8.0
         version: 2.8.0
       trpc-cli:
-        specifier: ^0.6.0-10
-        version: 0.6.0-10(typescript@5.8.2)
+        specifier: ^0.6.0-15
+        version: 0.6.0-15(@inquirer/prompts@5.0.4)(typescript@5.8.2)
     devDependencies:
       '@types/semver':
         specifier: ^7.5.8
@@ -2548,6 +2557,11 @@ packages:
     peerDependencies:
       typescript: '>=5.7.2'
 
+  '@trpc/server@11.1.2':
+    resolution: {integrity: sha512-Oi9zWHG0ZDkbDo4sYkduoV7q4sIe6UwjrRLC91vNMYQK+PVgpbTCmK1laRwewAGu0zaayqcGDosANjceOIC3GA==}
+    peerDependencies:
+      typescript: '>=5.7.2'
+
   '@ts-morph/common@0.19.0':
     resolution: {integrity: sha512-Unz/WHmd4pGax91rdIKWi51wnVUW11QttMEPpBiBgIewnc9UQIX7UDLxr5vRlqeByXCwhkF6VabSsI0raWcyAQ==}
 
@@ -4249,6 +4263,9 @@ packages:
   encodeurl@1.0.2:
     resolution: {integrity: sha512-TPJXq8JqFaVYm2CWmPvnP2Iyo4ZSM7/QKcSmuMLDObfpH5fi7RUGmd/rTDf+rut/saiDiQEeVTNgAmJEdAOx0w==}
     engines: {node: '>= 0.8'}
+
+  encoding@0.1.13:
+    resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
 
   end-of-stream@1.4.4:
     resolution: {integrity: sha512-+uw1inIHVPQoaVuHzRyXd21icM+cnt4CzD5rW+NC1wjOUSTOs+Te7FOv7AhN7vS9x/oIyhLP5PR1H+phQAHu5Q==}
@@ -6710,6 +6727,9 @@ packages:
   pg-protocol@1.6.0:
     resolution: {integrity: sha512-M+PDm637OY5WM307051+bsDia5Xej6d9IR4GwJse1qA1DIhiKlksvrneZOYQq42OM+spubpcNYEo2FcKQrDk+Q==}
 
+  pg-query-emscripten@5.1.0:
+    resolution: {integrity: sha512-H1ZWOzLRddmHuE4GZqFjjo55hA9zMiePz/WDDGANA/EnvILCJps9pcRucyGd+MFvapeYOy6TWSYz6DbtBOaxRQ==}
+
   pg-query-stream@4.5.3:
     resolution: {integrity: sha512-ufa94r/lHJdjAm3+zPZEO0gXAmCb4tZPaOt7O76mjcxdL/HxwTuryy76km+u0odBBgtfdKFYq/9XGfiYeQF0yA==}
     peerDependencies:
@@ -7868,13 +7888,16 @@ packages:
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
-  trpc-cli@0.6.0-10:
-    resolution: {integrity: sha512-wEs154MXJU95ZycbDv7Vqy1owkB6LHU68eyXZ2MdFI/DKO4c03q0B/K3mpPOJTQzwgSXvUlZgIYb4Ru6svsJwg==}
+  trpc-cli@0.6.0-15:
+    resolution: {integrity: sha512-F5RV9XZDN9XNh5nuNA3xnQRif72qEqG+rlWg3IeuEfZYP537HGmaNKb0z0Y7iJEXYSFfvljM+K9f/RkEqEah3w==}
     engines: {node: '>=18'}
     hasBin: true
     peerDependencies:
-      omelette: '>=0.4.17'
+      '@inquirer/prompts': '*'
+      omelette: '*'
     peerDependenciesMeta:
+      '@inquirer/prompts':
+        optional: true
       omelette:
         optional: true
 
@@ -10412,6 +10435,10 @@ snapshots:
     dependencies:
       typescript: 5.8.2
 
+  '@trpc/server@11.1.2(typescript@5.8.2)':
+    dependencies:
+      typescript: 5.8.2
+
   '@ts-morph/common@0.19.0':
     dependencies:
       fast-glob: 3.3.2
@@ -10726,6 +10753,24 @@ snapshots:
       natural-compare: 1.4.0
       semver: 7.6.0
       ts-api-utils: 1.2.1(typescript@5.8.2)
+    optionalDependencies:
+      typescript: 5.8.2
+    transitivePeerDependencies:
+      - supports-color
+
+  '@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)':
+    dependencies:
+      '@eslint-community/regexpp': 4.10.0
+      '@typescript-eslint/parser': 7.1.0(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/scope-manager': 8.6.0
+      '@typescript-eslint/type-utils': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/utils': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/visitor-keys': 8.6.0
+      eslint: 8.57.0
+      graphemer: 1.4.0
+      ignore: 5.3.1
+      natural-compare: 1.4.0
+      ts-api-utils: 1.3.0(typescript@5.8.2)
     optionalDependencies:
       typescript: 5.8.2
     transitivePeerDependencies:
@@ -12064,9 +12109,9 @@ snapshots:
 
   crelt@1.0.6: {}
 
-  cross-fetch@4.0.0:
+  cross-fetch@4.0.0(encoding@0.1.13):
     dependencies:
-      node-fetch: 2.7.0
+      node-fetch: 2.7.0(encoding@0.1.13)
     transitivePeerDependencies:
       - encoding
 
@@ -12474,6 +12519,11 @@ snapshots:
 
   encodeurl@1.0.2: {}
 
+  encoding@0.1.13:
+    dependencies:
+      iconv-lite: 0.6.3
+    optional: true
+
   end-of-stream@1.4.4:
     dependencies:
       once: 1.4.0
@@ -12700,7 +12750,7 @@ snapshots:
 
   eslint-config-xo-typescript@1.0.1(@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2))(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
       '@typescript-eslint/parser': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
       eslint: 8.57.0
       typescript: 5.8.2
@@ -12911,7 +12961,7 @@ snapshots:
       '@rushstack/eslint-plugin-packlets': 0.8.1(eslint@8.57.0)(typescript@5.8.2)
       '@rushstack/eslint-plugin-security': 0.7.1(eslint@8.57.0)(typescript@5.8.2)
       '@types/eslint': 8.56.6
-      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
       '@typescript-eslint/parser': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
       eslint-config-prettier: 9.1.0(eslint@8.57.0)
       eslint-config-xo: 0.43.1(eslint@8.57.0)
@@ -13264,7 +13314,7 @@ snapshots:
       '@typescript-eslint/utils': 7.18.0(eslint@8.57.0)(typescript@5.8.2)
       eslint: 8.57.0
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
       vitest: 1.2.2(@types/node@20.11.17)(sass@1.71.0)
     transitivePeerDependencies:
       - supports-color
@@ -15673,9 +15723,11 @@ snapshots:
 
   node-domexception@1.0.0: {}
 
-  node-fetch@2.7.0:
+  node-fetch@2.7.0(encoding@0.1.13):
     dependencies:
       whatwg-url: 5.0.0
+    optionalDependencies:
+      encoding: 0.1.13
 
   node-fetch@3.3.2:
     dependencies:
@@ -16127,6 +16179,8 @@ snapshots:
 
   pg-protocol@1.6.0: {}
 
+  pg-query-emscripten@5.1.0: {}
+
   pg-query-stream@4.5.3(pg@8.11.3):
     dependencies:
       pg: 8.11.3
@@ -16364,13 +16418,13 @@ snapshots:
 
   quick-lru@5.1.1: {}
 
-  quicktype-core@23.0.81:
+  quicktype-core@23.0.81(encoding@0.1.13):
     dependencies:
       '@glideapps/ts-necessities': 2.1.3
       '@types/urijs': 1.19.25
       browser-or-node: 2.1.1
       collection-utils: 1.0.1
-      cross-fetch: 4.0.0
+      cross-fetch: 4.0.0(encoding@0.1.13)
       is-url: 1.2.4
       js-base64: 3.7.6
       lodash: 4.17.21
@@ -17437,15 +17491,17 @@ snapshots:
 
   trough@2.2.0: {}
 
-  trpc-cli@0.6.0-10(typescript@5.8.2):
+  trpc-cli@0.6.0-15(@inquirer/prompts@5.0.4)(typescript@5.8.2):
     dependencies:
-      '@trpc/server': 11.0.1(typescript@5.8.2)
+      '@trpc/server': 11.1.2(typescript@5.8.2)
       '@types/omelette': 0.4.5
       commander: 13.1.0
       picocolors: 1.0.1
       zod: 3.24.2
       zod-to-json-schema: 3.23.0(zod@3.24.2)
       zod-validation-error: 3.3.0(zod@3.24.2)
+    optionalDependencies:
+      '@inquirer/prompts': 5.0.4
     transitivePeerDependencies:
       - typescript
 

@@ -30,36 +30,38 @@ export const confirm = async (input: string, options?: {readonly?: boolean}): Pr
 
   while (currentInput.trim()) {
     const message = `${colors.underline('Please confirm you want to run the following')}:\n\n${currentInput}`
+    const editors = [
+      ...new Set([process.env.VISUAL, process.env.EDITOR, 'cursor', 'code', 'vi', 'emacs', 'nano', 'notepad']),
+    ].filter(name => {
+      return !name?.match(/\W/) && childProcess.execSync(`sh -c 'which ${name} || echo ""'`).toString().trim()
+    })
     const choice = await prompt.select({
       message,
       choices: [
         {name: 'Yes', value: 'yes'},
         {name: 'No', value: 'no'},
-        {
-          name: 'Edit first',
+        ...editors.map(name => ({
+          name: `Edit with ${name}`,
           disabled: options?.readonly,
-          description:
-            "Your default editor will be used. You'll be asked again if you want to run the edit migration afterwards.",
-          value: 'edit',
-        },
+          description: `Save and close the file after editing. You'll be asked again if you want to run the edit migration afterwards.`,
+          value: `edit-${name}`,
+        })),
       ],
     })
 
     if (choice === 'yes') return currentInput
     if (choice === 'no') return null
 
-    currentInput = await editInDefaultEditor(currentInput)
+    currentInput = await editTempFile(currentInput, choice.replace('edit-', ''))
   }
 
   return null
 }
 
-async function editInDefaultEditor(input: string): Promise<string> {
+async function editTempFile(input: string, editor = process.env.EDITOR || 'vi'): Promise<string> {
   const tempFile = path.join(os.tmpdir(), `pgkit-migrator`, `changes-${Date.now()}.sql`)
   fs.mkdirSync(path.dirname(tempFile), {recursive: true})
   fs.writeFileSync(tempFile, input.trim() + '\n')
-
-  const editor = process.env.EDITOR || 'vi'
 
   try {
     await new Promise<void>((resolve, reject) => {

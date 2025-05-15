@@ -4,12 +4,12 @@ import {nameQuery} from './naming'
 import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, ZodesqueType, SQLParameter} from './types'
 
 const sqlMethodHelpers: SQLMethodHelpers = {
-  raw: <T>(query: string): SQLQuery<T, []> => ({
+  raw: <T>(query: string, values: unknown[] = []): SQLQuery<T, unknown[]> => ({
     sql: query,
     parse: input => input as T,
     name: nameQuery([query]),
     token: 'sql',
-    values: [],
+    values,
     segments: () => [query],
     templateArgs: () => [[query]],
   }),
@@ -80,7 +80,24 @@ const sqlFnInner = (
     }
 
     switch (param.token) {
-      case 'array':
+      case 'array': {
+        if (Math.random()) {
+          values.push(param.args[0])
+          segments.push(getValuePlaceholder(), `::${param.args[1]}[]`)
+          break
+        }
+        // console.log('param', param)
+        segments.push(`array[`)
+        for (const [i, v] of param.args[0].entries()) {
+          if (i > 0) segments.push(', ')
+          values.push(v)
+          segments.push(`${getValuePlaceholder()}::${param.args[1]}`)
+        }
+        segments.push(']')
+        // values.push(param.args[0])
+        // segments.push(getValuePlaceholder())
+        break
+      }
       case 'binary':
       case 'date':
       case 'json':

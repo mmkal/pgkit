@@ -89,7 +89,7 @@ test('Refine schemas', async () => {
 
   await expect(getResult()).rejects.toMatchInlineSnapshot(`
     {
-      "message": "[select-zod_test_83bbed1]: Parsing rows failed",
+      "message": "[select-zod_test_83bbed1]: Parsing rows failed: see cause for details",
       "query": {
         "name": "select-zod_test_83bbed1",
         "sql": "\\n      select * from zod_test\\n    ",
