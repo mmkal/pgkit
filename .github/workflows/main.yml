@@ -93,11 +93,11 @@ jobs:
           name: build_folder
           path: /tmp/build_folder
       - run: find /tmp/build_folder
-      - id: find_tgz
-        name: find tgzs
+      - id: find_packages
+        name: find packages
         run: |
-          migrator_tgz=$(find /tmp/build_folder | grep pgkit__migrator/right | grep .tgz)
-          echo "migrator_tgz=$migrator_tgz" >> $GITHUB_OUTPUT
+          migrator_package_json=$(find /tmp/build_folder | grep pgkit__migrator/right/package/package.json)
+          echo "migrator=$(dirname $migrator_package_json)" >> $GITHUB_OUTPUT
       - run: npm init -y
-      - run: npm install ${{ steps.find_tgz.outputs.migrator_tgz }}
+      - run: npm install ${{ steps.find_packages.outputs.migrator }}
       - run: ./node_modules/.bin/migrator --help
