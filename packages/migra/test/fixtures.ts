@@ -46,10 +46,10 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
   const filepath = path.join(fixturesDir, name, `${variant}.sql`)
   const query = fs.readFileSync(filepath, 'utf8')
 
-  await pool.query(sql`create role schemainspect_test_role`).catch(e => {
-    const isRoleExists = (e as Error)?.message?.endsWith(`(duplicate_object)`)
-    if (!isRoleExists) throw e as Error
-  })
+  const exists = await pool.oneFirst<{exists: boolean}>(
+    sql`select exists(select 1 from pg_catalog.pg_roles where rolname = 'schemainspect_test_role')`,
+  )
+  if (!exists) await pool.query(sql`create role schemainspect_test_role if not exists`)
 
   await pool.query(sql.raw(query))
 
