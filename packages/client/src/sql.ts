@@ -25,7 +25,7 @@ const sqlMethodHelpers: SQLMethodHelpers = {
   type: type => {
     if (!looksLikeStandardSchema(type)) {
       const typeName = (type as {})?.constructor?.name
-      const hint = typeName?.includes('Zod') ? ` Try upgrading zod` : ''
+      const hint = typeName?.includes('Zod') ? ` Try upgrading zod to v3.24.0 or greater` : ''
       throw new Error(`Invalid type parser. Must be a Standard Schema. Got ${typeName}.${hint}`, {
         cause: type,
       })

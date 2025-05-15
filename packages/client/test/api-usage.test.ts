@@ -2,8 +2,7 @@
 import * as v from 'valibot'
 import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import {z} from 'zod'
-import {fromError, isZodErrorLike} from 'zod-validation-error'
-import {createClient, createSqlTag, QueryError, sql} from '../src'
+import {createClient, createSqlTag, sql} from '../src'
 import {printErrorCompact as printError} from './snapshots'
 
 expect.addSnapshotSerializer({
@@ -417,20 +416,6 @@ test('sql.type with custom error message', async () => {
         ...client.options.pgpOptions?.connect,
         application_name: 'impatient',
       },
-    },
-    wrapQueryFn: queryFn => {
-      const parentWrapper = client.options.wrapQueryFn || (x => x)
-      return async (...args) => {
-        const parentQueryFn = parentWrapper(queryFn)
-        try {
-          return await parentQueryFn(...args)
-        } catch (e) {
-          if (e instanceof QueryError && isZodErrorLike(e.cause)) {
-            e.cause = fromError(e.cause)
-          }
-          throw e
-        }
-      }
     },
   })
   const StringId = z.object({id: z.string()})
