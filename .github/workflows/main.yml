@@ -86,7 +86,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      - uses: actions/checkout@v4
       - run: mkdir -p /tmp/build_folder
       - uses: actions/download-artifact@v4
         with:
