@@ -56,3 +56,73 @@ jobs:
       - run: pnpm install
       - run: pnpm build
       - run: pnpm test
+  create_tgz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install -g corepack@0.31.0 # todo: delete if https://github.com/nodejs/corepack/issues/612 is resolved
+      - run: corepack enable
+      - run: pnpm install
+      - run: pnpm build
+      - id: package
+        run: |
+          add_commands=$(pnpm npmono local | tee /dev/stderr | grep 'pnpm add')
+          echo 'add commands:\n$add_commands'
+          root_folder=$(echo $add_commands | grep '@pgkit__migrator/' | sed 's|.*file:||; s|/10.*||')
+          echo $add_commands > "$root_folder/add_commands.sh"
+          chmod +x "$root_folder/add_commands.sh"
+          echo "build_folder=$root_folder" >> $GITHUB_OUTPUT
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build_folder
+          path: ${{ steps.package.outputs.build_folder }}
+  test_tgz:
+    runs-on: ubuntu-latest
+    needs: [create_tgz]
+    strategy:
+      matrix:
+        node: [22]
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: build_folder
+      - run: ls -R
+      - run: find .
+      # - name: install tgz
+      #   working-directory: examples/0-vanilla
+      #   run: |
+      #     npm init -y
+      #     npm install ../../umzug.tgz
+      # - name: run vanilla example
+      #   working-directory: examples/0-vanilla
+      #   run: |
+      #     node migrate up
+      #     node migrate down
+      #     node migrate create --name new-migration.js
+      #     node migrate up
+      # - name: run vanilla esm example
+      #   if: matrix.node != 12
+      #   working-directory: examples/0.5-vanilla-esm
+      #   run: |
+      #     npm init -y
+      #     sed -i 's|"name"|"type": "module",\n  "name"|g' package.json
+      #     npm install ../../umzug.tgz
+      #     cat package.json
+
+      #     node migrate.mjs up
+      #     node migrate.mjs down
+      #     node migrate.mjs create --name new-migration-1.mjs
+      #     node migrate.mjs create --name new-migration-2.js
+      #     node migrate.mjs up
+
+      #     cd migrations
+      #     cat $(ls . | grep new-migration-1)
+      #     cat $(ls . | grep new-migration-2)
+
+      #     # hard to test this with vitest transpiling stuff for us, so make sure .mjs and .js have same content
+      #     cmp $(ls . | grep new-migration-1) $(ls . | grep new-migration-2)
+      # - run: ls -R
