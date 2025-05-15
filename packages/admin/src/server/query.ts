@@ -1,5 +1,5 @@
 import {FieldInfo, Queryable, nameQuery, sql} from '@pgkit/client'
-import * as pgsqlParser from 'pgsql-parser'
+import PGQueryEmscripten, {PgQueryEmscriptenParseResult} from 'pg-query-emscripten'
 import {type ServerContext} from './context.js'
 
 export type PgsqlParserParseResult = {
@@ -11,6 +11,7 @@ export type PgsqlParserParseResult = {
 }
 
 export const runQuery = async (query: string, {connection}: ServerContext): Promise<QueryResult[]> => {
+  console.log('query', query)
   if (query.startsWith('--split-semicolons\n')) {
     const queries = query.split(/;\s*\n/)
     const results = []
@@ -25,9 +26,31 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
 
   const results = [] as QueryResult[]
 
-  let nativeParsed: PgsqlParserParseResult[]
+  let nativeParsed: PgQueryEmscriptenParseResult
   try {
-    nativeParsed = pgsqlParser.parse(query) as PgsqlParserParseResult[]
+    const pgsqlParser = await new PGQueryEmscripten()
+    nativeParsed = pgsqlParser.parse(query)
+    if (nativeParsed.error) {
+      const message = [
+        nativeParsed.error.message,
+        '',
+        `If you think the query is actually valid, it's possible the parsing library has a bug.`,
+        `Try adding --no-parse at the top of your query to disable statement-level query parsing and send it to the DB as-is.`,
+      ].join('\n')
+      const err = new Error(message, {cause: nativeParsed.error})
+      makeJsonable(err)
+      // if (Math.random()) throw new Error(nativeParsed.error.message, {cause: nativeParsed.error})
+      return [
+        {
+          query: nameQuery([query]),
+          original: query,
+          error: err,
+          result: null,
+          fields: null,
+          position: nativeParsed.error.cursorpos - 1,
+        },
+      ]
+    }
   } catch (err) {
     makeJsonable(err)
     err.message = [
@@ -43,16 +66,17 @@ export const runQuery = async (query: string, {connection}: ServerContext): Prom
         error: err,
         result: null,
         fields: null,
-        position: (err as {cursorPosition?: number}).cursorPosition,
+        position: (err as {cursorPosition?: number})?.cursorPosition,
       },
     ]
   }
 
-  const slices = nativeParsed.map(s => {
-    if (typeof s?.RawStmt?.stmt_location !== 'number') return undefined
+  console.dir({nativeParsed}, {depth: null})
+  const slices = nativeParsed.parse_tree.stmts.map(s => {
+    // if (typeof s?.stmt_location !== 'number') return undefined
 
-    const start = s.RawStmt.stmt_location
-    const length = s.RawStmt.stmt_len
+    const start = s.stmt_location ?? 0
+    const length = s.stmt_len
     const end = typeof length === 'number' ? start + length : undefined
 
     return [start, end] as const
