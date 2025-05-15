@@ -744,7 +744,11 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
     //   continue
     // }
 
-    const prefix = foundDep.prefix || leftPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    let prefix = foundDep.prefix || leftPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    if (semver.prerelease(expected)) {
+      // todo: consider making this configurable. but for now let's assume prereleases want to be in lockstep
+      prefix = ''
+    }
 
     rightPackageDependencies[depName] = prefix + expected
     updates[depName] =
@@ -774,7 +778,7 @@ async function getPackageRevList(pkg: Pkg) {
 
   const {stdout: mergeBase} = await execa('git', ['merge-base', fromRef, localRef])
   let mergeBaseNote = ''
-  if (mergeBase !== fromRef) {
+  if (mergeBase.slice(0, 7) !== fromRef.slice(0, 7)) {
     const {stdout: mergeBaseSummary} = await execa('git', ['log', '-n', '1', '--format=%h %s (%ad)', mergeBase])
     mergeBaseNote = `\n🚧🚧 NOTE 🚧🚧: ${localRef} (current) is not a descendant of ${fromRef} (last publish). The last publish may have beendone on a separate branch. The merge base is:\n${mergeBaseSummary}`
   }
@@ -798,7 +802,7 @@ async function getPackageRevList(pkg: Pkg) {
     // versionComparisonString,
     markdown:
       sections.filter(Boolean).join('\n').trim() ||
-      `Unable to list commits to ${pkg.name} between ${fromRef} (last publish) and ${localRef} (current). Was ${fromRef} on a different branch?`,
+      `No commits to ${pkg.name} between found between ${fromRef} (last publish) and ${localRef} (current).`,
   }
 }
 

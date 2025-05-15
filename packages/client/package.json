@@ -57,7 +57,7 @@
     "zod": "^3.24.4"
   },
   "dependencies": {
-    "pg": "^8.11.3",
+    "pg": "~8.14.1",
     "pg-promise": "^11.5.4",
     "pgsql-ast-parser": "12.0.1"
   }
