@@ -12,7 +12,7 @@ export const getMigratorFromEnv = () => {
   return new Migrator({
     client: process.env.PGKIT_CONNECTION_STRING || 'postgresql://postgres:postgres@localhost:5432/postgres',
     migrationsPath: process.env.PGKIT_MIGRATIONS_PATH || path.join(process.cwd(), 'migrations'),
-    migrationTableName: process.env.PGKIT_MIGRATIONS_TABLE_NAME,
+    migrationTableName: process.env.PGKIT_MIGRATIONS_TABLE_NAME || 'pgkit_migrations',
   })
 }
 

@@ -320,8 +320,8 @@ importers:
   packages/client:
     dependencies:
       pg:
-        specifier: ^8.11.3
-        version: 8.11.3
+        specifier: ~8.14.1
+        version: 8.14.1
       pg-promise:
         specifier: ^11.5.4
         version: 11.5.4
@@ -6657,6 +6657,9 @@ packages:
   pg-connection-string@2.6.2:
     resolution: {integrity: sha512-ch6OwaeaPYcova4kKZ15sbJ2hKb/VP48ZD2gE7i1J+L4MspCtBMAx8nMgz7bksc7IojCIIWuEhHibSMFH8m8oA==}
 
+  pg-connection-string@2.9.0:
+    resolution: {integrity: sha512-P2DEBKuvh5RClafLngkAuGe9OUlFV7ebu8w1kmaaOgPcpJd1RIFh7otETfI6hAR8YupOLFTY7nuvvIn7PLciUQ==}
+
   pg-copy-streams-binary@2.2.0:
     resolution: {integrity: sha512-jPCWgTR8004wz5XOI2sc09+IMwE7YMeINYCabwPMCPtlgj2ay81VLCClMkj/u+xOeisRcN8vCrIZ4FrqlaTyBQ==}
 
@@ -6715,6 +6718,11 @@ packages:
     resolution: {integrity: sha512-BM/Thnrw5jm2kKLE5uJkXqqExRUY/toLHda65XgFTBTFYZyopbKjBe29Ii3RbkvlsMoFwD+tHeGaCjjv0gHlyw==}
     engines: {node: '>=4'}
 
+  pg-pool@3.10.0:
+    resolution: {integrity: sha512-DzZ26On4sQ0KmqnO34muPcmKbhrjmyiO4lCCR0VwEd7MjmiKf5NTg/6+apUEu0NF7ESa37CGzFxH513CoUmWnA==}
+    peerDependencies:
+      pg: '>=8.0'
+
   pg-pool@3.6.1:
     resolution: {integrity: sha512-jizsIzhkIitxCGfPRzJn1ZdcosIt3pz9Sh3V01fm1vZnbnCMgmGl5wvGGdNN2EL9Rmb0EcFoCkixH4Pu+sP9Og==}
     peerDependencies:
@@ -6723,6 +6731,9 @@ packages:
   pg-promise@11.5.4:
     resolution: {integrity: sha512-esYSkDt2h6NQOkfotGAm1Ld5OjoITJLpB88Z1PIlcAU/RQ0XQE2PxW0bLJEOMHPGV5iaRnj1Y7ARznXbgN4FNw==}
     engines: {node: '>=14.0'}
+
+  pg-protocol@1.10.0:
+    resolution: {integrity: sha512-IpdytjudNuLv8nhlHs/UrVBhU0e78J0oIS/0AVdTbWxSOkFUVdsHC/NrorO6nXsQNDTT1kzDSOMJubBQviX18Q==}
 
   pg-protocol@1.6.0:
     resolution: {integrity: sha512-M+PDm637OY5WM307051+bsDia5Xej6d9IR4GwJse1qA1DIhiKlksvrneZOYQq42OM+spubpcNYEo2FcKQrDk+Q==}
@@ -6745,6 +6756,15 @@ packages:
 
   pg@8.11.3:
     resolution: {integrity: sha512-+9iuvG8QfaaUrrph+kpF24cXkH1YOOUeArRNYIxq1viYHZagBxrTno7cecY1Fa44tJeZvaoG+Djpkc3JwehN5g==}
+    engines: {node: '>= 8.0.0'}
+    peerDependencies:
+      pg-native: '>=3.0.1'
+    peerDependenciesMeta:
+      pg-native:
+        optional: true
+
+  pg@8.14.1:
+    resolution: {integrity: sha512-0TdbqfjwIun9Fm/r89oB7RFQ0bLgduAhiIqIXOsyKoiC/L54DbuAAzIEN/9Op0f1Po9X7iCPXGoa/Ah+2aI8Xw==}
     engines: {node: '>= 8.0.0'}
     peerDependencies:
       pg-native: '>=3.0.1'
@@ -10758,24 +10778,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)':
-    dependencies:
-      '@eslint-community/regexpp': 4.10.0
-      '@typescript-eslint/parser': 7.1.0(eslint@8.57.0)(typescript@5.8.2)
-      '@typescript-eslint/scope-manager': 8.6.0
-      '@typescript-eslint/type-utils': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
-      '@typescript-eslint/utils': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
-      '@typescript-eslint/visitor-keys': 8.6.0
-      eslint: 8.57.0
-      graphemer: 1.4.0
-      ignore: 5.3.1
-      natural-compare: 1.4.0
-      ts-api-utils: 1.3.0(typescript@5.8.2)
-    optionalDependencies:
-      typescript: 5.8.2
-    transitivePeerDependencies:
-      - supports-color
-
   '@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)':
     dependencies:
       '@eslint-community/regexpp': 4.10.0
@@ -12750,7 +12752,7 @@ snapshots:
 
   eslint-config-xo-typescript@1.0.1(@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2))(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2):
     dependencies:
-      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
       '@typescript-eslint/parser': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
       eslint: 8.57.0
       typescript: 5.8.2
@@ -12961,7 +12963,7 @@ snapshots:
       '@rushstack/eslint-plugin-packlets': 0.8.1(eslint@8.57.0)(typescript@5.8.2)
       '@rushstack/eslint-plugin-security': 0.7.1(eslint@8.57.0)(typescript@5.8.2)
       '@types/eslint': 8.56.6
-      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
       '@typescript-eslint/parser': 8.6.0(eslint@8.57.0)(typescript@5.8.2)
       eslint-config-prettier: 9.1.0(eslint@8.57.0)
       eslint-config-xo: 0.43.1(eslint@8.57.0)
@@ -13314,7 +13316,7 @@ snapshots:
       '@typescript-eslint/utils': 7.18.0(eslint@8.57.0)(typescript@5.8.2)
       eslint: 8.57.0
     optionalDependencies:
-      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@7.1.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
+      '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.0)(typescript@5.8.2))(eslint@8.57.0)(typescript@5.8.2)
       vitest: 1.2.2(@types/node@20.11.17)(sass@1.71.0)
     transitivePeerDependencies:
       - supports-color
@@ -16128,6 +16130,8 @@ snapshots:
 
   pg-connection-string@2.6.2: {}
 
+  pg-connection-string@2.9.0: {}
+
   pg-copy-streams-binary@2.2.0:
     dependencies:
       bl: 4.1.0
@@ -16141,9 +16145,9 @@ snapshots:
     dependencies:
       obuf: 1.1.2
 
-  pg-cursor@2.10.3(pg@8.11.3):
+  pg-cursor@2.10.3(pg@8.14.1):
     dependencies:
-      pg: 8.11.3
+      pg: 8.14.1
 
   pg-int8@1.0.1: {}
 
@@ -16164,6 +16168,10 @@ snapshots:
 
   pg-numeric@1.0.2: {}
 
+  pg-pool@3.10.0(pg@8.14.1):
+    dependencies:
+      pg: 8.14.1
+
   pg-pool@3.6.1(pg@8.11.3):
     dependencies:
       pg: 8.11.3
@@ -16177,14 +16185,16 @@ snapshots:
     transitivePeerDependencies:
       - pg-native
 
+  pg-protocol@1.10.0: {}
+
   pg-protocol@1.6.0: {}
 
   pg-query-emscripten@5.1.0: {}
 
-  pg-query-stream@4.5.3(pg@8.11.3):
+  pg-query-stream@4.5.3(pg@8.14.1):
     dependencies:
-      pg: 8.11.3
-      pg-cursor: 2.10.3(pg@8.11.3)
+      pg: 8.14.1
+      pg-cursor: 2.10.3(pg@8.14.1)
 
   pg-types@2.2.0:
     dependencies:
@@ -16211,6 +16221,16 @@ snapshots:
       pg-connection-string: 2.6.2
       pg-pool: 3.6.1(pg@8.11.3)
       pg-protocol: 1.6.0
+      pg-types: 2.2.0
+      pgpass: 1.0.5
+    optionalDependencies:
+      pg-cloudflare: 1.1.1
+
+  pg@8.14.1:
+    dependencies:
+      pg-connection-string: 2.9.0
+      pg-pool: 3.10.0(pg@8.14.1)
+      pg-protocol: 1.10.0
       pg-types: 2.2.0
       pgpass: 1.0.5
     optionalDependencies:
@@ -17040,11 +17060,11 @@ snapshots:
       hyperid: 2.3.1
       is-plain-object: 5.0.0
       iso8601-duration: 1.3.0
-      pg: 8.11.3
+      pg: 8.14.1
       pg-connection-string: 2.6.2
       pg-copy-streams: 5.1.1
       pg-copy-streams-binary: 2.2.0
-      pg-cursor: 2.10.3(pg@8.11.3)
+      pg-cursor: 2.10.3(pg@8.14.1)
       postgres-array: 3.0.2
       postgres-interval: 3.0.0
       promise-deferred: 2.0.4
@@ -17060,9 +17080,9 @@ snapshots:
       es6-error: 4.1.1
       get-stack-trace: 3.1.1
       iso8601-duration: 1.3.0
-      pg: 8.11.3
+      pg: 8.14.1
       pg-protocol: 1.6.0
-      pg-query-stream: 4.5.3(pg@8.11.3)
+      pg-query-stream: 4.5.3(pg@8.14.1)
       pg-types: 4.0.2
       postgres-array: 3.0.2
       postgres-interval: 4.0.2

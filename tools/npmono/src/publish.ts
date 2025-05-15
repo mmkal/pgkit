@@ -744,7 +744,11 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
     //   continue
     // }
 
-    const prefix = foundDep.prefix || leftPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    let prefix = foundDep.prefix || leftPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    if (semver.prerelease(expected)) {
+      // todo: consider making this configurable. but for now let's assume prereleases want to be in lockstep
+      prefix = ''
+    }
 
     rightPackageDependencies[depName] = prefix + expected
     updates[depName] =
