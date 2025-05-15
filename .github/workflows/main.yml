@@ -81,48 +81,23 @@ jobs:
     needs: [create_tgz]
     strategy:
       matrix:
-        node: [22]
+        node: [23.x]
     steps:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
       - uses: actions/checkout@v4
+      - run: mkdir -p /tmp/build_folder
       - uses: actions/download-artifact@v4
         with:
           name: build_folder
-      - run: ls -R
-      - run: find .
-      # - name: install tgz
-      #   working-directory: examples/0-vanilla
-      #   run: |
-      #     npm init -y
-      #     npm install ../../umzug.tgz
-      # - name: run vanilla example
-      #   working-directory: examples/0-vanilla
-      #   run: |
-      #     node migrate up
-      #     node migrate down
-      #     node migrate create --name new-migration.js
-      #     node migrate up
-      # - name: run vanilla esm example
-      #   if: matrix.node != 12
-      #   working-directory: examples/0.5-vanilla-esm
-      #   run: |
-      #     npm init -y
-      #     sed -i 's|"name"|"type": "module",\n  "name"|g' package.json
-      #     npm install ../../umzug.tgz
-      #     cat package.json
-
-      #     node migrate.mjs up
-      #     node migrate.mjs down
-      #     node migrate.mjs create --name new-migration-1.mjs
-      #     node migrate.mjs create --name new-migration-2.js
-      #     node migrate.mjs up
-
-      #     cd migrations
-      #     cat $(ls . | grep new-migration-1)
-      #     cat $(ls . | grep new-migration-2)
-
-      #     # hard to test this with vitest transpiling stuff for us, so make sure .mjs and .js have same content
-      #     cmp $(ls . | grep new-migration-1) $(ls . | grep new-migration-2)
-      # - run: ls -R
+          path: /tmp/build_folder
+      - run: find /tmp/build_folder
+      - id: find_tgz
+        name: find tgzs
+        run: |
+          migrator_tgz=$(find /tmp/build_folder | grep pgkit__migrator/right | grep .tgz)
+          echo "migrator_tgz=$migrator_tgz" >> $GITHUB_OUTPUT
+      - run: pnpm init -y
+      - run: pnpm install ${{ steps.find_tgz.outputs.migrator_tgz }}
+      - run: ./node_modules/.bin/migrator --help
