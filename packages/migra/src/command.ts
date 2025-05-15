@@ -1,3 +1,5 @@
+#! /usr/bin/env node
+
 import {Queryable, createClient} from '@pgkit/client'
 import {PostgreSQL} from '@pgkit/schemainspect'
 import {initTRPC} from '@trpc/server'
