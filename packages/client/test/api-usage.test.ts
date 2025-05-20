@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-shadow */
+import * as v from 'valibot'
 import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import {z} from 'zod'
-import {fromError, isZodErrorLike} from 'zod-validation-error'
-import {createClient, createSqlTag, QueryError, sql} from '../src'
+import {createClient, createSqlTag, sql} from '../src'
 import {printErrorCompact as printError} from './snapshots'
 
 expect.addSnapshotSerializer({
@@ -383,8 +383,24 @@ test('sql.type', async () => {
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
   expect(error).toMatchInlineSnapshot(`
-    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: see cause for details
-      Caused by: [ZodError]: Validation error: Expected string, received number at "id" (**auto-formatted for snapshot**)
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Expected string, received number → at id
+      Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+  `)
+})
+
+test('sql.type with valibot', async () => {
+  const StringId = v.object({id: v.string()})
+  await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).resolves.toMatchObject([
+    {id: '1'},
+    {id: '2'},
+    {id: '3'},
+  ])
+
+  const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+  expect(error).toMatchInlineSnapshot(`
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Invalid type: Expected string but received 1 → at id
+      Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
   `)
 })
 
@@ -401,26 +417,15 @@ test('sql.type with custom error message', async () => {
         application_name: 'impatient',
       },
     },
-    wrapQueryFn: queryFn => {
-      const parentWrapper = client.options.wrapQueryFn || (x => x)
-      return async (...args) => {
-        const parentQueryFn = parentWrapper(queryFn)
-        try {
-          return await parentQueryFn(...args)
-        } catch (e) {
-          if (e instanceof QueryError && isZodErrorLike(e.cause)) {
-            e.cause = fromError(e.cause)
-          }
-          throw e
-        }
-      }
-    },
   })
   const StringId = z.object({id: z.string()})
 
   const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
-  expect(error).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "id"`)
+  expect(error).toMatchInlineSnapshot(`
+    [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Expected string, received number → at id
+      Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+  `)
 })
 
 /**
@@ -441,5 +446,8 @@ test('createSqlTag + sql.typeAlias', async () => {
   expect(result).toEqual({name: 'Bob'})
 
   const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
-  expect(err).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "name"`)
+  expect(err).toMatchInlineSnapshot(`
+    [QueryError]: [select_245d49b]: Parsing rows failed: ✖ Expected string, received number → at name
+      Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+  `)
 })
