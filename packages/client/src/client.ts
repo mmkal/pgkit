@@ -2,11 +2,11 @@ import * as crypto from 'node:crypto'
 import TypeOverrides from 'pg/lib/type-overrides'
 import pgPromise from 'pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
+import {createSqlTag} from './sql'
 import {applyRecommendedTypeParsers} from './type-parsers'
 import {
   Client,
   First,
-  Queryable,
   SQLQueryRowType,
   ClientOptions,
   Connection,
@@ -14,6 +14,8 @@ import {
   Result,
   DriverQueryable,
   NonNullQueryable,
+  Queryable,
+  SQLQueryable,
 } from './types'
 
 export const identityParser = <T>(input: unknown): T => input as T
@@ -24,8 +26,8 @@ export const createPool = (connectionString: string): Client => {
 }
 
 const first = <T>(value: T): First<T> => Object.values(value as {})[0] as First<T>
-const createQueryable = (query: Queryable['query']): Queryable => {
-  return {
+const createQueryable = (query: Queryable['query']): SQLQueryable => {
+  const queryable: Queryable = {
     query,
     async one(input) {
       const result = await query(input)
@@ -78,6 +80,9 @@ const createQueryable = (query: Queryable['query']): Queryable => {
       }) as NonNullQueryable
     },
   }
+  return Object.assign(queryable, {
+    sql: createSqlTag({client: queryable}),
+  })
 }
 
 export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query'] => {

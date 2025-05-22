@@ -453,7 +453,7 @@ test('createSqlTag + sql.typeAlias', async () => {
 })
 
 test('await sql - createSqlTag', async () => {
-  const sql = createSqlTag({client})
+  const {sql} = client
 
   const result = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
 

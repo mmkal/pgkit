@@ -10,10 +10,10 @@ import {
   SQLQuery,
   SQLTagHelpers,
   SQLParameter,
-  Client,
   AwaitSqlResultArray,
   Queryable,
   AwaitableSQLQuery,
+  SQLTag,
 } from './types'
 
 /** a monadish `.map` which allows for promises or regular values and becomes a promise-or-regular-value with the return type of the mapper */
@@ -288,12 +288,12 @@ export const sqlTagHelpers: SQLTagHelpers = {
 
 export const allSqlHelpers = {...sqlMethodHelpers, ...sqlTagHelpers}
 
-export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.assign(sqlFn, allSqlHelpers)
+export const sql: SQLTag = Object.assign(sqlFn, allSqlHelpers)
 
 // export function createSqlTag<TypeAliases extends Record<string, StandardSchemaV1>>(params: {typeAliases: TypeAliases})
 export const createSqlTag = <TypeAliases extends Record<string, StandardSchemaV1>>(params: {
   typeAliases?: TypeAliases
-  client?: Client
+  client?: Queryable
 }) => {
   // eslint-disable-next-line func-name-matching, func-names, @typescript-eslint/no-shadow
   const fn = function sql(...args: Parameters<SQLTagFunction>) {

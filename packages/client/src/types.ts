@@ -66,6 +66,10 @@ export interface Queryable {
   noNulls: NonNullQueryable
 }
 
+export interface SQLQueryable extends Queryable {
+  sql: SQLTag
+}
+
 export interface NonNullQueryable {
   query<Row>(query: SQLQuery<Row>): Promise<Result<NonNullRow<Row>>>
 
@@ -111,7 +115,7 @@ export type NonNullRow<Row> = {
   [K in keyof Row]: NonNullable<Row[K]>
 }
 
-export interface Transactable extends Queryable {
+export interface Transactable extends SQLQueryable {
   transaction<T>(callback: (connection: Transaction) => Promise<T>): Promise<T>
 }
 export interface Connection extends Transactable {
@@ -123,7 +127,7 @@ export interface Transaction extends Connection {
   transactionInfo: {pgp: pgPromise.ITask<unknown>}
 }
 
-export interface Client extends Queryable {
+export interface Client extends SQLQueryable {
   options: ClientOptions
   pgp: ReturnType<ReturnType<typeof pgPromise>>
   pgpOptions: PGPOptions
@@ -239,13 +243,6 @@ export type SQLTagHelperParameters = {
   unnest: [tuples: ReadonlyArray<readonly PrimitiveValueExpression[]>, columnTypes: TypeNameIdentifier[]]
 }
 
-export type SQLTagHelpers = {
-  [K in keyof SQLTagHelperParameters]: (...args: SQLTagHelperParameters[K]) => {
-    token: K
-    args: SQLTagHelperParameters[K]
-  }
-}
-
 export type Primitive = string | number | boolean | null
 
 export type SQLParameterNonPrimitive = ReturnType<SQLTagHelpers[keyof SQLTagHelpers]> | SqlFragment
@@ -253,11 +250,21 @@ export type SQLParameterNonPrimitive = ReturnType<SQLTagHelpers[keyof SQLTagHelp
 export type SQLParameter = SQLParameterNonPrimitive | Primitive
 export type SQLParameterToken = SQLParameterNonPrimitive['token']
 
+/** the type definition for *just* the function part of the `sql` tag */
 export type SQLTagFunction = <Row = Record<string, unknown>>(
   strings: TemplateStringsArray,
   ...parameters: Row extends {'~parameters': SQLParameter[]} ? Row['~parameters'] : SQLParameter[]
 ) => AwaitableSQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
 
+/** the type definition for the helpers of the `sql` tag - these are helpers for creating parameters to go in a sql`...` template */
+export type SQLTagHelpers = {
+  [K in keyof SQLTagHelperParameters]: (...args: SQLTagHelperParameters[K]) => {
+    token: K
+    args: SQLTagHelperParameters[K]
+  }
+}
+
+/** the type definition for the methods of the `sql` tag */
 export type SQLMethodHelpers = {
   raw: <Row>(query: string, values?: unknown[]) => SQLQuery<Row, unknown[]>
   type: <Row>(
@@ -267,6 +274,9 @@ export type SQLMethodHelpers = {
     ...parameters: Parameters
   ) => AwaitableSQLQuery<Row>
 }
+
+/** the full type for the `sql` tag - callable function, helpers and all */
+export type SQLTag = SQLTagFunction & SQLTagHelpers & SQLMethodHelpers
 
 /** Called `pgp` in pg-promise docs  */
 export type PGPromiseInitializer = typeof pgPromise
@@ -296,5 +306,5 @@ export type PGPOptions = {
 export interface ClientOptions {
   pgpOptions?: PGPOptions
   applyTypeParsers?: ApplyTypeParsers
-  wrapQueryFn?: (queryFn: Queryable['query']) => Queryable['query']
+  wrapQueryFn?: (queryFn: SQLQueryable['query']) => SQLQueryable['query']
 }

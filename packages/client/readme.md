@@ -11,13 +11,13 @@ A strongly-typed postgres client for node.js. Lets you execute SQL, without abst
 @pgkit/client is a PostgreSQL client, to be used in any application with a PostgreSQL database.
 
 ```ts
-import {createClient, sql} from '@pgkit/client'
+import {createClient} from '@pgkit/client'
 
-const client = createClient('postgresql://')
+const {sql} = createClient('postgresql://')
 
-const profiles = await client.query(sql`
+const profiles = await sql`
   select * from profile where email = ${getEmail()}
-`)
+`
 ```
 
 The basic idea is this: PostgreSQL is well designed. SQL as as language has been refined over decades, and its strengths, weaknesses and tradeoffs are widely known. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database.
@@ -590,7 +590,7 @@ expect(err).toMatchInlineSnapshot(`
 ### await sql - createSqlTag
 
 ```typescript
-const sql = createSqlTag({client})
+const {sql} = client
 
 const result = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
 
@@ -635,7 +635,7 @@ const results = await pgkitStorage.run({client}, async () => {
   expectTypeOf(one).toMatchTypeOf<{a: number; b: number}[]>()
   expectTypeOf(one.one).toEqualTypeOf<{a: number; b: number}>()
 
-  const Type = z.object({one: z.number(), two: z.number()})
+  const Type = z.object({a: z.number(), b: z.number()})
   const two = await sql.type(Type)`select 1 as a, 2 as b`
   expect(two).toEqual([{a: 1, b: 2}])
   expect(two.one).toEqual({a: 1, b: 2})
@@ -1060,24 +1060,24 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
-  [QueryError]: [select_9dcc021]: Executing query failed: Query read timeout
-  {
-    "message": "[select_9dcc021]: Executing query failed: Query read timeout",
-    "query": {
-      "name": "select_9dcc021",
-      "sql": "select pg_sleep($1)",
-      "token": "sql",
-      "values": [
-        0.04
-      ]
-    },
-    "cause": {
-      "name": "Error",
-      "message": "Query read timeout",
-      "query": "select pg_sleep(0.04)"
+    [QueryError]: [select_9dcc021]: Executing query failed: Query read timeout
+    {
+      "message": "[select_9dcc021]: Executing query failed: Query read timeout",
+      "query": {
+        "name": "select_9dcc021",
+        "sql": "select pg_sleep($1)",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
+      "cause": {
+        "name": "Error",
+        "message": "Query read timeout",
+        "query": "select pg_sleep(0.04)"
+      }
     }
-  }
-`,
+  `,
 )
 await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
   pg_sleep: '',
@@ -1205,7 +1205,7 @@ expect(select).toMatchObject([{name: 'ten'}])
 
 Generally, usage of a _client_ (or pool, to use the slonik term), should be identical. Initialization is likely different. Some differences which would likely require code changes if migrating from slonik:
 
-- Most slonik initialization options are not carried over. I haven't come across any abstractions which invented by slonik which don't have simpler implementations in the underlying layer or in pg-promise. Specifically:
+- Most slonik initialization options are not carried over. I haven't come across any abstractions invented by slonik which don't have simpler implementations in the underlying layer or in pg-promise. Specifically:
 
 - type parsers: just use `pg.types.setTypeParser`. Some helper functions to achieve parity with slonik, and this library's recommendations are available, but they're trivial and you can just as easily implement them yourself.
 - interceptors: Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
