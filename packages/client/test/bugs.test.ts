@@ -79,6 +79,7 @@ test('nested parameterized `sql` tag', async () => {
         returning *
       ",
       "templateArgs": [Function],
+      "then": [Function],
       "token": "sql",
       "values": [
         "four",
@@ -117,6 +118,7 @@ test('nested parameterized `sql.fragment` tag', async () => {
         returning *
       ",
       "templateArgs": [Function],
+      "then": [Function],
       "token": "sql",
       "values": [
         "four",

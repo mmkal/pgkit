@@ -67,8 +67,12 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.literalValue](#sqlliteralvalue)
    - [transaction savepoints](#transaction-savepoints)
    - [sql.type](#sqltype)
+   - [sql.type with valibot](#sqltype-with-valibot)
    - [sql.type with custom error message](#sqltype-with-custom-error-message)
    - [createSqlTag + sql.typeAlias](#createsqltag--sqltypealias)
+   - [await sql - createSqlTag](#await-sql---createsqltag)
+   - [await sql - clientStorage](#await-sql---clientstorage)
+   - [await sql - bad type](#await-sql---bad-type)
 - [Types](#types)
 - [Automatic type generation](#automatic-type-generation)
    - [Avoiding nullables](#avoiding-nullables)
@@ -511,8 +515,26 @@ await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).re
 const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
 expect(error).toMatchInlineSnapshot(`
-  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: see cause for details
-    Caused by: [ZodError]: Validation error: Expected string, received number at "id" (**auto-formatted for snapshot**)
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Expected string, received number → at id
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+`)
+```
+
+### sql.type with valibot
+
+```typescript
+const StringId = v.object({id: v.string()})
+await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).resolves.toMatchObject([
+  {id: '1'},
+  {id: '2'},
+  {id: '3'},
+])
+
+const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+expect(error).toMatchInlineSnapshot(`
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Invalid type: Expected string but received 1 → at id
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
 `)
 ```
 
@@ -530,26 +552,15 @@ client = createClient(client.connectionString(), {
       application_name: 'impatient',
     },
   },
-  wrapQueryFn: queryFn => {
-    const parentWrapper = client.options.wrapQueryFn || (x => x)
-    return async (...args) => {
-      const parentQueryFn = parentWrapper(queryFn)
-      try {
-        return await parentQueryFn(...args)
-      } catch (e) {
-        if (e instanceof QueryError && isZodErrorLike(e.cause)) {
-          e.cause = fromError(e.cause)
-        }
-        throw e
-      }
-    }
-  },
 })
 const StringId = z.object({id: z.string()})
 
 const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
-expect(error).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "id"`)
+expect(error).toMatchInlineSnapshot(`
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Expected string, received number → at id
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+`)
 ```
 
 ### createSqlTag + sql.typeAlias
@@ -570,7 +581,105 @@ expectTypeOf(result).toEqualTypeOf<{name: string}>()
 expect(result).toEqual({name: 'Bob'})
 
 const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
-expect(err).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "name"`)
+expect(err).toMatchInlineSnapshot(`
+  [QueryError]: [select_245d49b]: Parsing rows failed: ✖ Expected string, received number → at name
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+`)
+```
+
+### await sql - createSqlTag
+
+```typescript
+const sql = createSqlTag({client})
+
+const result = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+
+expect(result).toEqual([{a: 1, b: 2}])
+expect(result.one).toEqual({a: 1, b: 2})
+expect(result.oneFirst).toEqual(1)
+expect(result.maybeOneFirst).toEqual(1)
+expect(result.many).toEqual([{a: 1, b: 2}])
+expect(result.manyFirst).toEqual([1])
+expectTypeOf(result).toMatchTypeOf<{a: number; b: number}[]>()
+expectTypeOf(result.one).toEqualTypeOf<{a: number; b: number}>()
+
+const Type = z.object({a: z.number(), b: z.number()})
+const result2 = await sql.type(Type)`select 1 as a, 2 as b`
+expect(result2).toEqual([{a: 1, b: 2}])
+expect(result2.one).toEqual({a: 1, b: 2})
+expect(result2.oneFirst).toEqual(1)
+expect(result2.maybeOneFirst).toEqual(1)
+expect(result2.many).toEqual([{a: 1, b: 2}])
+expect(result2.manyFirst).toEqual([1])
+
+expectTypeOf(result2.manyFirst).toEqualTypeOf<number[]>()
+```
+
+### await sql - clientStorage
+
+```typescript
+// you can't await sql`...` without providing a client first:
+await expect(async () => await sql`select 1`).rejects.toMatchInlineSnapshot(
+  `[Error]: No client provided to sql tag - either use \`createSqlTag({client})\` or provide it with \`pgkitStorage.run({client}, () => ...)\``,
+)
+
+const results = await pgkitStorage.run({client}, async () => {
+  const one = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+
+  expect(one).toEqual([{a: 1, b: 2}])
+  expect(one.one).toEqual({a: 1, b: 2})
+  expect(one.oneFirst).toEqual(1)
+  expect(one.maybeOneFirst).toEqual(1)
+  expect(one.many).toEqual([{a: 1, b: 2}])
+  expect(one.manyFirst).toEqual([1])
+  expectTypeOf(one).toMatchTypeOf<{a: number; b: number}[]>()
+  expectTypeOf(one.one).toEqualTypeOf<{a: number; b: number}>()
+
+  const Type = z.object({one: z.number(), two: z.number()})
+  const two = await sql.type(Type)`select 1 as a, 2 as b`
+  expect(two).toEqual([{a: 1, b: 2}])
+  expect(two.one).toEqual({a: 1, b: 2})
+  expect(two.oneFirst).toEqual(1)
+  expect(two.maybeOneFirst).toEqual(1)
+  expect(two.many).toEqual([{a: 1, b: 2}])
+  expect(two.manyFirst).toEqual([1])
+
+  expectTypeOf(two.manyFirst).toEqualTypeOf<number[]>()
+
+  return {one, two}
+})
+
+expect(results).toMatchInlineSnapshot(`
+  {
+    "one": [
+      {
+        "a": 1,
+        "b": 2
+      }
+    ],
+    "two": [
+      {
+        "a": 1,
+        "b": 2
+      }
+    ]
+  }
+`)
+```
+
+### await sql - bad type
+
+```typescript
+const sql = createSqlTag({client})
+
+const Foo = z.object({foo: z.number()})
+
+await expect(async () => await sql.type(Foo)`select 1 as bar`).rejects.toMatchInlineSnapshot(
+  `
+    [QueryError]: [select_96972d5]: Parsing rows failed: ✖ Required → at foo
+      Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+  `,
+)
 ```
 <!-- codegen:end -->
 
@@ -767,7 +876,7 @@ const getResult = () =>
 
 await expect(getResult()).rejects.toMatchInlineSnapshot(`
   {
-    "message": "[select-zod_test_83bbed1]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
+    "message": "[select-zod_test_83bbed1]: Parsing rows failed: ✖ id must be even → at id\\n✖ Required → at name",
     "query": {
       "name": "select-zod_test_83bbed1",
       "sql": "\\n      select * from zod_test\\n    ",
@@ -777,6 +886,13 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
     "cause": {
       "issues": [
         {
+          "code": "custom",
+          "message": "id must be even",
+          "path": [
+            "id"
+          ]
+        },
+        {
           "code": "invalid_type",
           "expected": "string",
           "received": "undefined",
@@ -784,16 +900,8 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
             "name"
           ],
           "message": "Required"
-        },
-        {
-          "code": "custom",
-          "message": "id must be even",
-          "path": [
-            "id"
-          ]
         }
-      ],
-      "name": "ZodError"
+      ]
     }
   }
 `)
@@ -1109,7 +1217,7 @@ Generally, usage of a _client_ (or pool, to use the slonik term), should be iden
 
 #### `sql`
 
-Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-cases](https://github.com/gajus/slonik/issues/527) [and](https://github.com/gajus/slonik/pull/512) [options](https://github.com/gajus/slonik/pull/512), but to no avail.
+Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-cases](https://github.com/gajus/slonik/issues/527) [and options](https://github.com/gajus/slonik/pull/512), but to no avail.
 
 In slonik, you need to use `sql.unsafe`, which is untyped. Note that recommendation is never to use it, and there's been some indication that even this will go away, but there are many examples of its usage in the slonik readme.
 
