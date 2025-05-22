@@ -496,7 +496,7 @@ test('await sql - clientStorage', async () => {
     expectTypeOf(one).toMatchTypeOf<{a: number; b: number}[]>()
     expectTypeOf(one.one).toEqualTypeOf<{a: number; b: number}>()
 
-    const Type = z.object({one: z.number(), two: z.number()})
+    const Type = z.object({a: z.number(), b: z.number()})
     const two = await sql.type(Type)`select 1 as a, 2 as b`
     expect(two).toEqual([{a: 1, b: 2}])
     expect(two.one).toEqual({a: 1, b: 2})

@@ -13,6 +13,7 @@ import {
   Client,
   AwaitSqlResultArray,
   Queryable,
+  AwaitableSQLQuery,
 } from './types'
 
 /** a monadish `.map` which allows for promises or regular values and becomes a promise-or-regular-value with the return type of the mapper */
@@ -44,7 +45,7 @@ const sqlMethodHelpers: SQLMethodHelpers = {
 }
 
 function typer(client: Queryable | undefined, sqlFnImpl: typeof sqlFn): SQLMethodHelpers['type'] {
-  return <Row>(type: StandardSchemaV1<Row>) => {
+  return <Row extends {}>(type: StandardSchemaV1<Row>) => {
     if (!looksLikeStandardSchema(type)) {
       const typeName = (type as {})?.constructor?.name
       const hint = typeName?.includes('Zod') ? ` Try upgrading zod to v3.24.0 or greater` : ''
@@ -63,7 +64,7 @@ function typer(client: Queryable | undefined, sqlFnImpl: typeof sqlFn): SQLMetho
       const {then, parse, ...rest} = sqlFnImpl(strings, ...parameters)
       const baseQuery = {...rest, parse: parseFn}
       // eslint-disable-next-line unicorn/no-thenable
-      return {...baseQuery, then: getThenFn({client, sqlQuery: baseQuery})}
+      return {...baseQuery, then: getThenFn<Row>({client, sqlQuery: baseQuery})}
     }
   }
 }
@@ -203,7 +204,7 @@ const sqlFnInner = (
   }
 }
 
-function getThenFn<X>({client, sqlQuery}: {client: Queryable | undefined; sqlQuery: SQLQuery<X>}) {
+function getThenFn<X extends {}>({client, sqlQuery}: {client: Queryable | undefined; sqlQuery: SQLQuery<X>}) {
   return <U>(onSuccess: (rows: Promise<AwaitSqlResultArray<never>>) => U) => {
     const getAwaitSqlResultArrayAsync = async (): Promise<AwaitSqlResultArray<never>> => {
       const queryable = client || pgkitStorage.getStore()?.client
@@ -259,7 +260,6 @@ function getThenFn<X>({client, sqlQuery}: {client: Queryable | undefined; sqlQue
             },
           },
         })
-        console.log({rows})
         // eslint-disable-next-line promise/no-callback-in-promise
         return rows as AwaitSqlResultArray<never>
       })
@@ -301,9 +301,7 @@ export const createSqlTag = <TypeAliases extends Record<string, StandardSchemaV1
   } as <Row = Record<string, unknown>>(
     strings: TemplateStringsArray,
     ...parameters: Row extends {'~parameters': SQLParameter[]} ? Row['~parameters'] : SQLParameter[]
-  ) => SQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row> & {
-    then: <U>(callback: (rows: AwaitSqlResultArray<Row>) => U) => Promise<U>
-  }
+  ) => AwaitableSQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
 
   const {type, ...rest} = allSqlHelpers
 
@@ -313,10 +311,11 @@ export const createSqlTag = <TypeAliases extends Record<string, StandardSchemaV1
     {type: typer(params.client, (...args) => sqlFnInner(params, ...args))},
     {
       typeAlias<K extends keyof TypeAliases>(name: K) {
-        const type = params.typeAliases?.[name]
-        if (!type) throw new Error(`Type alias ${name as string} not found`)
-        type Result = typeof type extends StandardSchemaV1<any, infer R> ? R : never
-        return sql.type(type) as <Parameters extends SQLParameter[] = SQLParameter[]>(
+        const schema = params.typeAliases?.[name]
+        if (!schema) throw new Error(`Type alias ${name as string} not found`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        type Result = typeof schema extends StandardSchemaV1<any, infer R> ? R : never
+        return sql.type(schema) as <Parameters extends SQLParameter[] = SQLParameter[]>(
           strings: TemplateStringsArray,
           ...parameters: Parameters
         ) => SQLQuery<Result>
