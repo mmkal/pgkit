@@ -455,27 +455,27 @@ test('createSqlTag + sql.typeAlias', async () => {
 test('await sql - createSqlTag', async () => {
   const {sql} = client
 
-  const result = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+  const xx = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
 
-  expect(result).toEqual([{a: 1, b: 2}])
-  expect(result.one).toEqual({a: 1, b: 2})
-  expect(result.oneFirst).toEqual(1)
-  expect(result.maybeOneFirst).toEqual(1)
-  expect(result.many).toEqual([{a: 1, b: 2}])
-  expect(result.manyFirst).toEqual([1])
-  expectTypeOf(result).toMatchTypeOf<{a: number; b: number}[]>()
-  expectTypeOf(result.one).toEqualTypeOf<{a: number; b: number}>()
+  expect(xx).toEqual([{a: 1, b: 2}])
+  expect(xx.one).toEqual({a: 1, b: 2})
+  expect(xx.oneFirst).toEqual(1)
+  expect(xx.maybeOneFirst).toEqual(1)
+  expect(xx.many).toEqual([{a: 1, b: 2}])
+  expect(xx.manyFirst).toEqual([1])
+  expectTypeOf(xx).toMatchTypeOf<{a: number; b: number}[]>()
+  expectTypeOf(xx.one).toEqualTypeOf<{a: number; b: number}>()
 
   const Type = z.object({a: z.number(), b: z.number()})
-  const result2 = await sql.type(Type)`select 1 as a, 2 as b`
-  expect(result2).toEqual([{a: 1, b: 2}])
-  expect(result2.one).toEqual({a: 1, b: 2})
-  expect(result2.oneFirst).toEqual(1)
-  expect(result2.maybeOneFirst).toEqual(1)
-  expect(result2.many).toEqual([{a: 1, b: 2}])
-  expect(result2.manyFirst).toEqual([1])
+  const yy = await sql.type(Type)`select 1 as a, 2 as b`
+  expect(yy).toEqual([{a: 1, b: 2}])
+  expect(yy.one).toEqual({a: 1, b: 2})
+  expect(yy.oneFirst).toEqual(1)
+  expect(yy.maybeOneFirst).toEqual(1)
+  expect(yy.many).toEqual([{a: 1, b: 2}])
+  expect(yy.manyFirst).toEqual([1])
 
-  expectTypeOf(result2.manyFirst).toEqualTypeOf<number[]>()
+  expectTypeOf(yy.manyFirst).toEqualTypeOf<number[]>()
 })
 
 test('await sql - clientStorage', async () => {
@@ -485,40 +485,40 @@ test('await sql - clientStorage', async () => {
   )
 
   const results = await pgkitStorage.run({client}, async () => {
-    const one = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+    const xx = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
 
-    expect(one).toEqual([{a: 1, b: 2}])
-    expect(one.one).toEqual({a: 1, b: 2})
-    expect(one.oneFirst).toEqual(1)
-    expect(one.maybeOneFirst).toEqual(1)
-    expect(one.many).toEqual([{a: 1, b: 2}])
-    expect(one.manyFirst).toEqual([1])
-    expectTypeOf(one).toMatchTypeOf<{a: number; b: number}[]>()
-    expectTypeOf(one.one).toEqualTypeOf<{a: number; b: number}>()
+    expect(xx).toEqual([{a: 1, b: 2}])
+    expect(xx.one).toEqual({a: 1, b: 2})
+    expect(xx.oneFirst).toEqual(1)
+    expect(xx.maybeOneFirst).toEqual(1)
+    expect(xx.many).toEqual([{a: 1, b: 2}])
+    expect(xx.manyFirst).toEqual([1])
+    expectTypeOf(xx).toMatchTypeOf<{a: number; b: number}[]>()
+    expectTypeOf(xx.one).toEqualTypeOf<{a: number; b: number}>()
 
     const Type = z.object({a: z.number(), b: z.number()})
-    const two = await sql.type(Type)`select 1 as a, 2 as b`
-    expect(two).toEqual([{a: 1, b: 2}])
-    expect(two.one).toEqual({a: 1, b: 2})
-    expect(two.oneFirst).toEqual(1)
-    expect(two.maybeOneFirst).toEqual(1)
-    expect(two.many).toEqual([{a: 1, b: 2}])
-    expect(two.manyFirst).toEqual([1])
+    const yy = await sql.type(Type)`select 1 as a, 2 as b`
+    expect(yy).toEqual([{a: 1, b: 2}])
+    expect(yy.one).toEqual({a: 1, b: 2})
+    expect(yy.oneFirst).toEqual(1)
+    expect(yy.maybeOneFirst).toEqual(1)
+    expect(yy.many).toEqual([{a: 1, b: 2}])
+    expect(yy.manyFirst).toEqual([1])
 
-    expectTypeOf(two.manyFirst).toEqualTypeOf<number[]>()
+    expectTypeOf(yy.manyFirst).toEqualTypeOf<number[]>()
 
-    return {one, two}
+    return {xx, yy}
   })
 
   expect(results).toMatchInlineSnapshot(`
     {
-      "one": [
+      "xx": [
         {
           "a": 1,
           "b": 2
         }
       ],
-      "two": [
+      "yy": [
         {
           "a": 1,
           "b": 2
