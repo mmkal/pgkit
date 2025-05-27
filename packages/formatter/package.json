@@ -8,6 +8,7 @@
     "queries"
   ],
   "author": "mmkal",
+  "license": "Apache-2.0",
   "scripts": {
     "prepack": "pnpm build",
     "build": "tsc --sourceMap -p tsconfig.lib.json",

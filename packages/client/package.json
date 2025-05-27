@@ -21,6 +21,7 @@
     "node.js"
   ],
   "author": "mmkal",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mmkal/pgkit",
