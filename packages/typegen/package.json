@@ -44,7 +44,7 @@
     "pgsql-ast-parser": "^11.1.0",
     "pluralize": "^8.0.0",
     "trpc-cli": "^0.6.0-15",
-    "zod": "^3.24.4"
+    "zod": "^3.25.20"
   },
   "devDependencies": {
     "@types/glob": "7.2.0",

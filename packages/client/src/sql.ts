@@ -3,13 +3,32 @@ import {QueryError} from './errors'
 import {nameQuery} from './naming'
 import {StandardSchemaV1} from './standard-schema/contract'
 import {looksLikeStandardSchema, looksLikeStandardSchemaFailure} from './standard-schema/utils'
-import {SQLTagFunction, SQLMethodHelpers, SQLQuery, SQLTagHelpers, SQLParameter} from './types'
+import {pgkitStorage} from './storage'
+import {
+  SQLTagFunction,
+  SQLMethodHelpers,
+  SQLQuery,
+  SQLTagHelpers,
+  SQLParameter,
+  AwaitSqlResultArray,
+  Queryable,
+  AwaitableSQLQuery,
+  SQLTag,
+} from './types'
 
+/** a monadish `.map` which allows for promises or regular values and becomes a promise-or-regular-value with the return type of the mapper */
 const maybeAsyncMap = <T, U>(thing: T | Promise<T>, map: (value: T) => U): U | Promise<U> => {
   if (typeof (thing as {then?: unknown})?.then === 'function') {
     return (thing as {then: (mapper: typeof map) => Promise<U>}).then(map)
   }
   return map(thing as T)
+}
+
+/**
+ * Template tag function. Walks through each string segment and parameter, and concatenates them into a valid SQL query.
+ */
+const sqlFn: SQLTagFunction = (strings, ...templateParameters) => {
+  return sqlFnInner({}, strings, ...templateParameters)
 }
 
 const sqlMethodHelpers: SQLMethodHelpers = {
@@ -22,7 +41,11 @@ const sqlMethodHelpers: SQLMethodHelpers = {
     segments: () => [query],
     templateArgs: () => [[query]],
   }),
-  type: type => {
+  type: typer(undefined, sqlFn),
+}
+
+function typer(client: Queryable | undefined, sqlFnImpl: typeof sqlFn): SQLMethodHelpers['type'] {
+  return <Row extends {}>(type: StandardSchemaV1<Row>) => {
     if (!looksLikeStandardSchema(type)) {
       const typeName = (type as {})?.constructor?.name
       const hint = typeName?.includes('Zod') ? ` Try upgrading zod to v3.24.0 or greater` : ''
@@ -31,61 +54,26 @@ const sqlMethodHelpers: SQLMethodHelpers = {
       })
     }
     const {validate} = type['~standard']
-    const parseAsync = (input: unknown) => {
+    const parseFn = (input: unknown) => {
       return maybeAsyncMap(validate(input), result => {
-        if (looksLikeStandardSchemaFailure(result)) {
-          throw result as {} as Error
-        }
+        if (looksLikeStandardSchemaFailure(result)) throw result as {} as Error
         return result.value
       })
     }
-    // type Result = typeof type extends ZodesqueType<infer R> ? R : never
-    // let parseAsync: (input: unknown) => Promise<Result>
-    // if ('parseAsync' in type) {
-    //   parseAsync = type.parseAsync
-    // } else if ('safeParseAsync' in type) {
-    //   parseAsync = async input => {
-    //     const parsed = await type.safeParseAsync(input)
-    //     if (!parsed.success) {
-    //       throw parsed.error
-    //     }
-    //     return parsed.data
-    //   }
-    // } else if ('parse' in type) {
-    //   parseAsync = async input => type.parse(input)
-    // } else if ('safeParse' in type) {
-    //   parseAsync = async input => {
-    //     const parsed = type.safeParse(input)
-    //     if (!parsed.success) {
-    //       throw parsed.error
-    //     }
-    //     return parsed.data
-    //   }
-    // } else {
-    //   const _: never = type
-    //   throw new Error('Invalid type parser. Must have parse, safeParse, parseAsync or safeParseAsync method', {
-    //     cause: type,
-    //   })
-    // }
-    return (strings, ...parameters) => ({
-      ...sqlFn(strings, ...(parameters as never)),
-      parse: parseAsync,
-    })
-  },
-}
-
-/**
- * Template tag function. Walks through each string segment and parameter, and concatenates them into a valid SQL query.
- */
-const sqlFn: SQLTagFunction = (strings, ...templateParameters) => {
-  return sqlFnInner({}, strings, ...templateParameters)
+    return (strings, ...parameters) => {
+      const {then, parse, ...rest} = sqlFnImpl(strings, ...parameters)
+      const baseQuery = {...rest, parse: parseFn}
+      // eslint-disable-next-line unicorn/no-thenable
+      return {...baseQuery, then: getThenFn<Row>({client, sqlQuery: baseQuery})}
+    }
+  }
 }
 
 const sqlFnInner = (
-  {priorValues = 0},
+  {priorValues = 0, client = undefined as Queryable | undefined, parse = (x => x) as SQLQuery<never>['parse']},
   strings: TemplateStringsArray,
   ...templateParameters: SQLParameter[]
-): SQLQuery<never> => {
+): SQLQuery<never> & {then: <U>(callback: (rows: Promise<AwaitSqlResultArray<never>>) => U) => Promise<U>} => {
   const segments: string[] = []
   const values: unknown[] = []
   const getValuePlaceholder = (inc = 0) => '$' + (values.length + priorValues + inc)
@@ -106,21 +94,8 @@ const sqlFnInner = (
 
     switch (param.token) {
       case 'array': {
-        if (Math.random()) {
-          values.push(param.args[0])
-          segments.push(getValuePlaceholder(), `::${param.args[1]}[]`)
-          break
-        }
-        // console.log('param', param)
-        segments.push(`array[`)
-        for (const [i, v] of param.args[0].entries()) {
-          if (i > 0) segments.push(', ')
-          values.push(v)
-          segments.push(`${getValuePlaceholder()}::${param.args[1]}`)
-        }
-        segments.push(']')
-        // values.push(param.args[0])
-        // segments.push(getValuePlaceholder())
+        values.push(param.args[0])
+        segments.push(getValuePlaceholder(), `::${param.args[1]}[]`)
         break
       }
       case 'binary':
@@ -213,14 +188,86 @@ const sqlFnInner = (
     }
   })
 
-  return {
-    parse: input => input as never,
+  const sqlQuery: SQLQuery<never> = {
+    parse,
     name: nameQuery(strings),
     sql: segments.join(''),
     token: 'sql',
     values,
     segments: () => segments,
     templateArgs: () => [strings, ...templateParameters],
+  }
+  return {
+    ...sqlQuery,
+    // eslint-disable-next-line unicorn/no-thenable
+    then: getThenFn({client, sqlQuery}),
+  }
+}
+
+function getThenFn<X extends {}>({client, sqlQuery}: {client: Queryable | undefined; sqlQuery: SQLQuery<X>}) {
+  return <U>(onSuccess: (rows: Promise<AwaitSqlResultArray<never>>) => U) => {
+    const getAwaitSqlResultArrayAsync = async (): Promise<AwaitSqlResultArray<never>> => {
+      const queryable = client || pgkitStorage.getStore()?.client
+      if (!queryable) {
+        const msg =
+          'No client provided to sql tag - either use `createSqlTag({client})` or provide it with `pgkitStorage.run({client}, () => ...)`'
+        throw new Error(msg)
+      }
+      return queryable.any(sqlQuery).then(rows => {
+        const errorParams: QueryError.Params = {query: sqlQuery, result: {rows}}
+        const getOne = () => {
+          if (rows.length !== 1) throw new QueryError(`Expected 1 row, got ${rows.length}`, errorParams)
+          return rows[0]
+        }
+        const getMany = () => {
+          if (rows.length === 0) throw new QueryError('Expected at least 1 row, got 0', errorParams)
+          return rows
+        }
+        Object.defineProperties(rows, {
+          one: {
+            get: getOne,
+          },
+          maybeOne: {
+            get() {
+              if (rows.length > 1) throw new QueryError(`Expected either 0 or 1 row, got ${rows.length}`, errorParams)
+              return rows.length === 1 ? rows[0] : null
+            },
+          },
+          oneFirst: {
+            get() {
+              return Object.values(getOne())[0]
+            },
+          },
+          maybeOneFirst: {
+            get() {
+              return rows.length === 1 ? Object.values(rows[0])[0] : null
+            },
+          },
+          many: {get: getMany},
+          manyFirst: {
+            get() {
+              return getMany().map(row => Object.values(row)[0])
+            },
+          },
+          noNulls: {
+            get() {
+              for (const [i, row] of rows.entries()) {
+                for (const [key, value] of Object.entries(row)) {
+                  if (value === null) throw new QueryError(`Null value at row ${i} column ${key}`, errorParams)
+                }
+              }
+              return rows
+            },
+          },
+        })
+        // eslint-disable-next-line promise/no-callback-in-promise
+        return rows as AwaitSqlResultArray<never>
+      })
+    }
+    return getAwaitSqlResultArrayAsync().then(
+      value => onSuccess(Promise.resolve(value)),
+      error => onSuccess(Promise.reject(error as Error)),
+    )
   }
 }
 
@@ -241,25 +288,38 @@ export const sqlTagHelpers: SQLTagHelpers = {
 
 export const allSqlHelpers = {...sqlMethodHelpers, ...sqlTagHelpers}
 
-export const sql: SQLTagFunction & SQLTagHelpers & SQLMethodHelpers = Object.assign(sqlFn, allSqlHelpers)
+export const sql: SQLTag = Object.assign(sqlFn, allSqlHelpers)
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// export function createSqlTag<TypeAliases extends Record<string, StandardSchemaV1>>(params: {typeAliases: TypeAliases})
 export const createSqlTag = <TypeAliases extends Record<string, StandardSchemaV1>>(params: {
-  typeAliases: TypeAliases
+  typeAliases?: TypeAliases
+  client?: Queryable
 }) => {
   // eslint-disable-next-line func-name-matching, func-names, @typescript-eslint/no-shadow
   const fn = function sql(...args: Parameters<SQLTagFunction>) {
-    return sqlFn<{}>(...args)
-  } as SQLTagFunction
+    return sqlFnInner(params, ...args)
+  } as <Row = Record<string, unknown>>(
+    strings: TemplateStringsArray,
+    ...parameters: Row extends {'~parameters': SQLParameter[]} ? Row['~parameters'] : SQLParameter[]
+  ) => AwaitableSQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
 
-  return Object.assign(fn, allSqlHelpers, {
-    typeAlias<K extends keyof TypeAliases>(name: K) {
-      const type = params.typeAliases[name]
-      type Result = typeof type extends StandardSchemaV1<any, infer R> ? R : never
-      return sql.type(type) as <Parameters extends SQLParameter[] = SQLParameter[]>(
-        strings: TemplateStringsArray,
-        ...parameters: Parameters
-      ) => SQLQuery<Result>
+  const {type, ...rest} = allSqlHelpers
+
+  return Object.assign(
+    fn,
+    rest,
+    {type: typer(params.client, (...args) => sqlFnInner(params, ...args))},
+    {
+      typeAlias<K extends keyof TypeAliases>(name: K) {
+        const schema = params.typeAliases?.[name]
+        if (!schema) throw new Error(`Type alias ${name as string} not found`)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        type Result = typeof schema extends StandardSchemaV1<any, infer R> ? R : never
+        return sql.type(schema) as <Parameters extends SQLParameter[] = SQLParameter[]>(
+          strings: TemplateStringsArray,
+          ...parameters: Parameters
+        ) => SQLQuery<Result>
+      },
     },
-  })
+  )
 }

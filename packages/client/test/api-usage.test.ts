@@ -2,7 +2,7 @@
 import * as v from 'valibot'
 import {beforeAll, beforeEach, expect, expectTypeOf, test, vi} from 'vitest'
 import {z} from 'zod'
-import {createClient, createSqlTag, sql} from '../src'
+import {pgkitStorage, createClient, createSqlTag, sql} from '../src'
 import {printErrorCompact as printError} from './snapshots'
 
 expect.addSnapshotSerializer({
@@ -450,4 +450,93 @@ test('createSqlTag + sql.typeAlias', async () => {
     [QueryError]: [select_245d49b]: Parsing rows failed: ✖ Expected string, received number → at name
       Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
   `)
+})
+
+test('await sql - createSqlTag', async () => {
+  const {sql} = client
+
+  const xx = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+
+  expect(xx).toEqual([{a: 1, b: 2}])
+  expect(xx.one).toEqual({a: 1, b: 2})
+  expect(xx.oneFirst).toEqual(1)
+  expect(xx.maybeOneFirst).toEqual(1)
+  expect(xx.many).toEqual([{a: 1, b: 2}])
+  expect(xx.manyFirst).toEqual([1])
+  expectTypeOf(xx).toMatchTypeOf<{a: number; b: number}[]>()
+  expectTypeOf(xx.one).toEqualTypeOf<{a: number; b: number}>()
+
+  const Type = z.object({a: z.number(), b: z.number()})
+  const yy = await sql.type(Type)`select 1 as a, 2 as b`
+  expect(yy).toEqual([{a: 1, b: 2}])
+  expect(yy.one).toEqual({a: 1, b: 2})
+  expect(yy.oneFirst).toEqual(1)
+  expect(yy.maybeOneFirst).toEqual(1)
+  expect(yy.many).toEqual([{a: 1, b: 2}])
+  expect(yy.manyFirst).toEqual([1])
+
+  expectTypeOf(yy.manyFirst).toEqualTypeOf<number[]>()
+})
+
+test('await sql - clientStorage', async () => {
+  // you can't await sql`...` without providing a client first:
+  await expect(async () => await sql`select 1`).rejects.toMatchInlineSnapshot(
+    `[Error]: No client provided to sql tag - either use \`createSqlTag({client})\` or provide it with \`pgkitStorage.run({client}, () => ...)\``,
+  )
+
+  const results = await pgkitStorage.run({client}, async () => {
+    const xx = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+
+    expect(xx).toEqual([{a: 1, b: 2}])
+    expect(xx.one).toEqual({a: 1, b: 2})
+    expect(xx.oneFirst).toEqual(1)
+    expect(xx.maybeOneFirst).toEqual(1)
+    expect(xx.many).toEqual([{a: 1, b: 2}])
+    expect(xx.manyFirst).toEqual([1])
+    expectTypeOf(xx).toMatchTypeOf<{a: number; b: number}[]>()
+    expectTypeOf(xx.one).toEqualTypeOf<{a: number; b: number}>()
+
+    const Type = z.object({a: z.number(), b: z.number()})
+    const yy = await sql.type(Type)`select 1 as a, 2 as b`
+    expect(yy).toEqual([{a: 1, b: 2}])
+    expect(yy.one).toEqual({a: 1, b: 2})
+    expect(yy.oneFirst).toEqual(1)
+    expect(yy.maybeOneFirst).toEqual(1)
+    expect(yy.many).toEqual([{a: 1, b: 2}])
+    expect(yy.manyFirst).toEqual([1])
+
+    expectTypeOf(yy.manyFirst).toEqualTypeOf<number[]>()
+
+    return {xx, yy}
+  })
+
+  expect(results).toMatchInlineSnapshot(`
+    {
+      "xx": [
+        {
+          "a": 1,
+          "b": 2
+        }
+      ],
+      "yy": [
+        {
+          "a": 1,
+          "b": 2
+        }
+      ]
+    }
+  `)
+})
+
+test('await sql - bad type', async () => {
+  const sql = createSqlTag({client})
+
+  const Foo = z.object({foo: z.number()})
+
+  await expect(async () => await sql.type(Foo)`select 1 as bar`).rejects.toMatchInlineSnapshot(
+    `
+      [QueryError]: [select_96972d5]: Parsing rows failed: ✖ Required → at foo
+        Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+    `,
+  )
 })

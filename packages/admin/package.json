@@ -88,7 +88,7 @@
     "sonner": "^1.4.41",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.22.4"
+    "zod": "^3.25.20"
   },
   "devDependencies": {
     "@playwright/test": "^1.42.0",
