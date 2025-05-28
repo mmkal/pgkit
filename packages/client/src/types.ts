@@ -14,6 +14,11 @@ export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[
   templateArgs: () => [strings: readonly string[], ...inputParameters: readonly unknown[]]
 }
 
+export interface AwaitableSQLQuery<Row = Record<string, unknown>, Values extends unknown[] = unknown[]>
+  extends SQLQuery<Row, Values> {
+  then: <U>(callback: (rows: Promise<AwaitSqlResultArray<Row>>) => U) => Promise<U>
+}
+
 export type TimeUnit = 'years' | 'months' | 'weeks' | 'days' | 'hours' | 'minutes' | 'seconds'
 export type IntervalInput = Partial<Record<TimeUnit, number>>
 
@@ -61,6 +66,10 @@ export interface Queryable {
   noNulls: NonNullQueryable
 }
 
+export interface SQLQueryable extends Queryable {
+  sql: SQLTag
+}
+
 export interface NonNullQueryable {
   query<Row>(query: SQLQuery<Row>): Promise<Result<NonNullRow<Row>>>
 
@@ -77,11 +86,36 @@ export interface NonNullQueryable {
   manyFirst<Row>(query: SQLQuery<Row>): Promise<Array<First<NonNullRow<Row>>>>
 }
 
+/**
+ * An augmented array type that includes helper getters which perform validation and type coercion on the rows.
+ */
+export type AwaitSqlResultArray<Row> = Row[] & {
+  /** returns the single row in the array, @throws if the array length is not 1 */
+  one: Row
+  /** returns the single row in the array, or `null` if the array length is 0 */
+  maybeOne: Row | null
+  /** returns the first column of the single row in the array, @throws if the array length is not 1 */
+  oneFirst: First<Row>
+  /** returns the first column of the single row in the array, or `null` if the array length is 0 */
+  maybeOneFirst: First<Row> | null
+
+  // no `any` because this is already an array of the rows
+  /** returns the first column of each row in the array */
+  anyFirst: Array<First<Row>>
+  /** returns all rows in the array and @throws if the array is empty */
+  many: Row[]
+  /** returns the first column of each row in the array and @throws if the array is empty */
+  manyFirst: Array<First<Row>>
+
+  /** returns a new array of results after checking that every record contains no null values */
+  noNulls: AwaitSqlResultArray<NonNullRow<Row>>
+}
+
 export type NonNullRow<Row> = {
   [K in keyof Row]: NonNullable<Row[K]>
 }
 
-export interface Transactable extends Queryable {
+export interface Transactable extends SQLQueryable {
   transaction<T>(callback: (connection: Transaction) => Promise<T>): Promise<T>
 }
 export interface Connection extends Transactable {
@@ -93,7 +127,7 @@ export interface Transaction extends Connection {
   transactionInfo: {pgp: pgPromise.ITask<unknown>}
 }
 
-export interface Client extends Queryable {
+export interface Client extends SQLQueryable {
   options: ClientOptions
   pgp: ReturnType<ReturnType<typeof pgPromise>>
   pgpOptions: PGPOptions
@@ -209,13 +243,6 @@ export type SQLTagHelperParameters = {
   unnest: [tuples: ReadonlyArray<readonly PrimitiveValueExpression[]>, columnTypes: TypeNameIdentifier[]]
 }
 
-export type SQLTagHelpers = {
-  [K in keyof SQLTagHelperParameters]: (...args: SQLTagHelperParameters[K]) => {
-    token: K
-    args: SQLTagHelperParameters[K]
-  }
-}
-
 export type Primitive = string | number | boolean | null
 
 export type SQLParameterNonPrimitive = ReturnType<SQLTagHelpers[keyof SQLTagHelpers]> | SqlFragment
@@ -223,20 +250,33 @@ export type SQLParameterNonPrimitive = ReturnType<SQLTagHelpers[keyof SQLTagHelp
 export type SQLParameter = SQLParameterNonPrimitive | Primitive
 export type SQLParameterToken = SQLParameterNonPrimitive['token']
 
+/** the type definition for *just* the function part of the `sql` tag */
 export type SQLTagFunction = <Row = Record<string, unknown>>(
   strings: TemplateStringsArray,
   ...parameters: Row extends {'~parameters': SQLParameter[]} ? Row['~parameters'] : SQLParameter[]
-) => SQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
+) => AwaitableSQLQuery<Row extends {'~parameters': SQLParameter[]} ? Omit<Row, '~parameters'> : Row>
 
+/** the type definition for the helpers of the `sql` tag - these are helpers for creating parameters to go in a sql`...` template */
+export type SQLTagHelpers = {
+  [K in keyof SQLTagHelperParameters]: (...args: SQLTagHelperParameters[K]) => {
+    token: K
+    args: SQLTagHelperParameters[K]
+  }
+}
+
+/** the type definition for the methods of the `sql` tag */
 export type SQLMethodHelpers = {
   raw: <Row>(query: string, values?: unknown[]) => SQLQuery<Row, unknown[]>
   type: <Row>(
-    parser: StandardSchemaV1<any, Row>,
+    schema: StandardSchemaV1<any, Row>,
   ) => <Parameters extends SQLParameter[] = SQLParameter[]>(
     strings: TemplateStringsArray,
     ...parameters: Parameters
-  ) => SQLQuery<Row>
+  ) => AwaitableSQLQuery<Row>
 }
+
+/** the full type for the `sql` tag - callable function, helpers and all */
+export type SQLTag = SQLTagFunction & SQLTagHelpers & SQLMethodHelpers
 
 /** Called `pgp` in pg-promise docs  */
 export type PGPromiseInitializer = typeof pgPromise
@@ -266,5 +306,5 @@ export type PGPOptions = {
 export interface ClientOptions {
   pgpOptions?: PGPOptions
   applyTypeParsers?: ApplyTypeParsers
-  wrapQueryFn?: (queryFn: Queryable['query']) => Queryable['query']
+  wrapQueryFn?: (queryFn: SQLQueryable['query']) => SQLQueryable['query']
 }

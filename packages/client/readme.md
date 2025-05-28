@@ -11,13 +11,13 @@ A strongly-typed postgres client for node.js. Lets you execute SQL, without abst
 @pgkit/client is a PostgreSQL client, to be used in any application with a PostgreSQL database.
 
 ```ts
-import {createClient, sql} from '@pgkit/client'
+import {createClient} from '@pgkit/client'
 
-const client = createClient('postgresql://')
+const {sql} = createClient('postgresql://')
 
-const profiles = await client.query(sql`
+const profiles = await sql`
   select * from profile where email = ${getEmail()}
-`)
+`
 ```
 
 The basic idea is this: PostgreSQL is well designed. SQL as as language has been refined over decades, and its strengths, weaknesses and tradeoffs are widely known. You shouldn't let an ORM, or a query builder, introduce an unnecessary abstraction between your application and your database.
@@ -67,8 +67,12 @@ Note that @pgkit/migra and @pgkit/schemainspect are pure ports of their Python e
    - [sql.literalValue](#sqlliteralvalue)
    - [transaction savepoints](#transaction-savepoints)
    - [sql.type](#sqltype)
+   - [sql.type with valibot](#sqltype-with-valibot)
    - [sql.type with custom error message](#sqltype-with-custom-error-message)
    - [createSqlTag + sql.typeAlias](#createsqltag--sqltypealias)
+   - [await sql - createSqlTag](#await-sql---createsqltag)
+   - [await sql - clientStorage](#await-sql---clientstorage)
+   - [await sql - bad type](#await-sql---bad-type)
 - [Types](#types)
 - [Automatic type generation](#automatic-type-generation)
    - [Avoiding nullables](#avoiding-nullables)
@@ -511,8 +515,26 @@ await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).re
 const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
 expect(error).toMatchInlineSnapshot(`
-  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: see cause for details
-    Caused by: [ZodError]: Validation error: Expected string, received number at "id" (**auto-formatted for snapshot**)
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Expected string, received number → at id
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+`)
+```
+
+### sql.type with valibot
+
+```typescript
+const StringId = v.object({id: v.string()})
+await expect(client.any(sql.type(StringId)`select id::text from usage_test`)).resolves.toMatchObject([
+  {id: '1'},
+  {id: '2'},
+  {id: '3'},
+])
+
+const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
+
+expect(error).toMatchInlineSnapshot(`
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Invalid type: Expected string but received 1 → at id
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
 `)
 ```
 
@@ -530,26 +552,15 @@ client = createClient(client.connectionString(), {
       application_name: 'impatient',
     },
   },
-  wrapQueryFn: queryFn => {
-    const parentWrapper = client.options.wrapQueryFn || (x => x)
-    return async (...args) => {
-      const parentQueryFn = parentWrapper(queryFn)
-      try {
-        return await parentQueryFn(...args)
-      } catch (e) {
-        if (e instanceof QueryError && isZodErrorLike(e.cause)) {
-          e.cause = fromError(e.cause)
-        }
-        throw e
-      }
-    }
-  },
 })
 const StringId = z.object({id: z.string()})
 
 const error = await client.any(sql.type(StringId)`select id from usage_test`).catch(e => e)
 
-expect(error).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "id"`)
+expect(error).toMatchInlineSnapshot(`
+  [QueryError]: [select-usage_test_8729cac]: Parsing rows failed: ✖ Expected string, received number → at id
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+`)
 ```
 
 ### createSqlTag + sql.typeAlias
@@ -570,7 +581,105 @@ expectTypeOf(result).toEqualTypeOf<{name: string}>()
 expect(result).toEqual({name: 'Bob'})
 
 const err = await client.any(sql.typeAlias('Profile')`select 123 as name`).catch(e => e)
-expect(err).toMatchInlineSnapshot(`[ValidationError]: Validation error: Expected string, received number at "name"`)
+expect(err).toMatchInlineSnapshot(`
+  [QueryError]: [select_245d49b]: Parsing rows failed: ✖ Expected string, received number → at name
+    Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+`)
+```
+
+### await sql - createSqlTag
+
+```typescript
+const {sql} = client
+
+const result = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+
+expect(result).toEqual([{a: 1, b: 2}])
+expect(result.one).toEqual({a: 1, b: 2})
+expect(result.oneFirst).toEqual(1)
+expect(result.maybeOneFirst).toEqual(1)
+expect(result.many).toEqual([{a: 1, b: 2}])
+expect(result.manyFirst).toEqual([1])
+expectTypeOf(result).toMatchTypeOf<{a: number; b: number}[]>()
+expectTypeOf(result.one).toEqualTypeOf<{a: number; b: number}>()
+
+const Type = z.object({a: z.number(), b: z.number()})
+const result2 = await sql.type(Type)`select 1 as a, 2 as b`
+expect(result2).toEqual([{a: 1, b: 2}])
+expect(result2.one).toEqual({a: 1, b: 2})
+expect(result2.oneFirst).toEqual(1)
+expect(result2.maybeOneFirst).toEqual(1)
+expect(result2.many).toEqual([{a: 1, b: 2}])
+expect(result2.manyFirst).toEqual([1])
+
+expectTypeOf(result2.manyFirst).toEqualTypeOf<number[]>()
+```
+
+### await sql - clientStorage
+
+```typescript
+// you can't await sql`...` without providing a client first:
+await expect(async () => await sql`select 1`).rejects.toMatchInlineSnapshot(
+  `[Error]: No client provided to sql tag - either use \`createSqlTag({client})\` or provide it with \`pgkitStorage.run({client}, () => ...)\``,
+)
+
+const results = await pgkitStorage.run({client}, async () => {
+  const one = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+
+  expect(one).toEqual([{a: 1, b: 2}])
+  expect(one.one).toEqual({a: 1, b: 2})
+  expect(one.oneFirst).toEqual(1)
+  expect(one.maybeOneFirst).toEqual(1)
+  expect(one.many).toEqual([{a: 1, b: 2}])
+  expect(one.manyFirst).toEqual([1])
+  expectTypeOf(one).toMatchTypeOf<{a: number; b: number}[]>()
+  expectTypeOf(one.one).toEqualTypeOf<{a: number; b: number}>()
+
+  const Type = z.object({a: z.number(), b: z.number()})
+  const two = await sql.type(Type)`select 1 as a, 2 as b`
+  expect(two).toEqual([{a: 1, b: 2}])
+  expect(two.one).toEqual({a: 1, b: 2})
+  expect(two.oneFirst).toEqual(1)
+  expect(two.maybeOneFirst).toEqual(1)
+  expect(two.many).toEqual([{a: 1, b: 2}])
+  expect(two.manyFirst).toEqual([1])
+
+  expectTypeOf(two.manyFirst).toEqualTypeOf<number[]>()
+
+  return {one, two}
+})
+
+expect(results).toMatchInlineSnapshot(`
+  {
+    "one": [
+      {
+        "a": 1,
+        "b": 2
+      }
+    ],
+    "two": [
+      {
+        "a": 1,
+        "b": 2
+      }
+    ]
+  }
+`)
+```
+
+### await sql - bad type
+
+```typescript
+const sql = createSqlTag({client})
+
+const Foo = z.object({foo: z.number()})
+
+await expect(async () => await sql.type(Foo)`select 1 as bar`).rejects.toMatchInlineSnapshot(
+  `
+    [QueryError]: [select_96972d5]: Parsing rows failed: ✖ Required → at foo
+      Caused by: [StandardSchemaV1Error]: Standard Schema error - details in \`issues\`.
+  `,
+)
 ```
 <!-- codegen:end -->
 
@@ -767,7 +876,7 @@ const getResult = () =>
 
 await expect(getResult()).rejects.toMatchInlineSnapshot(`
   {
-    "message": "[select-zod_test_83bbed1]: Parsing rows failed: [\\n  {\\n    \\"code\\": \\"invalid_type\\",\\n    \\"expected\\": \\"string\\",\\n    \\"received\\": \\"undefined\\",\\n    \\"path\\": [\\n      \\"name\\"\\n    ],\\n    \\"message\\": \\"Required\\"\\n  },\\n  {\\n    \\"code\\": \\"custom\\",\\n    \\"message\\": \\"id must be even\\",\\n    \\"path\\": [\\n      \\"id\\"\\n    ]\\n  }\\n]",
+    "message": "[select-zod_test_83bbed1]: Parsing rows failed: ✖ id must be even → at id\\n✖ Required → at name",
     "query": {
       "name": "select-zod_test_83bbed1",
       "sql": "\\n      select * from zod_test\\n    ",
@@ -777,6 +886,13 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
     "cause": {
       "issues": [
         {
+          "code": "custom",
+          "message": "id must be even",
+          "path": [
+            "id"
+          ]
+        },
+        {
           "code": "invalid_type",
           "expected": "string",
           "received": "undefined",
@@ -784,16 +900,8 @@ await expect(getResult()).rejects.toMatchInlineSnapshot(`
             "name"
           ],
           "message": "Required"
-        },
-        {
-          "code": "custom",
-          "message": "id must be even",
-          "path": [
-            "id"
-          ]
         }
-      ],
-      "name": "ZodError"
+      ]
     }
   }
 `)
@@ -952,24 +1060,24 @@ const patient = createClient(client.connectionString() + '?longTimeout', {
 const sleepSeconds = (shortTimeoutMs * 2) / 1000
 await expect(impatient.one(sql`select pg_sleep(${sleepSeconds})`)).rejects.toThrowErrorMatchingInlineSnapshot(
   `
-  [QueryError]: [select_9dcc021]: Executing query failed: Query read timeout
-  {
-    "message": "[select_9dcc021]: Executing query failed: Query read timeout",
-    "query": {
-      "name": "select_9dcc021",
-      "sql": "select pg_sleep($1)",
-      "token": "sql",
-      "values": [
-        0.04
-      ]
-    },
-    "cause": {
-      "name": "Error",
-      "message": "Query read timeout",
-      "query": "select pg_sleep(0.04)"
+    [QueryError]: [select_9dcc021]: Executing query failed: Query read timeout
+    {
+      "message": "[select_9dcc021]: Executing query failed: Query read timeout",
+      "query": {
+        "name": "select_9dcc021",
+        "sql": "select pg_sleep($1)",
+        "token": "sql",
+        "values": [
+          0.04
+        ]
+      },
+      "cause": {
+        "name": "Error",
+        "message": "Query read timeout",
+        "query": "select pg_sleep(0.04)"
+      }
     }
-  }
-`,
+  `,
 )
 await expect(patient.one(sql`select pg_sleep(${sleepSeconds})`)).resolves.toMatchObject({
   pg_sleep: '',
@@ -1097,7 +1205,7 @@ expect(select).toMatchObject([{name: 'ten'}])
 
 Generally, usage of a _client_ (or pool, to use the slonik term), should be identical. Initialization is likely different. Some differences which would likely require code changes if migrating from slonik:
 
-- Most slonik initialization options are not carried over. I haven't come across any abstractions which invented by slonik which don't have simpler implementations in the underlying layer or in pg-promise. Specifically:
+- Most slonik initialization options are not carried over. I haven't come across any abstractions invented by slonik which don't have simpler implementations in the underlying layer or in pg-promise. Specifically:
 
 - type parsers: just use `pg.types.setTypeParser`. Some helper functions to achieve parity with slonik, and this library's recommendations are available, but they're trivial and you can just as easily implement them yourself.
 - interceptors: Instead of interceptors, which require book-keeping in order to do things as simple as tracking query timings, there's an option to wrap the core `query` function this library calls. The wrapped function will be called for all query methods. For the other slonik interceptors, you can use `pg-promise` events.
@@ -1109,7 +1217,7 @@ Generally, usage of a _client_ (or pool, to use the slonik term), should be iden
 
 #### `sql`
 
-Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-cases](https://github.com/gajus/slonik/issues/527) [and](https://github.com/gajus/slonik/pull/512) [options](https://github.com/gajus/slonik/pull/512), but to no avail.
+Interestingly, slonik _removed_ the ability to use the `sql` tag directly, when Gajus decided he wanted to start using zod parsers. There were [many](https://github.com/gajus/slonik/pull/371) [attempts](https://github.com/gajus/slonik/issues/514) [to](https://github.com/gajus/slonik/pull/369) [point](https://github.com/gajus/slonik/pull/387#issuecomment-1222568619) [out](https://github.com/gajus/slonik/issues/410) [other](https://github.com/gajus/slonik/issues/514) [use-cases](https://github.com/gajus/slonik/issues/527) [and options](https://github.com/gajus/slonik/pull/512), but to no avail.
 
 In slonik, you need to use `sql.unsafe`, which is untyped. Note that recommendation is never to use it, and there's been some indication that even this will go away, but there are many examples of its usage in the slonik readme.
 

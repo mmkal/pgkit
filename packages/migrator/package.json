@@ -52,7 +52,7 @@
     "tasuku": "^2.0.1",
     "trpc-cli": "^0.6.0-15",
     "umzug": "^3.7.0",
-    "zod": "^3.23.8",
+    "zod": "^3.25.20",
     "zod-to-json-schema": "^3.23.0",
     "zod-validation-error": "^3.3.0"
   }
