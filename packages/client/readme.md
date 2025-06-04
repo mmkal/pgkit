@@ -592,27 +592,27 @@ expect(err).toMatchInlineSnapshot(`
 ```typescript
 const {sql} = client
 
-const xx = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+const x = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
 
-expect(xx).toEqual([{a: 1, b: 2}])
-expect(xx.one).toEqual({a: 1, b: 2})
-expect(xx.oneFirst).toEqual(1)
-expect(xx.maybeOneFirst).toEqual(1)
-expect(xx.many).toEqual([{a: 1, b: 2}])
-expect(xx.manyFirst).toEqual([1])
-expectTypeOf(xx).toMatchTypeOf<{a: number; b: number}[]>()
-expectTypeOf(xx.one).toEqualTypeOf<{a: number; b: number}>()
+expect(x).toEqual([{a: 1, b: 2}])
+expect(x.one).toEqual({a: 1, b: 2})
+expect(x.oneFirst).toEqual(1)
+expect(x.maybeOneFirst).toEqual(1)
+expect(x.many).toEqual([{a: 1, b: 2}])
+expect(x.manyFirst).toEqual([1])
+expectTypeOf(x).toMatchTypeOf<{a: number; b: number}[]>()
+expectTypeOf(x.one).toEqualTypeOf<{a: number; b: number}>()
 
 const Type = z.object({a: z.number(), b: z.number()})
-const yy = await sql.type(Type)`select 1 as a, 2 as b`
-expect(yy).toEqual([{a: 1, b: 2}])
-expect(yy.one).toEqual({a: 1, b: 2})
-expect(yy.oneFirst).toEqual(1)
-expect(yy.maybeOneFirst).toEqual(1)
-expect(yy.many).toEqual([{a: 1, b: 2}])
-expect(yy.manyFirst).toEqual([1])
+const y = await sql.type(Type)`select 1 as a, 2 as b`
+expect(y).toEqual([{a: 1, b: 2}])
+expect(y.one).toEqual({a: 1, b: 2})
+expect(y.oneFirst).toEqual(1)
+expect(y.maybeOneFirst).toEqual(1)
+expect(y.many).toEqual([{a: 1, b: 2}])
+expect(y.manyFirst).toEqual([1])
 
-expectTypeOf(yy.manyFirst).toEqualTypeOf<number[]>()
+expectTypeOf(y.manyFirst).toEqualTypeOf<number[]>()
 ```
 
 ### await sql - clientStorage
@@ -624,16 +624,16 @@ await expect(async () => await sql`select 1`).rejects.toMatchInlineSnapshot(
 )
 
 const results = await pgkitStorage.run({client}, async () => {
-  const xx = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
+  const x = await sql<{a: number; b: number}>`select 1 as a, 2 as b`
 
-  expect(xx).toEqual([{a: 1, b: 2}])
-  expect(xx.one).toEqual({a: 1, b: 2})
-  expect(xx.oneFirst).toEqual(1)
-  expect(xx.maybeOneFirst).toEqual(1)
-  expect(xx.many).toEqual([{a: 1, b: 2}])
-  expect(xx.manyFirst).toEqual([1])
-  expectTypeOf(xx).toMatchTypeOf<{a: number; b: number}[]>()
-  expectTypeOf(xx.one).toEqualTypeOf<{a: number; b: number}>()
+  expect(x).toEqual([{a: 1, b: 2}])
+  expect(x.one).toEqual({a: 1, b: 2})
+  expect(x.oneFirst).toEqual(1)
+  expect(x.maybeOneFirst).toEqual(1)
+  expect(x.many).toEqual([{a: 1, b: 2}])
+  expect(x.manyFirst).toEqual([1])
+  expectTypeOf(x).toMatchTypeOf<{a: number; b: number}[]>()
+  expectTypeOf(x.one).toEqualTypeOf<{a: number; b: number}>()
 
   const Type = z.object({a: z.number(), b: z.number()})
   const yy = await sql.type(Type)`select 1 as a, 2 as b`
@@ -646,7 +646,7 @@ const results = await pgkitStorage.run({client}, async () => {
 
   expectTypeOf(yy.manyFirst).toEqualTypeOf<number[]>()
 
-  return {xx, yy}
+  return {xx: x, yy}
 })
 
 expect(results).toMatchInlineSnapshot(`

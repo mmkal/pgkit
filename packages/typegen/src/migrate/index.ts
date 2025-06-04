@@ -7,5 +7,5 @@ export const migrateLegacyCode =
       '<=0.8.0': migrate080,
     }
 
-    return handlers[from](params)
+    return void handlers[from](params)
   }
