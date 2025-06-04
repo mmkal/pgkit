@@ -138,3 +138,35 @@ test('nested parameterized `sql.fragment` tag', async () => {
 
   expect(result2).toEqual([{id: 4, name: 'four!'}])
 })
+
+test('join param', async () => {
+  const parts = []
+  parts.push(sql`name = ${'user name'}`, sql`location = ${'london'}`)
+
+  const query = sql`
+    update users
+    set ${sql.join(parts, sql`, `)}
+    where id = ${1}
+  `
+
+  expect(query).toMatchInlineSnapshot(`
+    {
+      "name": "update_d57bde2",
+      "parse": [Function],
+      "segments": [Function],
+      "sql": "
+        update users
+        set name = $1, location = $2
+        where id = $3
+      ",
+      "templateArgs": [Function],
+      "then": [Function],
+      "token": "sql",
+      "values": [
+        "user name",
+        "london",
+        1,
+      ],
+    }
+  `)
+})
