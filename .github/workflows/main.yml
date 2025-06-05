@@ -55,4 +55,5 @@ jobs:
       - run: corepack enable
       - run: pnpm install
       - run: pnpm build
+      - run: (cd packages/migra && pnpm vitest)
       - run: pnpm test
