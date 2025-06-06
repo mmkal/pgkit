@@ -167,6 +167,33 @@ test('join param', async () => {
     }
   `)
   await client.query(query)
-  const result = await client.one(sql`select * from edge_cases_test where id = ${11}`)
-  expect(result).toEqual({id: 11, name: 'eleven'})
+  const result = await client.any(sql`select * from edge_cases_test where id = ${11}`)
+  expect(result).toEqual([{id: 11, name: 'eleven'}])
+})
+test('mixed join param', async () => {
+  const parts = [sql`${1} as one`, 2, sql`3 as three`]
+
+  const query = sql`
+    select ${sql.join(parts, sql`, `)}
+  `
+
+  expect(query).toMatchInlineSnapshot(`
+    {
+      "name": "select_16400f2",
+      "parse": [Function],
+      "segments": [Function],
+      "sql": "
+        select $1 as one, $2, 3 as three
+      ",
+      "templateArgs": [Function],
+      "then": [Function],
+      "token": "sql",
+      "values": [
+        1,
+        2,
+      ],
+    }
+  `)
+  const result = await client.any(query)
+  expect(result).toEqual([{one: 1, '?column?': 2, three: 3}])
 })
