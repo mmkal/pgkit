@@ -13,3 +13,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           comment-template: Release {release_link} addresses this.
           label-template: released
+          skip-label: released
