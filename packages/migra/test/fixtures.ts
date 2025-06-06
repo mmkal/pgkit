@@ -9,7 +9,7 @@ export const format = (query: string) => {
   try {
     return sqlFormatter.format(query, {language: 'postgresql'})
   } catch (e) {
-    throw new Error(String(e) + '\n\n' + query) // useless callstacks from sql-formatter
+    throw new Error(`Problem formatting query ${query.replaceAll('\n', ' ').replace(/(.{100,})$/, '$1...')}: ${e}\n\n`) // useless callstacks from sql-formatter
   }
 }
 
