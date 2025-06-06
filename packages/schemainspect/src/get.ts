@@ -5,7 +5,7 @@ import {PostgreSQL} from './pg'
 // deviation: python code had a `SUPPORTED` object that was used to determine which inspector to use based on the dialect of the connection object. we only do postgresql, so no need for that
 // const SUPPORTED = {postgresql: PostgreSQL}
 
-export async function get_inspector(x: Queryable | PostgreSQL | null, schema?: string, exclude_schema?: string) {
+export async function get_inspector(x: Queryable | PostgreSQL | null, schema?: string, exclude_schema?: string[]) {
   if (schema && exclude_schema) {
     throw new Error('Cannot provide both schema and exclude_schema')
   }
@@ -25,7 +25,7 @@ export async function get_inspector(x: Queryable | PostgreSQL | null, schema?: s
   if (schema) {
     inspected.one_schema(schema)
   } else if (exclude_schema) {
-    inspected.exclude_schema(exclude_schema)
+    exclude_schema.forEach(e => inspected.exclude_schema(e))
   }
 
   return inspected

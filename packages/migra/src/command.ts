@@ -39,15 +39,13 @@ export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable 
   // const out: typeof process.stdout = args.out || process.stdout
   // const err: typeof process.stderr = args.err || process.stderr
 
-  const migrationOptions = {
+  const ac0 = await argContext(dburlFrom)
+  const ac1 = await argContext(dburlTarget)
+  const m = await Migration.create(ac0, ac1, {
     schema: args.schema,
     exclude_schema: args.excludeSchema,
     ignore_extension_versions: args.ignoreExtensionVersions,
-  }
-
-  const ac0 = await argContext(dburlFrom)
-  const ac1 = await argContext(dburlTarget)
-  const m = await Migration.create(ac0, ac1, migrationOptions)
+  })
 
   if (args.unsafe) {
     m.set_safety(false)
@@ -104,6 +102,7 @@ export const MigraOptions = z.object({
   schema: z.string().optional().describe('Restrict output to statements for a particular schema'),
   excludeSchema: z
     .string()
+    .array()
     .optional()
     .describe('Restrict output to statements for all schemas except the specified schema'),
   createExtensionsOnly: z
