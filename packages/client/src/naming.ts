@@ -1,86 +1,191 @@
 import * as crypto from 'node:crypto'
-import {parse} from 'pgsql-ast-parser'
 
-const keywordsToInclude = new Set(
-  'select,insert,update,delete,create,drop,alter,truncate,grant,revoke,begin,commit,rollback,savepoint,release,with,alter table,create table,add column'.split(
-    ',',
-  ),
-)
+const keywordsToInclude = new Set([
+  'select', 'insert', 'update', 'delete', 'create', 'drop', 'alter', 
+  'truncate', 'grant', 'revoke', 'begin', 'commit', 'rollback', 
+  'savepoint', 'release', 'with', 'alter table', 'create table', 'add column'
+])
 
-const tryParse = (sql: string) => {
-  try {
-    return parse(sql)
-  } catch {
-    return null
+// Simple SQL tokenizer
+const tokenize = (sql: string): string[] => {
+  // Remove comments and normalize whitespace
+  const cleaned = sql
+    .replace(/--.*$/gm, '') // line comments
+    .replace(/\/\*[\s\S]*?\*\//g, '') // block comments
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  const tokens: string[] = []
+  let current = ''
+  let inQuotes = false
+  let quoteChar = ''
+  let inIdentifier = false
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const char = cleaned[i]
+    const nextChar = cleaned[i + 1]
+
+    if (!inQuotes && !inIdentifier) {
+      if (char === '"' || char === "'") {
+        if (current.trim()) {
+          tokens.push(current.trim())
+          current = ''
+        }
+        inQuotes = true
+        quoteChar = char
+        current = char
+      } else if (char === '`') {
+        if (current.trim()) {
+          tokens.push(current.trim())
+          current = ''
+        }
+        inIdentifier = true
+        current = char
+      } else if (/\s/.test(char)) {
+        if (current.trim()) {
+          tokens.push(current.trim())
+          current = ''
+        }
+      } else if ('(),;'.includes(char)) {
+        if (current.trim()) {
+          tokens.push(current.trim())
+          current = ''
+        }
+        tokens.push(char)
+      } else {
+        current += char
+      }
+    } else if (inQuotes) {
+      current += char
+      if (char === quoteChar && cleaned[i - 1] !== '\\') {
+        tokens.push(current)
+        current = ''
+        inQuotes = false
+        quoteChar = ''
+      }
+    } else if (inIdentifier) {
+      current += char
+      if (char === '`') {
+        tokens.push(current)
+        current = ''
+        inIdentifier = false
+      }
+    }
   }
+
+  if (current.trim()) {
+    tokens.push(current.trim())
+  }
+
+  return tokens
 }
 
-export const nickname = (query: string, {debugAst = false} = {}) => {
-  const tokens = [] as string[]
-  JSON.stringify(tryParse(query)?.[0], (k, v) => {
-    if (v?.alias) {
-      return {
-        alias: v.alias as never,
-        // statement: {type: v.statement?.type},
+// Extract meaningful parts from SQL
+const extractSqlParts = (sql: string): string[] => {
+  const tokens = tokenize(sql.toLowerCase())
+  const parts: string[] = []
+  
+  let i = 0
+  while (i < tokens.length) {
+    const token = tokens[i]
+    const nextToken = tokens[i + 1]
+    const nextToken2 = tokens[i + 2]
+
+    // Handle compound keywords
+    if (token === 'alter' && nextToken === 'table') {
+      parts.push('alter_table')
+      i += 2
+      continue
+    }
+    if (token === 'create' && nextToken === 'table') {
+      parts.push('create_table')
+      i += 2
+      continue
+    }
+    if (token === 'add' && nextToken === 'column') {
+      parts.push('add_column')
+      i += 2
+      continue
+    }
+
+    // Handle single keywords
+    if (keywordsToInclude.has(token)) {
+      parts.push(token)
+      
+      // Special case: add "from" after delete
+      if (token === 'delete') {
+        parts.push('from')
       }
     }
 
-    if (k === 'columns' || k === 'on') {
-      return undefined
-    }
-
-    if (k === 'type' && typeof v === 'string' && keywordsToInclude.has(v)) {
-      tokens.push(v)
-
-      if (v === 'delete') {
-        tokens.push('from')
+    // Handle table/column names after keywords
+    if (['from', 'join', 'into', 'table', 'update'].includes(token) && nextToken && 
+        !keywordsToInclude.has(nextToken) && nextToken !== '(' && nextToken !== ')') {
+      // Handle quoted identifiers
+      if (nextToken.startsWith('"') && nextToken.endsWith('"')) {
+        parts.push(nextToken.slice(1, -1))
+      } else if (nextToken.startsWith('`') && nextToken.endsWith('`')) {
+        parts.push(nextToken.slice(1, -1))
+      } else if (!['on', 'where', 'set', 'values', 'select'].includes(nextToken)) {
+        parts.push(nextToken)
       }
     }
 
-    if (k === 'name' && typeof v === 'string') {
-      tokens.push(v)
+    // Handle CTE names (WITH clause)
+    if (token === 'with' && nextToken && !keywordsToInclude.has(nextToken)) {
+      parts.push(nextToken)
     }
 
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      return Object.fromEntries(
-        Object.entries(v as {})
-          .filter(([key]) => !['join', 'where', 'dataType'].includes(key))
-          .sort((a, b) => {
-            const scores = [a, b].map(e => (typeof e[1] === 'object' ? 1 : 0))
-            return scores[0] - scores[1]
-          }),
-      )
+    // Handle aliases and CTEs in WITH clause
+    if (tokens[i - 1] === ',' && 
+        !keywordsToInclude.has(token) && 
+        token !== '(' && token !== ')' &&
+        // Look back to see if we're in a WITH clause
+        tokens.slice(Math.max(0, i - 10), i).some(t => t === 'with')) {
+      parts.push(token)
     }
 
-    if (k === 'sets' && Array.isArray(v)) {
-      tokens.push('set')
+    // Handle SET clause column names
+    if (token === 'set' && nextToken && 
+        !keywordsToInclude.has(nextToken) && nextToken !== '(') {
+      parts.push('set')
+      if (nextToken !== '=') {
+        parts.push(nextToken)
+      }
     }
 
-    if (v?.name) {
-      return {name: v.name as never}
-    }
+    i++
+  }
 
-    return v as never
-  })
-
-  // eslint-disable-next-line no-console
-  if (debugAst) console.dir(parse(query), {depth: 100})
-
-  return joinUntil(
-    tokens.map(t => t.replaceAll(/\W+/g, '_')),
-    '-',
-    {length: 63},
-  )
+  return parts
 }
 
 const joinUntil = (parts: string[], delimiter: string, {length}: {length: number}) => {
   let acc = ''
   for (const part of parts) {
-    if (acc.length + part.length > length) break
-    acc += (acc ? delimiter : '') + part
+    const cleanPart = part.replaceAll(/\W+/g, '_')
+    if (acc.length + cleanPart.length + delimiter.length > length) break
+    acc += (acc ? delimiter : '') + cleanPart
+  }
+  return acc
+}
+
+export const nickname = (query: string, {debugAst = false} = {}) => {
+  const parts = extractSqlParts(query)
+  
+  if (debugAst) {
+    console.log('Extracted parts:', parts)
   }
 
-  return acc
+  const result = joinUntil(parts, '-', {length: 63})
+  
+  // Fallback to just the first keyword if no meaningful parts extracted
+  if (!result) {
+    const firstKeyword = /(select|insert|update|delete|create|drop|alter|truncate|grant|revoke|begin|commit|rollback|savepoint|release|with)/i.exec(query.trim())?.[0]?.toLowerCase()
+    return firstKeyword || 'sql'
+  }
+  
+  return result
 }
 
 export const nameQuery = (parts: readonly string[], defaultKeyword = 'sql') => {
