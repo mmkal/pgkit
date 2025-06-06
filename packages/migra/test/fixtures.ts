@@ -9,7 +9,10 @@ export const format = (query: string) => {
   try {
     return sqlFormatter.format(query, {language: 'postgresql'})
   } catch (e) {
-    throw new Error(String(e) + '\n\n' + query) // useless callstacks from sql-formatter
+    // sql-formatter errors are huge and not helpful at all. also callstacks are useless
+    // I think they use nearley like pgsql-ast-parser does, which produces very verbose "Instead, I was expecting to see one of the following" errors
+    const shortError = String(e).split('\n').at(0)
+    throw new Error(`Couldn't format query, did you pass something other than valid SQL? ${query}: ${shortError}`)
   }
 }
 
