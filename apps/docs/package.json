@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Documentation for pgkit.dev",
   "scripts": {
+    "prepare": "pnpm generate",
     "generate": "tsx scripts/build",
     "build": "rm -rf .next && next build && echo built!",
     "dev": "next dev"
