@@ -16,15 +16,15 @@ test('nickname', async () => {
 
   expect(
     nickname('select id, name from usr join usr_info on usr.id = usr_info.usr_id where id != 1'),
-  ).toMatchInlineSnapshot(`"select-usr-usr_info"`)
+  ).toMatchInlineSnapshot(`"select-usr-usr_info-join-filtered"`)
 
   expect(nickname(`insert into foo (id, name) values (1, 'one')`)).toMatchInlineSnapshot(`"insert-foo"`)
 
   expect(nickname(`update foo set a = 'b'`)).toMatchInlineSnapshot(`"update-foo-set-a"`)
 
-  expect(nickname(`delete from foo where a = 'b'`)).toMatchInlineSnapshot(`"delete-from-foo"`)
+  expect(nickname(`delete from foo where a = 'b'`)).toMatchInlineSnapshot(`"delete-from-filtered"`)
 
-  expect(nickname(`alter table foo add column a int`)).toMatchInlineSnapshot(`"alter_table-add_column"`)
+  expect(nickname(`alter table foo add column a int`)).toMatchInlineSnapshot(`"alter_table"`)
 
   expect(
     nickname(
@@ -33,7 +33,7 @@ test('nickname', async () => {
         create index test_table_idx on test_table(name);
       `,
     ),
-  ).toMatchInlineSnapshot(`"create_table-create"`)
+  ).toMatchInlineSnapshot(`"create_table-create_index"`)
 
   expect(
     // make sure nickname doesn't go too long
@@ -45,7 +45,7 @@ test('nickname', async () => {
       join zxcvbnm123456789 on c = d
       join foobarbaz123456789 on e = f
     `),
-  ).toMatchInlineSnapshot(`"with-foobarbaz123456789-select-select-qwertyuiop123456789"`)
+  ).toMatchInlineSnapshot(`"with-foobarbaz123456789-select-qwertyuiop123456789"`)
 
   expect(
     // ridiculous names won't get a useful nickname at all, just a keyword
@@ -68,7 +68,7 @@ test('nickname', async () => {
         select * from one join three on one.id = three.id
       `,
     ),
-  ).toMatchInlineSnapshot(`"with-one-select-foo-select-bar-insert-baz-select-one-three"`)
+  ).toMatchInlineSnapshot(`"with-one-select-foo-filtered-bar-insert-baz-returning-three"`)
 })
 
 test('scan the whole repo', async () => {

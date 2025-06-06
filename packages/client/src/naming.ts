@@ -80,84 +80,228 @@ const tokenize = (sql: string): string[] => {
   return tokens
 }
 
-// Extract meaningful parts from SQL
+// Helper function to clean identifier names
+const cleanIdentifier = (name: string): string => {
+  if (name.startsWith('"') && name.endsWith('"')) {
+    return name.slice(1, -1)
+  }
+  if (name.startsWith('`') && name.endsWith('`')) {
+    return name.slice(1, -1)
+  }
+  return name
+}
+
+// Extract meaningful parts from SQL with improved semantic understanding
 const extractSqlParts = (sql: string): string[] => {
   const tokens = tokenize(sql.toLowerCase())
   const parts: string[] = []
   
   let i = 0
+  const allTokens = tokens.join(' ')
+  
+  // Pre-analysis: detect patterns that should influence the nickname
+  const hasCount = /count\s*\(/i.test(allTokens)
+  const hasSum = /sum\s*\(/i.test(allTokens)
+  const hasAvg = /avg\s*\(/i.test(allTokens)
+  const hasMax = /max\s*\(/i.test(allTokens)
+  const hasMin = /min\s*\(/i.test(allTokens)
+  const hasAggregates = hasCount || hasSum || hasAvg || hasMax || hasMin
+  const hasJoin = /\bjoin\b/i.test(allTokens)
+  const hasLeftJoin = /left\s+join/i.test(allTokens)
+  const hasInnerJoin = /inner\s+join/i.test(allTokens)
+  const hasGroupBy = /group\s+by/i.test(allTokens)
+  const hasOrderBy = /order\s+by/i.test(allTokens)
+  const hasLimit = /\blimit\b/i.test(allTokens)
+  const hasOffset = /\boffset\b/i.test(allTokens)
+  const hasUnion = /\bunion\b/i.test(allTokens)
+  const hasReturning = /\breturning\b/i.test(allTokens)
+  const hasOnConflict = /on\s+conflict/i.test(allTokens)
+  const hasValues = /\bvalues\b/i.test(allTokens)
+  const hasJsonb = /jsonb_populate_recordset|jsonb_to_recordset/i.test(allTokens)
+  const hasUnnest = /\bunnest\b/i.test(allTokens)
+  const hasWith = /\bwith\b/i.test(allTokens)
+  const isTransaction = /\b(begin|commit|rollback|savepoint)\b/i.test(allTokens)
+  
   while (i < tokens.length) {
     const token = tokens[i]
     const nextToken = tokens[i + 1]
     const nextToken2 = tokens[i + 2]
+    const prevToken = tokens[i - 1]
 
-    // Handle compound keywords
-    if (token === 'alter' && nextToken === 'table') {
-      parts.push('alter_table')
-      i += 2
-      continue
-    }
-    if (token === 'create' && nextToken === 'table') {
-      parts.push('create_table')
-      i += 2
-      continue
-    }
-    if (token === 'add' && nextToken === 'column') {
-      parts.push('add_column')
-      i += 2
-      continue
-    }
-
-    // Handle single keywords
-    if (keywordsToInclude.has(token)) {
-      parts.push(token)
-      
-      // Special case: add "from" after delete
-      if (token === 'delete') {
+    // Handle main operation keywords first
+    if (token === 'select') {
+      if (hasCount && !hasGroupBy) {
+        parts.push('count')
+      } else if (hasSum) {
+        parts.push('sum')
+      } else if (hasAvg) {
+        parts.push('avg')
+      } else if (hasMax) {
+        parts.push('max')
+      } else if (hasMin) {
+        parts.push('min')
+      } else if (hasAggregates && hasGroupBy) {
+        parts.push('aggregate')
+      } else {
+        parts.push('select')
+      }
+    } else if (token === 'insert') {
+      if (hasJsonb) {
+        parts.push('bulk_insert')
+      } else if (hasUnnest) {
+        parts.push('bulk_insert')
+      } else if (hasOnConflict) {
+        parts.push('upsert')
+      } else {
+        parts.push('insert')
+      }
+    } else if (token === 'update') {
+      parts.push('update')
+    } else if (token === 'delete') {
+      parts.push('delete')
+      if (nextToken === 'from') {
         parts.push('from')
+        i++ // skip the 'from' token
+      }
+    } else if (token === 'create' && nextToken === 'table') {
+      parts.push('create_table')
+      i++ // skip 'table'
+    } else if (token === 'drop' && nextToken === 'table') {
+      parts.push('drop_table')
+      i++ // skip 'table'
+    } else if (token === 'alter' && nextToken === 'table') {
+      parts.push('alter_table')
+      i++ // skip 'table'
+    } else if (token === 'create' && nextToken === 'database') {
+      parts.push('create_db')
+      i++ // skip 'database'
+    } else if (token === 'drop' && nextToken === 'database') {
+      parts.push('drop_db')
+      i++ // skip 'database'
+    } else if (token === 'create' && nextToken === 'index') {
+      parts.push('create_index')
+      i++ // skip 'index'
+    } else if (token === 'with' && nextToken && !keywordsToInclude.has(nextToken)) {
+      parts.push('with')
+      // Add CTE name
+      const cteName = cleanIdentifier(nextToken)
+      if (cteName && cteName !== '(' && !cteName.startsWith('$')) {
+        parts.push(cteName)
+      }
+    } else if (keywordsToInclude.has(token)) {
+      parts.push(token)
+    }
+
+    // Handle table names and important identifiers
+    if (['from', 'join', 'into', 'table', 'update'].includes(token) && nextToken) {
+      const tableName = cleanIdentifier(nextToken)
+      if (tableName && 
+          !keywordsToInclude.has(tableName) && 
+          tableName !== '(' && 
+          tableName !== ')' &&
+          !tableName.startsWith('$') &&
+          !['on', 'where', 'set', 'values', 'select', 'as'].includes(tableName)) {
+        parts.push(tableName)
       }
     }
 
-    // Handle table/column names after keywords
-    if (['from', 'join', 'into', 'table', 'update'].includes(token) && nextToken && 
-        !keywordsToInclude.has(nextToken) && nextToken !== '(' && nextToken !== ')') {
-      // Handle quoted identifiers
-      if (nextToken.startsWith('"') && nextToken.endsWith('"')) {
-        parts.push(nextToken.slice(1, -1))
-      } else if (nextToken.startsWith('`') && nextToken.endsWith('`')) {
-        parts.push(nextToken.slice(1, -1))
-      } else if (!['on', 'where', 'set', 'values', 'select'].includes(nextToken)) {
-        parts.push(nextToken)
+    // Handle SET clause with more context
+    if (token === 'set' && nextToken && 
+        !keywordsToInclude.has(nextToken) && 
+        nextToken !== '(' &&
+        !nextToken.startsWith('$')) {
+      parts.push('set')
+      // Try to extract column name
+      const columnName = cleanIdentifier(nextToken)
+      if (columnName && columnName !== '=' && !columnName.includes('(')) {
+        parts.push(columnName)
       }
     }
 
-    // Handle CTE names (WITH clause)
-    if (token === 'with' && nextToken && !keywordsToInclude.has(nextToken)) {
-      parts.push(nextToken)
+    // Handle JOIN types
+    if (token === 'join' && !parts.includes('join')) {
+      if (hasLeftJoin) {
+        parts.push('left_join')
+      } else if (hasInnerJoin) {
+        parts.push('inner_join')
+      } else {
+        parts.push('join')
+      }
+      
+      // Add joined table name
+      if (nextToken) {
+        const tableName = cleanIdentifier(nextToken)
+        if (tableName && 
+            !keywordsToInclude.has(tableName) && 
+            tableName !== '(' && 
+            !tableName.startsWith('$')) {
+          parts.push(tableName)
+        }
+      }
     }
 
-    // Handle aliases and CTEs in WITH clause
-    if (tokens[i - 1] === ',' && 
+    // Handle WHERE conditions with some context
+    if (token === 'where') {
+      // Look ahead to see what kind of condition
+      const nextFewTokens = tokens.slice(i + 1, i + 5).join(' ')
+      if (/id\s*=/.test(nextFewTokens) || /\$\d+/.test(nextFewTokens)) {
+        parts.push('by_id')
+      } else if (hasLimit && nextFewTokens.includes('>=')) {
+        parts.push('filtered')
+      } else if (nextFewTokens.includes('any(') || nextFewTokens.includes('in(')) {
+        parts.push('by_list')
+      } else if (nextFewTokens.length > 0) {
+        parts.push('filtered')
+      }
+    }
+
+    // Handle ORDER BY, GROUP BY, LIMIT
+    if (token === 'order' && nextToken === 'by') {
+      parts.push('ordered')
+      i++ // skip 'by'
+    } else if (token === 'group' && nextToken === 'by') {
+      parts.push('grouped')
+      i++ // skip 'by'
+    } else if (token === 'limit') {
+      parts.push('limited')
+    }
+
+    // Handle RETURNING
+    if (token === 'returning') {
+      parts.push('returning')
+    }
+
+    // Handle transaction keywords
+    if (isTransaction && ['begin', 'commit', 'rollback', 'savepoint'].includes(token)) {
+      parts.push(token)
+    }
+
+    // Handle additional CTE names in WITH clause
+    if (prevToken === ',' && 
         !keywordsToInclude.has(token) && 
-        token !== '(' && token !== ')' &&
+        token !== '(' && 
+        token !== ')' &&
+        !token.startsWith('$') &&
         // Look back to see if we're in a WITH clause
         tokens.slice(Math.max(0, i - 10), i).some(t => t === 'with')) {
-      parts.push(token)
-    }
-
-    // Handle SET clause column names
-    if (token === 'set' && nextToken && 
-        !keywordsToInclude.has(nextToken) && nextToken !== '(') {
-      parts.push('set')
-      if (nextToken !== '=') {
-        parts.push(nextToken)
+      const cteName = cleanIdentifier(token)
+      if (cteName) {
+        parts.push(cteName)
       }
     }
 
     i++
   }
 
-  return parts
+  // Post-processing: remove redundant parts and add semantic meaning
+  const uniqueParts = [...new Set(parts)]
+  
+  // Add semantic context
+  if (hasReturning && !uniqueParts.includes('returning')) {
+    uniqueParts.push('returning')
+  }
+  
+  return uniqueParts
 }
 
 const joinUntil = (parts: string[], delimiter: string, {length}: {length: number}) => {
