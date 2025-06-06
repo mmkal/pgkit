@@ -28,7 +28,7 @@
         "@pgkit/client": "workspace:^",
         "@pgkit/schemainspect": "workspace:^",
         "@trpc/server": "^11.0.1",
-        "trpc-cli": "^0.6.0-15",
+        "trpc-cli": "^0.7.0",
         "zod": "^3.25.20"
     },
     "devDependencies": {

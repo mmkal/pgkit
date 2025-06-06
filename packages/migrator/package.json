@@ -50,7 +50,7 @@
     "picocolors": "^1.0.1",
     "strip-ansi": "6.0.0",
     "tasuku": "^2.0.1",
-    "trpc-cli": "^0.6.0-15",
+    "trpc-cli": "^0.7.0",
     "umzug": "^3.7.0",
     "zod": "^3.25.20",
     "zod-to-json-schema": "^3.23.0",
