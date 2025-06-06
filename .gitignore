@@ -15,4 +15,5 @@ test/**/fixtures
 *ignoreme*
 .turbo
 
+# ai coding assistants
 .opencode

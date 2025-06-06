@@ -68,7 +68,7 @@ export function MutationButton<Options, Mutation>({
           args = undefined
         } else {
           throw new Error(
-            `Invalid args. Expected null, undefined, array or function that returns array. Got ${(_args as Object)?.constructor?.name || typeof _args}`,
+            `Invalid args. Expected null, undefined, array or function that returns array. Got ${(_args as object)?.constructor?.name || typeof _args}`,
           )
         }
         if (Array.isArray(args)) {
