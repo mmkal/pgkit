@@ -138,3 +138,35 @@ test('nested parameterized `sql.fragment` tag', async () => {
 
   expect(result2).toEqual([{id: 4, name: 'four!'}])
 })
+
+test('join param', async () => {
+  const parts = [sql`id = ${11}`, sql`name = ${'eleven'}`]
+  const query = sql`
+    update edge_cases_test
+    set ${sql.join(parts, sql`, `)}
+    where id = ${1}
+  `
+  expect(query).toMatchInlineSnapshot(`
+    {
+      "name": "update_9990569",
+      "parse": [Function],
+      "segments": [Function],
+      "sql": "
+        update edge_cases_test
+        set id = $1, name = $2
+        where id = $3
+      ",
+      "templateArgs": [Function],
+      "then": [Function],
+      "token": "sql",
+      "values": [
+        11,
+        "eleven",
+        1,
+      ],
+    }
+  `)
+  await client.query(query)
+  const result = await client.one(sql`select * from edge_cases_test where id = ${11}`)
+  expect(result).toEqual({id: 11, name: 'eleven'})
+})
