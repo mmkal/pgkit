@@ -55,5 +55,5 @@ jobs:
       - run: corepack enable
       - run: pnpm install
       - run: pnpm build
-      - run: (cd packages/migra && pnpm vitest)
+      - run: (cd packages/migra && pnpm vitest python-parity -t collations)
       # - run: pnpm test
