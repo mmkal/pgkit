@@ -8,12 +8,8 @@ const keywordsToInclude = new Set(
 )
 
 const tryParse = (sql: string) => {
-  if (Math.random()) return null // try disabling?
-  console.log('tryParse', sql)
   try {
-    const parsed = parse(sql)
-    console.log('parsed', Object.keys(parsed).join(','))
-    return parsed
+    return parse(sql)
   } catch {
     return null
   }

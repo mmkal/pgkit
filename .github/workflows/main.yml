@@ -51,9 +51,7 @@ jobs:
       - uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-      - run: npm install -g corepack@0.31.0 # todo: delete if https://github.com/nodejs/corepack/issues/612 is resolved
       - run: corepack enable
       - run: pnpm install
       - run: pnpm build
-      - run: (cd packages/migra && pnpm vitest python-parity -t collations)
-      # - run: pnpm test
+      - run: pnpm test
