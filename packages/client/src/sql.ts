@@ -94,8 +94,9 @@ const sqlFnInner = (
 
     switch (param.token) {
       case 'array': {
-        values.push(param.args[0])
-        segments.push(getValuePlaceholder(), `::${param.args[1]}[]`)
+        const [arrayValues, memberType] = param.args
+        values.push(arrayValues)
+        segments.push(getValuePlaceholder(), `::${memberType}[]`)
         break
       }
       case 'binary':
@@ -103,19 +104,22 @@ const sqlFnInner = (
       case 'json':
       case 'jsonb':
       case 'timestamp': {
-        values.push(param.args[0])
+        const [value] = param.args
+        values.push(value)
         segments.push(getValuePlaceholder())
         break
       }
 
       case 'literalValue': {
-        segments.push(pgPromise.as.value(param.args[0]))
+        const [value] = param.args
+        segments.push(pgPromise.as.value(value))
         break
       }
 
       case 'interval': {
+        const [interval] = param.args
         segments.push('make_interval(')
-        Object.entries(param.args[0]).forEach(([unit, value], j, {length}) => {
+        Object.entries(interval).forEach(([unit, value], j, {length}) => {
           values.push(unit)
           segments.push(getValuePlaceholder() + ':name')
           values.push(value)
@@ -145,7 +149,8 @@ const sqlFnInner = (
       }
 
       case 'identifier': {
-        param.args[0].forEach((name, j, {length}) => {
+        const [names] = param.args
+        names.forEach((name, j, {length}) => {
           values.push(name)
           segments.push(getValuePlaceholder() + ':name')
           if (j < length - 1) segments.push('.')
@@ -154,9 +159,10 @@ const sqlFnInner = (
       }
 
       case 'unnest': {
+        const [tuples, columnTypes] = param.args
         segments.push('unnest(')
-        param.args[1].forEach((typename, j, {length}) => {
-          const valueArray = param.args[0].map(tuple => tuple[j])
+        columnTypes.forEach((typename, j, {length}) => {
+          const valueArray = tuples.map(tuple => tuple[j])
           values.push(valueArray)
           segments.push(getValuePlaceholder() + '::' + typename + '[]')
           if (j < length - 1) segments.push(', ')
@@ -166,7 +172,8 @@ const sqlFnInner = (
       }
 
       case 'fragment': {
-        const innerResult = sqlFnInner({priorValues: values.length}, ...(param.args as Parameters<SQLTagFunction>))
+        const innerArgs = param.args as Parameters<SQLTagFunction>
+        const innerResult = sqlFnInner({priorValues: values.length}, ...innerArgs)
         segments.push(...innerResult.segments())
         values.push(...innerResult.values)
         break
