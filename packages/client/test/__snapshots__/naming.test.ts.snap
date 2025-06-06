@@ -1,0 +1,1248 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`scan the whole repo 1`] = `
+[
+  {
+    "filepath": "packages/admin/test/seed.test.ts",
+    "raw": "drop database if exists \${sql.identifier([dbName])}",
+    "untemplated": "drop database if exists $1",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/admin/test/seed.test.ts",
+    "raw": "create database \${sql.identifier([dbName])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/client/src/storage.ts",
+    "raw": "select 1",
+    "untemplated": "select 1",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "drop table if exists usage_test;\\n    create table usage_test(id int unique, name text);\\n    insert into usage_test values (1, 'one'), (2, 'two'), (3, 'three');",
+    "untemplated": "drop table if exists usage_test;\\n    create table usage_test(id int unique, name text);\\n    insert into usage_test values (1, 'one'), (2, 'two'), (3, 'three');",
+    "nickname": "drop-if-create_table-insert-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select *\\n    from usage_test\\n    where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select *\\n    from usage_test\\n    where name = any($1)",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select id from usage_test\\n      where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select id from usage_test\\n      where name = any($1)",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select id\\n      from usage_test\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from usage_test\\n      where $1",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select id from usage_test\\n      where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select id from usage_test\\n      where name = any($1)",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select id\\n      from usage_test\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from usage_test\\n      where $1",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select id from usage_test\\n      where name = 'one' or name in (\${name2})",
+    "untemplated": "select id from usage_test\\n      where name = 'one' or name in ($1)",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select id\\n      from usage_test\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from usage_test\\n      where $1",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select count(1)\\n    from \${sql.identifier(['public', 'usage_test'])}",
+    "untemplated": "select count(1)\\n    from $1",
+    "nickname": "select-_1"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into usage_test(id, name)\\n    select *\\n    from \${sql.unnest(\\n      values.map(({id, name}) => [id, name]),\\n      ['int4', 'text'],\\n    )}\\n    returning *",
+    "untemplated": "insert into usage_test(id, name)\\n    select *\\n    from $1\\n    returning *",
+    "nickname": "insert-usage_test-select-_1"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into usage_test\\n    select *\\n    from jsonb_populate_recordset(\\n      null::usage_test,\\n      \${JSON.stringify(records, null, 2)}\\n    )\\n    returning *",
+    "untemplated": "insert into usage_test\\n    select *\\n    from jsonb_populate_recordset(\\n      null::usage_test,\\n      $1\\n    )\\n    returning *",
+    "nickname": "insert-usage_test-select-jsonb_populate_recordset"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into usage_test\\n    select *\\n    from jsonb_to_recordset(\\n      \${JSON.stringify(records, null, 2)}\\n    ) as x(id int, name text)\\n    returning *",
+    "untemplated": "insert into usage_test\\n    select *\\n    from jsonb_to_recordset(\\n      $1\\n    ) as x(id int, name text)\\n    returning *",
+    "nickname": "insert-usage_test-select-jsonb_to_recordset"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "update usage_test\\n    set \${sql.join([sql\`name = 'one hundred'\`, sql\`id = 100\`], sql\`, \`)}\\n    where id = 1\\n    returning *",
+    "untemplated": "update usage_test\\n    set $1\\n    where id = 1\\n    returning *",
+    "nickname": "update-usage_test-set-_1"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select * from usage_test where \${idGreaterThan(1)}",
+    "untemplated": "select * from usage_test where $1",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select * from usage_test where \${idGreaterThan(1)}",
+    "untemplated": "select * from usage_test where $1",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select '2000-01-01T12:00:00Z'::timestamptz + \${sql.interval({days: 1, hours: 1})} as ts",
+    "untemplated": "select '2000-01-01T12:00:00Z'::timestamptz + $1 as ts",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select \${sql.interval({days: 1})}",
+    "untemplated": "select $1",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select \${sql.binary(Buffer.from('hello'))} as b",
+    "untemplated": "select $1 as b",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "drop table if exists jsonb_test;\\n    create table jsonb_test (id int, data jsonb);",
+    "untemplated": "drop table if exists jsonb_test;\\n    create table jsonb_test (id int, data jsonb);",
+    "nickname": "drop-if-create_table"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into jsonb_test values (1, \${sql.json({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into jsonb_test values (1, \${sql.jsonb({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into jsonb_test values (1, \${JSON.stringify({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "delete from usage_test",
+    "untemplated": "delete from usage_test",
+    "nickname": "delete-from-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into usage_test(id, name) values (10, 'ten')",
+    "untemplated": "insert into usage_test(id, name) values (10, 'ten')",
+    "nickname": "insert-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select count(1) from usage_test",
+    "untemplated": "select count(1) from usage_test",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "insert into usage_test(id, name) values (11, 'eleven')",
+    "untemplated": "insert into usage_test(id, name) values (11, 'eleven')",
+    "nickname": "insert-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select count(1) from usage_test",
+    "untemplated": "select count(1) from usage_test",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select count(1) from usage_test",
+    "untemplated": "select count(1) from usage_test",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select * from usage_test where id >= 10",
+    "untemplated": "select * from usage_test where id >= 10",
+    "nickname": "select-usage_test"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select 1 as a, 2 as b",
+    "untemplated": "select 1 as a, 2 as b",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select 1",
+    "untemplated": "select 1",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/api-usage.test.ts",
+    "raw": "select 1 as a, 2 as b",
+    "untemplated": "select 1 as a, 2 as b",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "drop table if exists edge_cases_test;\\n    create table edge_cases_test(id int unique, name text);\\n    insert into edge_cases_test values (1, 'one'), (2, 'two'), (3, 'three');",
+    "untemplated": "drop table if exists edge_cases_test;\\n    create table edge_cases_test(id int unique, name text);\\n    insert into edge_cases_test values (1, 'one'), (2, 'two'), (3, 'three');",
+    "nickname": "drop-if-create_table-insert-edge_cases_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "drop table if exists jsonb_array_test;\\n    create table jsonb_array_test(id int, jsons jsonb[]);",
+    "untemplated": "drop table if exists jsonb_array_test;\\n    create table jsonb_array_test(id int, jsons jsonb[]);",
+    "nickname": "drop-if-create_table"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "insert into jsonb_array_test\\n    values (1, \${sql.array(\\n      values.map(v => JSON.stringify(v)),\\n      'jsonb',\\n    )})\\n    returning *",
+    "untemplated": "insert into jsonb_array_test\\n    values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_array_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "drop table if exists jsonb_array_test;\\n    create table jsonb_array_test(id int, jsons jsonb[]);",
+    "untemplated": "drop table if exists jsonb_array_test;\\n    create table jsonb_array_test(id int, jsons jsonb[]);",
+    "nickname": "drop-if-create_table"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "insert into jsonb_array_test\\n    values (1, \${sql.array(\\n      values.map(v => JSON.stringify(v)),\\n      'jsonb',\\n    )})\\n    returning *",
+    "untemplated": "insert into jsonb_array_test\\n    values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_array_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "select * from jsonb_array_test\\n    where id = any(\${sql.array([], 'int8')})",
+    "untemplated": "select * from jsonb_array_test\\n    where id = any($1)",
+    "nickname": "select-jsonb_array_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "insert into edge_cases_test values (4, \${'four'})\\n    \${sql\`on conflict (id) do update set name = \${'four!'}",
+    "untemplated": "insert into edge_cases_test values (4, $1)\\n    $2ql\`on conflict (id) do update set name = $3",
+    "nickname": "insert-edge_cases_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "on conflict (id) do update set name = \${'four!'}",
+    "untemplated": "on conflict (id) do update set name = $1",
+    "nickname": "update-set-name"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "insert into edge_cases_test values (4, \${'four'})\\n    \${sql.fragment\`on conflict (id) do update set name = \${'four!'}",
+    "untemplated": "insert into edge_cases_test values (4, $1)\\n    $2ql.fragment\`on conflict (id) do update set name = $3",
+    "nickname": "insert-edge_cases_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "update edge_cases_test\\n    set \${sql.join(parts, sql\`, \`)}\\n    where id = \${1}",
+    "untemplated": "update edge_cases_test\\n    set $1\\n    where id = $2",
+    "nickname": "update-edge_cases_test-set-_1"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "select * from edge_cases_test where id = \${11}",
+    "untemplated": "select * from edge_cases_test where id = $1",
+    "nickname": "select-edge_cases_test"
+  },
+  {
+    "filepath": "packages/client/test/bugs.test.ts",
+    "raw": "select \${sql.join(parts, sql\`, \`)}",
+    "untemplated": "select $1",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/errors.test.ts",
+    "raw": "select * from test_errors where id > 1",
+    "untemplated": "select * from test_errors where id > 1",
+    "nickname": "select-test_errors"
+  },
+  {
+    "filepath": "packages/client/test/errors.test.ts",
+    "raw": "select * from test_errors where id > 1",
+    "untemplated": "select * from test_errors where id > 1",
+    "nickname": "select-test_errors"
+  },
+  {
+    "filepath": "packages/client/test/errors.test.ts",
+    "raw": "select * from test_errors where id > 100",
+    "untemplated": "select * from test_errors where id > 100",
+    "nickname": "select-test_errors"
+  },
+  {
+    "filepath": "packages/client/test/errors.test.ts",
+    "raw": "select * frooom test_errors",
+    "untemplated": "select * frooom test_errors",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/errors.test.ts",
+    "raw": "select * frooom test_errors",
+    "untemplated": "select * frooom test_errors",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/pg-promise-usage.test.ts",
+    "raw": "select 1::int8 as one",
+    "untemplated": "select 1::int8 as one",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/pg-promise-usage.test.ts",
+    "raw": "select 1::int8 as two",
+    "untemplated": "select 1::int8 as two",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "drop table if exists recipes_test;\\n    create table recipes_test(id int, name text);\\n    insert into recipes_test values (1, 'one'), (2, 'two'), (3, 'three');",
+    "untemplated": "drop table if exists recipes_test;\\n    create table recipes_test(id int, name text);\\n    insert into recipes_test values (1, 'one'), (2, 'two'), (3, 'three');",
+    "nickname": "drop-if-create_table-insert-recipes_test"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "insert into recipes_test(id, name)\\n    select *\\n    from \${sql.unnest(\\n      [\\n        [1, 'one'],\\n        [2, 'two'],\\n        [3, 'three'],\\n      ],\\n      ['int4', 'text'],\\n    )}",
+    "untemplated": "insert into recipes_test(id, name)\\n    select *\\n    from $1",
+    "nickname": "insert-recipes_test-select-_1"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "select * from recipes_test",
+    "untemplated": "select * from recipes_test",
+    "nickname": "select-recipes_test"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "select pg_sleep(\${sleepSeconds})",
+    "untemplated": "select pg_sleep($1)",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "select pg_sleep(\${sleepSeconds})",
+    "untemplated": "select pg_sleep($1)",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "select pg_sleep(\${sleepSeconds})",
+    "untemplated": "select pg_sleep($1)",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "with delay as (\\n        select pg_sleep(\${sleepSeconds})\\n      )\\n      insert into recipes_test (id, name)\\n      values (10, 'ten')\\n      returning *",
+    "untemplated": "with delay as (\\n        select pg_sleep($1)\\n      )\\n      insert into recipes_test (id, name)\\n      values (10, 'ten')\\n      returning *",
+    "nickname": "with-delay-select-insert-recipes_test"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "create table recipes_test(id int, name text)",
+    "untemplated": "create table recipes_test(id int, name text)",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "insert into recipes_test(id, name) values (\${10}, 'ten') returning *",
+    "untemplated": "insert into recipes_test(id, name) values ($1, 'ten') returning *",
+    "nickname": "insert-recipes_test"
+  },
+  {
+    "filepath": "packages/client/test/recipes.test.ts",
+    "raw": "select name from recipes_test",
+    "untemplated": "select name from recipes_test",
+    "nickname": "select-recipes_test"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "drop table if exists test_slonik23;\\n    create table test_slonik23(id int unique, name text);\\n    insert into test_slonik23 values (1, 'one'), (2, 'two'), (3, 'three');",
+    "untemplated": "drop table if exists test_slonik23;\\n    create table test_slonik23(id int unique, name text);\\n    insert into test_slonik23 values (1, 'one'), (2, 'two'), (3, 'three');",
+    "nickname": "drop-if-create_table-insert-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select *\\n    from test_slonik23\\n    where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select *\\n    from test_slonik23\\n    where name = any($1)",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select id from test_slonik23\\n      where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select id from test_slonik23\\n      where name = any($1)",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select id\\n      from test_slonik23\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from test_slonik23\\n      where $1",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select count(1)\\n    from \${sql.identifier(['public', 'test_slonik23'])}",
+    "untemplated": "select count(1)\\n    from $1",
+    "nickname": "select-_1"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into test_slonik23(id, name)\\n    select *\\n    from \${sql.unnest(\\n      values.map(({id, name}) => [id, name]),\\n      ['int4', 'text'],\\n    )}\\n    returning *",
+    "untemplated": "insert into test_slonik23(id, name)\\n    select *\\n    from $1\\n    returning *",
+    "nickname": "insert-test_slonik23-select-_1"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into test_slonik23\\n    select *\\n    from jsonb_populate_recordset(\\n      null::test_slonik23,\\n      \${JSON.stringify(records, null, 2)}\\n    )\\n    returning *",
+    "untemplated": "insert into test_slonik23\\n    select *\\n    from jsonb_populate_recordset(\\n      null::test_slonik23,\\n      $1\\n    )\\n    returning *",
+    "nickname": "insert-test_slonik23-select-jsonb_populate_recordset"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into test_slonik23\\n    select *\\n    from jsonb_to_recordset(\\n      \${JSON.stringify(records, null, 2)}\\n    ) as x(id int, name text)\\n    returning *",
+    "untemplated": "insert into test_slonik23\\n    select *\\n    from jsonb_to_recordset(\\n      $1\\n    ) as x(id int, name text)\\n    returning *",
+    "nickname": "insert-test_slonik23-select-jsonb_to_recordset"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "update test_slonik23\\n    set \${sql.join([sql\`name = 'one hundred'\`, sql\`id = 100\`], sql\`, \`)}\\n    where id = 1\\n    returning *",
+    "untemplated": "update test_slonik23\\n    set $1\\n    where id = 1\\n    returning *",
+    "nickname": "update-test_slonik23-set-_1"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select * from test_slonik23 where \${idGreaterThan(1)}",
+    "untemplated": "select * from test_slonik23 where $1",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select \${sql.binary(Buffer.from('hello'))} as b",
+    "untemplated": "select $1 as b",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "drop table if exists jsonb_test;\\n    create table jsonb_test (id int, data jsonb);",
+    "untemplated": "drop table if exists jsonb_test;\\n    create table jsonb_test (id int, data jsonb);",
+    "nickname": "drop-if-create_table"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into jsonb_test values (1, \${sql.json({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into jsonb_test values (1, \${JSON.stringify({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "delete from test_slonik23",
+    "untemplated": "delete from test_slonik23",
+    "nickname": "delete-from-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into test_slonik23(id, name) values (10, 'ten')",
+    "untemplated": "insert into test_slonik23(id, name) values (10, 'ten')",
+    "nickname": "insert-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select count(1) from test_slonik23",
+    "untemplated": "select count(1) from test_slonik23",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "insert into test_slonik23(id, name) values (11, 'eleven')",
+    "untemplated": "insert into test_slonik23(id, name) values (11, 'eleven')",
+    "nickname": "insert-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select count(1) from test_slonik23",
+    "untemplated": "select count(1) from test_slonik23",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select count(1) from test_slonik23",
+    "untemplated": "select count(1) from test_slonik23",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select * from test_slonik23 where id >= 10",
+    "untemplated": "select * from test_slonik23 where id >= 10",
+    "nickname": "select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik23.test.ts",
+    "raw": "select\\n      '1 day'::interval as day_interval,\\n      '1 hour'::interval as hour_interval,\\n      '2000-01-01T12:00:00Z'::timestamptz as timestamptz,\\n      '2000-01-01T12:00:00Z'::timestamp as timestamp,\\n      '2000-01-01T12:00:00Z'::date as date,\\n      (select count(*) from test_slonik23 where id = -1) as count",
+    "untemplated": "select\\n      '1 day'::interval as day_interval,\\n      '1 hour'::interval as hour_interval,\\n      '2000-01-01T12:00:00Z'::timestamptz as timestamptz,\\n      '2000-01-01T12:00:00Z'::timestamp as timestamp,\\n      '2000-01-01T12:00:00Z'::date as date,\\n      (select count(*) from test_slonik23 where id = -1) as count",
+    "nickname": "select-select-test_slonik23"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "drop table if exists test_slonik37;\\n    create table test_slonik37(id int unique, name text);\\n    insert into test_slonik37 values (1, 'one'), (2, 'two'), (3, 'three');",
+    "untemplated": "drop table if exists test_slonik37;\\n    create table test_slonik37(id int unique, name text);\\n    insert into test_slonik37 values (1, 'one'), (2, 'two'), (3, 'three');",
+    "nickname": "drop-if-create_table-insert-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select *\\n    from test_slonik37\\n    where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select *\\n    from test_slonik37\\n    where name = any($1)",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select id from test_slonik37\\n      where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select id from test_slonik37\\n      where name = any($1)",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select id\\n      from test_slonik37\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from test_slonik37\\n      where $1",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select id from test_slonik37\\n      where name = any(\${sql.array(['one', 'two'], 'text')})",
+    "untemplated": "select id from test_slonik37\\n      where name = any($1)",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select id\\n      from test_slonik37\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from test_slonik37\\n      where $1",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select id from test_slonik37\\n      where name = 'one' or name in (\${name2})",
+    "untemplated": "select id from test_slonik37\\n      where name = 'one' or name in ($1)",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select id\\n      from test_slonik37\\n      where \${isInGroupConditionSql}",
+    "untemplated": "select id\\n      from test_slonik37\\n      where $1",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select count(1)\\n    from \${sql.identifier(['public', 'test_slonik37'])}",
+    "untemplated": "select count(1)\\n    from $1",
+    "nickname": "select-_1"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into test_slonik37(id, name)\\n    select *\\n    from \${sql.unnest(\\n      values.map(({id, name}) => [id, name]),\\n      ['int4', 'text'],\\n    )}\\n    returning *",
+    "untemplated": "insert into test_slonik37(id, name)\\n    select *\\n    from $1\\n    returning *",
+    "nickname": "insert-test_slonik37-select-_1"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into test_slonik37\\n    select *\\n    from jsonb_populate_recordset(\\n      null::test_slonik37,\\n      \${JSON.stringify(records, null, 2)}\\n    )\\n    returning *",
+    "untemplated": "insert into test_slonik37\\n    select *\\n    from jsonb_populate_recordset(\\n      null::test_slonik37,\\n      $1\\n    )\\n    returning *",
+    "nickname": "insert-test_slonik37-select-jsonb_populate_recordset"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into test_slonik37\\n    select *\\n    from jsonb_to_recordset(\\n      \${JSON.stringify(records, null, 2)}\\n    ) as x(id int, name text)\\n    returning *",
+    "untemplated": "insert into test_slonik37\\n    select *\\n    from jsonb_to_recordset(\\n      $1\\n    ) as x(id int, name text)\\n    returning *",
+    "nickname": "insert-test_slonik37-select-jsonb_to_recordset"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "update test_slonik37\\n    set \${sql.join([sql\`name = 'one hundred'\`, sql\`id = 100\`], sql\`, \`)}\\n    where id = 1\\n    returning *",
+    "untemplated": "update test_slonik37\\n    set $1\\n    where id = 1\\n    returning *",
+    "nickname": "update-test_slonik37-set-_1"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select * from test_slonik37 where \${idGreaterThan(1)}",
+    "untemplated": "select * from test_slonik37 where $1",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select * from test_slonik37 where \${idGreaterThan(1)}",
+    "untemplated": "select * from test_slonik37 where $1",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select '2000-01-01T12:00:00Z'::timestamptz + \${sql.interval({days: 1, hours: 1})} as ts",
+    "untemplated": "select '2000-01-01T12:00:00Z'::timestamptz + $1 as ts",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select \${sql.interval({days: 1})}",
+    "untemplated": "select $1",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select \${sql.binary(Buffer.from('hello'))} as b",
+    "untemplated": "select $1 as b",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "drop table if exists jsonb_test;\\n    create table jsonb_test (id int, data jsonb);",
+    "untemplated": "drop table if exists jsonb_test;\\n    create table jsonb_test (id int, data jsonb);",
+    "nickname": "drop-if-create_table"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into jsonb_test values (1, \${sql.json({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into jsonb_test values (1, \${sql.jsonb({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into jsonb_test values (1, \${JSON.stringify({foo: 'bar'})})\\n    returning *",
+    "untemplated": "insert into jsonb_test values (1, $1)\\n    returning *",
+    "nickname": "insert-jsonb_test"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "delete from test_slonik37",
+    "untemplated": "delete from test_slonik37",
+    "nickname": "delete-from-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into test_slonik37(id, name) values (10, 'ten')",
+    "untemplated": "insert into test_slonik37(id, name) values (10, 'ten')",
+    "nickname": "insert-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select count(1) from test_slonik37",
+    "untemplated": "select count(1) from test_slonik37",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "insert into test_slonik37(id, name) values (11, 'eleven')",
+    "untemplated": "insert into test_slonik37(id, name) values (11, 'eleven')",
+    "nickname": "insert-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select count(1) from test_slonik37",
+    "untemplated": "select count(1) from test_slonik37",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select count(1) from test_slonik37",
+    "untemplated": "select count(1) from test_slonik37",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/slonik37.test.ts",
+    "raw": "select * from test_slonik37 where id >= 10",
+    "untemplated": "select * from test_slonik37 where id >= 10",
+    "nickname": "select-test_slonik37"
+  },
+  {
+    "filepath": "packages/client/test/type-parsers.test.ts",
+    "raw": "select\\n      \${sql.interval({days: 1})} as day_interval,\\n      \${sql.interval({hours: 1})} as hour_interval,\\n      true as so,\\n      false as not_so,\\n      0.4::float4 as float4,\\n      0.8::float8 as float8,\\n      '{\\"a\\":1}'::json as json,\\n      '{\\"a\\":1}'::jsonb as jsonb,\\n      '{a,b,c}'::text[] as arr,\\n      array(select id from type_parsers_test) as arr2,\\n      '2000-01-01T12:00:00Z'::timestamptz as timestamptz,\\n      '2000-01-01T12:00:00Z'::timestamp as timestamp,\\n      '2000-01-01T12:00:00Z'::date as date,\\n      (select count(*) from type_parsers_test where id = -1) as count",
+    "untemplated": "select\\n      $1 as day_interval,\\n      $2'::text[] as arr,\\n      array(select id from type_parsers_test) as arr2,\\n      '2000-01-01T12:00:00Z'::timestamptz as timestamptz,\\n      '2000-01-01T12:00:00Z'::timestamp as timestamp,\\n      '2000-01-01T12:00:00Z'::date as date,\\n      (select count(*) from type_parsers_test where id = -1) as count",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/client/test/types.test.ts",
+    "raw": "drop table if exists test_table;\\n    create table test_table(id int, label text);\\n    insert into test_table values (1, 'a'), (2, 'b'), (3, null);",
+    "untemplated": "drop table if exists test_table;\\n    create table test_table(id int, label text);\\n    insert into test_table values (1, 'a'), (2, 'b'), (3, null);",
+    "nickname": "drop-if-create_table-insert-test_table"
+  },
+  {
+    "filepath": "packages/client/test/types.test.ts",
+    "raw": "select * from test_table limit 1",
+    "untemplated": "select * from test_table limit 1",
+    "nickname": "select-test_table"
+  },
+  {
+    "filepath": "packages/client/test/types.test.ts",
+    "raw": "select * from test_table\\n    where id <= \${2}\\n    and label = \${'a'}",
+    "untemplated": "select * from test_table\\n    where id <= $1\\n    and label = $2",
+    "nickname": "select-test_table"
+  },
+  {
+    "filepath": "packages/client/test/types.test.ts",
+    "raw": "select * from test_table\\n    where id <= \${2}\\n    and label = \${\\n      // @ts-expect-error supposed to be a string\\n      22\\n    }",
+    "untemplated": "select * from test_table\\n    where id <= $1\\n    and label = $2",
+    "nickname": "select-test_table"
+  },
+  {
+    "filepath": "packages/client/test/zod.test.ts",
+    "raw": "drop table if exists zod_test;\\n    create table zod_test(id int, location text, label text);\\n    insert into zod_test values (1, '70,-108', 'a'), (2, '71,-102', 'b'), (3, '66,-90', null);",
+    "untemplated": "drop table if exists zod_test;\\n    create table zod_test(id int, location text, label text);\\n    insert into zod_test values (1, '70,-108', 'a'), (2, '71,-102', 'b'), (3, '66,-90', null);",
+    "nickname": "drop-if-create_table-insert-zod_test"
+  },
+  {
+    "filepath": "packages/migra/test/fixtures.ts",
+    "raw": "drop database if exists \${sql.identifier([db])}",
+    "untemplated": "drop database if exists $1",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/migra/test/fixtures.ts",
+    "raw": "create database \${sql.identifier([db])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migra/test/fixtures.ts",
+    "raw": "select exists(select 1 from pg_catalog.pg_roles where rolname = 'schemainspect_test_role')",
+    "untemplated": "select exists(select 1 from pg_catalog.pg_roles where rolname = 'schemainspect_test_role')",
+    "nickname": "select-select-pg_catalog_pg_roles"
+  },
+  {
+    "filepath": "packages/migra/test/fixtures.ts",
+    "raw": "create role schemainspect_test_role",
+    "untemplated": "create role schemainspect_test_role",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migra/test/limitations.test.ts",
+    "raw": "create domain test_domain as text",
+    "untemplated": "create domain test_domain as text",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migra/test/limitations.test.ts",
+    "raw": "create domain test_domain as integer",
+    "untemplated": "create domain test_domain as integer",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migra/test/setup.ts",
+    "raw": "drop schema if exists migra_test_schema cascade;\\n    create schema migra_test_schema;\\n\\n    create table if not exists migra_test_schema.test_table_1 (id int not null, name text);\\n    create table if not exists migra_test_schema.test_table_2 (slug text);",
+    "untemplated": "drop schema if exists migra_test_schema cascade;\\n    create schema migra_test_schema;\\n\\n    create table if not exists migra_test_schema.test_table_1 (id int not null, name text);\\n    create table if not exists migra_test_schema.test_table_2 (slug text);",
+    "nickname": "drop-create-create_table-create_table"
+  },
+  {
+    "filepath": "packages/migra/test/setup.ts",
+    "raw": "select table_name\\n    from information_schema.tables\\n    where table_schema = 'migra_test_schema'\\n    order by table_name asc;",
+    "untemplated": "select table_name\\n    from information_schema.tables\\n    where table_schema = 'migra_test_schema'\\n    order by table_name asc;",
+    "nickname": "select-information_schema_tables"
+  },
+  {
+    "filepath": "packages/migra/test/setup.ts",
+    "raw": "drop schema if exists migra_test_schema cascade;\\n    create schema migra_test_schema;\\n    create table if not exists migra_test_schema.test_table_1 (id int);",
+    "untemplated": "drop schema if exists migra_test_schema cascade;\\n    create schema migra_test_schema;\\n    create table if not exists migra_test_schema.test_table_1 (id int);",
+    "nickname": "drop-create-create_table"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "create table if not exists \${this.migrationTableNameIdentifier()}(\\n        name text primary key,\\n        content text not null,\\n        status text,\\n        date timestamptz not null default now()\\n      )",
+    "untemplated": "create table if not exists $1(\\n        name text primary key,\\n        content text not null,\\n        status text,\\n        date timestamptz not null default now()\\n      )",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "select pg_advisory_lock(\${this.advisoryLockId()})",
+    "untemplated": "select pg_advisory_lock($1)",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "select pg_advisory_unlock(\${this.advisoryLockId()})",
+    "untemplated": "select pg_advisory_unlock($1)",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "insert into \${this.migrationTableNameIdentifier()}(name, content, status)\\n      values (\${name}, \${this.content(name)}, 'executed')\\n      on conflict (name) do update\\n      set\\n        content = excluded.content,\\n        status = excluded.status,\\n        date = excluded.date",
+    "untemplated": "insert into $1(name, content, status)\\n      values ($2, $3, 'executed')\\n      on conflict (name) do update\\n      set\\n        content = excluded.content,\\n        status = excluded.status,\\n        date = excluded.date",
+    "nickname": "insert-_1-update-set-content"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "delete from \${this.migrationTableNameIdentifier()}\\n      where name = \${name}",
+    "untemplated": "delete from $1\\n      where name = $2",
+    "nickname": "delete-from-_1"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "drop table if exists \${this.migrationTableNameIdentifier()}",
+    "untemplated": "drop table if exists $1",
+    "nickname": "drop-if"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "delete from \${this.migrationTableNameIdentifier()}",
+    "untemplated": "delete from $1",
+    "nickname": "delete-from-_1"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "insert into \${this.migrationTableNameIdentifier()} (name, content, status)\\n        select *\\n        from jsonb_to_recordset(\${JSON.stringify(records, null, 2)})\\n          as t(name text, content text, status text)",
+    "untemplated": "insert into $1 (name, content, status)\\n        select *\\n        from jsonb_to_recordset($2)\\n          as t(name text, content text, status text)",
+    "nickname": "insert-_1-select-jsonb_to_recordset"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "select * from \${this.migrationTableNameIdentifier()}",
+    "untemplated": "select * from $1",
+    "nickname": "select-_1"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "delete from \${this.migrationTableNameIdentifier()};\\n\\n          insert into \${this.migrationTableNameIdentifier()} (name, content, status)\\n          select *\\n          from jsonb_to_recordset(\${JSON.stringify(newRecords, null, 2)})\\n            as t(name text, content text, status text);",
+    "untemplated": "delete from $1;\\n\\n          insert into $2 (name, content, status)\\n          select *\\n          from jsonb_to_recordset($3)\\n            as t(name text, content text, status text);",
+    "nickname": "delete-from-_1-insert-_2-select-jsonb_to_recordset"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "select * from \${this.migrationTableNameIdentifier()}",
+    "untemplated": "select * from $1",
+    "nickname": "select-_1"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "create database \${sql.identifier([shadowDbName])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "drop database \${sql.identifier([shadowDbName])} with (force)",
+    "untemplated": "drop database $1 with (force)",
+    "nickname": "drop-with-_"
+  },
+  {
+    "filepath": "packages/migrator/src/migrator.ts",
+    "raw": "drop database \${sql.identifier([shadowDbName])}",
+    "untemplated": "drop database $1",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/migrator/test/basic.test.ts",
+    "raw": "select tablename\\n        from pg_catalog.pg_tables\\n        where schemaname = \${helper.schemaName}\\n        order by tablename",
+    "untemplated": "select tablename\\n        from pg_catalog.pg_tables\\n        where schemaname = $1\\n        order by tablename",
+    "nickname": "select-pg_catalog_pg_tables"
+  },
+  {
+    "filepath": "packages/migrator/test/basic.test.ts",
+    "raw": "drop schema if exists some_other_schema cascade",
+    "untemplated": "drop schema if exists some_other_schema cascade",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/migrator/test/basic.test.ts",
+    "raw": "create schema some_other_schema",
+    "untemplated": "create schema some_other_schema",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migrator/test/basic.test.ts",
+    "raw": "select name from some_other_schema.migration_meta",
+    "untemplated": "select name from some_other_schema.migration_meta",
+    "nickname": "select-some_other_schema_migration_meta"
+  },
+  {
+    "filepath": "packages/migrator/test/errors.test.ts",
+    "raw": "select * from errors_table1",
+    "untemplated": "select * from errors_table1",
+    "nickname": "select-errors_table1"
+  },
+  {
+    "filepath": "packages/migrator/test/errors.test.ts",
+    "raw": "select name from migrations",
+    "untemplated": "select name from migrations",
+    "nickname": "select-migrations"
+  },
+  {
+    "filepath": "packages/migrator/test/errors.test.ts",
+    "raw": "select * from errors_table1",
+    "untemplated": "select * from errors_table1",
+    "nickname": "select-errors_table1"
+  },
+  {
+    "filepath": "packages/migrator/test/errors.test.ts",
+    "raw": "select * from migrations",
+    "untemplated": "select * from migrations",
+    "nickname": "select-migrations"
+  },
+  {
+    "filepath": "packages/migrator/test/generated/run/migrations/04.four.ts",
+    "raw": "create table migration_test_4(id int)",
+    "untemplated": "create table migration_test_4(id int)",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/migrator/test/generated/run/migrations/04.four.ts",
+    "raw": "drop table migration_test_4",
+    "untemplated": "drop table migration_test_4",
+    "nickname": "drop-migration_test_4"
+  },
+  {
+    "filepath": "packages/migrator/test/pool-helper.ts",
+    "raw": "select 1 from pg_database where datname = \${dbName}",
+    "untemplated": "select 1 from pg_database where datname = $1",
+    "nickname": "select-pg_database"
+  },
+  {
+    "filepath": "packages/migrator/test/pool-helper.ts",
+    "raw": "create database \${sql.identifier([dbName])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migrator/test/pool-helper.ts",
+    "raw": "drop schema if exists \${schemaIdentifier} cascade",
+    "untemplated": "drop schema if exists $1 cascade",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/migrator/test/pool-helper.ts",
+    "raw": "create schema \${schemaIdentifier}",
+    "untemplated": "create schema $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/migrator/test/repair.test.ts",
+    "raw": "select hash\\n        from migrations",
+    "untemplated": "select hash\\n        from migrations",
+    "nickname": "select-migrations"
+  },
+  {
+    "filepath": "packages/migrator/test/repair.test.ts",
+    "raw": "update migrations\\n        set hash = \${hash}",
+    "untemplated": "update migrations\\n        set hash = $1",
+    "nickname": "update-migrations-set-hash"
+  },
+  {
+    "filepath": "packages/migrator/test/script-migrations.test.ts",
+    "raw": "select tablename\\n      from pg_catalog.pg_tables\\n      where tablename like 'migration_test_%'\\n      and schemaname = \${helper.schemaName}\\n      order by tablename",
+    "untemplated": "select tablename\\n      from pg_catalog.pg_tables\\n      where tablename like 'migration_test_%'\\n      and schemaname = $1\\n      order by tablename",
+    "nickname": "select-pg_catalog_pg_tables"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "drop table if exists rollback_happens",
+    "untemplated": "drop table if exists rollback_happens",
+    "nickname": "drop-if"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "create table rollback_happens(id int primary key)",
+    "untemplated": "create table rollback_happens(id int primary key)",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "select * from rollback_happens",
+    "untemplated": "select * from rollback_happens",
+    "nickname": "select-rollback_happens"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "select * from rollback_happens_migrations",
+    "untemplated": "select * from rollback_happens_migrations",
+    "nickname": "select-rollback_happens_migrations"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "drop table if exists disabled_transaction_test_table;\\n      create table disabled_transaction_test_table(id int primary key);",
+    "untemplated": "drop table if exists disabled_transaction_test_table;\\n      create table disabled_transaction_test_table(id int primary key);",
+    "nickname": "drop-if-create_table"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "select id from disabled_transaction_test_table",
+    "untemplated": "select id from disabled_transaction_test_table",
+    "nickname": "select-disabled_transaction_test_table"
+  },
+  {
+    "filepath": "packages/migrator/test/transaction.test.ts",
+    "raw": "select name from disabled_transaction_migrations",
+    "untemplated": "select name from disabled_transaction_migrations",
+    "nickname": "select-disabled_transaction_migrations"
+  },
+  {
+    "filepath": "packages/schemainspect/scripts/generate-types.ts",
+    "raw": "drop database if exists \${sql.identifier([dbName])}",
+    "untemplated": "drop database if exists $1",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/schemainspect/scripts/generate-types.ts",
+    "raw": "create database \${sql.identifier([dbName])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/schemainspect/src/pg/obj.ts",
+    "raw": "select current_setting('server_version') server_version",
+    "untemplated": "select current_setting('server_version') server_version",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/schemainspect/test/json.test.ts",
+    "raw": "drop database if exists \${sql.identifier([dbName])}",
+    "untemplated": "drop database if exists $1",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/schemainspect/test/json.test.ts",
+    "raw": "create database \${sql.identifier([dbName])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/typegen/src/pg/mappings.ts",
+    "raw": "select distinct\\n      e.enumtypid,\\n      t.typname,\\n      e.enumlabel,\\n      t.typnamespace::regnamespace::text as schema_name,\\n      e.enumsortorder,\\n      t.typnamespace::regnamespace::text = any(current_schemas(true)) as in_search_path,\\n      case\\n        when t.typnamespace::regnamespace::text = any(current_schemas(false))\\n          then quote_ident(t.typname)\\n        else\\n          quote_ident(t.typnamespace::regnamespace::text) || '.' || quote_ident(t.typname)\\n      end as searchable_type_name\\n    from\\n      pg_enum as e\\n    join\\n      pg_type as t\\n    on\\n      t.oid = e.enumtypid\\n    order by\\n      t.typnamespace::regnamespace::text,\\n      t.typname,\\n      e.enumsortorder",
+    "untemplated": "select distinct\\n      e.enumtypid,\\n      t.typname,\\n      e.enumlabel,\\n      t.typnamespace::regnamespace::text as schema_name,\\n      e.enumsortorder,\\n      t.typnamespace::regnamespace::text = any(current_schemas(true)) as in_search_path,\\n      case\\n        when t.typnamespace::regnamespace::text = any(current_schemas(false))\\n          then quote_ident(t.typname)\\n        else\\n          quote_ident(t.typnamespace::regnamespace::text) || '.' || quote_ident(t.typname)\\n      end as searchable_type_name\\n    from\\n      pg_enum as e\\n    join\\n      pg_type as t\\n    on\\n      t.oid = e.enumtypid\\n    order by\\n      t.typnamespace::regnamespace::text,\\n      t.typname,\\n      e.enumsortorder",
+    "nickname": "select-pg_enum-pg_type"
+  },
+  {
+    "filepath": "packages/typegen/src/pg/mappings.ts",
+    "raw": "select oid, typname, oid::regtype as regtype\\n    from pg_type\\n    where oid is not null",
+    "untemplated": "select oid, typname, oid::regtype as regtype\\n    from pg_type\\n    where oid is not null",
+    "nickname": "select-pg_type"
+  },
+  {
+    "filepath": "packages/typegen/src/query/column-info.ts",
+    "raw": "create schema if not exists \${schemaIdentifier}",
+    "untemplated": "create schema if not exists $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/typegen/src/query/column-info.ts",
+    "raw": "select prosrc, proargnames, proargmodes::text[]\\n              from pg_proc\\n              join pg_language on pg_language.oid = pg_proc.prolang\\n              where\\n              pg_language.lanname = 'sql'\\n              and prosrc is not null\\n              and proname = \${f.function.name}\\n              limit 2",
+    "untemplated": "select prosrc, proargnames, proargmodes::text[]\\n              from pg_proc\\n              join pg_language on pg_language.oid = pg_proc.prolang\\n              where\\n              pg_language.lanname = 'sql'\\n              and prosrc is not null\\n              and proname = $1\\n              limit 2",
+    "nickname": "select-pg_proc-pg_language"
+  },
+  {
+    "filepath": "packages/typegen/src/query/column-info.ts",
+    "raw": "drop schema if exists \${sql.identifier([schemaName])} cascade;",
+    "untemplated": "drop schema if exists $1 cascade;",
+    "nickname": "drop"
+  },
+  {
+    "filepath": "packages/typegen/src/query/parameters.ts",
+    "raw": "select parameter_types::text\\n        from pg_prepared_statements\\n        where name = \${statementName}",
+    "untemplated": "select parameter_types::text\\n        from pg_prepared_statements\\n        where name = $1",
+    "nickname": "select-pg_prepared_statements"
+  },
+  {
+    "filepath": "packages/typegen/src/type-parsers/map-type-parser.ts",
+    "raw": "select \${sampleValue}::\${sampleValueType}",
+    "untemplated": "select $1::$2",
+    "nickname": "select"
+  },
+  {
+    "filepath": "packages/typegen/src/types.ts",
+    "raw": "* running postgres with docker-compose |",
+    "untemplated": "* running postgres with docker-compose |",
+    "nickname": "with-docker_compose"
+  },
+  {
+    "filepath": "packages/typegen/test/ambiguous-tables.test.ts",
+    "raw": "drop schema if exists ambiguous_tables_1 cascade;\\n    drop schema if exists ambiguous_tables_2 cascade;\\n\\n    create schema ambiguous_tables_1;\\n    create schema ambiguous_tables_2;\\n\\n    -- default schema\\n    create type test_enum as enum('default_schema_A', 'default_schema_B', 'default_schema_C');\\n    -- specific schema\\n    create type ambiguous_tables_1.test_enum as enum('schema1_A', 'schema1_B', 'schema1_C');\\n    -- another specific schema\\n    create type ambiguous_tables_2.test_enum as enum('schema2_A', 'schema2_B', 'schema2_C');\\n\\n    create table ambiguous_tables_1.test_table(id int not null, e ambiguous_tables_1.test_enum, eee test_enum not null);\\n    create table ambiguous_tables_2.test_table(id int, e ambiguous_tables_2.test_enum);\\n\\n    comment on column ambiguous_tables_1.test_table.id is 'This is a comment for ambiguous_tables_1.test_table.id';\\n    comment on column ambiguous_tables_2.test_table.id is 'This is a comment for ambiguous_tables_2.test_table.id';",
+    "untemplated": "drop schema if exists ambiguous_tables_1 cascade;\\n    drop schema if exists ambiguous_tables_2 cascade;\\n\\n    create schema ambiguous_tables_1;\\n    create schema ambiguous_tables_2;\\n\\n    -- default schema\\n    create type test_enum as enum('default_schema_A', 'default_schema_B', 'default_schema_C');\\n    -- specific schema\\n    create type ambiguous_tables_1.test_enum as enum('schema1_A', 'schema1_B', 'schema1_C');\\n    -- another specific schema\\n    create type ambiguous_tables_2.test_enum as enum('schema2_A', 'schema2_B', 'schema2_C');\\n\\n    create table ambiguous_tables_1.test_table(id int not null, e ambiguous_tables_1.test_enum, eee test_enum not null);\\n    create table ambiguous_tables_2.test_table(id int, e ambiguous_tables_2.test_enum);\\n\\n    comment on column ambiguous_tables_1.test_table.id is 'This is a comment for ambiguous_tables_1.test_table.id';\\n    comment on column ambiguous_tables_2.test_table.id is 'This is a comment for ambiguous_tables_2.test_table.id';",
+    "nickname": "drop-drop-create-create-create-create-create-create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/branding.test.ts",
+    "raw": "create table test_table(\\n      id int primary key,\\n      n int\\n    );",
+    "untemplated": "create table test_table(\\n      id int primary key,\\n      n int\\n    );",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/cte.test.ts",
+    "raw": "create table test_table1(\\n      a int not null\\n    );\\n    create table test_table2(\\n      b double precision\\n    );\\n    create table test_table3(\\n      t text,\\n      t_nn text not null,\\n      n int\\n    );",
+    "untemplated": "create table test_table1(\\n      a int not null\\n    );\\n    create table test_table2(\\n      b double precision\\n    );\\n    create table test_table3(\\n      t text,\\n      t_nn text not null,\\n      n int\\n    );",
+    "nickname": "create_table-create_table-create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/deletes.test.ts",
+    "raw": "create table test_table1(\\n      a int primary key,\\n      b int\\n    );\\n\\n    create table test_table2(\\n      a int not null,\\n      table1_a int references test_table1(a)\\n    );",
+    "untemplated": "create table test_table1(\\n      a int primary key,\\n      b int\\n    );\\n\\n    create table test_table2(\\n      a int not null,\\n      table1_a int references test_table1(a)\\n    );",
+    "nickname": "create_table-create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/example.test.ts",
+    "raw": "create table test_table(foo int not null, bar text);\\n\\n    comment on column test_table.bar is 'Look, ma! A comment from postgres!'",
+    "untemplated": "create table test_table(foo int not null, bar text);\\n\\n    comment on column test_table.bar is 'Look, ma! A comment from postgres!'",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/function.test.ts",
+    "raw": "create table table1(a int not null);",
+    "untemplated": "create table table1(a int not null);",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/hand-holding.test.ts",
+    "raw": "create table test_table1(\\n      a int not null,\\n      b int\\n    );",
+    "untemplated": "create table test_table1(\\n      a int not null,\\n      b int\\n    );",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/helper.ts",
+    "raw": "const admin = createClient(connectionString)\\n\\n/** get an alt connection string, but for the specified db instead of the default */\\nconst getConnectionString = (db: string) => connectionString.split('/').slice(0, -1).concat([db]).join('/')\\n\\nexport const getPureHelper = (params: {__filename: string}) => {\\n  const poolHelper = getPoolHelper({...params, baseConnectionURI: connectionString})\\n  const logger = {\\n    debug: jest.fn(),\\n    info: jest.fn(),\\n    warn: jest.fn(console.warn),\\n    error: jest.fn(console.error),\\n  }\\n\\n  const typegenOptions = (baseDir: string): Partial<typegen.Options> => ({\\n    rootDir: baseDir,\\n    connectionString: poolHelper.pool.connectionString(), // no longer needed useful thing: can set search path via URL with",
+    "untemplated": "const admin = createClient(connectionString)\\n\\n/** get an alt connection string, but for the specified db instead of the default */\\nconst getConnectionString = (db: string) => connectionString.split('/').slice(0, -1).concat([db]).join('/')\\n\\nexport const getPureHelper = (params: {__filename: string}) => {\\n  const poolHelper = getPoolHelper({...params, baseConnectionURI: connectionString})\\n  const logger = {\\n    debug: jest.fn(),\\n    info: jest.fn(),\\n    warn: jest.fn(console.warn),\\n    error: jest.fn(console.error),\\n  }\\n\\n  const typegenOptions = (baseDir: string): Partial<typegen.Options> => ({\\n    rootDir: baseDir,\\n    connectionString: poolHelper.pool.connectionString(), // no longer needed useful thing: can set search path via URL with",
+    "nickname": "set-search-with"
+  },
+  {
+    "filepath": "packages/typegen/test/helper.ts",
+    "raw": "create database \${sql.identifier([dbName])}",
+    "untemplated": "create database $1",
+    "nickname": "create"
+  },
+  {
+    "filepath": "packages/typegen/test/helper.ts",
+    "raw": "drop schema if exists \${schemaIdentifier} cascade;\\n      create schema \${schemaIdentifier}",
+    "untemplated": "drop schema if exists $1 cascade;\\n      create schema $2",
+    "nickname": "drop-create"
+  },
+  {
+    "filepath": "packages/typegen/test/ignore.test.ts",
+    "raw": "create table table1(a int not null);",
+    "untemplated": "create table table1(a int not null);",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/inline-tag-modification.test.ts",
+    "raw": "create table test_table(foo int not null, bar text);",
+    "untemplated": "create table test_table(foo int not null, bar text);",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/left-join.test.ts",
+    "raw": "create table table1(a int not null);\\n    create table table2(b int not null);\\n\\n    insert into table1 (a) values (1), (2), (3);\\n    insert into table2 (b) values (2), (3), (4);",
+    "untemplated": "create table table1(a int not null);\\n    create table table2(b int not null);\\n\\n    insert into table1 (a) values (1), (2), (3);\\n    insert into table2 (b) values (2), (3), (4);",
+    "nickname": "create_table-create_table-insert-table1-insert-table2"
+  },
+  {
+    "filepath": "packages/typegen/test/limitations.test.ts",
+    "raw": "create table test_table(\\n      id int primary key,\\n      n int\\n    );",
+    "untemplated": "create table test_table(\\n      id int primary key,\\n      n int\\n    );",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/limitations.test.ts",
+    "raw": "select count(*) from test_table",
+    "untemplated": "select count(*) from test_table",
+    "nickname": "select-test_table"
+  },
+  {
+    "filepath": "packages/typegen/test/limitations.test.ts",
+    "raw": "select table_schema, table_name from information_schema.tables where table_name like 'semicolon_query_table%'",
+    "untemplated": "select table_schema, table_name from information_schema.tables where table_name like 'semicolon_query_table%'",
+    "nickname": "select-information_schema_tables"
+  },
+  {
+    "filepath": "packages/typegen/test/locking.test.ts",
+    "raw": "create table table1(a int not null);\\n\\n    insert into table1 (a) values (1), (2), (3);",
+    "untemplated": "create table table1(a int not null);\\n\\n    insert into table1 (a) values (1), (2), (3);",
+    "nickname": "create_table-insert-table1"
+  },
+  {
+    "filepath": "packages/typegen/test/options.test.ts",
+    "raw": "create type test_enum as enum('aa', 'bb', 'cc');\\n\\n    create table test_table(\\n      id int primary key,\\n      n int,\\n      t text,\\n      t_nn text not null,\\n      cv varchar(1),\\n      arr text[],\\n      e test_enum,\\n      tz timestamptz,\\n      tz_nn timestamptz not null default now(),\\n      j json,\\n      jb jsonb,\\n      j_nn json not null,\\n      jb_nn jsonb not null,\\n      d_p numeric(8),\\n      d_ps numeric(8, 4)\\n    );\\n\\n    comment on column test_table.t is 'Some custom comment on \\"t\\"';",
+    "untemplated": "create type test_enum as enum('aa', 'bb', 'cc');\\n\\n    create table test_table(\\n      id int primary key,\\n      n int,\\n      t text,\\n      t_nn text not null,\\n      cv varchar(1),\\n      arr text[],\\n      e test_enum,\\n      tz timestamptz,\\n      tz_nn timestamptz not null default now(),\\n      j json,\\n      jb jsonb,\\n      j_nn json not null,\\n      jb_nn jsonb not null,\\n      d_p numeric(8),\\n      d_ps numeric(8, 4)\\n    );\\n\\n    comment on column test_table.t is 'Some custom comment on \\"t\\"';",
+    "nickname": "create-create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/pg-enum.test.ts",
+    "raw": "create table test_table1(\\n      a int not null,\\n      b int\\n    );",
+    "untemplated": "create table test_table1(\\n      a int not null,\\n      b int\\n    );",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/primitives.test.ts",
+    "raw": "create table test_table(\\n      a int not null,\\n      b int\\n    )",
+    "untemplated": "create table test_table(\\n      a int not null,\\n      b int\\n    )",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/property-access-tag.test.ts",
+    "raw": "create table test_table(foo int not null, bar text);\\n\\n    comment on column test_table.bar is 'Look, ma! A comment from postgres!'",
+    "untemplated": "create table test_table(foo int not null, bar text);\\n\\n    comment on column test_table.bar is 'Look, ma! A comment from postgres!'",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/subquery.test.ts",
+    "raw": "create table test_table1(\\n      a int not null,\\n      b double precision\\n    );",
+    "untemplated": "create table test_table1(\\n      a int not null,\\n      b double precision\\n    );",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/types.test.ts",
+    "raw": "create table types_test_table(foo int primary key, bar text);\\n\\n    insert into types_test_table(foo, bar) values (1, 'a')",
+    "untemplated": "create table types_test_table(foo int primary key, bar text);\\n\\n    insert into types_test_table(foo, bar) values (1, 'a')",
+    "nickname": "create_table-insert-types_test_table"
+  },
+  {
+    "filepath": "packages/typegen/test/types.test.ts",
+    "raw": "select * from types_test_table",
+    "untemplated": "select * from types_test_table",
+    "nickname": "select-types_test_table"
+  },
+  {
+    "filepath": "packages/typegen/test/ugly.test.ts",
+    "raw": "create table test_table(\\n      id int primary key,\\n      n int\\n    );",
+    "untemplated": "create table test_table(\\n      id int primary key,\\n      n int\\n    );",
+    "nickname": "create_table"
+  },
+  {
+    "filepath": "packages/typegen/test/view.test.ts",
+    "raw": "create table test_table1(\\n      a int not null\\n    );\\n\\n    create table test_table2(\\n      b double precision\\n    );\\n\\n    create table test_table3(\\n      c int not null\\n    );\\n\\n    create view test_view as\\n    select a as a_view, b as b_view from\\n    test_table1\\n    join test_table2 on test_table1.a = test_table2.b;\\n\\n    create or replace function get_test_table1_by_a(input_a int)\\n    returns table (a int) as\\n    $$\\n      select a from test_table1 where a = input_a;\\n    $$\\n    language sql;\\n\\n    create or replace function get_a_timestamp(input_a int)\\n    returns timestamptz as\\n    $$\\n      select pg_catalog.now()\\n    $$\\n    language sql;\\n\\n    create or replace function get_one_field(input_a int)\\n    returns int as\\n    $$\\n      select a as result from test_table1 where a >= input_a;\\n    $$\\n    language sql;",
+    "untemplated": "create table test_table1(\\n      a int not null\\n    );\\n\\n    create table test_table2(\\n      b double precision\\n    );\\n\\n    create table test_table3(\\n      c int not null\\n    );\\n\\n    create view test_view as\\n    select a as a_view, b as b_view from\\n    test_table1\\n    join test_table2 on test_table1.a = test_table2.b;\\n\\n    create or replace function get_test_table1_by_a(input_a int)\\n    returns table (a int) as\\n    $$\\n      select a from test_table1 where a = input_a;\\n    $$\\n    language sql;\\n\\n    create or replace function get_a_timestamp(input_a int)\\n    returns timestamptz as\\n    $$\\n      select pg_catalog.now()\\n    $$\\n    language sql;\\n\\n    create or replace function get_one_field(input_a int)\\n    returns int as\\n    $$\\n      select a as result from test_table1 where a >= input_a;\\n    $$\\n    language sql;",
+    "nickname": "create_table-create_table-create_table-create-select"
+  }
+]
+`;
