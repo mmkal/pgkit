@@ -127,19 +127,19 @@ const sqlFnInner = (
       }
 
       case 'join': {
-        param.args[0].forEach((value, j, {length}) => {
+        const [members, glue] = param.args
+        members.forEach((value, j, {length}) => {
           if (value && typeof value === 'object' && value?.token === 'sql') {
             const innerArgs = value.templateArgs() as Parameters<SQLTagFunction>
             const innerResult = sqlFnInner({priorValues: values.length + priorValues}, ...innerArgs)
             segments.push(...innerResult.segments())
             values.push(...innerResult.values)
-            if (j < length - 1) segments.push(param.args[1].sql)
-            return
+          } else {
+            values.push(value)
+            segments.push(getValuePlaceholder())
           }
 
-          values.push(value)
-          segments.push(getValuePlaceholder())
-          if (j < length - 1) segments.push(param.args[1].sql)
+          if (j < length - 1) segments.push(glue.sql)
         })
         break
       }
