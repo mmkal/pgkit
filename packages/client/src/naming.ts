@@ -122,6 +122,9 @@ const extractSqlParts = (sql: string): string[] => {
   const hasWith = /\bwith\b/i.test(allTokens)
   const isTransaction = /\b(begin|commit|rollback|savepoint)\b/i.test(allTokens)
   
+  // Track if we're in a bulk insert context to skip "select"
+  let inBulkInsert = false
+  
   while (i < tokens.length) {
     const token = tokens[i]
     const nextToken = tokens[i + 1]
@@ -130,7 +133,10 @@ const extractSqlParts = (sql: string): string[] => {
 
     // Handle main operation keywords first
     if (token === 'select') {
-      if (hasCount && !hasGroupBy) {
+      // Skip "select" if we're in a bulk insert context
+      if (inBulkInsert) {
+        // Don't add "select" to parts, but continue processing
+      } else if (hasCount && !hasGroupBy) {
         parts.push('count')
       } else if (hasSum) {
         parts.push('sum')
@@ -148,8 +154,10 @@ const extractSqlParts = (sql: string): string[] => {
     } else if (token === 'insert') {
       if (hasJsonb) {
         parts.push('bulk_insert')
+        inBulkInsert = true
       } else if (hasUnnest) {
         parts.push('bulk_insert')
+        inBulkInsert = true
       } else if (hasOnConflict) {
         parts.push('upsert')
       } else {
@@ -164,14 +172,72 @@ const extractSqlParts = (sql: string): string[] => {
         i++ // skip the 'from' token
       }
     } else if (token === 'create' && nextToken === 'table') {
-      parts.push('create_table')
+      // Add table name to create_table operations
+      const tableName = cleanIdentifier(nextToken2 || '')
+      if (tableName && !tableName.startsWith('$') && tableName !== '(') {
+        parts.push(`create-${tableName}`)
+      } else {
+        parts.push('create_table')
+      }
       i++ // skip 'table'
     } else if (token === 'drop' && nextToken === 'table') {
-      parts.push('drop_table')
-      i++ // skip 'table'
+      // Handle "drop table if exists foo" vs "drop table foo"
+      if (nextToken2 === 'if' && tokens[i + 3] === 'exists') {
+        const tableName = cleanIdentifier(tokens[i + 4] || '')
+        if (tableName && !tableName.startsWith('$') && tableName !== '(') {
+          parts.push(`drop_if_exists-${tableName}`)
+        } else {
+          parts.push('drop_if_exists')
+        }
+        i += 3 // skip 'table', 'if', 'exists'
+      } else {
+        // Regular drop table
+        const tableName = cleanIdentifier(nextToken2 || '')
+        if (tableName && !tableName.startsWith('$') && tableName !== '(') {
+          parts.push(`drop-${tableName}`)
+        } else {
+          parts.push('drop_table')
+        }
+        i++ // skip 'table'
+      }
     } else if (token === 'alter' && nextToken === 'table') {
-      parts.push('alter_table')
+      // Add table name to alter_table operations
+      const tableName = cleanIdentifier(nextToken2 || '')
+      if (tableName && !tableName.startsWith('$') && tableName !== '(') {
+        parts.push(`alter-${tableName}`)
+      } else {
+        parts.push('alter_table')
+      }
       i++ // skip 'table'
+    } else if (token === 'create' && nextToken === 'schema') {
+      // Add schema name to create_schema operations
+      const schemaName = cleanIdentifier(nextToken2 || '')
+      if (schemaName && !schemaName.startsWith('$') && schemaName !== '(') {
+        parts.push(`create_schema-${schemaName}`)
+      } else {
+        parts.push('create_schema')
+      }
+      i++ // skip 'schema'
+    } else if (token === 'drop' && nextToken === 'schema') {
+      // Handle "drop schema if exists foo" vs "drop schema foo"
+      if (nextToken2 === 'if' && tokens[i + 3] === 'exists') {
+        const schemaName = cleanIdentifier(tokens[i + 4] || '')
+        if (schemaName && !schemaName.startsWith('$') && schemaName !== '(') {
+          parts.push(`drop_schema_if_exists-${schemaName}`)
+        } else {
+          parts.push('drop_schema_if_exists')
+        }
+        i += 3 // skip 'schema', 'if', 'exists'
+      } else {
+        // Regular drop schema
+        const schemaName = cleanIdentifier(nextToken2 || '')
+        if (schemaName && !schemaName.startsWith('$') && schemaName !== '(') {
+          parts.push(`drop_schema-${schemaName}`)
+        } else {
+          parts.push('drop_schema')
+        }
+        i++ // skip 'schema'
+      }
     } else if (token === 'create' && nextToken === 'database') {
       parts.push('create_db')
       i++ // skip 'database'
@@ -179,7 +245,13 @@ const extractSqlParts = (sql: string): string[] => {
       parts.push('drop_db')
       i++ // skip 'database'
     } else if (token === 'create' && nextToken === 'index') {
-      parts.push('create_index')
+      // Add index name to create_index operations
+      const indexName = cleanIdentifier(nextToken2 || '')
+      if (indexName && !indexName.startsWith('$') && indexName !== '(' && indexName !== 'on') {
+        parts.push(`create_index-${indexName}`)
+      } else {
+        parts.push('create_index')
+      }
       i++ // skip 'index'
     } else if (token === 'with' && nextToken && !keywordsToInclude.has(nextToken)) {
       parts.push('with')
@@ -266,9 +338,30 @@ const extractSqlParts = (sql: string): string[] => {
       parts.push('limited')
     }
 
-    // Handle RETURNING
+    // Handle RETURNING with context about what's being returned
     if (token === 'returning') {
-      parts.push('returning')
+      if (nextToken === '*') {
+        parts.push('returning-all')
+      } else if (nextToken && !nextToken.startsWith('$')) {
+        // Try to capture specific columns being returned
+        const returnColumns = []
+        let j = i + 1
+        while (j < tokens.length && tokens[j] !== ';' && !keywordsToInclude.has(tokens[j])) {
+          const col = cleanIdentifier(tokens[j])
+          if (col && col !== ',' && col !== '(' && col !== ')' && !col.startsWith('$')) {
+            returnColumns.push(col)
+          }
+          j++
+          if (returnColumns.length >= 2) break // Don't get too verbose
+        }
+        if (returnColumns.length > 0) {
+          parts.push(`returning-${returnColumns.join('_')}`)
+        } else {
+          parts.push('returning')
+        }
+      } else {
+        parts.push('returning')
+      }
     }
 
     // Handle transaction keywords
@@ -297,7 +390,7 @@ const extractSqlParts = (sql: string): string[] => {
   const uniqueParts = [...new Set(parts)]
   
   // Add semantic context
-  if (hasReturning && !uniqueParts.includes('returning')) {
+  if (hasReturning && !uniqueParts.some(p => p.startsWith('returning'))) {
     uniqueParts.push('returning')
   }
   
@@ -309,7 +402,7 @@ const joinUntil = (parts: string[], delimiter: string, {length}: {length: number
   for (const part of parts) {
     const cleanPart = part.replaceAll(/\W+/g, '_')
     if (acc.length + cleanPart.length + delimiter.length > length) break
-    acc += (acc ? delimiter : '') + cleanPart
+    acc += (acc.length ? delimiter : '') + cleanPart
   }
   return acc
 }

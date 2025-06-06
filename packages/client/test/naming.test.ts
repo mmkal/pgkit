@@ -24,7 +24,7 @@ test('nickname', async () => {
 
   expect(nickname(`delete from foo where a = 'b'`)).toMatchInlineSnapshot(`"delete-from-filtered"`)
 
-  expect(nickname(`alter table foo add column a int`)).toMatchInlineSnapshot(`"alter_table"`)
+  expect(nickname(`alter table foo add column a int`)).toMatchInlineSnapshot(`"alter_foo"`)
 
   expect(
     nickname(
@@ -33,7 +33,7 @@ test('nickname', async () => {
         create index test_table_idx on test_table(name);
       `,
     ),
-  ).toMatchInlineSnapshot(`"create_table-create_index"`)
+  ).toMatchInlineSnapshot(`"create_test_table-create_index_test_table_idx"`)
 
   expect(
     // make sure nickname doesn't go too long
@@ -68,7 +68,7 @@ test('nickname', async () => {
         select * from one join three on one.id = three.id
       `,
     ),
-  ).toMatchInlineSnapshot(`"with-one-select-foo-filtered-bar-insert-baz-returning-three"`)
+  ).toMatchInlineSnapshot(`"with-one-select-foo-filtered-bar-insert-baz-returning_all-three"`)
 })
 
 test('scan the whole repo', async () => {
