@@ -5,7 +5,7 @@
   "scripts": {
     "prepare": "pnpm generate",
     "generate": "tsx scripts/build",
-    "build": "rm -rf .next && next build && echo built!",
+    "build": "rimraf -rf .next && next build && echo built!",
     "dev": "next dev"
   },
   "dependencies": {

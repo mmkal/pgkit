@@ -29,5 +29,8 @@
         "type-fest": "^4.10.3",
         "typescript": "^5.8.0",
         "util": "^0.12.3"
+    },
+    "dependencies": {
+        "rimraf": "^6.0.1"
     }
 }

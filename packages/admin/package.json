@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/mmkal/pgkit/tree/pgkit/packages/admin#readme",
   "scripts": {
-    "build": "rm -rf dist && pnpm /build:/",
+    "build": "rimraf -rf dist && pnpm /build:/",
     "build:client": "vite build",
     "build:server": "tsc -p tsconfig.server.json",
     "start": "node dist/server/index.js",
