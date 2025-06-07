@@ -129,10 +129,10 @@ const extractSqlParts = (sql: string): string[] => {
   let inBulkInsert = false
   
   while (i < tokens.length) {
-    const token = tokens[i]
-    const nextToken = tokens[i + 1]
-    const nextToken2 = tokens[i + 2]
-    const prevToken = tokens[i - 1]
+    const token = tokens.at(i)
+    const nextToken = tokens.at(i + 1)
+    const nextToken2 = tokens.at(i + 2)
+    const prevToken = tokens.at(i - 1)
 
     // Handle main operation keywords first
     if (token === 'select') {
@@ -156,9 +156,9 @@ const extractSqlParts = (sql: string): string[] => {
         
         // Look for function calls after SELECT
         let j = i + 1
-        while (j < tokens.length && tokens[j] !== 'from' && tokens[j] !== 'where' && tokens[j] !== ';') {
-          const currentToken = tokens[j]
-          const nextToken = tokens[j + 1]
+        while (j < tokens.length && tokens.at(j) !== 'from' && tokens.at(j) !== 'where' && tokens.at(j) !== ';') {
+          const currentToken = tokens.at(j)
+          const nextToken = tokens.at(j + 1)
           
           // Check if this looks like a function call (token followed by opening parenthesis)
           if (nextToken === '(' && currentToken && 
@@ -210,8 +210,8 @@ const extractSqlParts = (sql: string): string[] => {
       i++ // skip 'table'
     } else if (token === 'drop' && nextToken === 'table') {
       // Handle "drop table if exists foo" vs "drop table foo"
-      if (nextToken2 === 'if' && tokens[i + 3] === 'exists') {
-        const tableName = cleanIdentifier(tokens[i + 4] || '')
+      if (nextToken2 === 'if' && tokens.at(i + 3) === 'exists') {
+        const tableName = cleanIdentifier(tokens.at(i + 4) || '')
         if (tableName && !tableName.startsWith('$') && tableName !== '(') {
           parts.push(`drop_if_exists-${tableName}`)
         } else {
@@ -248,8 +248,8 @@ const extractSqlParts = (sql: string): string[] => {
       i++ // skip 'schema'
     } else if (token === 'drop' && nextToken === 'schema') {
       // Handle "drop schema if exists foo" vs "drop schema foo"
-      if (nextToken2 === 'if' && tokens[i + 3] === 'exists') {
-        const schemaName = cleanIdentifier(tokens[i + 4] || '')
+      if (nextToken2 === 'if' && tokens.at(i + 3) === 'exists') {
+        const schemaName = cleanIdentifier(tokens.at(i + 4) || '')
         if (schemaName && !schemaName.startsWith('$') && schemaName !== '(') {
           parts.push(`drop_schema_if_exists-${schemaName}`)
         } else {
@@ -279,11 +279,11 @@ const extractSqlParts = (sql: string): string[] => {
       let j = i + 2 // Start after 'create type'
       
       // Look for the type name, handling qualified identifiers
-      while (j < tokens.length && tokens[j] !== 'as' && tokens[j] !== '(' && tokens[j] !== ';') {
-        const token = tokens[j]
+      while (j < tokens.length && tokens.at(j) !== 'as' && tokens.at(j) !== '(' && tokens.at(j) !== ';') {
+        const token = tokens.at(j)
         if (token === '.') {
           // Skip dots in qualified names
-        } else if (!token.startsWith('$')) {
+        } else if (token && !token.startsWith('$')) {
           typeName = cleanIdentifier(token) // Take the last non-parameter token as the type name
         }
         j++
@@ -302,11 +302,11 @@ const extractSqlParts = (sql: string): string[] => {
       let j = i + 2 // Start after 'drop type'
       
       // Look for the type name, handling qualified identifiers
-      while (j < tokens.length && tokens[j] !== ';' && tokens[j] !== '(' && !keywordsToInclude.has(tokens[j])) {
-        const token = tokens[j]
+      while (j < tokens.length && tokens.at(j) !== ';' && tokens.at(j) !== '(' && !keywordsToInclude.has(tokens.at(j) || '')) {
+        const token = tokens.at(j)
         if (token === '.') {
           // Skip dots in qualified names
-        } else if (!token.startsWith('$')) {
+        } else if (token && !token.startsWith('$')) {
           typeName = cleanIdentifier(token) // Take the last non-parameter token as the type name
         }
         j++
@@ -334,12 +334,12 @@ const extractSqlParts = (sql: string): string[] => {
       if (cteName && cteName !== '(' && !cteName.startsWith('$')) {
         parts.push(cteName)
       }
-    } else if (keywordsToInclude.has(token)) {
+    } else if (token && keywordsToInclude.has(token)) {
       parts.push(token)
     }
 
     // Handle table names and important identifiers
-    if (['from', 'join', 'into', 'table', 'update'].includes(token) && nextToken) {
+    if (token && ['from', 'join', 'into', 'table', 'update'].includes(token) && nextToken) {
       const tableName = cleanIdentifier(nextToken)
       if (tableName && 
           !keywordsToInclude.has(tableName) && 
@@ -420,8 +420,8 @@ const extractSqlParts = (sql: string): string[] => {
         // Try to capture specific columns being returned
         const returnColumns = []
         let j = i + 1
-        while (j < tokens.length && tokens[j] !== ';' && !keywordsToInclude.has(tokens[j])) {
-          const col = cleanIdentifier(tokens[j])
+        while (j < tokens.length && tokens.at(j) !== ';' && !keywordsToInclude.has(tokens.at(j) || '')) {
+          const col = cleanIdentifier(tokens.at(j) || '')
           if (col && col !== ',' && col !== '(' && col !== ')' && !col.startsWith('$')) {
             returnColumns.push(col)
           }
@@ -439,13 +439,13 @@ const extractSqlParts = (sql: string): string[] => {
     }
 
     // Handle transaction keywords
-    if (isTransaction && ['begin', 'commit', 'rollback', 'savepoint'].includes(token)) {
+    if (isTransaction && token && ['begin', 'commit', 'rollback', 'savepoint'].includes(token)) {
       parts.push(token)
     }
 
     // Handle additional CTE names in WITH clause
     if (prevToken === ',' && 
-        !keywordsToInclude.has(token) && 
+        token && !keywordsToInclude.has(token) && 
         token !== '(' && 
         token !== ')' &&
         !token.startsWith('$') &&
@@ -492,7 +492,7 @@ export const nickname = (query: string, {debugAst = false} = {}) => {
   
   // Fallback to just the first keyword if no meaningful parts extracted
   if (!result) {
-    const firstKeyword = /(select|insert|update|delete|create|drop|alter|truncate|grant|revoke|begin|commit|rollback|savepoint|release|with)/i.exec(query.trim())?.[0]?.toLowerCase()
+    const firstKeyword = /(select|insert|update|delete|create|drop|alter|truncate|grant|revoke|begin|commit|rollback|savepoint|release|with)/i.exec(query.trim())?.at(0)?.toLowerCase()
     return firstKeyword || 'sql'
   }
   
@@ -500,11 +500,11 @@ export const nickname = (query: string, {debugAst = false} = {}) => {
 }
 
 export const nameQuery = (parts: readonly string[]) => {
-  const first = parts[0] || ''
-  const explicitName = first.startsWith('--name:')
-    ? first.split('\n')[0]?.replace('--name:', '').trim().replaceAll(/\W/g, '_')
+  const first = parts.at(0)
+  const explicitName = first?.startsWith('--name:')
+    ? first.split('\n').at(0)?.replace('--name:', '').trim().replaceAll(/\W/g, '_')
     : undefined
-  const namePart = explicitName || nickname(first)
+  const namePart = explicitName || nickname(first || '')
 
   return `${namePart}_${crypto.createHash('md5').update(parts.join('')).digest('hex').slice(0, 7)}`
 }
