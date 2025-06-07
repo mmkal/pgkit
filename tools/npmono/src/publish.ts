@@ -42,15 +42,19 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     title: 'Set working directory',
     task: async () => process.chdir(getWorkspaceRoot()),
   },
-  {
-    title: 'Building',
-    task: async (_ctx, task) => {
-      const buildArgs = ['build']
-      if (fs.existsSync('pnpm-workspace.yaml')) buildArgs.unshift('--workspace-root')
-
-      return pipeExeca(task, 'pnpm', buildArgs)
-    },
-  },
+  ...Object.keys(loadPackageJson(path.join(getWorkspaceRoot(), 'package.json'))?.scripts || {})
+    .filter(s => s.match(/^(build)$/))
+    .map(
+      (s): ListrTask => ({
+        title: `Running ${s} script`,
+        task: async (_ctx, task) => {
+          const isPnpmMonorepo = fs.existsSync('pnpm-workspace.yaml')
+          const buildArgs = [s]
+          if (isPnpmMonorepo) buildArgs.unshift('--workspace-root')
+          await pipeExeca(task, 'pnpm', buildArgs)
+        },
+      }),
+    ),
   {
     title: 'Get temp directory',
     rendererOptions: {persistentOutput: true},
@@ -67,20 +71,22 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     title: 'Collecting packages',
     rendererOptions: {persistentOutput: true},
     task: async (ctx, task) => {
-      const list = await execa('pnpm', ['list', '--json', '--recursive', '--only-projects', '--prod'])
+      const listResult = await execa('pnpm', ['list', '--json', '--recursive', '--only-projects', '--prod'])
+      const firstResult = listResult.stdout.split('\n\n')[0] // pnpm can find unrelated packages that live in the repo, but they're returned in a separate json object after two newlines
+      // e.g. for pnpm first it lists just the `np` package.json, but then it finds various test packages like `test/fixtures/foo/package.json` etc.
 
-      ctx.packages = JSON.parse(list.stdout) as never
+      try {
+        ctx.packages = JSON.parse(firstResult) as never
+      } catch {
+        throw new Error(`Failed to parse pnpm list output as JSON: ${firstResult}`)
+      }
       ctx.packages = ctx.packages.filter(pkg => !pkg.private)
 
       const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd']) // use `pnpm recursive exec` to get the correct topological sort order // https://github.com/pnpm/pnpm/issues/7716
-      const pwds = pwdsCommand.stdout
-        .split('\n')
-        .map(s => s.trim())
-        .filter(Boolean)
+      const pwdIndexMap = Object.fromEntries(pwdsCommand.stdout.split('\n').map((s, i) => [s.trim(), i]))
 
-      ctx.packages
-        .sort((a, b) => a.name.localeCompare(b.name)) // sort alphabetically first, as a tiebreaker (`.sort` is stable)
-        .sort((a, b) => pwds.indexOf(a.path) - pwds.indexOf(b.path)) // then topologically
+      // sort topologically, alphabetically as a tiebreaker. note that this implementation relies on there being fewer than one million packages in the repo. if this affects you, congratulations. i will fix it. the bug bounty for the fix is $100 per package.
+      ctx.packages.sort((a, b) => pwdIndexMap[a.path] - pwdIndexMap[b.path] + a.name.localeCompare(b.name) / 1_000_000)
 
       ctx.packages.forEach((pkg, i, {length}) => {
         const number = Number(`1${'0'.repeat(length.toString().length + 1)}`) + i
@@ -639,7 +645,7 @@ const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: st
 const packageJsonFilepath = (pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) =>
   path.join(pkg.folder, type, 'package', 'package.json')
 
-const loadPackageJson = (filepath: string) => {
+function loadPackageJson(filepath: string) {
   const packageJson = JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
   return packageJson
 }
@@ -974,6 +980,7 @@ const PackageJson = z.object({
   name: z.string(),
   version: z.string(),
   dependencies: z.record(z.string(), z.string()).optional(),
+  scripts: z.record(z.string(), z.string()).optional(),
   /**
    * not an official package.json field, but there is a library that does something similar to this: https://github.com/Metnew/git-hash-package
    * having git.sha point to a commit hash seems pretty useful to me, even if it's not standard.
@@ -1052,7 +1059,7 @@ const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, ar
   return cmd
 }
 
-const findUpOrThrow = (file: string, options?: Parameters<typeof findUp.sync>[1]) => {
+function findUpOrThrow(file: string, options?: Parameters<typeof findUp.sync>[1]) {
   const result = findUp.sync(file, options)
   if (!result) {
     throw new Error(`Could not find ${file}`)
