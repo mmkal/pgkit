@@ -553,27 +553,38 @@ export const publishPrebuilt = async ([folder, options]: PrebuiltInput) => {
   await tasks.run()
 }
 
-const createPublishTasks = (ctx: Ctx, options: {otp?: string}) =>
-  ctx.packages.map((pkg): ListrTask => {
-    const lhsPackageJson = loadLHSPackageJson(pkg)
-    const rhsPackageJson = loadRHSPackageJson(pkg)
-    ensureValidBumpedVersion(lhsPackageJson?.version || VERSION_ZERO, rhsPackageJson?.version)
-    return {
-      title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${rhsPackageJson?.version}`,
-      task: async (_ctx, subtask) => {
-        const publishArgs = ['--access', 'public']
-        if (options.otp) publishArgs.push('--otp', options.otp)
-        await pipeExeca(subtask, 'pnpm', ['publish', ...publishArgs], {
-          cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
-          env: {
-            ...process.env,
-            COREPACK_ENABLE_AUTO_PIN: '0',
-          },
-        })
+const createPublishTasks = (ctx: Ctx, options: {otp?: string}) => {
+  return [
+    ...ctx.packages.map((pkg): ListrTask => {
+      const lhsPackageJson = loadLHSPackageJson(pkg)
+      const rhsPackageJson = loadRHSPackageJson(pkg)
+      ensureValidBumpedVersion(lhsPackageJson?.version || VERSION_ZERO, rhsPackageJson?.version)
+      return {
+        title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${rhsPackageJson?.version}`,
+        task: async (_ctx, subtask) => {
+          const publishArgs = ['--access', 'public']
+          if (options.otp) publishArgs.push('--otp', options.otp)
+          await pipeExeca(subtask, 'pnpm', ['publish', ...publishArgs], {
+            cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
+            env: {
+              ...process.env,
+              COREPACK_ENABLE_AUTO_PIN: '0',
+            },
+          })
+        },
+      }
+    }),
+    {
+      title: 'Publish complete',
+      rendererOptions: {persistentOutput: true},
+      task: async (_ctx, task) => {
+        task.output = `To open a release draft, run the following command:`
+        task.output += `\n\n`
+        task.output += `pnpm npmono release-notes ${ctx.tempDir}`
       },
-    }
-  })
-
+    } as ListrTask,
+  ]
+}
 export const ReleaseNotesInput = z.object({
   comparison: z
     .string()
@@ -584,7 +595,12 @@ export const ReleaseNotesInput = z.object({
     })
     .optional()
     .describe('The comparison to use for the release notes. Format: `left...right` e.g. `1.0.0...1.0.1`'),
-  mode: z.enum(['individual', 'unified']).default('unified'),
+  mode: z
+    .enum(['individual', 'unified'])
+    .describe(
+      `Only relevant in a monorepo - 'unified' mode drafts one release with all packages' changes, 'individual' drafts one release per package.`,
+    )
+    .default('unified'),
 })
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
 
@@ -1054,10 +1070,18 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
         title: `Get comparison`,
         enabled: () => !input.comparison,
         task: async (ctx, task) => {
-          const pkgVersions = await Promise.all(ctx.packages.map(pkg => getRegistryVersions(pkg)))
-          const lasts = pkgVersions.map(v => v.at(-1)!.slice())
+          const pkgVersions = await Promise.all(
+            ctx.packages.map(async pkg => ({
+              name: pkg.name,
+              versions: await getRegistryVersions(pkg),
+            })),
+          )
+          if (pkgVersions.some(v => v.versions.length === 0)) {
+            throw new Error(`No versions found for some packages: ${JSON.stringify({pkgVersions}, null, 2)}`)
+          }
+          const lasts = pkgVersions.map(v => v.versions.at(-1)!.slice())
           const latest = lasts.sort((a, b) => semver.compare(a, b)).at(-1)!
-          const all = pkgVersions.flat().sort((a, b) => semver.compare(a, b))
+          const all = pkgVersions.flatMap(v => v.versions).sort((a, b) => semver.compare(a, b))
 
           const left =
             all

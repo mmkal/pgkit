@@ -19,11 +19,10 @@ const router = t.router({
     .mutation(async ({input}) => publishPrebuilt(input)),
 
   releaseNotes: t.procedure
-    .input(
-      ReleaseNotesInput.extend({
-        acknowledgeThisDoesNotWorkYet: z.boolean(),
-      }),
-    ) //
+    .meta({
+      description: `Creates a GitHub release notes draft in markdown format, and opens it in the default browser. It does not perform any side-effects - if you're happy with the draft, just click "Create release" on GitHub. That will create the release and the git tag.`,
+    })
+    .input(ReleaseNotesInput) //
     .mutation(async ({input}) => {
       return releaseNotes(input)
     }),
