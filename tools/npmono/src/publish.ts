@@ -62,15 +62,7 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     title: 'Collecting packages',
     rendererOptions: {persistentOutput: true},
     task: async (ctx, task) => {
-      const list = await execa('pnpm', [
-        'list',
-        '--json',
-        '--recursive',
-        '--only-projects',
-        '--prod',
-        '--filter',
-        './packages/*',
-      ])
+      const list = await execa('pnpm', ['list', '--json', '--recursive', '--only-projects', '--prod'])
 
       ctx.packages = JSON.parse(list.stdout) as never
       ctx.packages = ctx.packages.filter(pkg => !pkg.private)
