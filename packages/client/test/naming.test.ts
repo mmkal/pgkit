@@ -69,6 +69,39 @@ test('nickname', async () => {
       `,
     ),
   ).toMatchInlineSnapshot(`"with-one-select-foo-filtered-bar-insert-baz-returning_all-three"`)
+
+  expect(
+    nickname(`
+      -- select foo from bar
+      select xyz from abc
+    `),
+  ).toMatchInlineSnapshot(`"select-abc"`)
+
+  expect(nickname('begin')).toMatchInlineSnapshot(`"begin"`)
+
+  expect(nickname('commit')).toMatchInlineSnapshot(`"commit"`)
+
+  expect(nickname('rollback')).toMatchInlineSnapshot(`"rollback"`)
+
+  expect(nickname('begin; select * from users; commit;')).toMatchInlineSnapshot(`"begin-select-users-commit"`)
+
+  expect(nickname('select pg_sleep($1)')).toMatchInlineSnapshot(`"select-pg_sleep"`)
+
+  expect(nickname('select current_setting($1) server_version')).toMatchInlineSnapshot(`"select-current_setting"`)
+
+  expect(nickname('select pg_catalog.now()')).toMatchInlineSnapshot(`"select-now"`)
+
+  expect(nickname("create type other.otherenum1 as enum('a', 'b', 'c')")).toMatchInlineSnapshot(
+    `"create_type_other_otherenum1"`,
+  )
+
+  expect(nickname("create type test_enum as enum('foo', 'bar')")).toMatchInlineSnapshot(`"create_type_test_enum"`)
+
+  expect(nickname('drop type other.otherenum1')).toMatchInlineSnapshot(`"drop_type_other_otherenum1"`)
+
+  expect(
+    nickname("create type \"public\".\"shipping_status\" as enum ('not shipped', 'shipped', 'delivered')"),
+  ).toMatchInlineSnapshot(`"create_type_shipping_status"`)
 })
 
 test('scan the whole repo', async () => {
@@ -353,4 +386,48 @@ test('scan the whole repo', async () => {
       "tools/npmono/src/publish.ts"
     ]
   `)
+})
+
+test('scan the whole repo for sql files', async () => {
+  const repoRoot = path.join(process.cwd(), '..', '..')
+  const {stdout} = await execa('git', ['ls-files', '**/*.sql'], {cwd: repoRoot})
+  const sqlFiles = String(stdout).split('\n').filter(Boolean)
+  // for (const tsFile of tsFiles) {
+  //   const sql = await fs.readFile(path.join(process.cwd(), '..', '..', tsFile), 'utf-8')
+  // }
+
+  const names = sqlFiles.flatMap(filepath => {
+    const ts = fs.readFileSync(path.join(repoRoot, filepath), 'utf8')
+    const queries = ts.split(';').map(q => q.trim())
+
+    return queries
+      .map(query => {
+        const untemplated = query
+          .split('${')
+          .map((part, i) => {
+            if (i === 0) return part
+            let contents = ''
+            let count = 1
+            for (let i = 0; i < part.length; i++) {
+              if (part[i] === '{') count++
+              if (part[i] === '}') {
+                count--
+                if (count === 0) contents = part.slice(0, i)
+              }
+            }
+            return `$` + i + part.slice(contents.length + 1)
+            return contents.replaceAll(/\W/g, '_') + part.slice(contents.length + 1)
+          })
+          .join('')
+        return {
+          filepath,
+          raw: query,
+          untemplated,
+        }
+      })
+      .filter(({untemplated}) => !untemplated.includes('${')) // uhh i guess the parsing wasn't perfect
+      .map(q => ({...q, nickname: nickname(q.untemplated)}))
+  })
+
+  expect(names).toMatchSnapshot()
 })

@@ -70,7 +70,7 @@ test('nested parameterized `sql` tag', async () => {
 
   expect(complexQuery).toMatchInlineSnapshot(`
     {
-      "name": "insert_e99c9be",
+      "name": "insert-edge_cases_test_e99c9be",
       "parse": [Function],
       "segments": [Function],
       "sql": "
@@ -109,7 +109,7 @@ test('nested parameterized `sql.fragment` tag', async () => {
 
   expect(complexQuery).toMatchInlineSnapshot(`
     {
-      "name": "insert_e99c9be",
+      "name": "insert-edge_cases_test_e99c9be",
       "parse": [Function],
       "segments": [Function],
       "sql": "
@@ -148,7 +148,7 @@ test('join param', async () => {
   `
   expect(query).toMatchInlineSnapshot(`
     {
-      "name": "update_9990569",
+      "name": "update-edge_cases_test_9990569",
       "parse": [Function],
       "segments": [Function],
       "sql": "

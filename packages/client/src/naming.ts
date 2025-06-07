@@ -6,6 +6,9 @@ const keywordsToInclude = new Set([
   'savepoint', 'release', 'with', 'alter table', 'create table', 'add column'
 ])
 
+// this insane sql tokenizerm + extractor was written by claude 4 sonnet. it should absolutely not be relied on for anything other than
+// getting a very rough "nickname" for a query. use a real sql parser.
+
 // Simple SQL tokenizer
 const tokenize = (sql: string): string[] => {
   // Remove comments and normalize whitespace
@@ -150,6 +153,31 @@ const extractSqlParts = (sql: string): string[] => {
         parts.push('aggregate')
       } else {
         parts.push('select')
+        
+        // Look for function calls after SELECT
+        let j = i + 1
+        while (j < tokens.length && tokens[j] !== 'from' && tokens[j] !== 'where' && tokens[j] !== ';') {
+          const currentToken = tokens[j]
+          const nextToken = tokens[j + 1]
+          
+          // Check if this looks like a function call (token followed by opening parenthesis)
+          if (nextToken === '(' && currentToken && 
+              !keywordsToInclude.has(currentToken) && 
+              !currentToken.startsWith('$') &&
+              currentToken !== ',' &&
+              currentToken !== '*') {
+            
+            // Clean up function name (remove schema prefix if present)
+            let funcName = cleanIdentifier(currentToken)
+            if (funcName.includes('.')) {
+              funcName = funcName.split('.').pop() || funcName
+            }
+            
+            parts.push(funcName)
+            break // Only capture the first function for brevity
+          }
+          j++
+        }
       }
     } else if (token === 'insert') {
       if (hasJsonb) {
@@ -244,6 +272,52 @@ const extractSqlParts = (sql: string): string[] => {
     } else if (token === 'drop' && nextToken === 'database') {
       parts.push('drop_db')
       i++ // skip 'database'
+    } else if (token === 'create' && nextToken === 'type') {
+      // Add type name to create_type operations
+      // Handle qualified identifiers like "schema"."type_name"
+      let typeName = ''
+      let j = i + 2 // Start after 'create type'
+      
+      // Look for the type name, handling qualified identifiers
+      while (j < tokens.length && tokens[j] !== 'as' && tokens[j] !== '(' && tokens[j] !== ';') {
+        const token = tokens[j]
+        if (token === '.') {
+          // Skip dots in qualified names
+        } else if (!token.startsWith('$')) {
+          typeName = cleanIdentifier(token) // Take the last non-parameter token as the type name
+        }
+        j++
+      }
+      
+      if (typeName && !typeName.startsWith('$')) {
+        parts.push(`create_type-${typeName}`)
+      } else {
+        parts.push('create_type')
+      }
+      i++ // skip 'type'
+    } else if (token === 'drop' && nextToken === 'type') {
+      // Add type name to drop_type operations
+      // Handle qualified identifiers like "schema"."type_name"
+      let typeName = ''
+      let j = i + 2 // Start after 'drop type'
+      
+      // Look for the type name, handling qualified identifiers
+      while (j < tokens.length && tokens[j] !== ';' && tokens[j] !== '(' && !keywordsToInclude.has(tokens[j])) {
+        const token = tokens[j]
+        if (token === '.') {
+          // Skip dots in qualified names
+        } else if (!token.startsWith('$')) {
+          typeName = cleanIdentifier(token) // Take the last non-parameter token as the type name
+        }
+        j++
+      }
+      
+      if (typeName && !typeName.startsWith('$')) {
+        parts.push(`drop_type-${typeName}`)
+      } else {
+        parts.push('drop_type')
+      }
+      i++ // skip 'type'
     } else if (token === 'create' && nextToken === 'index') {
       // Add index name to create_index operations
       const indexName = cleanIdentifier(nextToken2 || '')
@@ -425,15 +499,12 @@ export const nickname = (query: string, {debugAst = false} = {}) => {
   return result
 }
 
-export const nameQuery = (parts: readonly string[], defaultKeyword = 'sql') => {
+export const nameQuery = (parts: readonly string[]) => {
   const first = parts[0] || ''
   const explicitName = first.startsWith('--name:')
     ? first.split('\n')[0]?.replace('--name:', '').trim().replaceAll(/\W/g, '_')
-    : null
-  const keyword =
-    /(select|insert|update|delete|create|drop|alter|truncate|grant|revoke|begin|commit|rollback|savepoint|release)/i.exec(
-      first?.trim(),
-    )?.[0] || defaultKeyword
+    : undefined
+  const namePart = explicitName || nickname(first)
 
-  return `${explicitName || nickname(first) || keyword}_${crypto.createHash('md5').update(parts.join('')).digest('hex').slice(0, 7)}`
+  return `${namePart}_${crypto.createHash('md5').update(parts.join('')).digest('hex').slice(0, 7)}`
 }

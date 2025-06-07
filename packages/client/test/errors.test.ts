@@ -37,144 +37,144 @@ beforeAll(async () => {
 test('one error', async () => {
   await expect(pool.one(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
     `
-      [QueryError]: [select-test_errors_36f5f64]: Expected one row
-      {
-        "message": "[select-test_errors_36f5f64]: Expected one row",
-        "query": {
-          "name": "select-test_errors_36f5f64",
-          "sql": "select * from test_errors where id > 1",
-          "token": "sql",
-          "values": []
-        },
-        "result": {
-          "rows": [
-            {
-              "id": 2,
-              "name": "two"
-            },
-            {
-              "id": 3,
-              "name": "three"
-            }
-          ],
-          "command": "SELECT",
-          "rowCount": 2,
-          "fields": [
-            {
-              "name": "id",
-              "tableID": "[tableID]",
-              "columnID": 1,
-              "dataTypeID": "[dataTypeID]",
-              "dataTypeSize": 4,
-              "dataTypeModifier": -1,
-              "format": "text"
-            },
-            {
-              "name": "name",
-              "tableID": "[tableID]",
-              "columnID": 2,
-              "dataTypeID": "[dataTypeID]",
-              "dataTypeSize": -1,
-              "dataTypeModifier": -1,
-              "format": "text"
-            }
-          ]
-        }
+    [QueryError]: [select-test_errors-filtered_36f5f64]: Expected one row
+    {
+      "message": "[select-test_errors-filtered_36f5f64]: Expected one row",
+      "query": {
+        "name": "select-test_errors-filtered_36f5f64",
+        "sql": "select * from test_errors where id > 1",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [
+          {
+            "id": 2,
+            "name": "two"
+          },
+          {
+            "id": 3,
+            "name": "three"
+          }
+        ],
+        "command": "SELECT",
+        "rowCount": 2,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": "[tableID]",
+            "columnID": 1,
+            "dataTypeID": "[dataTypeID]",
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": "[tableID]",
+            "columnID": 2,
+            "dataTypeID": "[dataTypeID]",
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
+        ]
       }
-    `,
+    }
+  `,
   )
 })
 
 test('maybeOne error', async () => {
   await expect(pool.maybeOne(sql`select * from test_errors where id > 1`)).rejects.toMatchInlineSnapshot(
     `
-      [QueryError]: [select-test_errors_36f5f64]: Expected at most one row
-      {
-        "message": "[select-test_errors_36f5f64]: Expected at most one row",
-        "query": {
-          "name": "select-test_errors_36f5f64",
-          "sql": "select * from test_errors where id > 1",
-          "token": "sql",
-          "values": []
-        },
-        "result": {
-          "rows": [
-            {
-              "id": 2,
-              "name": "two"
-            },
-            {
-              "id": 3,
-              "name": "three"
-            }
-          ],
-          "command": "SELECT",
-          "rowCount": 2,
-          "fields": [
-            {
-              "name": "id",
-              "tableID": "[tableID]",
-              "columnID": 1,
-              "dataTypeID": "[dataTypeID]",
-              "dataTypeSize": 4,
-              "dataTypeModifier": -1,
-              "format": "text"
-            },
-            {
-              "name": "name",
-              "tableID": "[tableID]",
-              "columnID": 2,
-              "dataTypeID": "[dataTypeID]",
-              "dataTypeSize": -1,
-              "dataTypeModifier": -1,
-              "format": "text"
-            }
-          ]
-        }
+    [QueryError]: [select-test_errors-filtered_36f5f64]: Expected at most one row
+    {
+      "message": "[select-test_errors-filtered_36f5f64]: Expected at most one row",
+      "query": {
+        "name": "select-test_errors-filtered_36f5f64",
+        "sql": "select * from test_errors where id > 1",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [
+          {
+            "id": 2,
+            "name": "two"
+          },
+          {
+            "id": 3,
+            "name": "three"
+          }
+        ],
+        "command": "SELECT",
+        "rowCount": 2,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": "[tableID]",
+            "columnID": 1,
+            "dataTypeID": "[dataTypeID]",
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": "[tableID]",
+            "columnID": 2,
+            "dataTypeID": "[dataTypeID]",
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
+        ]
       }
-    `,
+    }
+  `,
   )
 })
 
 test('many error', async () => {
   await expect(pool.many(sql`select * from test_errors where id > 100`)).rejects.toMatchInlineSnapshot(
     `
-      [QueryError]: [select-test_errors_34cad85]: Expected at least one row
-      {
-        "message": "[select-test_errors_34cad85]: Expected at least one row",
-        "query": {
-          "name": "select-test_errors_34cad85",
-          "sql": "select * from test_errors where id > 100",
-          "token": "sql",
-          "values": []
-        },
-        "result": {
-          "rows": [],
-          "command": "SELECT",
-          "rowCount": 0,
-          "fields": [
-            {
-              "name": "id",
-              "tableID": "[tableID]",
-              "columnID": 1,
-              "dataTypeID": "[dataTypeID]",
-              "dataTypeSize": 4,
-              "dataTypeModifier": -1,
-              "format": "text"
-            },
-            {
-              "name": "name",
-              "tableID": "[tableID]",
-              "columnID": 2,
-              "dataTypeID": "[dataTypeID]",
-              "dataTypeSize": -1,
-              "dataTypeModifier": -1,
-              "format": "text"
-            }
-          ]
-        }
+    [QueryError]: [select-test_errors-filtered_34cad85]: Expected at least one row
+    {
+      "message": "[select-test_errors-filtered_34cad85]: Expected at least one row",
+      "query": {
+        "name": "select-test_errors-filtered_34cad85",
+        "sql": "select * from test_errors where id > 100",
+        "token": "sql",
+        "values": []
+      },
+      "result": {
+        "rows": [],
+        "command": "SELECT",
+        "rowCount": 0,
+        "fields": [
+          {
+            "name": "id",
+            "tableID": "[tableID]",
+            "columnID": 1,
+            "dataTypeID": "[dataTypeID]",
+            "dataTypeSize": 4,
+            "dataTypeModifier": -1,
+            "format": "text"
+          },
+          {
+            "name": "name",
+            "tableID": "[tableID]",
+            "columnID": 2,
+            "dataTypeID": "[dataTypeID]",
+            "dataTypeSize": -1,
+            "dataTypeModifier": -1,
+            "format": "text"
+          }
+        ]
       }
-    `,
+    }
+  `,
   )
 })
 
@@ -253,7 +253,7 @@ test('no snapshot serializer - exclude from readme', async () => {
     `
     disable-snapshot-serializer
 
-    [QueryError: [select_6955765]: Executing query failed (syntax_error)
+    [QueryError: [select-whoops_6955765]: Executing query failed (syntax_error)
 
     syntax error at or near "."
 
@@ -445,7 +445,7 @@ test('no snapshot serializer - exclude from readme', async () => {
           '    from whoops information_schema.tables;\\n' +
           '  ',
         parse: [Function: parse],
-        name: 'select_6955765',
+        name: 'select-whoops_6955765',
         token: 'sql',
         values: [],
         segments: [Function: segments],
