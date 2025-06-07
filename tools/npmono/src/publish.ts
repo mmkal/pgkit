@@ -113,7 +113,7 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
   },
 ]
 
-const getRegistryVersions = async (pkg: Pick<Pkg, 'name'>) => {
+async function getRegistryVersions(pkg: Pick<Pkg, 'name'>) {
   const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
   const StdoutShape = z.union([
     z.array(z.string()).nonempty(), // success
@@ -507,7 +507,7 @@ export const publish = async (input: PublishInput) => {
   return tasks.run()
 }
 
-const loadContext = (folderPath: string) => {
+function loadContext(folderPath: string) {
   const contextFilepath = path.join(folderPath, 'context.json')
   if (!fs.existsSync(contextFilepath)) throw new Error(`No context found at ${contextFilepath}`)
   const ctxString = fs.readFileSync(contextFilepath).toString()
@@ -527,7 +527,7 @@ export const PrebuiltInput = z.tuple([
 ])
 type PrebuiltInput = z.infer<typeof PrebuiltInput>
 
-export const publishPrebuilt = async ([folder, options]: PrebuiltInput) => {
+export async function publishPrebuilt([folder, options]: PrebuiltInput) {
   const ctx = loadContext(folder)
   const tasks = new Listr(
     [
@@ -559,7 +559,7 @@ export const publishPrebuilt = async ([folder, options]: PrebuiltInput) => {
   await tasks.run()
 }
 
-const createPublishTasks = (ctx: Ctx, options: {otp?: string}) => {
+function createPublishTasks(ctx: Ctx, options: {otp?: string}) {
   return [
     ...ctx.packages.map((pkg): ListrTask => {
       const lhsPackageJson = loadLHSPackageJson(pkg)
@@ -610,11 +610,11 @@ export const ReleaseNotesInput = z.object({
 })
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
 
-const pullRegistryPackage = async (
+async function pullRegistryPackage(
   subtask: ListrTaskWrapper<Ctx, never, never>,
   pkg: {name: string},
   {version, folder}: {version: string; folder: string},
-) => {
+) {
   // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
   await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${version}`], {cwd: folder})
 
@@ -631,7 +631,7 @@ const pullRegistryPackage = async (
   return packageJson
 }
 
-const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: string; body: string}) => {
+async function openReleaseDraft(repoUrl: string, params: {tag: string; title: string; body: string}) {
   const getUrl = () => `${repoUrl}/releases/new?${new URLSearchParams(params).toString()}`
   if (getUrl().length > 8192) {
     // copy body to clipboard using clipboardy
@@ -642,26 +642,27 @@ const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: st
   await execa('open', [getUrl()])
 }
 
-const packageJsonFilepath = (pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) =>
-  path.join(pkg.folder, type, 'package', 'package.json')
+function packageJsonFilepath(pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) {
+  return path.join(pkg.folder, type, 'package', 'package.json')
+}
 
 function loadPackageJson(filepath: string) {
   const packageJson = JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
   return packageJson
 }
 
-const loadLHSPackageJson = (pkg: PkgMeta) => {
+function loadLHSPackageJson(pkg: PkgMeta) {
   const filepath = packageJsonFilepath(pkg, LHS_FOLDER)
   if (!fs.existsSync(filepath)) return null
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
-const loadRHSPackageJson = (pkg: PkgMeta) => {
+function loadRHSPackageJson(pkg: PkgMeta) {
   const filepath = packageJsonFilepath(pkg, RHS_FOLDER)
   if (!fs.existsSync(filepath)) return null
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
 
-const bumpChoices = (oldVersion: string) => {
+function bumpChoices(oldVersion: string) {
   const releaseTypes: semver.ReleaseType[] = allReleaseTypes.filter(r => r !== 'prerelease')
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   semver.prerelease(oldVersion) ? releaseTypes.unshift('prerelease') : releaseTypes.push('prerelease')
@@ -840,11 +841,12 @@ async function getPackageRevList(pkg: Pkg) {
 
 const changelogFilepath = (pkg: Pkg) => path.join(pkg.folder, 'changes/changelog.md')
 
-const workspaceDependencies = (pkg: Pkg, ctx: Ctx, depth = 0): Pkg[] =>
-  Object.keys(pkg.dependencies || {}).flatMap(name => {
+function workspaceDependencies(pkg: Pkg, ctx: Ctx, depth = 0): Pkg[] {
+  return Object.keys(pkg.dependencies || {}).flatMap(name => {
     const dep = ctx.packages.find(p => p.name === name)
     return dep ? [dep, ...(depth > 0 ? workspaceDependencies(dep, ctx, depth - 1) : [])] : []
   })
+}
 
 /**
  * Creates a changelog.md and returns its content. If one already exists, its content is returned without being regenerated.
@@ -924,7 +926,8 @@ async function getChangelog(ctx: Ctx, pkg: Pkg) {
   return changelogContent
 }
 
-const getPackageJsonRepository = (packageJson: PackageJson) => {
+/** lovely algorith which i think supports all the ways a repository can be specified */
+function getPackageJsonRepository(packageJson: PackageJson) {
   let repoString: string
   if (!packageJson.repository) return null
   if (typeof packageJson.repository === 'object' && packageJson.repository.type !== 'git') {
@@ -1047,7 +1050,7 @@ type Pkg = z.infer<typeof Pkg>
 type Ctx = z.infer<typeof Ctx>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, args: string[], options?: Options) => {
+async function pipeExeca(task: ListrTaskWrapper<any, any, any>, file: string, args: string[], options?: Options) {
   const cmd = execa(file, args, {
     ...options,
     env: {
@@ -1067,9 +1070,7 @@ function findUpOrThrow(file: string, options?: Parameters<typeof findUp.sync>[1]
   return result
 }
 
-// this doesn't work yet
-// consider making it a separate command that can read the folder made by the main publish command
-export const releaseNotes = async (input: ReleaseNotesInput) => {
+export async function releaseNotes(input: ReleaseNotesInput) {
   const tasks = new Listr<Ctx, never, never>(
     [
       ...setupContextTasks,
