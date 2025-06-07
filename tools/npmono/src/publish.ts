@@ -44,7 +44,12 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
   },
   {
     title: 'Building',
-    task: async (_ctx, task) => pipeExeca(task, 'pnpm', ['-w', 'build']),
+    task: async (_ctx, task) => {
+      const buildArgs = ['build']
+      if (fs.existsSync('pnpm-workspace.yaml')) buildArgs.unshift('--workspace-root')
+
+      return pipeExeca(task, 'pnpm', buildArgs)
+    },
   },
   {
     title: 'Get temp directory',
@@ -683,7 +688,20 @@ async function getPackageLastPublishRef(pkg: Pkg) {
 async function getPackageJsonGitSha(pkg: Pkg, packageJson: PackageJson | null) {
   const explicitSha = packageJson?.git?.sha
   if (explicitSha) return explicitSha
+
+  const tagSha = await getPackageJsonShaFromVersionTag(pkg, packageJson)
+  if (tagSha) return tagSha
+
   return await getFirstRef(pkg)
+}
+
+async function getPackageJsonShaFromVersionTag(pkg: Pkg, packageJson: PackageJson | null) {
+  if (!packageJson?.version) return null
+  const {stdout: vTagSha} = await execa('git', ['rev-list', '-n', '1', `v${packageJson.version}`], {cwd: pkg.path})
+  if (vTagSha) return vTagSha
+
+  const {stdout: tagSha} = await execa('git', ['rev-list', '-n', '1', packageJson.version], {cwd: pkg.path})
+  return tagSha
 }
 
 async function getFirstRef(pkg: Pkg) {
