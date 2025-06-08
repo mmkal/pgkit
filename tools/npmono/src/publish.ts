@@ -6,7 +6,6 @@ import {Listr, ListrTask, ListrTaskWrapper} from 'listr2'
 import * as path from 'path'
 import * as semver from 'semver'
 import {z} from 'trpc-cli'
-import {inspect} from 'util'
 
 const VERSION_ZERO = '0.0.0'
 
@@ -216,7 +215,9 @@ export const publish = async (input: PublishInput) => {
               version: bumpedVersion,
             }
           }
-          task.output = inspect(ctx.versionStrategy)
+          task.output = Object.entries(ctx.versionStrategy)
+            .map(e => e.join(': '))
+            .join(', ')
         },
       },
       {
