@@ -59,9 +59,12 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     rendererOptions: {persistentOutput: true},
     task: async (ctx, task) => {
       const list = await execa('pnpm', ['list', '--json', '--depth', '0', '--filter', '.'])
-      const pkgName = JSON.parse(list.stdout)?.[0]?.name as string | undefined
-      if (!pkgName) throw new Error(`Couldn't get package name from pnpm list output: ${list.stdout}`)
-      ctx.tempDir = path.join('/tmp/npmono', pkgName, Date.now().toString())
+      let projectName = JSON.parse(list.stdout)?.[0]?.name as string | undefined
+      if (!projectName) {
+        projectName = path.basename(getWorkspaceRoot())
+      }
+      if (!projectName) throw new Error(`Couldn't get package name from pnpm list output: ${list.stdout}`)
+      ctx.tempDir = path.join('/tmp/npmono', projectName, Date.now().toString())
       task.output = ctx.tempDir
       fs.mkdirSync(ctx.tempDir, {recursive: true})
     },
@@ -724,10 +727,16 @@ async function getPackageJsonShaFromVersionTag(pkg: Pkg, packageJson: PackageJso
   //   `Getting ${pkg.name} (${packageJson?.version}) sha from version tag. v[] thing: ${packageJson?.version ? (await execa('git', ['log', '-n', '1', `v${packageJson?.version}`], {cwd: pkg.path})).stdout : JSON.stringify({pkg, packageJson}, null, 2)}`,
   // )
   if (!packageJson?.version) return null
-  const {stdout: vTagSha} = await execa('git', ['rev-list', '-n', '1', `v${packageJson.version}`], {cwd: pkg.path})
+  const {stdout: vTagSha} = await execa('git', ['rev-list', '-n', '1', `v${packageJson.version}`], {
+    cwd: pkg.path,
+    reject: false,
+  })
   if (vTagSha) return vTagSha
 
-  const {stdout: tagSha} = await execa('git', ['rev-list', '-n', '1', packageJson.version], {cwd: pkg.path})
+  const {stdout: tagSha} = await execa('git', ['rev-list', '-n', '1', packageJson.version], {
+    cwd: pkg.path,
+    reject: false,
+  })
   return tagSha
 }
 
@@ -839,7 +848,7 @@ async function getPackageRevList(pkg: Pkg) {
     // versionComparisonString,
     markdown:
       sections.filter(Boolean).join('\n').trim() ||
-      `No commits to ${pkg.name} between found between ${fromRef} (last publish) and ${localRef} (current).`,
+      `No commits to ${pkg.name} between found between ${fromRef.slice(0, 7)} (last publish) and ${localRef.slice(0, 7)} (current).`,
   }
 }
 
