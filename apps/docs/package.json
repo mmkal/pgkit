@@ -2,6 +2,7 @@
   "name": "@pgkit/docs",
   "version": "0.0.1",
   "description": "Documentation for pgkit.dev",
+  "private": true,
   "scripts": {
     "prepare": "pnpm generate",
     "generate": "tsx scripts/build",

@@ -720,6 +720,9 @@ async function getPackageJsonGitSha(pkg: Pkg, packageJson: PackageJson | null) {
 }
 
 async function getPackageJsonShaFromVersionTag(pkg: Pkg, packageJson: PackageJson | null) {
+  // throw new Error(
+  //   `Getting ${pkg.name} (${packageJson?.version}) sha from version tag. v[] thing: ${packageJson?.version ? (await execa('git', ['log', '-n', '1', `v${packageJson?.version}`], {cwd: pkg.path})).stdout : JSON.stringify({pkg, packageJson}, null, 2)}`,
+  // )
   if (!packageJson?.version) return null
   const {stdout: vTagSha} = await execa('git', ['rev-list', '-n', '1', `v${packageJson.version}`], {cwd: pkg.path})
   if (vTagSha) return vTagSha
