@@ -16,12 +16,18 @@ export const format = (query: string) => {
   }
 }
 
-const argsMap: Record<string, MigraOptions> = {
+const originalArgsMap: Record<string, MigraOptions> = {
   singleschema: {schema: 'goodschema'},
   excludeschema: {excludeSchema: 'excludedschema'},
   singleschema_ext: {createExtensionsOnly: true},
   extversions: {ignoreExtensionVersions: false},
 }
+
+const newArgsMap: Record<string, MigraOptions> = {
+  excludemultipleschema: {excludeSchema: ['excludedschema1', 'excludedschema2']},
+}
+
+const argsMap = {...originalArgsMap, ...newArgsMap}
 
 export const createDB = async (url: string, admin: Client, prefix: string) => {
   const db = url.split('/').at(-1)
