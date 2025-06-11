@@ -18,13 +18,13 @@ export const format = (query: string) => {
 
 const originalArgsMap: Record<string, MigraOptions> = {
   singleschema: {schema: 'goodschema'},
-  excludeschema: {excludeSchema: 'excludedschema'},
+  excludeschema: {excludeSchema: ['excludedschema']},
   singleschema_ext: {createExtensionsOnly: true},
   extversions: {ignoreExtensionVersions: false},
 }
 
 const newArgsMap: Record<string, MigraOptions> = {
-  excludemultipleschema: {excludeSchema: ['excludedschema1', 'excludedschema2']},
+  excludemultipleschemas: {excludeSchema: ['excludedschema1', 'excludedschema2']},
 }
 
 const argsMap = {...originalArgsMap, ...newArgsMap}
@@ -97,9 +97,15 @@ export const getFixtures = (prefix: string, fixturesDir: string) => {
             .replace(/exclude-schema/, 'exclude_schema')
           if (v === false) return []
           if (v === true) return [arg]
+          if (isStringArray(v)) {
+            return v.join(' ')
+          }
           return [arg, v]
         })
       },
     } as const
   })
 }
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every(item => typeof item === 'string')

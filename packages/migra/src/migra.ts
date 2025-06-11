@@ -8,7 +8,7 @@ export class Migration {
   statements: Statements
   changes: Changes
   schema: string | null
-  exclude_schema: string | null
+  exclude_schemas: string[] | null
   s_from: Queryable | PostgreSQL
   s_target: Queryable | PostgreSQL
 
@@ -19,11 +19,11 @@ export class Migration {
   static async create(
     x_from: Queryable | PostgreSQL,
     x_target: Queryable | PostgreSQL,
-    {schema = null as string | null, exclude_schema = null as string | null, ignore_extension_versions = false},
+    {schema = null as string | null, exclude_schemas = null as string[] | null, ignore_extension_versions = false},
   ) {
     // deviation: python code checked if x_from and x_target were instances of DBInspector. This just insists on being passed valid SqlbagS instances
-    const pg_from = await get_inspector(x_from, schema, exclude_schema)
-    const pg_target = await get_inspector(x_target, schema, exclude_schema)
+    const pg_from = await get_inspector(x_from, schema, exclude_schemas)
+    const pg_target = await get_inspector(x_target, schema, exclude_schemas)
     const instance = new Migration()
     instance.changes = new Changes(pg_from, pg_target)
     instance.s_from = x_from
@@ -35,11 +35,11 @@ export class Migration {
   }
 
   async inspect_from() {
-    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schema)
+    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schemas)
   }
 
   async inspect_target() {
-    this.changes.i_target = await get_inspector(this.s_target, this.schema, this.exclude_schema)
+    this.changes.i_target = await get_inspector(this.s_target, this.schema, this.exclude_schemas)
   }
 
   clear() {
@@ -52,7 +52,7 @@ export class Migration {
       await bag.query(sql.raw(stmt))
     }
 
-    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schema)
+    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schemas)
     const safety_on = this.statements.safe
     this.clear()
     this.set_safety(safety_on)
