@@ -51,7 +51,7 @@ export const router = t.router({
             .optional(),
           replacements: z
             .string()
-            .transform(s => s.split(':'))
+            .transform<unknown[]>(s => s.split(':'))
             .pipe(z.tuple([z.string(), z.string()]))
             .array()
             .describe(

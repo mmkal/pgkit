@@ -6,7 +6,6 @@ import {Listr, ListrTask, ListrTaskWrapper} from 'listr2'
 import * as path from 'path'
 import * as semver from 'semver'
 import {z} from 'trpc-cli'
-import {inspect} from 'util'
 
 const VERSION_ZERO = '0.0.0'
 
@@ -42,18 +41,30 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     title: 'Set working directory',
     task: async () => process.chdir(getWorkspaceRoot()),
   },
-  {
-    title: 'Building',
-    task: async (_ctx, task) => pipeExeca(task, 'pnpm', ['-w', 'build']),
-  },
+  ...Object.keys(loadPackageJson(path.join(getWorkspaceRoot(), 'package.json'))?.scripts || {})
+    .filter(s => s.match(/^(build)$/))
+    .map(
+      (s): ListrTask => ({
+        title: `Running ${s} script`,
+        task: async (_ctx, task) => {
+          const isPnpmMonorepo = fs.existsSync('pnpm-workspace.yaml')
+          const buildArgs = [s]
+          if (isPnpmMonorepo) buildArgs.unshift('--workspace-root')
+          await pipeExeca(task, 'pnpm', buildArgs)
+        },
+      }),
+    ),
   {
     title: 'Get temp directory',
     rendererOptions: {persistentOutput: true},
     task: async (ctx, task) => {
       const list = await execa('pnpm', ['list', '--json', '--depth', '0', '--filter', '.'])
-      const pkgName = JSON.parse(list.stdout)?.[0]?.name as string | undefined
-      if (!pkgName) throw new Error(`Couldn't get package name from pnpm list output: ${list.stdout}`)
-      ctx.tempDir = path.join('/tmp/npmono', pkgName, Date.now().toString())
+      let projectName = JSON.parse(list.stdout)?.[0]?.name as string | undefined
+      if (!projectName) {
+        projectName = path.basename(getWorkspaceRoot())
+      }
+      if (!projectName) throw new Error(`Couldn't get package name from pnpm list output: ${list.stdout}`)
+      ctx.tempDir = path.join('/tmp/npmono', projectName, Date.now().toString())
       task.output = ctx.tempDir
       fs.mkdirSync(ctx.tempDir, {recursive: true})
     },
@@ -62,28 +73,22 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
     title: 'Collecting packages',
     rendererOptions: {persistentOutput: true},
     task: async (ctx, task) => {
-      const list = await execa('pnpm', [
-        'list',
-        '--json',
-        '--recursive',
-        '--only-projects',
-        '--prod',
-        '--filter',
-        './packages/*',
-      ])
+      const listResult = await execa('pnpm', ['list', '--json', '--recursive', '--only-projects', '--prod'])
+      const firstResult = listResult.stdout.split('\n\n')[0] // pnpm can find unrelated packages that live in the repo, but they're returned in a separate json object after two newlines
+      // e.g. for pnpm first it lists just the `np` package.json, but then it finds various test packages like `test/fixtures/foo/package.json` etc.
 
-      ctx.packages = JSON.parse(list.stdout) as never
+      try {
+        ctx.packages = JSON.parse(firstResult) as never
+      } catch {
+        throw new Error(`Failed to parse pnpm list output as JSON: ${firstResult}`)
+      }
       ctx.packages = ctx.packages.filter(pkg => !pkg.private)
 
       const pwdsCommand = await execa('pnpm', ['recursive', 'exec', 'pwd']) // use `pnpm recursive exec` to get the correct topological sort order // https://github.com/pnpm/pnpm/issues/7716
-      const pwds = pwdsCommand.stdout
-        .split('\n')
-        .map(s => s.trim())
-        .filter(Boolean)
+      const pwdIndexMap = Object.fromEntries(pwdsCommand.stdout.split('\n').map((s, i) => [s.trim(), i]))
 
-      ctx.packages
-        .sort((a, b) => a.name.localeCompare(b.name)) // sort alphabetically first, as a tiebreaker (`.sort` is stable)
-        .sort((a, b) => pwds.indexOf(a.path) - pwds.indexOf(b.path)) // then topologically
+      // sort topologically, alphabetically as a tiebreaker. note that this implementation relies on there being fewer than one million packages in the repo. if this affects you, congratulations. i will fix it. the bug bounty for the fix is $100 per package.
+      ctx.packages.sort((a, b) => pwdIndexMap[a.path] - pwdIndexMap[b.path] + a.name.localeCompare(b.name) / 1_000_000)
 
       ctx.packages.forEach((pkg, i, {length}) => {
         const number = Number(`1${'0'.repeat(length.toString().length + 1)}`) + i
@@ -110,7 +115,7 @@ export const setupContextTasks: ListrTask<Ctx>[] = [
   },
 ]
 
-const getRegistryVersions = async (pkg: Pick<Pkg, 'name'>) => {
+async function getRegistryVersions(pkg: Pick<Pkg, 'name'>) {
   const registryVersionsResult = await execa('npm', ['view', pkg.name, 'versions', '--json'], {reject: false})
   const StdoutShape = z.union([
     z.array(z.string()).nonempty(), // success
@@ -213,7 +218,9 @@ export const publish = async (input: PublishInput) => {
               version: bumpedVersion,
             }
           }
-          task.output = inspect(ctx.versionStrategy)
+          task.output = Object.entries(ctx.versionStrategy)
+            .map(e => e.join(': '))
+            .join(', ')
         },
       },
       {
@@ -504,7 +511,7 @@ export const publish = async (input: PublishInput) => {
   return tasks.run()
 }
 
-const loadContext = (folderPath: string) => {
+function loadContext(folderPath: string) {
   const contextFilepath = path.join(folderPath, 'context.json')
   if (!fs.existsSync(contextFilepath)) throw new Error(`No context found at ${contextFilepath}`)
   const ctxString = fs.readFileSync(contextFilepath).toString()
@@ -524,7 +531,7 @@ export const PrebuiltInput = z.tuple([
 ])
 type PrebuiltInput = z.infer<typeof PrebuiltInput>
 
-export const publishPrebuilt = async ([folder, options]: PrebuiltInput) => {
+export async function publishPrebuilt([folder, options]: PrebuiltInput) {
   const ctx = loadContext(folder)
   const tasks = new Listr(
     [
@@ -556,27 +563,38 @@ export const publishPrebuilt = async ([folder, options]: PrebuiltInput) => {
   await tasks.run()
 }
 
-const createPublishTasks = (ctx: Ctx, options: {otp?: string}) =>
-  ctx.packages.map((pkg): ListrTask => {
-    const lhsPackageJson = loadLHSPackageJson(pkg)
-    const rhsPackageJson = loadRHSPackageJson(pkg)
-    ensureValidBumpedVersion(lhsPackageJson?.version || VERSION_ZERO, rhsPackageJson?.version)
-    return {
-      title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${rhsPackageJson?.version}`,
-      task: async (_ctx, subtask) => {
-        const publishArgs = ['--access', 'public']
-        if (options.otp) publishArgs.push('--otp', options.otp)
-        await pipeExeca(subtask, 'pnpm', ['publish', ...publishArgs], {
-          cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
-          env: {
-            ...process.env,
-            COREPACK_ENABLE_AUTO_PIN: '0',
-          },
-        })
+function createPublishTasks(ctx: Ctx, options: {otp?: string}) {
+  return [
+    ...ctx.packages.map((pkg): ListrTask => {
+      const lhsPackageJson = loadLHSPackageJson(pkg)
+      const rhsPackageJson = loadRHSPackageJson(pkg)
+      ensureValidBumpedVersion(lhsPackageJson?.version || VERSION_ZERO, rhsPackageJson?.version)
+      return {
+        title: `Publish ${pkg.name} ${lhsPackageJson?.version || '✨NEW!✨'} -> ${rhsPackageJson?.version}`,
+        task: async (_ctx, subtask) => {
+          const publishArgs = ['--access', 'public']
+          if (options.otp) publishArgs.push('--otp', options.otp)
+          await pipeExeca(subtask, 'pnpm', ['publish', ...publishArgs], {
+            cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
+            env: {
+              ...process.env,
+              COREPACK_ENABLE_AUTO_PIN: '0',
+            },
+          })
+        },
+      }
+    }),
+    {
+      title: 'Publish complete',
+      rendererOptions: {persistentOutput: true},
+      task: async (_ctx, task) => {
+        task.output = `To open a release draft, run the following command:`
+        task.output += `\n\n`
+        task.output += `pnpm npmono release-notes ${ctx.tempDir}`
       },
-    }
-  })
-
+    } as ListrTask,
+  ]
+}
 export const ReleaseNotesInput = z.object({
   comparison: z
     .string()
@@ -587,15 +605,20 @@ export const ReleaseNotesInput = z.object({
     })
     .optional()
     .describe('The comparison to use for the release notes. Format: `left...right` e.g. `1.0.0...1.0.1`'),
-  mode: z.enum(['individual', 'unified']).default('unified'),
+  mode: z
+    .enum(['individual', 'unified'])
+    .describe(
+      `Only relevant in a monorepo - 'unified' mode drafts one release with all packages' changes, 'individual' drafts one release per package.`,
+    )
+    .default('unified'),
 })
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
 
-const pullRegistryPackage = async (
+async function pullRegistryPackage(
   subtask: ListrTaskWrapper<Ctx, never, never>,
   pkg: {name: string},
   {version, folder}: {version: string; folder: string},
-) => {
+) {
   // note: `npm pack foobar` will actually pull foobar.1-2-3.tgz from the registry. It's not actually doing a "pack" at all. `pnpm pack` does not do the same thing - it packs the local directory
   await pipeExeca(subtask, 'npm', ['pack', `${pkg.name}@${version}`], {cwd: folder})
 
@@ -612,7 +635,7 @@ const pullRegistryPackage = async (
   return packageJson
 }
 
-const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: string; body: string}) => {
+async function openReleaseDraft(repoUrl: string, params: {tag: string; title: string; body: string}) {
   const getUrl = () => `${repoUrl}/releases/new?${new URLSearchParams(params).toString()}`
   if (getUrl().length > 8192) {
     // copy body to clipboard using clipboardy
@@ -623,26 +646,27 @@ const openReleaseDraft = async (repoUrl: string, params: {tag: string; title: st
   await execa('open', [getUrl()])
 }
 
-const packageJsonFilepath = (pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) =>
-  path.join(pkg.folder, type, 'package', 'package.json')
+function packageJsonFilepath(pkg: PkgMeta, type: typeof LHS_FOLDER | typeof RHS_FOLDER) {
+  return path.join(pkg.folder, type, 'package', 'package.json')
+}
 
-const loadPackageJson = (filepath: string) => {
+function loadPackageJson(filepath: string) {
   const packageJson = JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
   return packageJson
 }
 
-const loadLHSPackageJson = (pkg: PkgMeta) => {
+function loadLHSPackageJson(pkg: PkgMeta) {
   const filepath = packageJsonFilepath(pkg, LHS_FOLDER)
   if (!fs.existsSync(filepath)) return null
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
-const loadRHSPackageJson = (pkg: PkgMeta) => {
+function loadRHSPackageJson(pkg: PkgMeta) {
   const filepath = packageJsonFilepath(pkg, RHS_FOLDER)
   if (!fs.existsSync(filepath)) return null
   return JSON.parse(fs.readFileSync(filepath).toString()) as PackageJson & {git?: {sha?: string}}
 }
 
-const bumpChoices = (oldVersion: string) => {
+function bumpChoices(oldVersion: string) {
   const releaseTypes: semver.ReleaseType[] = allReleaseTypes.filter(r => r !== 'prerelease')
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   semver.prerelease(oldVersion) ? releaseTypes.unshift('prerelease') : releaseTypes.push('prerelease')
@@ -691,7 +715,29 @@ async function getPackageLastPublishRef(pkg: Pkg) {
 async function getPackageJsonGitSha(pkg: Pkg, packageJson: PackageJson | null) {
   const explicitSha = packageJson?.git?.sha
   if (explicitSha) return explicitSha
+
+  const tagSha = await getPackageJsonShaFromVersionTag(pkg, packageJson)
+  if (tagSha) return tagSha
+
   return await getFirstRef(pkg)
+}
+
+async function getPackageJsonShaFromVersionTag(pkg: Pkg, packageJson: PackageJson | null) {
+  // throw new Error(
+  //   `Getting ${pkg.name} (${packageJson?.version}) sha from version tag. v[] thing: ${packageJson?.version ? (await execa('git', ['log', '-n', '1', `v${packageJson?.version}`], {cwd: pkg.path})).stdout : JSON.stringify({pkg, packageJson}, null, 2)}`,
+  // )
+  if (!packageJson?.version) return null
+  const {stdout: vTagSha} = await execa('git', ['rev-list', '-n', '1', `v${packageJson.version}`], {
+    cwd: pkg.path,
+    reject: false,
+  })
+  if (vTagSha) return vTagSha
+
+  const {stdout: tagSha} = await execa('git', ['rev-list', '-n', '1', packageJson.version], {
+    cwd: pkg.path,
+    reject: false,
+  })
+  return tagSha
 }
 
 async function getFirstRef(pkg: Pkg) {
@@ -802,17 +848,18 @@ async function getPackageRevList(pkg: Pkg) {
     // versionComparisonString,
     markdown:
       sections.filter(Boolean).join('\n').trim() ||
-      `No commits to ${pkg.name} between found between ${fromRef} (last publish) and ${localRef} (current).`,
+      `No commits to ${pkg.name} between found between ${fromRef.slice(0, 7)} (last publish) and ${localRef.slice(0, 7)} (current).`,
   }
 }
 
 const changelogFilepath = (pkg: Pkg) => path.join(pkg.folder, 'changes/changelog.md')
 
-const workspaceDependencies = (pkg: Pkg, ctx: Ctx, depth = 0): Pkg[] =>
-  Object.keys(pkg.dependencies || {}).flatMap(name => {
+function workspaceDependencies(pkg: Pkg, ctx: Ctx, depth = 0): Pkg[] {
+  return Object.keys(pkg.dependencies || {}).flatMap(name => {
     const dep = ctx.packages.find(p => p.name === name)
     return dep ? [dep, ...(depth > 0 ? workspaceDependencies(dep, ctx, depth - 1) : [])] : []
   })
+}
 
 /**
  * Creates a changelog.md and returns its content. If one already exists, its content is returned without being regenerated.
@@ -892,7 +939,8 @@ async function getChangelog(ctx: Ctx, pkg: Pkg) {
   return changelogContent
 }
 
-const getPackageJsonRepository = (packageJson: PackageJson) => {
+/** lovely algorith which i think supports all the ways a repository can be specified */
+function getPackageJsonRepository(packageJson: PackageJson) {
   let repoString: string
   if (!packageJson.repository) return null
   if (typeof packageJson.repository === 'object' && packageJson.repository.type !== 'git') {
@@ -948,6 +996,7 @@ const PackageJson = z.object({
   name: z.string(),
   version: z.string(),
   dependencies: z.record(z.string(), z.string()).optional(),
+  scripts: z.record(z.string(), z.string()).optional(),
   /**
    * not an official package.json field, but there is a library that does something similar to this: https://github.com/Metnew/git-hash-package
    * having git.sha point to a commit hash seems pretty useful to me, even if it's not standard.
@@ -1014,7 +1063,7 @@ type Pkg = z.infer<typeof Pkg>
 type Ctx = z.infer<typeof Ctx>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, args: string[], options?: Options) => {
+async function pipeExeca(task: ListrTaskWrapper<any, any, any>, file: string, args: string[], options?: Options) {
   const cmd = execa(file, args, {
     ...options,
     env: {
@@ -1026,7 +1075,7 @@ const pipeExeca = async (task: ListrTaskWrapper<any, any, any>, file: string, ar
   return cmd
 }
 
-const findUpOrThrow = (file: string, options?: Parameters<typeof findUp.sync>[1]) => {
+function findUpOrThrow(file: string, options?: Parameters<typeof findUp.sync>[1]) {
   const result = findUp.sync(file, options)
   if (!result) {
     throw new Error(`Could not find ${file}`)
@@ -1034,9 +1083,7 @@ const findUpOrThrow = (file: string, options?: Parameters<typeof findUp.sync>[1]
   return result
 }
 
-// this doesn't work yet
-// consider making it a separate command that can read the folder made by the main publish command
-export const releaseNotes = async (input: ReleaseNotesInput) => {
+export async function releaseNotes(input: ReleaseNotesInput) {
   const tasks = new Listr<Ctx, never, never>(
     [
       ...setupContextTasks,
@@ -1044,10 +1091,18 @@ export const releaseNotes = async (input: ReleaseNotesInput) => {
         title: `Get comparison`,
         enabled: () => !input.comparison,
         task: async (ctx, task) => {
-          const pkgVersions = await Promise.all(ctx.packages.map(pkg => getRegistryVersions(pkg)))
-          const lasts = pkgVersions.map(v => v.at(-1)!.slice())
+          const pkgVersions = await Promise.all(
+            ctx.packages.map(async pkg => ({
+              name: pkg.name,
+              versions: await getRegistryVersions(pkg),
+            })),
+          )
+          if (pkgVersions.some(v => v.versions.length === 0)) {
+            throw new Error(`No versions found for some packages: ${JSON.stringify({pkgVersions}, null, 2)}`)
+          }
+          const lasts = pkgVersions.map(v => v.versions.at(-1)!.slice())
           const latest = lasts.sort((a, b) => semver.compare(a, b)).at(-1)!
-          const all = pkgVersions.flat().sort((a, b) => semver.compare(a, b))
+          const all = pkgVersions.flatMap(v => v.versions).sort((a, b) => semver.compare(a, b))
 
           const left =
             all
