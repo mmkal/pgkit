@@ -1,0 +1,18 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "just a demo project for showcasing other tools in this repo",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo no tests"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@pgkit/client": "^0.5.0",
+    "@pgkit/typegen": "^0.5.0"
+  }
+}

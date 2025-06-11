@@ -30,7 +30,7 @@ The API design is based on [slonik](https://npmjs.com/package/slonik) - which re
 
 @pgkit/client is the basis for these libraries:
 
-<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(formatter|docs|npmono|client|^pgkit$))", sort: topological} -->
+<!-- codegen:start {preset: monorepoTOC, repoRoot: ../.., filter: "^(?!.*(formatter|docs|npmono|client|^pgkit|demo$))", sort: topological} -->
 - [@pgkit/typegen](https://github.com/mmkal/pgkit/tree/pgkit/packages/typegen#readme) - Automatically generates typescript types from SQL queries
 - [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
 - [@pgkit/migra](https://github.com/mmkal/pgkit/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
