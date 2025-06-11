@@ -92,7 +92,7 @@ export const getFixtures = (prefix: string, fixturesDir: string) => {
           if (v === false) return []
           if (v === true) return [arg]
           if (isStringArray(v)) {
-            return v.join(' ')
+            return [arg, v.join(' ')]
           }
           return [arg, v]
         })
