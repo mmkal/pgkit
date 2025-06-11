@@ -4,7 +4,7 @@
 
 A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql queries.
 
-![](./gifs/demo.gif)
+![](./gifs/typegen-demo.gif)
 
 ## The idea
 

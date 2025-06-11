@@ -65,8 +65,12 @@ const main2 = async () => {
     path.join(appDir, 'public/images/logo.svg'),
   )
   await fs.promises.copyFile(
-    path.join(projectRoot, 'packages/admin/gifs/demo.gif'),
-    path.join(appDir, 'public/gifs/demo.gif'),
+    path.join(projectRoot, 'packages/admin/gifs/admin-demo.gif'),
+    path.join(appDir, 'public/gifs/admin-demo.gif'),
+  )
+  await fs.promises.copyFile(
+    path.join(projectRoot, 'packages/typegen/gifs/typegen-demo.gif'),
+    path.join(appDir, 'public/gifs/typegen-demo.gif'),
   )
 }
 
