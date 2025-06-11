@@ -91,6 +91,15 @@ importers:
         specifier: ^4.19.0
         version: 4.19.0
 
+  demo:
+    dependencies:
+      '@pgkit/client':
+        specifier: ^0.5.0
+        version: 0.5.0
+      '@pgkit/typegen':
+        specifier: ^0.5.0
+        version: 0.5.0(@inquirer/prompts@5.0.4)(typescript@5.8.2)
+
   packages/admin:
     dependencies:
       '@codemirror/autocomplete':
@@ -1901,6 +1910,15 @@ packages:
     engines: {node: '>= 12.0.0'}
     peerDependencies:
       '@parcel/core': ^2.11.0
+
+  '@pgkit/client@0.5.0':
+    resolution: {integrity: sha512-kWti8CVYPYRb877olpYpH6H5Ka6sl9NQF2um/K7M79V0uaCLOqzV7f9lmXa2YBWezjd6xxPNUmUMHaxMlLvwhA==}
+
+  '@pgkit/typegen@0.5.0':
+    resolution: {integrity: sha512-BFLp1goV5Tys5at1UDC/XRXK2Am6gmHqv9sFWxaPNOjl8hZxx87dPntAJNXR3Xki9jzAB6pkQrXT88jplAn5UQ==}
+    hasBin: true
+    peerDependencies:
+      typescript: '*'
 
   '@pkgjs/parseargs@0.11.0':
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
@@ -3809,6 +3827,10 @@ packages:
   commander@10.0.1:
     resolution: {integrity: sha512-y4Mg2tXshplEbSGzx7amzPwKKOCGuoSRP/CjEdwwk0FOGlUbq6lKuoyDZTNZkmxHdJtp54hdfY/JUrdL7Xfdug==}
     engines: {node: '>=14'}
+
+  commander@13.1.0:
+    resolution: {integrity: sha512-/rFeCpNJQbhSZjGVwO9RFV3xPqbnERS8MmIQzCtD/zl6gpJuV/bMLuN92oG3F7d8oDEHHRrujSXNUr8fpjntKw==}
+    engines: {node: '>=18'}
 
   commander@14.0.0:
     resolution: {integrity: sha512-2uM9rYjPvyq39NwLRqaiLtWHyDC1FvryJDa2ATTVims5YAS4PupsEQsDvP14FqhFr0P49CYDugi59xaxJlTXRA==}
@@ -8001,6 +8023,19 @@ packages:
   trough@2.2.0:
     resolution: {integrity: sha512-tmMpK00BjZiUyVyvrBK7knerNgmgvcV/KLVyuma/SC+TQN167GrMRciANTz09+k3zW8L8t60jWO1GpfkZdjTaw==}
 
+  trpc-cli@0.6.0:
+    resolution: {integrity: sha512-g6ZTxmHZOPJEVBLVcwKx1All4HY96i00etIuaZT/C7/dwH/JgHCSMMDTcrr9P2o3rnnjzBGhW0n8wWXqlpq/rA==}
+    engines: {node: '>=18'}
+    hasBin: true
+    peerDependencies:
+      '@inquirer/prompts': '*'
+      omelette: '*'
+    peerDependenciesMeta:
+      '@inquirer/prompts':
+        optional: true
+      omelette:
+        optional: true
+
   trpc-cli@0.7.0:
     resolution: {integrity: sha512-SWPK0IyFLZfVCjgaco1jzeBOJQoWWfzcraRDhq/gMlcInVOJgvydWs5oYhMtPcsolVXbLCwCoTEK1U/LZZuvCw==}
     engines: {node: '>=18'}
@@ -9774,6 +9809,38 @@ snapshots:
       '@parcel/types': 2.11.0(@parcel/core@2.11.0)
       '@parcel/utils': 2.11.0
       nullthrows: 1.1.1
+
+  '@pgkit/client@0.5.0':
+    dependencies:
+      pg: 8.14.1
+      pg-promise: 11.5.4
+      pgsql-ast-parser: 12.0.1
+    transitivePeerDependencies:
+      - pg-native
+
+  '@pgkit/typegen@0.5.0(@inquirer/prompts@5.0.4)(typescript@5.8.2)':
+    dependencies:
+      '@pgkit/client': 0.5.0
+      '@rebundled/execa': 8.0.2-next.0
+      '@rebundled/p-memoize': 7.1.2-next.8
+      '@trpc/server': 11.1.2(typescript@5.8.2)
+      chokidar: 3.6.0
+      execa: 5.1.1
+      find-up: 5.0.0
+      glob: 8.1.0
+      io-ts-extra: 0.11.6
+      lodash: 4.17.21
+      memoizee: 0.4.15
+      neverthrow: 7.1.0
+      pgsql-ast-parser: 11.2.0
+      pluralize: 8.0.0
+      trpc-cli: 0.6.0(@inquirer/prompts@5.0.4)(typescript@5.8.2)
+      typescript: 5.8.2
+      zod: 3.25.20
+    transitivePeerDependencies:
+      - '@inquirer/prompts'
+      - omelette
+      - pg-native
 
   '@pkgjs/parseargs@0.11.0':
     optional: true
@@ -12201,6 +12268,8 @@ snapshots:
       commander: 6.2.1
 
   commander@10.0.1: {}
+
+  commander@13.1.0: {}
 
   commander@14.0.0: {}
 
@@ -17706,6 +17775,20 @@ snapshots:
   trim-lines@3.0.1: {}
 
   trough@2.2.0: {}
+
+  trpc-cli@0.6.0(@inquirer/prompts@5.0.4)(typescript@5.8.2):
+    dependencies:
+      '@trpc/server': 11.1.2(typescript@5.8.2)
+      '@types/omelette': 0.4.5
+      commander: 13.1.0
+      picocolors: 1.1.1
+      zod: 3.25.20
+      zod-to-json-schema: 3.23.0(zod@3.25.20)
+      zod-validation-error: 3.3.0(zod@3.25.20)
+    optionalDependencies:
+      '@inquirer/prompts': 5.0.4
+    transitivePeerDependencies:
+      - typescript
 
   trpc-cli@0.7.0(@inquirer/prompts@5.0.4)(typescript@5.8.2):
     dependencies:

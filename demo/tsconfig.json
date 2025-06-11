@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "lib": [
+      "ES2023"
+    ],
+    "target": "ES2022",
+    "module": "NodeNext",
+    "jsx": "preserve",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "strictFunctionTypes": false,
+    "noEmit": true,
+    "noErrorTruncation": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "*.ts",
+    "src",
+    "test",
+    "scripts"
+  ],
+  "ts-node": {
+    "transpileOnly": true
+  }
+}

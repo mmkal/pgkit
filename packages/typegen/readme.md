@@ -4,6 +4,8 @@
 
 A library that uses [pgkit](https://npmjs.com/package/@pgkit/client) to generate typescript interfaces based on your sql queries.
 
+![](./demo.gif)
+
 ## The idea
 
 This library gives you the type-safety of an ORM, while maintaining the flexibility of sql. Read [@gajus](https://github.com/gajus)'s excellent blog post on why it's a good idea to use sql rather than ORMs or query-builders: [Stop using Knex.js](https://medium.com/@gajus/bf410349856c).
