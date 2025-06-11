@@ -41,7 +41,7 @@ export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable 
 
   const migrationOptions = {
     schema: args.schema,
-    exclude_schema: args.excludeSchema,
+    exclude_schemas: args.excludeSchema,
     ignore_extension_versions: args.ignoreExtensionVersions,
   }
 
