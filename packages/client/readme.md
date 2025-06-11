@@ -34,6 +34,7 @@ The API design is based on [slonik](https://npmjs.com/package/slonik) - which re
 - [@pgkit/typegen](https://github.com/mmkal/pgkit/tree/pgkit/packages/typegen#readme) - Automatically generates typescript types from SQL queries
 - [@pgkit/schemainspect](./packages/schemainspect) - SQL Schema Inspection for PostgreSQL
 - [@pgkit/migra](https://github.com/mmkal/pgkit/tree/pgkit/packages/migra#readme) - A CLI to generate PostgeSQL schema diff scripts
+- [demo](./demo) - just a demo project for showcasing other tools in this repo
 - [@pgkit/migrator](https://github.com/mmkal/pgkit/tree/pgkit/packages/migrator#readme) - PostgeSQL migration tool
 - [@pgkit/admin](https://github.com/mmkal/pgkit/tree/pgkit/packages/admin#readme) - A zero-config PostgeSQL admin server, with schema inspection and autocomplete.
 <!-- codegen:end -->
