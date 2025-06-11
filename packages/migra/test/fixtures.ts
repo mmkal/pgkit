@@ -16,9 +16,6 @@ export const format = (query: string) => {
   }
 }
 
-const fixturesDir = path.join(__dirname, 'FIXTURES')
-const fixtureNames = fs.readdirSync(fixturesDir)
-
 const argsMap: Record<string, MigraOptions> = {
   singleschema: {schema: 'goodschema'},
   excludeschema: {excludeSchema: 'excludedschema'},
@@ -44,7 +41,7 @@ export const createDB = async (url: string, admin: Client, prefix: string) => {
   return {connectionString, pool, name, variant}
 }
 
-export const setup = async (url: string, admin: Client, prefix: string) => {
+export const setup = async (url: string, admin: Client, prefix: string, fixturesDir: string) => {
   const {pool, name, variant} = await createDB(url, admin, prefix)
   const filepath = path.join(fixturesDir, name, `${variant}.sql`)
   const query = fs.readFileSync(filepath, 'utf8')
@@ -59,8 +56,9 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
   await pool.pgp.$pool.end()
 }
 
-export const getFixtures = (prefix: string) =>
-  fixtureNames.map(name => {
+export const getFixtures = (prefix: string, fixturesDir: string) => {
+  const fixtureNames = fs.readdirSync(fixturesDir)
+  return fixtureNames.map(name => {
     const variant = (ab: 'a' | 'b', admin: Client) =>
       admin.connectionString().replace(/postgres$/, `${prefix}_${name}_${ab}`)
     const args: MigraOptions = {
@@ -74,8 +72,8 @@ export const getFixtures = (prefix: string) =>
       variants,
       setup: async (admin: Client) => {
         const [a, b] = variants(admin)
-        await setup(a, admin, prefix)
-        await setup(b, admin, prefix)
+        await setup(a, admin, prefix, fixturesDir)
+        await setup(b, admin, prefix, fixturesDir)
         return [a, b] as const
       },
       args: (overrides?: Partial<typeof args>) => ({...args, ...overrides}),
@@ -92,3 +90,4 @@ export const getFixtures = (prefix: string) =>
       },
     } as const
   })
+}
