@@ -17,7 +17,7 @@
         "dist"
     ],
     "scripts": {
-        "get-python": "curl -L https://github.com/djrobstep/migra/archive/refs/heads/master.zip -o python.zip && decompress python.zip --out-dir . && move-cli migra-master python && rimraf python.zip",
+        "get-python": "curl -L https://github.com/djrobstep/migra/archive/refs/heads/master.zip -o python.zip && decompress python.zip && move-cli migra-master python && rimraf python.zip",
         "rm-python": "rimraf -rf python",
         "prepack": "pnpm build",
         "codegen": "ts-node scripts/generate-commands.ts",
@@ -28,8 +28,6 @@
         "@pgkit/client": "workspace:^",
         "@pgkit/schemainspect": "workspace:^",
         "@trpc/server": "^11.0.1",
-        "decompress-cli": "^2.0.0",
-        "move-cli": "^2.0.0",
         "trpc-cli": "^0.7.0",
         "zod": "^3.25.20"
     },
@@ -39,6 +37,8 @@
         "eslint": "^8.57.0",
         "eslint-plugin-mmkal": "0.10.1",
         "execa": "^8.0.1",
+        "extract-zip": "^2.0.1",
+        "move-cli": "^2.0.0",
         "lodash": "^4.17.21",
         "quicktype-core": "^23.0.81",
         "sql-formatter": "^15.2.0",
