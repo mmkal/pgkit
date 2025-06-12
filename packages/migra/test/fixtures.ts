@@ -69,8 +69,14 @@ export const getFixtures = (prefix: string) =>
       ...(name in argsMap && argsMap[name]),
     }
     const variants = (admin: Client) => [variant('a', admin), variant('b', admin)] as const
+
+    const expectedFilePath = path.join(fixturesDir, name, 'expected.sql')
+    const expected = fs.readFileSync(expectedFilePath, 'utf8')
+    const getExpected = () => expected
+
     return {
       name,
+      getExpected,
       variants,
       setup: async (admin: Client) => {
         const [a, b] = variants(admin)
