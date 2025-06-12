@@ -42,7 +42,6 @@
     "lodash": "^4.17.21",
     "make-synchronous": "^1.0.0",
     "meow": "^13.1.0",
-    "np": "github:mmkal/np#6a58244afa28fd7d3f8c4dc4b6457c22d74e82de",
     "pg-mem": "3.0.2",
     "quicktype-core": "^23.0.81",
     "slonik": "^37.2.0",

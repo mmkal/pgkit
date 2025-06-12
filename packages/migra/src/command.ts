@@ -41,7 +41,7 @@ export const run = async (dburlFrom: Queryable | string, dburlTarget: Queryable 
 
   const migrationOptions = {
     schema: args.schema,
-    exclude_schema: args.excludeSchema,
+    exclude_schemas: args.excludeSchema,
     ignore_extension_versions: args.ignoreExtensionVersions,
   }
 
@@ -104,6 +104,7 @@ export const MigraOptions = z.object({
   schema: z.string().optional().describe('Restrict output to statements for a particular schema'),
   excludeSchema: z
     .string()
+    .array()
     .optional()
     .describe('Restrict output to statements for all schemas except the specified schema'),
   createExtensionsOnly: z
