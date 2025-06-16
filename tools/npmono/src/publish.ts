@@ -599,8 +599,12 @@ export const ReleaseNotesInput = z.object({
   comparison: z
     .string()
     .regex(/^\S+\.{2,3}\S+$/)
-    .transform(s => {
-      const [left, right] = s.split(/\.{2,3}/)
+    .transform((s, ctx) => {
+      const [left, right, ...{length: excess}] = s.split(/\.{2,3}/)
+      if (excess > 0) {
+        ctx.addIssue({code: 'custom', message: `Invalid comparison (too many ellipses): ${s}`})
+        return z.NEVER
+      }
       return {left, right, original: s}
     })
     .optional()
