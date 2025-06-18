@@ -87,7 +87,7 @@ importers:
         version: 8.57.0
       eslint-plugin-mmkal:
         specifier: 0.10.1
-        version: 0.10.1(eslint@8.57.0)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.12.12)(sass@1.71.0))
+        version: 0.10.1(eslint@8.57.0)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.11.21)(sass@1.71.0))
       fast-glob:
         specifier: ^3.3.2
         version: 3.3.2
@@ -445,9 +445,6 @@ importers:
       '@trpc/server':
         specifier: ^11.0.1
         version: 11.0.1(typescript@5.8.2)
-      move-cli:
-        specifier: ^2.0.0
-        version: 2.0.0
       trpc-cli:
         specifier: ^0.7.0
         version: 0.7.0(@inquirer/prompts@5.0.4)(typescript@5.8.2)
@@ -476,6 +473,9 @@ importers:
       lodash:
         specifier: ^4.17.21
         version: 4.17.21
+      move-cli:
+        specifier: ^2.0.0
+        version: 2.0.0
       quicktype-core:
         specifier: ^23.0.81
         version: 23.0.81(encoding@0.1.13)
@@ -789,7 +789,7 @@ importers:
         version: 8.57.1
       eslint-plugin-mmkal:
         specifier: 0.10.1
-        version: 0.10.1(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.12.12)(sass@1.71.0))
+        version: 0.10.1(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.11.21))
       tsx:
         specifier: ^4.19.0
         version: 4.19.0
@@ -12382,7 +12382,7 @@ snapshots:
       - typescript
       - vitest
 
-  eslint-plugin-mmkal@0.10.1(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.12.12)(sass@1.71.0)):
+  eslint-plugin-mmkal@0.10.1(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.11.21)):
     dependencies:
       '@eslint/js': 8.57.1
       '@next/eslint-plugin-next': 14.2.3
@@ -12407,7 +12407,7 @@ snapshots:
       eslint-plugin-react: 7.34.1(eslint@8.57.1)
       eslint-plugin-react-hooks: 4.6.0(eslint@8.57.1)
       eslint-plugin-unicorn: 49.0.0(eslint@8.57.1)
-      eslint-plugin-vitest: 0.3.26(@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.12.12)(sass@1.71.0))
+      eslint-plugin-vitest: 0.3.26(@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.11.21))
       eslint-plugin-wrapper: 0.1.0-1
       globals: 14.0.0
       lodash: 4.17.21
@@ -12631,13 +12631,13 @@ snapshots:
       - supports-color
       - typescript
 
-  eslint-plugin-vitest@0.3.26(@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.12.12)(sass@1.71.0)):
+  eslint-plugin-vitest@0.3.26(@typescript-eslint/eslint-plugin@8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)(vitest@1.2.2(@types/node@20.11.21)):
     dependencies:
       '@typescript-eslint/utils': 7.18.0(eslint@8.57.1)(typescript@5.8.2)
       eslint: 8.57.1
     optionalDependencies:
       '@typescript-eslint/eslint-plugin': 8.6.0(@typescript-eslint/parser@8.6.0(eslint@8.57.1)(typescript@5.8.2))(eslint@8.57.1)(typescript@5.8.2)
-      vitest: 1.2.2(@types/node@20.12.12)(sass@1.71.0)
+      vitest: 1.2.2(@types/node@20.11.21)
     transitivePeerDependencies:
       - supports-color
       - typescript
@@ -16871,6 +16871,24 @@ snapshots:
       - supports-color
       - terser
 
+  vite-node@1.2.2(@types/node@20.11.21):
+    dependencies:
+      cac: 6.7.14
+      debug: 4.3.4
+      pathe: 1.1.2
+      picocolors: 1.0.1
+      vite: 5.1.1(@types/node@20.11.21)
+    transitivePeerDependencies:
+      - '@types/node'
+      - less
+      - lightningcss
+      - sass
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    optional: true
+
   vite-node@1.2.2(@types/node@20.11.21)(sass@1.71.0):
     dependencies:
       cac: 6.7.14
@@ -16924,6 +16942,16 @@ snapshots:
       '@types/node': 20.11.20
       fsevents: 2.3.3
       sass: 1.71.0
+
+  vite@5.1.1(@types/node@20.11.21):
+    dependencies:
+      esbuild: 0.19.12
+      postcss: 8.4.35
+      rollup: 4.9.6
+    optionalDependencies:
+      '@types/node': 20.11.21
+      fsevents: 2.3.3
+    optional: true
 
   vite@5.1.1(@types/node@20.11.21)(sass@1.71.0):
     dependencies:
@@ -17012,6 +17040,41 @@ snapshots:
       - sugarss
       - supports-color
       - terser
+
+  vitest@1.2.2(@types/node@20.11.21):
+    dependencies:
+      '@vitest/expect': 1.2.2
+      '@vitest/runner': 1.2.2
+      '@vitest/snapshot': 1.2.2
+      '@vitest/spy': 1.2.2
+      '@vitest/utils': 1.2.2
+      acorn-walk: 8.3.2
+      cac: 6.7.14
+      chai: 4.4.1
+      debug: 4.3.4
+      execa: 8.0.1
+      local-pkg: 0.5.0
+      magic-string: 0.30.7
+      pathe: 1.1.2
+      picocolors: 1.0.1
+      std-env: 3.7.0
+      strip-literal: 1.3.0
+      tinybench: 2.6.0
+      tinypool: 0.8.2
+      vite: 5.1.1(@types/node@20.11.21)
+      vite-node: 1.2.2(@types/node@20.11.21)
+      why-is-node-running: 2.2.2
+    optionalDependencies:
+      '@types/node': 20.11.21
+    transitivePeerDependencies:
+      - less
+      - lightningcss
+      - sass
+      - stylus
+      - sugarss
+      - supports-color
+      - terser
+    optional: true
 
   vitest@1.2.2(@types/node@20.11.21)(sass@1.71.0):
     dependencies:
@@ -17186,7 +17249,7 @@ snapshots:
     dependencies:
       ansi-styles: 4.3.0
       string-width: 4.2.3
-      strip-ansi: 6.0.1
+      strip-ansi: 6.0.0
 
   wrap-ansi@7.0.0:
     dependencies:
