@@ -3,7 +3,6 @@ import * as path from 'path'
 import {beforeAll, expect, test} from 'vitest'
 import {run as runMigra} from '../src/command'
 import {format, getFixtures} from './fixtures'
-import {runOriginalMigra} from './run-original-migra'
 
 export let admin: Awaited<ReturnType<typeof createPool>>
 
