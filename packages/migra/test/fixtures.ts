@@ -16,15 +16,18 @@ export const format = (query: string) => {
   }
 }
 
-const fixturesDir = path.join(__dirname, 'FIXTURES')
-const fixtureNames = fs.readdirSync(fixturesDir)
-
-const argsMap: Record<string, MigraOptions> = {
+const originalArgsMap: Record<string, MigraOptions> = {
   singleschema: {schema: 'goodschema'},
-  excludeschema: {excludeSchema: 'excludedschema'},
+  excludeschema: {excludeSchema: ['excludedschema']},
   singleschema_ext: {createExtensionsOnly: true},
   extversions: {ignoreExtensionVersions: false},
 }
+
+const newArgsMap: Record<string, MigraOptions> = {
+  excludemultipleschemas: {excludeSchema: ['excludedschema1', 'excludedschema2']},
+}
+
+const argsMap = {...originalArgsMap, ...newArgsMap}
 
 export const createDB = async (url: string, admin: Client, prefix: string) => {
   const db = url.split('/').at(-1)
@@ -44,7 +47,7 @@ export const createDB = async (url: string, admin: Client, prefix: string) => {
   return {connectionString, pool, name, variant}
 }
 
-export const setup = async (url: string, admin: Client, prefix: string) => {
+export const setup = async (url: string, admin: Client, prefix: string, fixturesDir: string) => {
   const {pool, name, variant} = await createDB(url, admin, prefix)
   const filepath = path.join(fixturesDir, name, `${variant}.sql`)
   const query = fs.readFileSync(filepath, 'utf8')
@@ -59,8 +62,9 @@ export const setup = async (url: string, admin: Client, prefix: string) => {
   await pool.pgp.$pool.end()
 }
 
-export const getFixtures = (prefix: string) =>
-  fixtureNames.map(name => {
+export const getFixtures = (prefix: string, fixturesDir: string) => {
+  const fixtureNames = fs.readdirSync(fixturesDir)
+  return fixtureNames.map(name => {
     const variant = (ab: 'a' | 'b', admin: Client) =>
       admin.connectionString().replace(/postgres$/, `${prefix}_${name}_${ab}`)
     const args: MigraOptions = {
@@ -68,16 +72,20 @@ export const getFixtures = (prefix: string) =>
       ignoreExtensionVersions: true,
       ...(name in argsMap && argsMap[name]),
     }
+    const expectedFilePath = path.join(fixturesDir, name, 'expected.sql')
+    const expected = fs.readFileSync(expectedFilePath, 'utf8')
     const variants = (admin: Client) => [variant('a', admin), variant('b', admin)] as const
+    const getExpected = () => expected
     return {
       name,
       variants,
       setup: async (admin: Client) => {
         const [a, b] = variants(admin)
-        await setup(a, admin, prefix)
-        await setup(b, admin, prefix)
+        await setup(a, admin, prefix, fixturesDir)
+        await setup(b, admin, prefix, fixturesDir)
         return [a, b] as const
       },
+      getExpected,
       args: (overrides?: Partial<typeof args>) => ({...args, ...overrides}),
       cliArgs: (overrides?: Partial<typeof args>) => {
         const entries = Object.entries({...args, ...overrides})
@@ -87,8 +95,15 @@ export const getFixtures = (prefix: string) =>
             .replace(/exclude-schema/, 'exclude_schema')
           if (v === false) return []
           if (v === true) return [arg]
+          if (isStringArray(v)) {
+            return [arg, v.join(' ')]
+          }
           return [arg, v]
         })
       },
     } as const
   })
+}
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every(item => typeof item === 'string')
