@@ -72,7 +72,10 @@ export const getFixtures = (prefix: string, fixturesDir: string) => {
       ignoreExtensionVersions: true,
       ...(name in argsMap && argsMap[name]),
     }
+    const expectedFilePath = path.join(fixturesDir, name, 'expected.sql')
+    const expected = fs.readFileSync(expectedFilePath, 'utf8')
     const variants = (admin: Client) => [variant('a', admin), variant('b', admin)] as const
+    const getExpected = () => expected
     return {
       name,
       variants,
@@ -82,6 +85,7 @@ export const getFixtures = (prefix: string, fixturesDir: string) => {
         await setup(b, admin, prefix, fixturesDir)
         return [a, b] as const
       },
+      getExpected,
       args: (overrides?: Partial<typeof args>) => ({...args, ...overrides}),
       cliArgs: (overrides?: Partial<typeof args>) => {
         const entries = Object.entries({...args, ...overrides})
