@@ -35,7 +35,7 @@ export class Migration {
   }
 
   async inspect_from() {
-    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schemas)
+    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schema)
   }
 
   async inspect_target() {
