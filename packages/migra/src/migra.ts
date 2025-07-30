@@ -8,7 +8,7 @@ export class Migration {
   statements: Statements
   changes: Changes
   schema: string | null
-  exclude_schemas: string[] | null
+  exclude_schema: string | string[] | null
   s_from: Queryable | PostgreSQL
   s_target: Queryable | PostgreSQL
 
