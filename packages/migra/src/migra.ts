@@ -52,7 +52,7 @@ export class Migration {
       await bag.query(sql.raw(stmt))
     }
 
-    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schemas)
+    this.changes.i_from = await get_inspector(this.s_from, this.schema, this.exclude_schema)
     const safety_on = this.statements.safe
     this.clear()
     this.set_safety(safety_on)
