@@ -104,6 +104,7 @@ export const MigraOptions = z.object({
   schema: z.string().optional().describe('Restrict output to statements for a particular schema'),
   excludeSchema: z
     .string()
+    .array()
     .optional()
     .describe('Restrict output to statements for all schemas except the specified schema'),
   createExtensionsOnly: z
