@@ -22,8 +22,8 @@ export class Migration {
     {schema = null as string | null, exclude_schema = null as string | string[] | null, ignore_extension_versions = false},
   ) {
     // deviation: python code checked if x_from and x_target were instances of DBInspector. This just insists on being passed valid SqlbagS instances
-    const pg_from = await get_inspector(x_from, schema, exclude_schemas)
-    const pg_target = await get_inspector(x_target, schema, exclude_schemas)
+    const pg_from = await get_inspector(x_from, schema, exclude_schema)
+    const pg_target = await get_inspector(x_target, schema, exclude_schema)
     const instance = new Migration()
     instance.changes = new Changes(pg_from, pg_target)
     instance.s_from = x_from
