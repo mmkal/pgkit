@@ -19,7 +19,7 @@ export class Migration {
   static async create(
     x_from: Queryable | PostgreSQL,
     x_target: Queryable | PostgreSQL,
-    {schema = null as string | null, exclude_schemas = null as string[] | null, ignore_extension_versions = false},
+    {schema = null as string | null, exclude_schema = null as string | string[] | null, ignore_extension_versions = false},
   ) {
     // deviation: python code checked if x_from and x_target were instances of DBInspector. This just insists on being passed valid SqlbagS instances
     const pg_from = await get_inspector(x_from, schema, exclude_schemas)
