@@ -125,6 +125,16 @@ async function getRegistryVersions(pkg: Pick<Pkg, 'name'>) {
   return Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
 }
 
+const _hmm = (why = 'hmm'): ListrTask<Ctx> => ({
+  title: `wait a bit because ${why}`,
+  task: async (ctx: Ctx, task: ListrTaskWrapper<Ctx, never, never>) => {
+    await task.prompt(ListrEnquirerPromptAdapter).run<string>({
+      type: 'Input',
+      message: `press enter to continue past ${why}`,
+    })
+  }
+})
+
 export const publish = async (input: PublishInput) => {
   const {sortPackageJson} = await import('sort-package-json')
   const tasks = new Listr(
