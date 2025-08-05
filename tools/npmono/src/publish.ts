@@ -125,14 +125,14 @@ async function getRegistryVersions(pkg: Pick<Pkg, 'name'>) {
   return Array.isArray(registryVersionsStdout) ? registryVersionsStdout : []
 }
 
-const _hmm = (why = 'hmm'): ListrTask<Ctx> => ({
+const _breakpoint = (why = 'hmm'): ListrTask<Ctx> => ({
   title: `wait a bit because ${why}`,
   task: async (ctx: Ctx, task: ListrTaskWrapper<Ctx, never, never>) => {
     await task.prompt(ListrEnquirerPromptAdapter).run<string>({
       type: 'Input',
       message: `press enter to continue past ${why}`,
     })
-  }
+  },
 })
 
 export const publish = async (input: PublishInput) => {
@@ -413,6 +413,18 @@ export const publish = async (input: PublishInput) => {
                 )
               },
             })),
+          )
+        },
+      },
+      {
+        title: 'Write changelogs',
+        task: async (ctx, task) => {
+          return task.newListr(
+            ctx.packages.map(pkg => ({
+              title: `Write ${pkg.name} changelog`,
+              task: async () => getOrCreateChangelog(ctx, pkg),
+            })),
+            {concurrent: true},
           )
         },
       },
@@ -770,49 +782,30 @@ async function getBumpedDependencies(ctx: Ctx, params: {pkg: Pkg}) {
   const rightPackageJson = loadRHSPackageJson(params.pkg)
   const rightPackageDependencies = {...rightPackageJson?.dependencies}
   const updates: Record<string, string> = {}
-  for (const [depName, depVersion] of Object.entries(rightPackageJson?.dependencies || {})) {
-    const foundDep = ctx.packages
-      .filter(other => other.name === depName)
-      .flatMap(other => {
-        const prefix = ['', '^', '~'].find(p => depVersion === p + other.version)
-        return prefix ? [{pkg: other, prefix}] : []
-      })
-      .find(Boolean)
 
-    if (!foundDep) {
-      continue
-    }
-
-    const leftPackageDependencyVersion = leftPackageJson?.dependencies?.[depName]
-
-    const dependencyPackageJsonOnRHS = loadRHSPackageJson(foundDep.pkg)
-    let expected = foundDep.pkg.targetVersion
+  for (const depName of Object.keys(params.pkg.dependencies || {})) {
+    const foundDep = ctx.packages.find(other => other.name === depName)
+    if (!foundDep)
+      throw new Error(`Package ${params.pkg.name} depends on ${depName} but ${depName} is not found in the workspace`)
+    let expected = foundDep.targetVersion
     if (!expected) {
-      // ok, looks like we're not publishing the dependency. That's fine, as long as there's an existing published version.
+      const dependencyPackageJsonOnRHS = loadRHSPackageJson(foundDep)
       expected = dependencyPackageJsonOnRHS?.version || null
     }
     if (!expected) {
       throw new Error(
-        `Package ${params.pkg.name} depends on ${foundDep.pkg.name} but ${foundDep.pkg.name} is not published, and no target version was set for publishing now. Did you opt to skip publishing ${foundDep.pkg.name}? If so, please re-run and make sure to publish ${foundDep.pkg.name}. You can't publish ${params.pkg.name} until you do that.`,
+        `Package ${params.pkg.name} depends on ${depName} but ${depName} is not published, and no target version was set for publishing now. Did you opt to skip publishing ${depName}? If so, please re-run and make sure to publish ${depName}. You can't publish ${params.pkg.name} until you do that.`,
       )
     }
-
-    // todo: figure out if this shortcut can be actually safe - it isn't right now because the local version doesn't necessarily match the registry version
-    // and we should probably be solving this by just filtering out packages that don't need to be published rather than trying to shortcut here
-    // if (registryPackageDependencyVersion && semver.satisfies(expected, registryPackageDependencyVersion)) {
-    //   // if the expected version is already satisfied by the registry version, then we don't need to bump it
-    //   continue
-    // }
-
-    let prefix = foundDep.prefix || leftPackageDependencyVersion?.match(/^[^~]/)?.[0] || ''
+    let prefix = ['^', '~', ''].find(p => rightPackageJson?.dependencies?.[depName]?.startsWith(p)) || ''
     if (semver.prerelease(expected)) {
-      // todo: consider making this configurable. but for now let's assume prereleases want to be in lockstep
       prefix = ''
     }
 
     rightPackageDependencies[depName] = prefix + expected
+    const leftPackageDependencyVersion = leftPackageJson?.dependencies?.[depName]
     updates[depName] =
-      `${leftPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName, registryPackageJson: dependencyPackageJsonOnRHS}, null, 2)} -> ${rightPackageDependencies[depName]}`
+      `${leftPackageDependencyVersion || JSON.stringify({params, name: depName, depName: depName}, null, 2)} -> ${rightPackageDependencies[depName]}`
   }
 
   if (Object.keys(updates).length === 0) {
@@ -858,6 +851,7 @@ async function getPackageRevList(pkg: Pkg) {
     mergeBaseNote,
   ]
   return {
+    commitBullets,
     // commitComparisonString,
     // versionComparisonString,
     markdown:
@@ -926,7 +920,8 @@ async function getChangelog(ctx: Ctx, pkg: Pkg) {
 
   const bumpedDeps = await getBumpedDependencies(ctx, {pkg})
 
-  for (const depPkg of workspaceDependencies(pkg, ctx)) {
+  // reverse order of pkg dependencies so the most interesting ones go first
+  for (const depPkg of workspaceDependencies(pkg, ctx).slice().reverse()) {
     const dep = depPkg.name
     if (bumpedDeps.updated[dep]) {
       const depChanges = await getChangelog(ctx, depPkg)
