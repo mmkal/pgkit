@@ -612,7 +612,7 @@ function createPublishTasks(ctx: Ctx, options: {otp?: string}) {
       task: async (_ctx, task) => {
         task.output = `To open a release draft, run the following command:`
         task.output += `\n\n`
-        task.output += `pnpm npmono release-notes ${ctx.tempDir}`
+        task.output += `pnpm npmono release-notes`
       },
     } as ListrTask,
   ]
@@ -638,6 +638,7 @@ export const ReleaseNotesInput = z.object({
     )
     .default('unified'),
 })
+
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
 
 async function pullRegistryPackage(
@@ -1201,6 +1202,7 @@ export async function releaseNotes(input: ReleaseNotesInput) {
       },
       {
         title: 'Generate release notes',
+        rendererOptions: {persistentOutput: true},
         task: async (ctx, task) => {
           const allChangelogs = await Promise.all(
             ctx.packages.map(async pkg => ({
@@ -1235,6 +1237,9 @@ export async function releaseNotes(input: ReleaseNotesInput) {
               }
               // await execa('open', [`${repoUrl}/releases/new?${new URLSearchParams(releaseParams).toString()}`])
               await openReleaseDraft(repoUrl, releaseParams)
+              task.output = 'Release draft opened'
+            } else {
+              task.output = 'Skipping release'
             }
           } else {
             for (const pkg of ctx.packages) {

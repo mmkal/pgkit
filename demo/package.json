@@ -10,7 +10,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "dependencies": {
     "@pgkit/client": "^0.5.0",
     "@pgkit/typegen": "^0.5.0"
