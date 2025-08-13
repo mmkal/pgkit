@@ -1429,7 +1429,7 @@ export class PostgreSQL extends DBInspector {
       att: 'dependent_on' | 'dependents',
     ): string[] => {
       const related = item[att].map((child: string) => this.get_dependency_by_signature(child))
-      return [item.signature, ...related.flatMap(d => get_related_for_item(d, att))]
+      return [item.signature, ...related.filter(d => d).flatMap(d => get_related_for_item(d, att))]
     }
 
     for (const [k, x] of Object.entries(this.selectables)) {
