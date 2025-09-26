@@ -32,6 +32,11 @@ export const PublishInput = z
       .boolean()
       .optional()
       .describe('skip pulling registry packages. Note: if publishing, the full history will appear in changelogs'),
+    scope: z
+      .string()
+      .regex(/^@[\w-_.]+$/)
+      .describe('change the scope of the package before publishing')
+      .optional(),
   })
   .refine(obj => !(obj.bump && obj.version), {message: `Don't use --bump and --version together`})
 export type PublishInput = z.infer<typeof PublishInput>
@@ -405,6 +410,11 @@ export const publish = async (input: PublishInput) => {
                   sha: sha.stdout,
                 }
 
+                if (input.scope) {
+                  const name = packageJson.name.split('/').at(-1)
+                  packageJson.name = `${input.scope}/${name}`
+                }
+
                 packageJson.dependencies = await getBumpedDependencies(ctx, {pkg}).then(r => r.dependencies)
 
                 fs.writeFileSync(
@@ -541,7 +551,7 @@ function loadContext(folderPath: string) {
     const json = JSON.parse(ctxString) as {}
     return Ctx.parse(json)
   } catch (e) {
-    throw new Error(`Invalid context at ${contextFilepath}: ${e}`)
+    throw new Error(`Invalid context at ${contextFilepath}: ${String(e)}`)
   }
 }
 
@@ -736,8 +746,10 @@ function getWorkspaceRoot() {
 /** "Pessimistic" comparison ref. Tries to use the registry package.json's `git.sha` property, and uses the first ever commit to the package folder if that can't be found. */
 async function getPackageLastPublishRef(pkg: Pkg) {
   const packageJson = loadLHSPackageJson(pkg)
-  return await getPackageJsonGitSha(pkg, packageJson)
+  return first7(await getPackageJsonGitSha(pkg, packageJson))
 }
+
+const first7 = (s: string) => s.slice(0, 7)
 
 async function getPackageJsonGitSha(pkg: Pkg, packageJson: PackageJson | null) {
   const explicitSha = packageJson?.git?.sha
