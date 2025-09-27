@@ -606,6 +606,11 @@ function createPublishTasks(ctx: Ctx, options: {otp?: string}) {
         task: async (_ctx, subtask) => {
           const publishArgs = ['--access', 'public']
           if (options.otp) publishArgs.push('--otp', options.otp)
+          if (rhsPackageJson && semver.prerelease(rhsPackageJson.version)) {
+            const first = semver.prerelease(rhsPackageJson.version)?.[0]
+            const tag = typeof first === 'string' ? first : 'next'
+            publishArgs.push('--tag', tag)
+          }
           await pipeExeca(subtask, 'pnpm', ['publish', ...publishArgs], {
             cwd: path.dirname(packageJsonFilepath(pkg, RHS_FOLDER)),
             env: {
@@ -647,6 +652,11 @@ export const ReleaseNotesInput = z.object({
       `Only relevant in a monorepo - 'unified' mode drafts one release with all packages' changes, 'individual' drafts one release per package.`,
     )
     .default('unified'),
+  scope: z
+    .string()
+    .regex(/^@[\w-_.]+$/)
+    .describe('check for packages with this scope too')
+    .optional(),
 })
 
 export type ReleaseNotesInput = z.infer<typeof ReleaseNotesInput>
@@ -1161,17 +1171,28 @@ export async function releaseNotes(input: ReleaseNotesInput) {
                     const packageJson = await pullRegistryPackage(subtask, pkg, {
                       version: pullable.str,
                       folder: pullable.folder,
-                    }).catch(async e => {
-                      if (`${e}`.includes('No matching version found')) {
-                        // if the version doesn't exist on the registry, we might have passed a comparison string from before it existed (can happen with fixed versioning)
-                        const versions = await getRegistryVersions(pkg)
-                        return pullRegistryPackage(subtask, pkg, {
-                          version: pullable.side === 'left' ? versions[0] : versions.at(-1)!,
-                          folder: pullable.folder,
-                        })
-                      }
-                      throw e
                     })
+                      .catch(e => {
+                        if (`${e}`.includes('No matching version found') && input.scope) {
+                          const scopedPkg = {...pkg, name: `${input.scope}/${pkg.name}`}
+                          return pullRegistryPackage(subtask, scopedPkg, {
+                            version: pullable.str,
+                            folder: pullable.folder,
+                          })
+                        }
+                        throw e
+                      })
+                      .catch(async e => {
+                        if (`${e}`.includes('No matching version found')) {
+                          // if the version doesn't exist on the registry, we might have passed a comparison string from before it existed (can happen with fixed versioning)
+                          const versions = await getRegistryVersions(pkg)
+                          return pullRegistryPackage(subtask, pkg, {
+                            version: pullable.side === 'left' ? versions[0] : versions.at(-1)!,
+                            folder: pullable.folder,
+                          })
+                        }
+                        throw e
+                      })
                     pkg.shas ||= {} as never
                     pkg.shas[pullable.side] = await getPackageJsonGitSha(pkg, packageJson)
                   } else if (/^[\da-f]+/.test(pullable.str)) {
