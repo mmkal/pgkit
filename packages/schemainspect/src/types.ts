@@ -46,6 +46,7 @@ export interface AllRelationsQuery {
     persistence:        Persistence;
     page_size_estimate: number;
     row_count_estimate: number;
+    reloptions:         string[] | null;
 }
 
 export type Datatype = "text" | "integer" | "circle" | "numeric" | "uuid" | "order_status" | "other.otherenum1" | "other.otherenum2" | "e" | "character varying" | "shipping_status" | "usage_dropped_enum" | "hstore" | "interval" | "bigint" | "timestamp without time zone" | "date" | "character varying(10)";

@@ -5,7 +5,7 @@
 import * as schemainspect from '@pgkit/schemainspect'
 import {asa, isa, BaseInspectedSelectable, pg} from '@pgkit/schemainspect'
 import {Statements} from './statements'
-import {sortKeys, differences} from './util'
+import {sortKeys, differences, isEqual} from './util'
 
 const {InspectedConstraint, InspectedEnum, InspectedExtension} = pg
 
@@ -397,6 +397,17 @@ function get_table_changes({
     if (v.rowsecurity !== before.rowsecurity) {
       const rls_alter = v.alter_rls_statement
       statements.append(rls_alter)
+    }
+
+    // Check for reloptions changes
+    // Sort arrays before comparison since order doesn't matter for reloptions
+    const before_opts = (before.reloptions || []).slice().sort()
+    const after_opts = (v.reloptions || []).slice().sort()
+    if (!isEqual(before_opts, after_opts) && v.is_table) {
+      const alter_reloptions = v.alter_reloptions_statement
+      if (alter_reloptions) {
+        statements.append(alter_reloptions)
+      }
     }
   }
 

@@ -38,7 +38,7 @@ const resource_text = (relativePath: string): string => {
 
 const CREATE_TABLE = `
   create {}table {} ({}
-      ){}{};
+      ){}{}{};
 `
 const CREATE_TABLE_SUBCLASS = `
   create {}table {} partition of {} {};
@@ -153,6 +153,10 @@ export class InspectedSelectable extends BaseInspectedSelectable {
   get create_statement(): string {
     const n = this.quoted_full_name
     let create_statement: string
+    let reloptions_clause = ''
+    if (this.reloptions && this.reloptions.length > 0) {
+      reloptions_clause = ` with (${this.reloptions.join(', ')})`
+    }
 
     if (['r', 'p'].includes(this.relationtype)) {
       if (this.is_partitioning_child_table) {
@@ -180,18 +184,18 @@ export class InspectedSelectable extends BaseInspectedSelectable {
           inherits_clause = ` inherits (${this.parent_table})`
         }
 
-        create_statement = format(CREATE_TABLE, this.persistence_modifier, n, colspec, partition_key, inherits_clause)
+        create_statement = format(CREATE_TABLE, this.persistence_modifier, n, colspec, partition_key, inherits_clause, reloptions_clause)
       }
     } else
       switch (this.relationtype) {
         case 'v': {
-          create_statement = `create or replace view ${n} as ${this.definition}\n`
+          create_statement = `create or replace view ${n}${reloptions_clause} as ${this.definition}\n`
 
           break
         }
 
         case 'm': {
-          create_statement = `create materialized view ${n} as ${this.definition}\n`
+          create_statement = `create materialized view ${n}${reloptions_clause} as ${this.definition}\n`
 
           break
         }
@@ -341,6 +345,24 @@ export class InspectedSelectable extends BaseInspectedSelectable {
   get alter_unlogged_statement(): string {
     const keyword = this.is_unlogged ? 'unlogged' : 'logged'
     return this.alter_table_statement(`set ${keyword}`)
+  }
+
+  get alter_reloptions_clause(): string | null {
+    if (this.reloptions && this.reloptions.length > 0) {
+      return `set (${this.reloptions.join(', ')})`
+    }
+    return null
+  }
+
+  get alter_reloptions_statement(): string | null {
+    if (!this.is_alterable) {
+      return null
+    }
+    const clause = this.alter_reloptions_clause
+    if (clause) {
+      return this.alter_table_statement(clause)
+    }
+    return null
   }
 }
 
@@ -1603,6 +1625,7 @@ export class PostgreSQL extends DBInspector {
         rowsecurity: f.rowsecurity,
         forcerowsecurity: f.forcerowsecurity,
         persistence: f.persistence,
+        reloptions: f.reloptions,
       })
 
       // const RELATIONTYPES = {
