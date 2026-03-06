@@ -16,7 +16,29 @@ const originalFixtures = getFixtures('python_parity', originalFixturesDir).map(f
 const newFixturesDir = path.join(__dirname, 'NEW_FIXTURES')
 const newFixtures = getFixtures('new_features', newFixturesDir).map(f => [f] as const)
 
+const assertPythonMigraAvailable = async () => {
+  const {execa} = await import('execa')
+  try {
+    await execa('migra', ['--help'], {
+      cwd: process.cwd(),
+      env: process.env,
+    })
+  } catch (e) {
+    const isENOENT = e && typeof e === 'object' && 'code' in e && e.code === 'ENOENT'
+    if (isENOENT) {
+      throw new Error(
+        'Python migra CLI is not installed or not on PATH. Install it with:\n' +
+          '  uv tool install migra==3.0.1663481299 --python 3.12 --with setuptools==80.7.1 --with psycopg2-binary==2.9.10\n' +
+          '(requires uv: https://docs.astral.sh/uv)',
+        {cause: e},
+      )
+    }
+    throw e
+  }
+}
+
 test('python migra CLI is installed and on PATH', async () => {
+  await assertPythonMigraAvailable()
   const {execa} = await import('execa')
   const {stdout} = await execa('migra', ['--help'], {
     cwd: process.cwd(),
@@ -29,6 +51,7 @@ test('python migra CLI is installed and on PATH', async () => {
 test.each(originalFixtures)(
   '%j python parity migra fixture',
   async ({name, args, ...fixture}) => {
+    await assertPythonMigraAvailable()
     expect(name).toMatch(/^[\d_a-z]+$/)
     const [a, b] = await fixture.setup(admin)
 
