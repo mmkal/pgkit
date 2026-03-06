@@ -24,6 +24,8 @@ export const getEnumTypes = memoizeQueryFn(async pool => {
       pg_type as t
     on
       t.oid = e.enumtypid
+    where
+      t.typnamespace in (select oid from pg_namespace)
     order by
       t.typnamespace::regnamespace::text,
       t.typname,
@@ -38,6 +40,7 @@ export const getRegtypeToPgTypnameMapping = memoizeQueryFn(async pool => {
     select oid, typname, oid::regtype as regtype
     from pg_type
     where oid is not null
+      and typnamespace in (select oid from pg_namespace)
   `)
 
   return lodash.keyBy(types, t => t.regtype!)

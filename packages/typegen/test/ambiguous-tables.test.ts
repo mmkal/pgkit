@@ -8,23 +8,24 @@ export const {typegenOptions, logger, poolHelper: helper} = getHelper({__filenam
 beforeEach(async () => {
   await helper.setupDb()
 
+  // Drop and recreate non-public schemas separately to avoid stale prepared statement plans
+  // from interfering with type resolution across schema drops.
   await helper.pool.query(helper.sql`
     drop schema if exists ambiguous_tables_1 cascade;
     drop schema if exists ambiguous_tables_2 cascade;
-
     create schema ambiguous_tables_1;
     create schema ambiguous_tables_2;
+  `)
 
-    -- default schema
+  await helper.pool.query(helper.sql`
     create type test_enum as enum('default_schema_A', 'default_schema_B', 'default_schema_C');
-    -- specific schema
     create type ambiguous_tables_1.test_enum as enum('schema1_A', 'schema1_B', 'schema1_C');
-    -- another specific schema
     create type ambiguous_tables_2.test_enum as enum('schema2_A', 'schema2_B', 'schema2_C');
+  `)
 
+  await helper.pool.query(helper.sql`
     create table ambiguous_tables_1.test_table(id int not null, e ambiguous_tables_1.test_enum, eee test_enum not null);
     create table ambiguous_tables_2.test_table(id int, e ambiguous_tables_2.test_enum);
-
     comment on column ambiguous_tables_1.test_table.id is 'This is a comment for ambiguous_tables_1.test_table.id';
     comment on column ambiguous_tables_2.test_table.id is 'This is a comment for ambiguous_tables_2.test_table.id';
   `)
