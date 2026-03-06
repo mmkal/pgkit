@@ -5,6 +5,13 @@
     "packageManager": "pnpm@9.4.0",
     "private": true,
     "scripts": {
+        "typegen": "cd packages/typegen && pnpm",
+        "client": "cd packages/client && pnpm",
+        "migrator": "cd packages/migrator && pnpm",
+        "schemainspect": "cd packages/schemainspect && pnpm",
+        "migra": "cd packages/migra && pnpm",
+        "pgkit": "cd packages/pgkit && pnpm",
+        "admin": "cd packages/admin && pnpm",
         "npmono": "cd tools/npmono && pnpm dogfood",
         "build": "turbo build",
         "test": "pnpm --recursive --workspace-concurrency 1 test"
