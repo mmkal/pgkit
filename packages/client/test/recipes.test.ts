@@ -230,7 +230,7 @@ test('switchable clients', async () => {
         let clientToUse = patientClient
         // Simple check: route readonly queries to a readonly connection.
         // You could use a more sophisticated approach depending on your needs.
-        const trimmed = query.sql.replace(/\s+/g, ' ').trim().toLowerCase()
+        const trimmed = query.sql.replaceAll(/\s+/g, ' ').trim().toLowerCase()
         const isReadonly = trimmed.startsWith('select') || (trimmed.startsWith('with') && /\)\s*select\b/.test(trimmed))
         if (isReadonly) {
           clientToUse = impatientClient

@@ -1116,16 +1116,12 @@ const appClient = createClient(client.connectionString(), {
   wrapQueryFn: _queryFn => {
     return async query => {
       let clientToUse = patientClient
-      try {
-        // use https://www.npmjs.com/package/pgsql-ast-parser - just an example, you may want to do something like route
-        // readonly queries to a readonly connection, and others to a readwrite connection.
-        const parsed = pgSqlAstParser.parse(query.sql)
-        if (parsed.every(statement => statement.type === 'select')) {
-          // we know this is a select statement, use the client with the short timeout
-          clientToUse = impatientClient
-        }
-      } catch {
-        // couldn't parse the query, use the default client
+      // Simple check: route readonly queries to a readonly connection.
+      // You could use a more sophisticated approach depending on your needs.
+      const trimmed = query.sql.replace(/\s+/g, ' ').trim().toLowerCase()
+      const isReadonly = trimmed.startsWith('select') || (trimmed.startsWith('with') && /\)\s*select\b/.test(trimmed))
+      if (isReadonly) {
+        clientToUse = impatientClient
       }
 
       return clientToUse.query(query)

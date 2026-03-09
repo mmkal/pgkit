@@ -182,7 +182,7 @@ export const nickname = (query: string) => {
     // Helper: grab next identifier (non-punctuation token) if present
     const grabName = () => {
       const name = sqlTokens[i + 1]
-      if (name && !/^[;,()=<>!+\-*/.]+$/.test(name) && !statementKeywords.has(name.toLowerCase())) {
+      if (name && !/^[!()*+,./;<=>\-]+$/.test(name) && !statementKeywords.has(name.toLowerCase())) {
         parts.push(name)
         i++
       }
@@ -229,7 +229,7 @@ export const nickname = (query: string) => {
     }
 
     // SET in UPDATE ... SET col = val
-    if (lower === 'set' && parts.some(p => p === 'update')) {
+    if (lower === 'set' && parts.includes('update')) {
       parts.push('set')
       grabName()
       continue
