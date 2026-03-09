@@ -41,7 +41,7 @@
     "vitest": "^1.2.2"
   },
   "dependencies": {
-    "@inquirer/prompts": "^5.0.4",
+    "@inquirer/prompts": "^7.10.1",
     "@pgkit/client": "workspace:^",
     "@pgkit/formatter": "workspace:^",
     "@pgkit/migra": "workspace:^",
