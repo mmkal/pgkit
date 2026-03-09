@@ -253,7 +253,7 @@ test('no snapshot serializer - exclude from readme', async () => {
     `
     disable-snapshot-serializer
 
-    [QueryError: [select_6955765]: Executing query failed (syntax_error)
+    [QueryError: [select-whoops_6955765]: Executing query failed (syntax_error)
 
     syntax error at or near "."
 
@@ -445,7 +445,7 @@ test('no snapshot serializer - exclude from readme', async () => {
           '    from whoops information_schema.tables;\\n' +
           '  ',
         parse: [Function: parse],
-        name: 'select_6955765',
+        name: 'select-whoops_6955765',
         token: 'sql',
         values: [],
         segments: [Function: segments],
