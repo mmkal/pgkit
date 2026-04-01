@@ -4,6 +4,7 @@ import {AutoThisAssigner, SomeOptional, SomeRequired} from './auto-this'
 import {AutoRepr, quoted_identifier, quotify, unquoted_identifier} from './misc'
 import {InspectedConstraint, InspectedEnum, InspectedIndex} from './pg'
 import {Relationtype} from './types'
+import {isEqual} from './util'
 
 export const pick = <T extends {}, K extends keyof T>(obj: T, keys: readonly K[]): Pick<T, K> => {
   return Object.fromEntries(keys.map(k => [k, obj[k]])) as Pick<T, K>
@@ -19,7 +20,7 @@ export abstract class Inspected extends AutoRepr {
   abstract get create_statement(): string
 
   equals(other: Inspected): boolean {
-    return JSON.stringify(this) === JSON.stringify(other)
+    return isEqual(this.toJSON(), other.toJSON())
   }
 
   get quoted_full_name() {
@@ -87,7 +88,7 @@ export class ColumnInfo extends AutoThisAssigner<ColumnInfoOptions, typeof AutoR
   }
 
   equals(other: ColumnInfo): boolean {
-    return JSON.stringify(this) === JSON.stringify(other)
+    return isEqual(this, other)
   }
 
   alter_clauses(other: ColumnInfo) {
