@@ -2040,6 +2040,6 @@ export class PostgreSQL extends DBInspector {
   }
 
   equals(other: PostgreSQL): boolean {
-    return JSON.stringify(this) === JSON.stringify(other)
+    return isEqual(this, other)
   }
 }
