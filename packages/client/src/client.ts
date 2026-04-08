@@ -1,6 +1,4 @@
-import * as crypto from 'node:crypto'
-import TypeOverrides from 'pg/lib/type-overrides'
-import pgPromise from 'pg-promise'
+import {createPgPromiseDriver} from './drivers/pg-promise'
 import {QueryError, errorFromUnknown} from './errors'
 import {createSqlTag} from './sql'
 import {applyRecommendedTypeParsers} from './type-parsers'
@@ -10,6 +8,8 @@ import {
   SQLQueryRowType,
   ClientOptions,
   Connection,
+  DriverInfo,
+  DriverScope,
   Transaction,
   Result,
   DriverQueryable,
@@ -111,6 +111,18 @@ export const createQueryFn = (pgpQueryable: DriverQueryable): Queryable['query']
   }
 }
 
+const getCompatibilityProps = (info: DriverInfo) => {
+  const {name: _name, raw: _raw, ...compatibilityProps} = info
+  return compatibilityProps
+}
+
+const createTransactionFactory = (
+  scope: Pick<DriverScope, 'transaction'>,
+  createTransaction: (transactionScope: DriverScope) => Transaction,
+): Connection['transaction'] => {
+  return async callback => scope.transaction(async transaction => callback(createTransaction(transaction)))
+}
+
 export const createClient = (connectionString: string, options: ClientOptions = {}): Client => {
   if (typeof connectionString !== 'string') throw new Error(`Expected connectionString, got ${typeof connectionString}`)
   if (!connectionString) throw new Error(`Expected a valid connectionString, got "${connectionString}"`)
@@ -121,62 +133,54 @@ export const createClient = (connectionString: string, options: ClientOptions = 
     ...options,
   }
 
-  const types = new TypeOverrides()
-  // note: this should be done "high up" in the app: https://stackoverflow.com/questions/34382796/where-should-i-initialize-pg-promise
-  const initializedPgPromise = pgPromise(options.pgpOptions?.initialize)
-
-  options.applyTypeParsers?.({
-    setTypeParser: (id, parseFn) => types.setTypeParser(id, parseFn as (input: unknown) => unknown),
-    builtins: initializedPgPromise.pg.types.builtins,
-  })
+  const driver = options.driver ?? createPgPromiseDriver(options.pgpOptions)
 
   const createWrappedQueryFn: typeof createQueryFn = queryable => {
     const queryFn = createQueryFn(queryable)
     return options.wrapQueryFn ? options.wrapQueryFn(queryFn) : queryFn
   }
 
-  const pgPromiseClient = initializedPgPromise({
+  const runtime = driver.create({
     connectionString,
-    types,
-    ...options.pgpOptions?.connect,
+    applyTypeParsers: options.applyTypeParsers,
   })
 
-  const transactionFnFromTask =
-    <U>(task: pgPromise.ITask<U> | pgPromise.IDatabase<U>): Connection['transaction'] =>
-    async txCallback => {
-      return task.tx({tag: crypto.randomUUID()}, async tx => {
-        const pgSuiteTransaction: Transaction = {
-          ...createQueryable(createWrappedQueryFn(tx)),
-          transactionInfo: {pgp: tx},
-          connectionInfo: {pgp: task},
-          transaction: transactionFnFromTask(tx),
-        }
-        return txCallback(pgSuiteTransaction)
-      })
+  const createTransaction = (transactionScope: DriverScope, connectionInfo: DriverInfo): Transaction => {
+    return {
+      ...getCompatibilityProps(transactionScope.info),
+      ...createQueryable(createWrappedQueryFn(transactionScope.queryable)),
+      transactionInfo: transactionScope.info,
+      connectionInfo,
+      transaction: createTransactionFactory(transactionScope, nested => createTransaction(nested, connectionInfo)),
     }
-
-  const taskMethod: Client['task'] = async callback => {
-    return pgPromiseClient.task({tag: crypto.randomUUID()}, async task => {
-      const connectionInfo: Connection['connectionInfo'] = {pgp: task}
-      const pgSuiteConnection: Connection = {
-        connectionInfo,
-        transaction: transactionFnFromTask(task),
-        ...createQueryable(createWrappedQueryFn(task)),
-      }
-
-      return callback(pgSuiteConnection)
-    })
   }
+
+  const createConnection = (connectionScope: DriverScope): Connection => {
+    const connectionInfo = connectionScope.info
+    return {
+      ...getCompatibilityProps(connectionInfo),
+      ...createQueryable(createWrappedQueryFn(connectionScope.queryable)),
+      connectionInfo,
+      transaction: createTransactionFactory(connectionScope, transaction =>
+        createTransaction(transaction, connectionInfo),
+      ),
+    }
+  }
+
+  const taskMethod: Client['task'] = async callback =>
+    runtime.connect(async connection => callback(createConnection(connection)))
 
   return {
     options,
-    pgp: pgPromiseClient,
+    ...getCompatibilityProps(runtime.info),
+    driverInfo: runtime.info,
     pgpOptions: options.pgpOptions || {},
-    ...createQueryable(createWrappedQueryFn(pgPromiseClient)),
+    ...createQueryable(createWrappedQueryFn(runtime.queryable)),
     connectionString: () => connectionString,
-    end: async () => pgPromiseClient.$pool.end(),
+    end: async () => runtime.end(),
     connect: taskMethod,
     task: taskMethod,
-    transaction: transactionFnFromTask(pgPromiseClient),
+    transaction: async callback =>
+      runtime.transaction(async transaction => callback(createTransaction(transaction, runtime.info))),
   }
 }
