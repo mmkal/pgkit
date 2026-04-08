@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import pgPromise from 'pg-promise'
 import {StandardSchemaV1} from './standard-schema/contract'
 
 export interface SQLQuery<Row = Record<string, unknown>, Values extends unknown[] = unknown[]> {
@@ -45,6 +44,28 @@ export interface Result<Row> {
 
 export type DriverQueryable = {
   result: <T>(query: string, values?: unknown[]) => Promise<Result<T>>
+}
+
+export type DriverInfo = {
+  name: string
+  raw: unknown
+} & Record<string, unknown>
+
+export interface DriverScope {
+  info: DriverInfo
+  queryable: DriverQueryable
+  transaction<T>(callback: (transaction: DriverScope) => Promise<T>): Promise<T>
+}
+
+export interface ClientDriver {
+  name: string
+  create(params: {connectionString: string; applyTypeParsers?: ApplyTypeParsers}): {
+    info: DriverInfo
+    queryable: DriverQueryable
+    end(): Promise<void>
+    connect<T>(callback: (connection: DriverScope) => Promise<T>): Promise<T>
+    transaction<T>(callback: (transaction: DriverScope) => Promise<T>): Promise<T>
+  }
 }
 
 export interface Queryable {
@@ -120,17 +141,18 @@ export interface Transactable extends SQLQueryable {
 }
 export interface Connection extends Transactable {
   // todo: consolidate this with `transactionInfo`, and include a nullable `parent` property
-  connectionInfo: {pgp: pgPromise.ITask<unknown> | pgPromise.IDatabase<unknown>}
+  connectionInfo: DriverInfo
 }
 
 export interface Transaction extends Connection {
-  transactionInfo: {pgp: pgPromise.ITask<unknown>}
+  transactionInfo: DriverInfo
 }
 
 export interface Client extends SQLQueryable {
   options: ClientOptions
-  pgp: ReturnType<ReturnType<typeof pgPromise>>
-  pgpOptions: PGPOptions
+  driverInfo: DriverInfo
+  pgp?: unknown
+  pgpOptions?: PGPOptions
   connectionString(): string
   end(): Promise<void>
   connect<T>(callback: (connection: Connection) => Promise<T>): Promise<T>
@@ -278,19 +300,15 @@ export type SQLMethodHelpers = {
 /** the full type for the `sql` tag - callable function, helpers and all */
 export type SQLTag = SQLTagFunction & SQLTagHelpers & SQLMethodHelpers
 
-/** Called `pgp` in pg-promise docs  */
-export type PGPromiseInitializer = typeof pgPromise
-/** Called `IMain` in pg-promise */
-export type PGPromiseDBConnector = ReturnType<PGPromiseInitializer>
-/** Looks like `[cn: string | pg.IConnectionParameters<pg.IClient>, dc?: any]` in pg-promise */
-export type PGPromiseDBConnectorParameters = Parameters<PGPromiseDBConnector>
-/** Looks like `pg.IConnectionParameters<pg.IClient>` in pg-promise */
-export type PGPromiseDBConnectionOptions = Exclude<PGPromiseDBConnectorParameters[0], string>
+export type PGPromiseInitializer = unknown
+export type PGPromiseDBConnector = unknown
+export type PGPromiseDBConnectorParameters = unknown[]
+export type PGPromiseDBConnectionOptions = Record<string, unknown>
 
-export type PGTypes = ReturnType<typeof import('pg-promise')>['pg']['types']
+export type PGTypes = typeof import('pg').types
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 export type ParseFn = Extract<Parameters<PGTypes['setTypeParser']>[number], Function>
-export type PGTypesBuiltins = PGTypes['builtins']
+export type PGTypesBuiltins = typeof import('pg').types.builtins
 export type PGTypesBuiltinOid = PGTypesBuiltins[keyof PGTypesBuiltins]
 
 export type ApplyTypeParsers = (params: {
@@ -299,11 +317,12 @@ export type ApplyTypeParsers = (params: {
 }) => void
 
 export type PGPOptions = {
-  initialize?: pgPromise.IInitOptions
+  initialize?: unknown
   connect?: PGPromiseDBConnectionOptions
 }
 
 export interface ClientOptions {
+  driver?: ClientDriver
   pgpOptions?: PGPOptions
   applyTypeParsers?: ApplyTypeParsers
   wrapQueryFn?: (queryFn: SQLQueryable['query']) => SQLQueryable['query']

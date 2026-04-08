@@ -1,4 +1,3 @@
-import pgPromise from 'pg-promise'
 import {QueryError} from './errors'
 import {nameQuery} from './naming'
 import {StandardSchemaV1} from './standard-schema/contract'
@@ -22,6 +21,11 @@ const maybeAsyncMap = <T, U>(thing: T | Promise<T>, map: (value: T) => U): U | P
     return (thing as {then: (mapper: typeof map) => Promise<U>}).then(map)
   }
   return map(thing as T)
+}
+
+const escapeLiteralValue = (value: string) => {
+  const escapedQuotes = value.replaceAll("'", "''")
+  return value.includes('\\') ? `E'${escapedQuotes.replaceAll('\\', '\\\\')}'` : `'${escapedQuotes}'`
 }
 
 /**
@@ -112,7 +116,7 @@ const sqlFnInner = (
 
       case 'literalValue': {
         const [value] = param.args
-        segments.push(pgPromise.as.value(value))
+        segments.push(escapeLiteralValue(value))
         break
       }
 

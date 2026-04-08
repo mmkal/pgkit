@@ -59,7 +59,7 @@ export const setup = async (url: string, admin: Client, prefix: string, fixtures
 
   await pool.query(sql.raw(query))
 
-  await pool.pgp.$pool.end()
+  await pool.end()
 }
 
 export const getFixtures = (prefix: string, fixturesDir: string) => {
