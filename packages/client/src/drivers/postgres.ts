@@ -2,7 +2,10 @@ import {types as pgTypes} from 'pg'
 import {ClientDriver, DriverInfo, DriverQueryable, DriverScope, ParseFn, PGTypesBuiltins} from '../types'
 
 type PostgresSql = {
-  unsafe<T>(query: string, values: unknown[]): Promise<T[] & {columns?: Array<{name: string; type: number}>; command: string; count: number}>
+  unsafe<T>(
+    query: string,
+    values: unknown[],
+  ): Promise<T[] & {columns?: Array<{name: string; type: number}>; command: string; count: number}>
   reserve(): Promise<PostgresSql & {release(): Promise<void>}>
   begin<T>(callback: (sql: PostgresSql) => Promise<T>): Promise<T>
   savepoint<T>(callback: (sql: PostgresSql) => Promise<T>): Promise<T>
@@ -24,7 +27,10 @@ const createQueryable = (sql: PostgresSql): DriverQueryable => ({
     const result = await sql.unsafe<T[]>(query, values ?? [])
     return {
       rows: result as unknown as T[],
-      fields: (result.columns ?? []).map((column: {name: string; type: number}) => ({name: column.name, dataTypeID: column.type})),
+      fields: (result.columns ?? []).map((column: {name: string; type: number}) => ({
+        name: column.name,
+        dataTypeID: column.type,
+      })),
       command: result.command,
       rowCount: result.count,
     }
@@ -55,10 +61,13 @@ const createScope = (sql: PostgresSql, connectionInfo: DriverInfo, inTransaction
   },
 })
 
-const createPostgresTypes = (builtins: PGTypesBuiltins, applyTypeParsers?: (params: {
-  setTypeParser: (oid: number, parseFn: ParseFn) => void
-  builtins: PGTypesBuiltins
-}) => void) => {
+const createPostgresTypes = (
+  builtins: PGTypesBuiltins,
+  applyTypeParsers?: (params: {
+    setTypeParser: (oid: number, parseFn: ParseFn) => void
+    builtins: PGTypesBuiltins
+  }) => void,
+) => {
   if (!applyTypeParsers) return undefined
   const parsers = new Map<number, ParseFn>()
   applyTypeParsers({
@@ -81,7 +90,7 @@ export const createPostgresDriver = (options: PostgresDriverOptions = {}): Clien
   name: 'postgres',
   create({connectionString, applyTypeParsers}) {
     const postgres = getPostgres()
-    const builtins = pgTypes.builtins as PGTypesBuiltins
+    const builtins = pgTypes.builtins
     const sql = postgres(connectionString, {
       ...options,
       types: {

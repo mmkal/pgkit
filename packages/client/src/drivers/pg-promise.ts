@@ -34,7 +34,9 @@ const createScope = (queryable: PgPromiseTask, connectionInfo: DriverInfo): Driv
   info: createInfo(queryable),
   queryable: createQueryable(queryable),
   transaction: async callback => {
-    return queryable.tx({tag: crypto.randomUUID()}, async transaction => callback(createScope(transaction, connectionInfo)))
+    return queryable.tx({tag: crypto.randomUUID()}, async transaction =>
+      callback(createScope(transaction, connectionInfo)),
+    )
   },
 })
 

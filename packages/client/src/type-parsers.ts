@@ -6,8 +6,8 @@ export const pgTypes: PGTypes = nodePgTypes
 export const applyRecommendedTypeParsers: ApplyTypeParsers = ({setTypeParser, builtins}) => {
   setTypeParser(builtins.DATE, value => new Date(String(value)))
   setTypeParser(builtins.TIMESTAMPTZ, value => new Date(String(value)))
-  setTypeParser(builtins.TIMESTAMP, value => String(value))
-  setTypeParser(builtins.INTERVAL, value => String(value))
+  setTypeParser(builtins.TIMESTAMP, String)
+  setTypeParser(builtins.INTERVAL, String)
   setTypeParser(builtins.NUMERIC, Number)
   setTypeParser(builtins.INT2, Number)
   setTypeParser(builtins.INT4, Number)
@@ -22,6 +22,6 @@ export const applySlonik37TypeParsers: ApplyTypeParsers = ({setTypeParser, built
   setTypeParser(builtins.DATE, value => new Date(String(value)))
   setTypeParser(builtins.TIMESTAMPTZ, value => new Date(String(value)).getTime())
   setTypeParser(builtins.TIMESTAMP, value => new Date(String(value)).getTime())
-  setTypeParser(builtins.INTERVAL, value => String(value))
+  setTypeParser(builtins.INTERVAL, String)
   setTypeParser(builtins.NUMERIC, Number)
 }

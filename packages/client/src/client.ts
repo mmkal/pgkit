@@ -1,5 +1,5 @@
-import {QueryError, errorFromUnknown} from './errors'
 import {createPgPromiseDriver} from './drivers/pg-promise'
+import {QueryError, errorFromUnknown} from './errors'
 import {createSqlTag} from './sql'
 import {applyRecommendedTypeParsers} from './type-parsers'
 import {
@@ -161,11 +161,14 @@ export const createClient = (connectionString: string, options: ClientOptions = 
       ...getCompatibilityProps(connectionInfo),
       ...createQueryable(createWrappedQueryFn(connectionScope.queryable)),
       connectionInfo,
-      transaction: createTransactionFactory(connectionScope, transaction => createTransaction(transaction, connectionInfo)),
+      transaction: createTransactionFactory(connectionScope, transaction =>
+        createTransaction(transaction, connectionInfo),
+      ),
     }
   }
 
-  const taskMethod: Client['task'] = async callback => runtime.connect(async connection => callback(createConnection(connection)))
+  const taskMethod: Client['task'] = async callback =>
+    runtime.connect(async connection => callback(createConnection(connection)))
 
   return {
     options,
@@ -177,6 +180,7 @@ export const createClient = (connectionString: string, options: ClientOptions = 
     end: async () => runtime.end(),
     connect: taskMethod,
     task: taskMethod,
-    transaction: async callback => runtime.transaction(async transaction => callback(createTransaction(transaction, runtime.info))),
+    transaction: async callback =>
+      runtime.transaction(async transaction => callback(createTransaction(transaction, runtime.info))),
   }
 }

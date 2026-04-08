@@ -23,7 +23,9 @@ test('postgres driver', async () => {
 
   try {
     await expect(client.one(sql`select 1 as value`)).resolves.toEqual({value: 1})
-    await expect(client.connect(async conn => conn.transaction(async tx => tx.one(sql`select 3 as value`)))).resolves.toEqual({value: 3})
+    await expect(
+      client.connect(async conn => conn.transaction(async tx => tx.one(sql`select 3 as value`))),
+    ).resolves.toEqual({value: 3})
   } finally {
     await client.end()
   }

@@ -1,11 +1,15 @@
 import * as crypto from 'node:crypto'
-import TypeOverrides from 'pg/lib/type-overrides'
 import {Pool, PoolClient, PoolConfig, types as pgTypes} from 'pg'
+import TypeOverrides from 'pg/lib/type-overrides'
 import {ClientDriver, DriverInfo, DriverQueryable, DriverScope} from '../types'
 
 const createInfo = (raw: unknown): DriverInfo => ({name: 'pg', raw})
 
-const toResult = async <T>(queryable: {query(query: string, values?: unknown[]): Promise<any>}, query: string, values?: unknown[]) => {
+const toResult = async <T>(
+  queryable: {query(query: string, values?: unknown[]): Promise<any>},
+  query: string,
+  values?: unknown[],
+) => {
   const result = await queryable.query(query, values)
   return {
     rows: result.rows as T[],
