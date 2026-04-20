@@ -275,6 +275,7 @@ export interface BaseInspectedSelectableOptions {
   rowsecurity?: boolean
   forcerowsecurity?: boolean
   persistence?: any
+  reloptions?: string[] | null
 }
 
 export abstract class BaseInspectedSelectable extends AutoThisAssigner<
@@ -312,6 +313,7 @@ export abstract class BaseInspectedSelectable extends AutoThisAssigner<
       'partition_def',
       'rowsecurity',
       'persistence',
+      'reloptions',
     ])
   }
 }
