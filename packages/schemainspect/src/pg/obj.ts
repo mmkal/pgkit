@@ -1427,16 +1427,24 @@ export class PostgreSQL extends DBInspector {
     const get_related_for_item = (
       item: InspectedSelectable | InspectedTrigger | InspectedEnum,
       att: 'dependent_on' | 'dependents',
+      visited: Set<string> = new Set(),
     ): string[] => {
+      if (visited.has(item.signature)) {
+        return []
+      }
+      visited.add(item.signature)
       const related = item[att].map((child: string) => this.get_dependency_by_signature(child))
-      return [item.signature, ...related.filter(d => d).flatMap(d => get_related_for_item(d, att))]
+      return [item.signature, ...related.filter(d => d).flatMap(d => get_related_for_item(d, att, visited))]
     }
 
     for (const [k, x] of Object.entries(this.selectables)) {
-      let d_all = get_related_for_item(x, 'dependent_on').slice(1)
+      const rootSig = x.signature
+      // Get all dependencies and remove the root item itself (first occurrence via slice(1))
+      // Then filter out any remaining occurrences of root (from circular dependencies)
+      let d_all = get_related_for_item(x, 'dependent_on').slice(1).filter(sig => sig !== rootSig)
       d_all.sort()
       x.dependent_on_all = d_all
-      d_all = get_related_for_item(x, 'dependents').slice(1)
+      d_all = get_related_for_item(x, 'dependents').slice(1).filter(sig => sig !== rootSig)
       d_all.sort()
       x.dependents_all = d_all
     }
